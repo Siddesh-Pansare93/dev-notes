@@ -564,9 +564,12 @@
 
   <script>
   // ── Mermaid diagram zoom lens (Amazon-style magnifier) ─────────────────────
+  // Uses SVG viewBox manipulation instead of CSS transforms — no positioning
+  // math, guaranteed content, works with any mermaid diagram size.
   (function () {
     const ZOOM = 2.5;
-    const R    = 110;   // lens radius → 220px diameter
+    const R    = 110;   // lens radius → 220 px diameter
+    const D    = R * 2;
 
     function attachZoom(svg) {
       if (svg.hasAttribute('data-mz')) return;
@@ -575,7 +578,7 @@
       const mermaidEl = svg.closest('.mermaid');
       if (!mermaidEl) return;
 
-      // ── build DOM ──────────────────────────────────────────────────────────
+      // ── wrap ───────────────────────────────────────────────────────────────
       const wrapper = document.createElement('div');
       wrapper.className = 'mz-wrapper';
       mermaidEl.parentNode.insertBefore(wrapper, mermaidEl);
@@ -590,48 +593,31 @@
         '</svg> Hover to zoom';
       wrapper.appendChild(hint);
 
-      const lens  = document.createElement('div');
+      // Lens: circular clip window
+      const lens = document.createElement('div');
       lens.className = 'mz-lens';
-
-      const inner = document.createElement('div');
-      inner.className = 'mz-inner';
-
-      lens.appendChild(inner);
       wrapper.appendChild(lens);
 
-      // ── lazy clone: built once on first hover ──────────────────────────────
-      let ready = false;
-      function ensureClone() {
-        if (ready) return;
-        ready = true;
-        const wRect   = wrapper.getBoundingClientRect();
-        const svgRect = svg.getBoundingClientRect();
-        inner.style.width  = wRect.width  + 'px';
-        inner.style.height = wRect.height + 'px';
-
-        const clone = svg.cloneNode(true);
+      // ── lazy clone — built once on first hover ─────────────────────────────
+      let clone = null;
+      function buildClone() {
+        if (clone) return;
+        clone = svg.cloneNode(true);
         clone.removeAttribute('id');
-        // keep original pixel dimensions so clone renders identically
-        clone.style.width  = svgRect.width  + 'px';
-        clone.style.height = svgRect.height + 'px';
-        clone.style.display = 'block';
-        // position clone at same offset as original svg within wrapper
-        const svgOffLeft = svgRect.left - wRect.left;
-        const svgOffTop  = svgRect.top  - wRect.top;
-        clone.style.position = 'absolute';
-        clone.style.left = svgOffLeft + 'px';
-        clone.style.top  = svgOffTop  + 'px';
-        inner.appendChild(clone);
+        // Fill the lens exactly; viewBox controls what region is shown
+        clone.style.cssText = 'display:block;width:' + D + 'px;height:' + D + 'px;';
+        clone.removeAttribute('width');
+        clone.removeAttribute('height');
+        lens.appendChild(clone);
       }
 
       // ── events ─────────────────────────────────────────────────────────────
       let raf;
 
       wrapper.addEventListener('mouseenter', () => {
-        ensureClone();
+        buildClone();
         lens.classList.add('mz-on');
       });
-
       wrapper.addEventListener('mouseleave', () => {
         lens.classList.remove('mz-on');
         cancelAnimationFrame(raf);
@@ -640,36 +626,51 @@
       wrapper.addEventListener('mousemove', (e) => {
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
-          const rect = wrapper.getBoundingClientRect();
-          const cx = e.clientX - rect.left;   // cursor in wrapper coords
-          const cy = e.clientY - rect.top;
+          const wRect = wrapper.getBoundingClientRect();
+          const cx = e.clientX - wRect.left;
+          const cy = e.clientY - wRect.top;
 
-          // lens: centered on cursor
+          // Center lens on cursor
           lens.style.left = (cx - R) + 'px';
           lens.style.top  = (cy - R) + 'px';
 
-          // inner: offset so its coord system aligns with wrapper's
-          //   inner-coord = wrapper-coord  (proven below)
-          //   inner is at (-(cx-R), -(cy-R)) inside lens →
-          //   a wrapper-point (px,py) appears in lens at (px-(cx-R), py-(cy-R))
-          //   at cursor: (cx-(cx-R), cy-(cy-R)) = (R, R) = lens centre ✓
-          inner.style.left = -(cx - R) + 'px';
-          inner.style.top  = -(cy - R) + 'px';
+          if (!clone) return;
 
-          // scale from the cursor position in inner-coord space (= wrapper coords)
-          inner.style.transformOrigin = cx + 'px ' + cy + 'px';
-          inner.style.transform       = 'scale(' + ZOOM + ')';
+          // Map cursor pixel position → SVG viewBox coordinates
+          const sRect = svg.getBoundingClientRect();
+          const vb    = svg.viewBox.baseVal;
+          // Fall back to pixel size if mermaid didn't set a viewBox
+          const vbW = vb.width  || sRect.width;
+          const vbH = vb.height || sRect.height;
+          const vbX = vb.x || 0;
+          const vbY = vb.y || 0;
+
+          // Cursor position in SVG coordinate space
+          // (cx is relative to wrapper; SVG may have an offset within wrapper)
+          const svgLeft = sRect.left - wRect.left;
+          const svgTop  = sRect.top  - wRect.top;
+          const svgCx = vbX + ((cx - svgLeft) / sRect.width)  * vbW;
+          const svgCy = vbY + ((cy - svgTop)  / sRect.height) * vbH;
+
+          // Region to show: D/ZOOM × D/ZOOM in SVG coords, centred on cursor
+          const halfW = (D / ZOOM) / 2;
+          const halfH = (D / ZOOM) / 2;
+
+          // Clamp so we don't pan outside the diagram
+          const newX = Math.max(vbX, Math.min(svgCx - halfW, vbX + vbW - halfW * 2));
+          const newY = Math.max(vbY, Math.min(svgCy - halfH, vbY + vbH - halfH * 2));
+
+          clone.setAttribute('viewBox', newX + ' ' + newY + ' ' + (halfW * 2) + ' ' + (halfH * 2));
         });
       });
     }
 
-    // watch for mermaid SVGs appearing (mermaid renders async)
+    // Watch for mermaid SVGs as they render asynchronously
     const obs = new MutationObserver(() => {
       document.querySelectorAll('.mermaid svg:not([data-mz])').forEach(attachZoom);
     });
     obs.observe(document.body, { childList: true, subtree: true });
 
-    // fallback for diagrams already in DOM
     setTimeout(() => {
       document.querySelectorAll('.mermaid svg:not([data-mz])').forEach(attachZoom);
     }, 800);

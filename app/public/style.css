@@ -1396,14 +1396,10 @@ body {
   left: 50%; top: 0;
 }
 
-/* the content inside the lens */
-.mz-inner {
-  position: absolute;
-  top: 0; left: 0;
-  transform-origin: 0 0;
-  pointer-events: none;
-}
-.mz-inner svg {
+/* SVG clone sits directly inside the lens (fills it; viewBox controls the visible region) */
+.mz-lens > svg {
   display: block;
+  width: 220px;
+  height: 220px;
   pointer-events: none;
 }
