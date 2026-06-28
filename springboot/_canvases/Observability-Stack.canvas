@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {"id":"title","type":"text","x":-100,"y":-900,"width":700,"height":60,"text":"# Observability Stack: Logs + Metrics + Traces","color":"4"},
+
+    {"id":"app_group","type":"group","x":-100,"y":-800,"width":700,"height":200,"label":"Your Spring Boot Services (each service)","color":"3"},
+    {"id":"act","type":"text","x":-80,"y":-770,"width":200,"height":80,"text":"📡 Actuator\n/actuator/health\n/actuator/prometheus"},
+    {"id":"mic","type":"text","x":140,"y":-770,"width":200,"height":80,"text":"📊 Micrometer\nCounters, Timers,\nGauges — auto + custom"},
+    {"id":"slf","type":"text","x":360,"y":-770,"width":200,"height":80,"text":"📝 SLF4J + Logback\nJSON encoder\nMDC: traceId, userId"},
+    {"id":"otel","type":"text","x":580,"y":-770,"width":100,"height":80,"text":"🔍 OTel\nTracing\nSpans"},
+
+    {"id":"export_group","type":"group","x":-100,"y":-550,"width":700,"height":80,"label":"Export / Shipping","color":"5"},
+    {"id":"prom_pull","type":"text","x":-80,"y":-525,"width":200,"height":50,"text":"Prometheus scrapes\n/actuator/prometheus"},
+    {"id":"log_stdout","type":"text","x":140,"y":-525,"width":200,"height":50,"text":"stdout → k8s log agent\n(Promtail / Fluent Bit)"},
+    {"id":"otlp_push","type":"text","x":360,"y":-525,"width":300,"height":50,"text":"OTLP push → OTel Collector → Tempo / Jaeger"},
+
+    {"id":"storage_group","type":"group","x":-100,"y":-420,"width":700,"height":100,"label":"Storage","color":"2"},
+    {"id":"prom_db","type":"text","x":-80,"y":-390,"width":180,"height":70,"text":"🗄 Prometheus\ntime-series metrics DB"},
+    {"id":"loki_db","type":"text","x":120,"y":-390,"width":180,"height":70,"text":"🗄 Loki\nlog aggregation"},
+    {"id":"tempo_db","type":"text","x":320,"y":-390,"width":180,"height":70,"text":"🗄 Tempo / Jaeger\ntrace storage"},
+    {"id":"alert","type":"text","x":520,"y":-390,"width":180,"height":70,"text":"🚨 Alertmanager\nfires alerts on\nPrometheus rules"},
+
+    {"id":"grafana","type":"text","x":200,"y":-240,"width":300,"height":80,"text":"📈 Grafana\nUnified UI — dashboards for\nmetrics + logs + traces (correlated)","color":"6"},
+
+    {"id":"mdc_flow","type":"group","x":-750,"y":-800,"width":400,"height":280,"label":"MDC Correlation flow","color":"4"},
+    {"id":"mdc1","type":"text","x":-730,"y":-770,"width":360,"height":50,"text":"1. Inbound request → CorrelationIdFilter"},
+    {"id":"mdc2","type":"text","x":-730,"y":-705,"width":360,"height":50,"text":"2. MDC.put(correlationId, traceId, spanId)"},
+    {"id":"mdc3","type":"text","x":-730,"y":-640,"width":360,"height":70,"text":"3. Every log line in this thread\nauto-includes traceId + spanId"},
+    {"id":"mdc4","type":"text","x":-730,"y":-555,"width":360,"height":50,"text":"4. Feign propagates traceparent header"},
+    {"id":"mdc5","type":"text","x":-730,"y":-490,"width":360,"height":70,"text":"5. In Grafana: click traceId in log → jumps to trace waterfall"},
+
+    {"id":"three_pillars","type":"group","x":700,"y":-800,"width":350,"height":280,"label":"The 3 Pillars","color":"6"},
+    {"id":"p1","type":"text","x":720,"y":-770,"width":310,"height":70,"text":"📝 LOGS\nWhat happened?\nSLF4J + Logback + JSON"},
+    {"id":"p2","type":"text","x":720,"y":-685,"width":310,"height":70,"text":"📊 METRICS\nHow much / how often?\nMicrometer + Prometheus"},
+    {"id":"p3","type":"text","x":720,"y":-600,"width":310,"height":70,"text":"🔍 TRACES\nWhere did the time go?\nOTel → Tempo"},
+
+    {"id":"note_act","type":"file","x":-750,"y":-130,"width":300,"height":50,"file":"12-Observability/01-Spring-Boot-Actuator.md"},
+    {"id":"note_mic","type":"file","x":-750,"y":-70,"width":300,"height":50,"file":"12-Observability/02-Micrometer-Metrics.md"},
+    {"id":"note_log","type":"file","x":-750,"y":-10,"width":300,"height":50,"file":"12-Observability/03-Logging-Best-Practices.md"},
+    {"id":"note_trace","type":"file","x":-750,"y":50,"width":300,"height":50,"file":"12-Observability/04-Distributed-Tracing.md"},
+    {"id":"note_health","type":"file","x":-750,"y":110,"width":300,"height":50,"file":"12-Observability/05-Health-Checks-and-Readiness.md"}
+  ],
+  "edges": [
+    {"id":"e1","fromNode":"mic","toNode":"prom_pull","label":"exposes"},
+    {"id":"e2","fromNode":"slf","toNode":"log_stdout","label":"writes to"},
+    {"id":"e3","fromNode":"otel","toNode":"otlp_push","label":"pushes"},
+    {"id":"e4","fromNode":"prom_pull","toNode":"prom_db","label":"scrapes"},
+    {"id":"e5","fromNode":"log_stdout","toNode":"loki_db","label":"ships"},
+    {"id":"e6","fromNode":"otlp_push","toNode":"tempo_db","label":"stores"},
+    {"id":"e7","fromNode":"prom_db","toNode":"grafana","label":"data source"},
+    {"id":"e8","fromNode":"loki_db","toNode":"grafana","label":"data source"},
+    {"id":"e9","fromNode":"tempo_db","toNode":"grafana","label":"data source"},
+    {"id":"e10","fromNode":"prom_db","toNode":"alert","label":"rules"},
+    {"id":"e11","fromNode":"act","toNode":"prom_pull"},
+    {"id":"e12","fromNode":"otel","toNode":"slf","label":"injects traceId\ninto MDC"}
+  ]
+}

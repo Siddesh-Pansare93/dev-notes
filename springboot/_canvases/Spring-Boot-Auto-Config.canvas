@@ -1,0 +1,60 @@
+{
+  "nodes": [
+    {"id":"title","type":"text","x":-100,"y":-800,"width":700,"height":60,"text":"# Spring Boot Auto-Configuration — How the Magic Works","color":"4"},
+
+    {"id":"starter_group","type":"group","x":-700,"y":-700,"width":400,"height":400,"label":"You add a Starter (pom.xml)","color":"6"},
+    {"id":"s1","type":"text","x":-680,"y":-670,"width":360,"height":50,"text":"spring-boot-starter-web"},
+    {"id":"s2","type":"text","x":-680,"y":-605,"width":360,"height":50,"text":"spring-boot-starter-data-jpa"},
+    {"id":"s3","type":"text","x":-680,"y":-540,"width":360,"height":50,"text":"spring-boot-starter-security"},
+    {"id":"s4","type":"text","x":-680,"y":-475,"width":360,"height":50,"text":"spring-boot-starter-actuator"},
+    {"id":"s5","type":"text","x":-680,"y":-410,"width":360,"height":50,"text":"spring-boot-starter-data-redis"},
+    {"id":"sn","type":"text","x":-680,"y":-345,"width":360,"height":50,"text":"Each starter = curated deps + auto-config class"},
+    {"id":"sn2","type":"text","x":-680,"y":-280,"width":360,"height":60,"text":"e.g. spring-boot-starter-web pulls in:\nspring-web, spring-webmvc, Tomcat,\nJackson, validation..."},
+
+    {"id":"boot_group","type":"group","x":-150,"y":-700,"width":500,"height":400,"label":"Spring Boot startup (SpringApplication.run)","color":"3"},
+    {"id":"b1","type":"text","x":-130,"y":-670,"width":460,"height":50,"text":"1. Scans META-INF/spring/org.springframework.boot.\n   autoconfigure.AutoConfiguration.imports"},
+    {"id":"b2","type":"text","x":-130,"y":-605,"width":460,"height":50,"text":"2. Finds 100s of AutoConfiguration classes"},
+    {"id":"b3","type":"text","x":-130,"y":-540,"width":460,"height":60,"text":"3. Each class has conditions:\n@ConditionalOnClass(DataSource.class)\n@ConditionalOnMissingBean(DataSource.class)"},
+    {"id":"b4","type":"text","x":-130,"y":-465,"width":460,"height":50,"text":"4. Conditions evaluated → matches register beans"},
+    {"id":"b5","type":"text","x":-130,"y":-400,"width":460,"height":50,"text":"5. Your @Configuration classes apply AFTER\n→ you can override any auto-configured bean"},
+    {"id":"b6","type":"text","x":-130,"y":-335,"width":460,"height":50,"text":"6. application.yml properties bind via\n@ConfigurationProperties → tune without code"},
+
+    {"id":"condition_group","type":"group","x":450,"y":-700,"width":450,"height":400,"label":"Common @Conditional annotations","color":"5"},
+    {"id":"c1","type":"text","x":470,"y":-670,"width":410,"height":50,"text":"@ConditionalOnClass — class on classpath?"},
+    {"id":"c2","type":"text","x":470,"y":-605,"width":410,"height":50,"text":"@ConditionalOnMissingBean — no user bean?"},
+    {"id":"c3","type":"text","x":470,"y":-540,"width":410,"height":50,"text":"@ConditionalOnProperty — property = value?"},
+    {"id":"c4","type":"text","x":470,"y":-475,"width":410,"height":50,"text":"@ConditionalOnMissingClass — class absent?"},
+    {"id":"c5","type":"text","x":470,"y":-410,"width":410,"height":50,"text":"@ConditionalOnWebApplication — web context?"},
+    {"id":"c6","type":"text","x":470,"y":-345,"width":410,"height":50,"text":"@ConditionalOnExpression — SpEL expression?"},
+    {"id":"c7","type":"text","x":470,"y":-280,"width":410,"height":60,"text":"→ Add your own to create custom auto-config\n→ Override by declaring matching bean type"},
+
+    {"id":"example_group","type":"group","x":-700,"y":-240,"width":400,"height":220,"label":"Example: DataSource auto-config","color":"2"},
+    {"id":"ex1","type":"text","x":-680,"y":-210,"width":360,"height":50,"text":"You add: spring-boot-starter-data-jpa"},
+    {"id":"ex2","type":"text","x":-680,"y":-145,"width":360,"height":50,"text":"DataSourceAutoConfiguration fires"},
+    {"id":"ex3","type":"text","x":-680,"y":-80,"width":360,"height":50,"text":"@ConditionalOnMissingBean(DataSource) → true"},
+    {"id":"ex4","type":"text","x":-680,"y":-15,"width":360,"height":60,"text":"Reads spring.datasource.url/username/password\nCreates HikariCP pool → DataSource bean"},
+
+    {"id":"override_group","type":"group","x":-150,"y":-240,"width":500,"height":200,"label":"Overriding auto-config","color":"4"},
+    {"id":"ov1","type":"text","x":-130,"y":-210,"width":460,"height":50,"text":"@Bean DataSource myDs() { ... }  ← your bean wins"},
+    {"id":"ov2","type":"text","x":-130,"y":-145,"width":460,"height":50,"text":"@SpringBootApplication(exclude={DataSourceAutoConfiguration.class})"},
+    {"id":"ov3","type":"text","x":-130,"y":-80,"width":460,"height":50,"text":"spring.autoconfigure.exclude=... in application.yml"},
+
+    {"id":"debug_tip","type":"text","x":450,"y":-240,"width":450,"height":100,"text":"🔍 Debug: --debug flag or\nLoggingSystem.NONE + ConditionEvaluationReport\nShows every condition matched/skipped","color":"5"},
+
+    {"id":"note_auto","type":"file","x":450,"y":-110,"width":300,"height":50,"file":"05-Spring-Boot/03-Auto-Configuration.md"},
+    {"id":"note_starters","type":"file","x":450,"y":-50,"width":300,"height":50,"file":"05-Spring-Boot/04-Starters.md"},
+    {"id":"note_props","type":"file","x":450,"y":10,"width":300,"height":50,"file":"05-Spring-Boot/05-Application-Properties.md"}
+  ],
+  "edges": [
+    {"id":"e1","fromNode":"starter_group","toNode":"boot_group","label":"classpath triggers"},
+    {"id":"e2","fromNode":"b1","toNode":"b2"},
+    {"id":"e3","fromNode":"b2","toNode":"b3"},
+    {"id":"e4","fromNode":"b3","toNode":"b4"},
+    {"id":"e5","fromNode":"b4","toNode":"b5"},
+    {"id":"e6","fromNode":"b5","toNode":"b6"},
+    {"id":"e7","fromNode":"ex1","toNode":"ex2"},
+    {"id":"e8","fromNode":"ex2","toNode":"ex3"},
+    {"id":"e9","fromNode":"ex3","toNode":"ex4"},
+    {"id":"e10","fromNode":"b3","toNode":"condition_group","label":"uses these"}
+  ]
+}

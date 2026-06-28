@@ -1,0 +1,40 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","x":-100,"y":-700,"width":600,"height":60,"text":"# Spring IoC Container — How DI Works","color":"4"},
+		{"id":"bootstrap","type":"group","x":-600,"y":-600,"width":400,"height":200,"label":"1. Bootstrap","color":"6"},
+		{"id":"main","type":"text","x":-580,"y":-570,"width":360,"height":60,"text":"@SpringBootApplication\nmain() → SpringApplication.run(App.class)"},
+		{"id":"scan","type":"text","x":-580,"y":-490,"width":360,"height":60,"text":"Component Scanning\nscans packages for @Component @Service @Repository @Controller"},
+		{"id":"container","type":"group","x":-100,"y":-600,"width":500,"height":420,"label":"ApplicationContext (the IoC Container)","color":"3"},
+		{"id":"b1","type":"text","x":-80,"y":-560,"width":220,"height":80,"text":"Bean: EmailService\n@Component\n(no deps)","color":"6"},
+		{"id":"b2","type":"text","x":-80,"y":-460,"width":220,"height":80,"text":"Bean: UserRepository\n@Repository\n(needs DataSource)","color":"6"},
+		{"id":"b3","type":"text","x":-80,"y":-360,"width":220,"height":80,"text":"Bean: DataSource\n(auto-configured)","color":"5"},
+		{"id":"b4","type":"text","x":170,"y":-510,"width":220,"height":80,"text":"Bean: UserService\n@Service\n(needs UserRepo + EmailService)","color":"4"},
+		{"id":"b5","type":"text","x":170,"y":-360,"width":220,"height":80,"text":"Bean: UserController\n@RestController\n(needs UserService)","color":"1"},
+		{"id":"inject_note","type":"text","x":-100,"y":-130,"width":500,"height":100,"text":"Spring resolves the full dependency graph automatically.\nYou declare WHAT you need (constructor params).\nSpring figures out HOW to build it.\nAll singletons by default — one instance, shared.","color":"3"},
+		{"id":"patterns","type":"group","x":550,"y":-600,"width":400,"height":420,"label":"DI Patterns","color":"5"},
+		{"id":"ctor","type":"text","x":570,"y":-570,"width":360,"height":90,"text":"✅ Constructor Injection (PREFERRED)\n@RequiredArgsConstructor\nprivate final UserRepository repo;"},
+		{"id":"setter","type":"text","x":570,"y":-465,"width":360,"height":70,"text":"⚠️ Setter Injection\n(optional dependencies only)"},
+		{"id":"field","type":"text","x":570,"y":-380,"width":360,"height":70,"text":"❌ Field Injection @Autowired\n(hides deps, breaks testability)"},
+		{"id":"qual","type":"text","x":570,"y":-295,"width":360,"height":90,"text":"Multiple impl of same interface?\n@Primary — default bean\n@Qualifier(\"name\") — pick specific"},
+		{"id":"scopes","type":"group","x":-600,"y":-350,"width":400,"height":200,"label":"Bean Scopes","color":"2"},
+		{"id":"sing","type":"text","x":-580,"y":-320,"width":360,"height":50,"text":"singleton (default) — 1 instance per container"},
+		{"id":"proto","type":"text","x":-580,"y":-255,"width":360,"height":50,"text":"prototype — new instance per request"},
+		{"id":"req","type":"text","x":-580,"y":-190,"width":360,"height":50,"text":"request — 1 per HTTP request (web apps)"},
+		{"id":"gotcha","type":"text","x":-600,"y":-100,"width":400,"height":100,"text":"⚠️ GOTCHA: new() defeats the container\nnew UserService() — its deps are NOT injected.\nAlways let Spring create beans.","color":"1"},
+		{"id":"note_ioc","type":"file","x":550,"y":-130,"width":300,"height":60,"file":"04-Spring-Core/01-IoC-DI-Concepts.md"},
+		{"id":"note_beans","type":"file","x":550,"y":-60,"width":300,"height":60,"file":"04-Spring-Core/02-Beans-and-Application-Context.md"},
+		{"id":"note_scopes","type":"file","x":550,"y":10,"width":300,"height":60,"file":"04-Spring-Core/06-Bean-Scopes-Lifecycle.md"},
+		{"id":"note_di","type":"file","x":550,"y":80,"width":300,"height":60,"file":"04-Spring-Core/05-Dependency-Injection-Types.md"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"main","toNode":"scan","fromSide":"bottom","toSide":"top"},
+		{"id":"e2","fromNode":"scan","toNode":"container","label":"registers beans","fromSide":"right","toSide":"left"},
+		{"id":"e3","fromNode":"b3","toNode":"b2","label":"injected into","fromSide":"top","toSide":"bottom"},
+		{"id":"e4","fromNode":"b1","toNode":"b4","label":"injected into","fromSide":"right","toSide":"left"},
+		{"id":"e5","fromNode":"b2","toNode":"b4","label":"injected into","fromSide":"right","toSide":"left"},
+		{"id":"e6","fromNode":"b4","toNode":"b5","label":"injected into","fromSide":"bottom","toSide":"top"},
+		{"id":"e7","fromNode":"bootstrap","toNode":"container","label":"triggers","fromSide":"right","toSide":"left"},
+		{"id":"e8","fromNode":"container","toNode":"inject_note","fromSide":"bottom","toSide":"top"},
+		{"id":"e9","fromNode":"container","toNode":"scopes","label":"scope determines\nlifetime","fromSide":"left","toSide":"right"}
+	]
+}

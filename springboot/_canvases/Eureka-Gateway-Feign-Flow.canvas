@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {"id":"title","type":"text","x":-100,"y":-1100,"width":800,"height":60,"text":"# Eureka + Gateway + Feign — Full Request Flow","color":"4"},
+
+    {"id":"client","type":"text","x":300,"y":-1000,"width":200,"height":60,"text":"🌐 Client\nPOST /api/orders","color":"6"},
+
+    {"id":"ingress","type":"text","x":300,"y":-900,"width":200,"height":60,"text":"Ingress (nginx)\nHTTPS termination"},
+
+    {"id":"gw_group","type":"group","x":100,"y":-800,"width":600,"height":180,"label":"Spring Cloud Gateway (WebFlux — reactive)","color":"4"},
+    {"id":"gw_jwt","type":"text","x":120,"y":-770,"width":260,"height":60,"text":"1. JwtAuthFilter (GlobalFilter)\nverify token → extract userId, roles"},
+    {"id":"gw_route","type":"text","x":400,"y":-770,"width":280,"height":60,"text":"2. Route predicate match\nPath=/api/orders/** → lb://orders-service"},
+    {"id":"gw_eur","type":"text","x":120,"y":-695,"width":280,"height":50,"text":"3. LoadBalancer → query Eureka\nget instance list for orders-service"},
+    {"id":"gw_fwd","type":"text","x":420,"y":-695,"width":250,"height":50,"text":"4. Pick instance, forward request\n+ inject X-User-Id header"},
+
+    {"id":"eur","type":"group","x":-350,"y":-800,"width":350,"height":180,"label":"Eureka Server (StatefulSet)","color":"5"},
+    {"id":"eur_reg","type":"text","x":-330,"y":-770,"width":310,"height":60,"text":"Registry\n{orders-service: [10.0.1.2:8080, 10.0.1.3:8080]}\n{users-service:  [10.0.2.5:8080]}"},
+    {"id":"eur_hb","type":"text","x":-330,"y":-695,"width":310,"height":50,"text":"Heartbeat every 30s\nEviction after ~90s"},
+
+    {"id":"os_group","type":"group","x":100,"y":-570,"width":600,"height":200,"label":"orders-service (Deployment × 3 pods)","color":"3"},
+    {"id":"os_ctrl","type":"text","x":120,"y":-540,"width":260,"height":60,"text":"@RestController\nPOST /orders\n@AuthenticationPrincipal Jwt"},
+    {"id":"os_svc","type":"text","x":400,"y":-540,"width":280,"height":60,"text":"@Service @Transactional\norderService.createOrder()\nvalidate → persist"},
+    {"id":"os_feign","type":"text","x":120,"y":-465,"width":260,"height":60,"text":"Feign call:\nusersClient.getById(userId)\n→ lb://users-service"},
+    {"id":"os_repo","type":"text","x":400,"y":-465,"width":280,"height":60,"text":"@Repository JpaRepository\norderRepo.save(order)\nHibernate → SQL"},
+
+    {"id":"us_group","type":"group","x":-350,"y":-570,"width":350,"height":120,"label":"users-service (Deployment × 2)","color":"3"},
+    {"id":"us_ctrl","type":"text","x":-330,"y":-540,"width":310,"height":80,"text":"@RestController GET /users/{id}\nJWT validated as ResourceServer\nreturns UserDto"},
+
+    {"id":"db_group","type":"group","x":100,"y":-300,"width":600,"height":100,"label":"Databases","color":"2"},
+    {"id":"odb","type":"text","x":120,"y":-270,"width":260,"height":70,"text":"🗄 orders_db (Postgres)\nHikariCP pool"},
+    {"id":"udb","type":"text","x":400,"y":-270,"width":280,"height":70,"text":"🗄 users_db (Postgres)\n(separate — DB per service)"},
+
+    {"id":"jwt_flow","type":"group","x":750,"y":-1000,"width":380,"height":350,"label":"JWT propagation through Feign","color":"1"},
+    {"id":"jf1","type":"text","x":770,"y":-970,"width":340,"height":50,"text":"Client → Gateway: Bearer <accessToken>"},
+    {"id":"jf2","type":"text","x":770,"y":-905,"width":340,"height":50,"text":"Gateway validates + adds X-User-Id header"},
+    {"id":"jf3","type":"text","x":770,"y":-840,"width":340,"height":50,"text":"Gateway → orders-service: forwards Bearer token"},
+    {"id":"jf4","type":"text","x":770,"y":-775,"width":340,"height":70,"text":"orders-service → Feign → users-service:\nRequestInterceptor copies Authorization header"},
+    {"id":"jf5","type":"text","x":770,"y":-690,"width":340,"height":50,"text":"users-service validates JWT independently\n(defense in depth)"},
+
+    {"id":"cb_note","type":"group","x":750,"y":-600,"width":380,"height":180,"label":"Resilience (Feign + Resilience4j)","color":"2"},
+    {"id":"cb1","type":"text","x":770,"y":-570,"width":340,"height":50,"text":"CircuitBreaker around usersClient calls"},
+    {"id":"cb2","type":"text","x":770,"y":-505,"width":340,"height":50,"text":"OPEN after 5 failures in 10s"},
+    {"id":"cb3","type":"text","x":770,"y":-440,"width":340,"height":60,"text":"Fallback: return cached UserDto\nor throw degraded response"},
+
+    {"id":"note_gw","type":"file","x":-350,"y":-300,"width":300,"height":50,"file":"10-Microservices/04-API-Gateway-Spring-Cloud-Gateway.md"},
+    {"id":"note_eur","type":"file","x":-350,"y":-240,"width":300,"height":50,"file":"10-Microservices/03-Service-Discovery-Eureka.md"},
+    {"id":"note_feign","type":"file","x":-350,"y":-180,"width":300,"height":50,"file":"10-Microservices/07-OpenFeign.md"},
+    {"id":"note_res","type":"file","x":-350,"y":-120,"width":300,"height":50,"file":"10-Microservices/08-Resilience4j.md"},
+    {"id":"note_stack","type":"file","x":-350,"y":-60,"width":300,"height":50,"file":"13-Deployment/09-Stack-Specific-Eureka-Gateway-Feign-on-K8s.md"}
+  ],
+  "edges": [
+    {"id":"e1","fromNode":"client","toNode":"ingress"},
+    {"id":"e2","fromNode":"ingress","toNode":"gw_jwt"},
+    {"id":"e3","fromNode":"gw_jwt","toNode":"gw_route"},
+    {"id":"e4","fromNode":"gw_route","toNode":"gw_eur","label":"lb:// lookup"},
+    {"id":"e5","fromNode":"gw_eur","toNode":"eur","label":"GET /eureka/apps/ORDERS-SERVICE","color":"5"},
+    {"id":"e6","fromNode":"eur","toNode":"gw_eur","label":"instance list","color":"5"},
+    {"id":"e7","fromNode":"gw_fwd","toNode":"os_ctrl","label":"HTTP + Bearer + X-User-Id"},
+    {"id":"e8","fromNode":"os_ctrl","toNode":"os_svc"},
+    {"id":"e9","fromNode":"os_svc","toNode":"os_repo"},
+    {"id":"e10","fromNode":"os_repo","toNode":"odb"},
+    {"id":"e11","fromNode":"os_feign","toNode":"eur","label":"lb://users-service lookup","color":"5"},
+    {"id":"e12","fromNode":"os_feign","toNode":"us_ctrl","label":"GET /users/{id}\n+ Bearer token (via RequestInterceptor)"},
+    {"id":"e13","fromNode":"us_ctrl","toNode":"udb"},
+    {"id":"e14","fromNode":"os_svc","toNode":"os_feign","label":"calls"},
+    {"id":"e15","fromNode":"os_group","toNode":"eur","label":"register + heartbeat","color":"5"}
+  ]
+}

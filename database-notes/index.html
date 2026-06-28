@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Database Mastery Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+      integrity="sha384-oaMLBGEzBOJx3UHwac0cVndtX5fxGQIfnAeFZ35RTgqPcYlbprH9o9PUV/F8Le07"
+      crossorigin="anonymous" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"
+        integrity="sha384-F/bZzf7p3Joyp5psL90p/p89AZJsndkSoGwRpXcZhleCWhd8SnRuoYo4d0yirjJp"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"
+        integrity="sha384-odPBjvtXVM/5hOYIr3A1dB+flh0c3wAT3bSesIOqEGmyUA4JoKf/YTWy0XKOYAY7"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"
+        integrity="sha384-+NGfjU8KzpDLXRHduEqW+ZiJr2rIg+cidUVk7B51R5xK7cHwMKQfrdFwGdrq1Bcz"
+        crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg-deep:     #0d1117;
+    --bg-sidebar:  #161b22;
+    --bg-card:     #1c2230;
+    --bg-hover:    #21262d;
+    --bg-active-f: #1a2e1a; /* fundamentals */
+    --bg-active-s: #1a2a1a; /* sql */
+    --bg-active-o: #2a1a3a; /* orm */
+    --bg-active-p: #2a200a; /* project */
+    --border:      #30363d;
+    --accent-f:    #58a6ff; /* fundamentals blue */
+    --accent-s:    #3fb950; /* sql green */
+    --accent-o:    #d2a8ff; /* orm purple */
+    --accent-p:    #ffa657; /* project orange */
+    --text-main:   #e6edf3;
+    --text-muted:  #8b949e;
+    --text-dim:    #6e7681;
+    --code-bg:     #161b22;
+    --sidebar-w:   298px;
+    --toc-w:       210px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg-deep); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  #sidebar { width: var(--sidebar-w); min-width: var(--sidebar-w); background: var(--bg-sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  #sidebar-header { padding: 16px 14px 10px; border-bottom: 1px solid var(--border); }
+  #sidebar-header h1 { font-size: 14px; font-weight: 700; background: linear-gradient(90deg, var(--accent-f), var(--accent-o)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px; }
+  #search { width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text-main); font-size: 12px; font-family: inherit; outline: none; transition: border-color .15s; }
+  #search:focus { border-color: var(--accent-f); }
+  #search::placeholder { color: var(--text-dim); }
+  #sidebar-nav { flex: 1; overflow-y: auto; padding: 6px 0 16px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  .section-header { padding: 9px 14px 3px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: color .1s; }
+  .section-header.sec-f { color: var(--accent-f); }
+  .section-header.sec-s { color: var(--accent-s); }
+  .section-header.sec-o { color: var(--accent-o); }
+  .section-header.sec-p { color: var(--accent-p); }
+  .section-arrow { transition: transform .2s; font-size: 9px; }
+  .section-collapsed .section-arrow { transform: rotate(-90deg); }
+  .section-items { }
+  .section-collapsed + .section-items { display: none; }
+
+  .chapter-item { display: flex; align-items: center; gap: 7px; padding: 6px 14px; font-size: 12.5px; cursor: pointer; color: var(--text-muted); transition: background .1s, color .1s; border-left: 2px solid transparent; line-height: 1.4; }
+  .chapter-item:hover { background: var(--bg-hover); color: var(--text-main); }
+  .chapter-item.active-f { background: var(--bg-active-f); color: var(--accent-f); border-left-color: var(--accent-f); font-weight: 500; }
+  .chapter-item.active-s { background: var(--bg-active-s); color: var(--accent-s); border-left-color: var(--accent-s); font-weight: 500; }
+  .chapter-item.active-o { background: var(--bg-active-o); color: var(--accent-o); border-left-color: var(--accent-o); font-weight: 500; }
+  .chapter-item.active-p { background: var(--bg-active-p); color: var(--accent-p); border-left-color: var(--accent-p); font-weight: 500; }
+  .chapter-item .ch-num { font-size: 10px; color: var(--text-dim); min-width: 18px; font-family: 'Fira Code', monospace; }
+  .chapter-item.hidden { display: none; }
+  .ch-badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: auto; font-weight: 600; white-space: nowrap; }
+  .badge-f { background: rgba(88,166,255,.15); color: var(--accent-f); }
+  .badge-s { background: rgba(63,185,80,.15); color: var(--accent-s); }
+  .badge-o { background: rgba(210,168,255,.15); color: var(--accent-o); }
+  .badge-p { background: rgba(255,166,87,.15); color: var(--accent-p); }
+
+  /* ── MAIN ── */
+  #main { flex: 1; display: flex; overflow: hidden; }
+  #content-area { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  #top-bar { position: sticky; top: 0; z-index: 10; background: var(--bg-deep); border-bottom: 1px solid var(--border); padding: 9px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  #breadcrumb { font-size: 12px; color: var(--text-muted); }
+  #breadcrumb span { font-weight: 500; }
+  #breadcrumb span.sec-f { color: var(--accent-f); }
+  #breadcrumb span.sec-s { color: var(--accent-s); }
+  #breadcrumb span.sec-o { color: var(--accent-o); }
+  #breadcrumb span.sec-p { color: var(--accent-p); }
+  .progress-wrap { display: flex; align-items: center; gap: 10px; }
+  #progress-text { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  #progress-bar-wrap { width: 100px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  #progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent-f), var(--accent-s), var(--accent-o)); border-radius: 2px; transition: width .3s; }
+
+  #content { max-width: 840px; margin: 0 auto; padding: 36px 36px 80px; }
+
+  /* ── TOC ── */
+  #toc-panel { width: var(--toc-w); min-width: var(--toc-w); background: var(--bg-sidebar); border-left: 1px solid var(--border); overflow-y: auto; padding: 18px 10px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  #toc-panel h3 { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; padding: 0 4px; }
+  .toc-item { display: block; padding: 3px 8px; font-size: 11.5px; color: var(--text-muted); text-decoration: none; border-radius: 4px; line-height: 1.4; transition: background .1s, color .1s; margin-bottom: 1px; }
+  .toc-item:hover { background: var(--bg-hover); color: var(--text-main); }
+  .toc-item.toc-h3 { padding-left: 18px; font-size: 10.5px; }
+
+  /* ── MARKDOWN ── */
+  #content h1 { font-size: 1.9rem; font-weight: 700; margin: 0 0 6px; line-height: 1.2; }
+  #content h1.sec-f { background: linear-gradient(90deg, var(--accent-f), #a5d6ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  #content h1.sec-s { background: linear-gradient(90deg, var(--accent-s), #9be9a8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  #content h1.sec-o { background: linear-gradient(90deg, var(--accent-o), #f0d0ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  #content h1.sec-p { background: linear-gradient(90deg, var(--accent-p), #ffd0a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  #content h2 { font-size: 1.3rem; font-weight: 600; margin: 36px 0 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+  #content h2.sec-f { color: var(--accent-f); }
+  #content h2.sec-s { color: var(--accent-s); }
+  #content h2.sec-o { color: var(--accent-o); }
+  #content h2.sec-p { color: var(--accent-p); }
+  #content h3 { font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin: 24px 0 8px; }
+  #content h4 { font-size: .95rem; font-weight: 600; color: var(--text-muted); margin: 18px 0 6px; }
+  #content p { line-height: 1.75; margin-bottom: 13px; font-size: 14.5px; }
+  #content a { color: var(--accent-f); text-decoration: none; }
+  #content a:hover { text-decoration: underline; }
+  #content ul, #content ol { margin: 0 0 13px 22px; line-height: 1.75; font-size: 14.5px; }
+  #content li { margin-bottom: 3px; }
+  #content strong { color: var(--accent-p); font-weight: 600; }
+  #content em { color: var(--accent-o); font-style: italic; }
+  #content hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+  #content blockquote { border-left: 3px solid var(--accent-f); padding: 10px 16px; margin: 14px 0; background: var(--bg-card); border-radius: 0 6px 6px 0; color: var(--text-muted); font-style: italic; font-size: 14px; }
+  #content table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 13px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  #content th { background: var(--bg-card); padding: 9px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+  #content td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+  #content tr:last-child td { border-bottom: none; }
+  #content tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+
+  /* ── CODE ── */
+  .code-wrapper { position: relative; margin: 14px 0; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .code-header { display: flex; align-items: center; justify-content: space-between; background: #0d1117; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-dim); }
+  .code-lang { font-family: 'Fira Code', monospace; color: var(--accent-o); font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .copy-btn { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); font-size: 10px; padding: 2px 7px; cursor: pointer; font-family: inherit; transition: all .15s; }
+  .copy-btn:hover { border-color: var(--accent-s); color: var(--accent-s); }
+  .copy-btn.copied { border-color: var(--accent-s); color: var(--accent-s); }
+  #content pre { margin: 0 !important; border-radius: 0 !important; background: var(--code-bg) !important; }
+  #content pre code { font-family: 'Fira Code', monospace !important; font-size: 13px !important; line-height: 1.6 !important; padding: 15px !important; display: block; }
+  #content :not(pre) > code { font-family: 'Fira Code', monospace; background: var(--bg-card); border: 1px solid var(--border); color: var(--accent-p); padding: 2px 5px; border-radius: 4px; font-size: 12.5px; }
+
+  /* ── MERMAID ── */
+  .mermaid { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin: 18px 0; text-align: center; overflow-x: auto; }
+
+  /* ── NAV BUTTONS ── */
+  #chapter-nav { display: flex; justify-content: space-between; padding: 22px 0 0; margin-top: 44px; border-top: 1px solid var(--border); gap: 10px; }
+  .nav-btn { display: flex; align-items: center; gap: 8px; padding: 11px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; color: var(--text-muted); cursor: pointer; font-family: inherit; font-size: 12px; text-decoration: none; transition: all .15s; max-width: 48%; flex: 1; }
+  .nav-btn:hover { border-color: var(--accent-f); color: var(--accent-f); background: var(--bg-hover); }
+  .nav-btn.prev { justify-content: flex-start; }
+  .nav-btn.next { justify-content: flex-end; text-align: right; }
+  .nav-label { font-size: 10px; color: var(--text-dim); display: block; }
+  .nav-title { font-weight: 500; }
+  .nav-btn.disabled { opacity: .3; pointer-events: none; }
+
+  /* ── SERVER BANNER ── */
+  #server-banner { display: none; background: #2d1b00; border: 1px solid #664400; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; }
+  #server-banner h3 { color: var(--accent-p); font-size: 14px; margin-bottom: 6px; }
+  #server-banner p { color: var(--text-muted); font-size: 13px; margin-bottom: 10px; }
+  #server-banner code { background: #0d1117; border: 1px solid var(--border); color: var(--accent-s); padding: 6px 14px; border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 13px; display: inline-block; }
+
+  /* ── WELCOME ── */
+  #welcome { display: flex; align-items: center; justify-content: center; min-height: 100%; padding: 50px 36px; }
+  .welcome-inner { max-width: 720px; text-align: center; }
+  .welcome-inner h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 12px; line-height: 1.15; background: linear-gradient(135deg, var(--accent-f) 0%, var(--accent-s) 40%, var(--accent-o) 70%, var(--accent-p) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .welcome-inner > p { font-size: 15px; color: var(--text-muted); line-height: 1.7; margin-bottom: 36px; }
+  .stats-row { display: flex; gap: 14px; justify-content: center; margin-bottom: 36px; flex-wrap: wrap; }
+  .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 24px; min-width: 110px; text-align: center; }
+  .stat-card .num { font-size: 1.8rem; font-weight: 700; display: block; }
+  .stat-card .lbl { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .stat-card.sf .num { color: var(--accent-f); }
+  .stat-card.ss .num { color: var(--accent-s); }
+  .stat-card.so .num { color: var(--accent-o); }
+  .stat-card.sp .num { color: var(--accent-p); }
+  .sections-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 36px; text-align: left; }
+  .section-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .section-card h3 { font-size: 13px; margin-bottom: 6px; }
+  .section-card.sf h3 { color: var(--accent-f); }
+  .section-card.ss h3 { color: var(--accent-s); }
+  .section-card.so h3 { color: var(--accent-o); }
+  .section-card.sp h3 { color: var(--accent-p); }
+  .section-card p { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0; }
+  .db-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+  .db-badge { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .start-btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 30px; background: linear-gradient(135deg, var(--accent-f), var(--accent-s)); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer; transition: opacity .15s, transform .1s; }
+  .start-btn:hover { opacity: .9; transform: translateY(-1px); }
+
+  /* ── LOADER ── */
+  #loader { display: none; padding: 80px 36px; text-align: center; color: var(--text-muted); }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent-f); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  @media (max-width: 1100px) { #toc-panel { display: none; } }
+  @media (max-width: 700px) { #sidebar { width: 220px; min-width: 220px; } #content { padding: 20px 16px 60px; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <h1>🗄️ Database Mastery Notes</h1>
+    <input id="search" type="text" placeholder="Search chapters…" autocomplete="off" />
+  </div>
+  <div id="sidebar-nav">
+
+    <!-- DB Fundamentals -->
+    <div class="section-header sec-f" data-section="f">
+      <span>🗄️ DB Fundamentals</span>
+      <span class="section-arrow">▾</span>
+    </div>
+    <div class="section-items" id="section-f">
+      <div class="chapter-item" data-idx="0" data-sec="f" data-file="db-fundamentals/01-what-is-a-database.md" data-title="What is a Database?"><span class="ch-num">01</span><span>🗄️ What is a Database?</span></div>
+      <div class="chapter-item" data-idx="1" data-sec="f" data-file="db-fundamentals/02-data-modeling.md" data-title="Data Modeling & ER Diagrams"><span class="ch-num">02</span><span>📊 Data Modeling & ER Diagrams</span></div>
+      <div class="chapter-item" data-idx="2" data-sec="f" data-file="db-fundamentals/03-relational-model.md" data-title="The Relational Model"><span class="ch-num">03</span><span>🔗 The Relational Model</span></div>
+      <div class="chapter-item" data-idx="3" data-sec="f" data-file="db-fundamentals/04-normalization.md" data-title="Normalization"><span class="ch-num">04</span><span>🧹 Normalization</span></div>
+      <div class="chapter-item" data-idx="4" data-sec="f" data-file="db-fundamentals/05-acid-properties.md" data-title="ACID Properties"><span class="ch-num">05</span><span>⚗️ ACID Properties</span></div>
+      <div class="chapter-item" data-idx="5" data-sec="f" data-file="db-fundamentals/06-indexes.md" data-title="Indexes"><span class="ch-num">06</span><span>📑 Indexes</span></div>
+      <div class="chapter-item" data-idx="6" data-sec="f" data-file="db-fundamentals/07-transactions.md" data-title="Transactions Deep Dive"><span class="ch-num">07</span><span>💳 Transactions Deep Dive</span></div>
+      <div class="chapter-item" data-idx="7" data-sec="f" data-file="db-fundamentals/08-joins-and-relationships.md" data-title="Relationships & Joins"><span class="ch-num">08</span><span>🔀 Relationships & Joins</span></div>
+      <div class="chapter-item" data-idx="8" data-sec="f" data-file="db-fundamentals/09-database-design.md" data-title="Database Design Best Practices"><span class="ch-num">09</span><span>🏗️ Design Best Practices</span></div>
+      <div class="chapter-item" data-idx="9" data-sec="f" data-file="db-fundamentals/10-sql-vs-nosql.md" data-title="SQL vs NoSQL"><span class="ch-num">10</span><span>⚖️ SQL vs NoSQL</span></div>
+    </div>
+
+    <!-- SQL 0-100 -->
+    <div class="section-header sec-s" data-section="s">
+      <span>💚 SQL 0 → 100</span>
+      <span class="section-arrow">▾</span>
+    </div>
+    <div class="section-items" id="section-s">
+      <div class="chapter-item" data-idx="10" data-sec="s" data-file="sql/01-introduction.md" data-title="Introduction to SQL"><span class="ch-num">01</span><span>🚀 Introduction to SQL</span></div>
+      <div class="chapter-item" data-idx="11" data-sec="s" data-file="sql/02-creating-tables.md" data-title="Creating Databases & Tables"><span class="ch-num">02</span><span>🏗️ Creating Databases & Tables</span></div>
+      <div class="chapter-item" data-idx="12" data-sec="s" data-file="sql/03-dml-insert-update-delete.md" data-title="INSERT, UPDATE, DELETE"><span class="ch-num">03</span><span>✏️ INSERT, UPDATE, DELETE</span></div>
+      <div class="chapter-item" data-idx="13" data-sec="s" data-file="sql/04-select-querying.md" data-title="SELECT — Querying Data"><span class="ch-num">04</span><span>🔍 SELECT — Querying Data</span></div>
+      <div class="chapter-item" data-idx="14" data-sec="s" data-file="sql/05-filtering-where.md" data-title="Filtering with WHERE"><span class="ch-num">05</span><span>🎯 Filtering with WHERE</span></div>
+      <div class="chapter-item" data-idx="15" data-sec="s" data-file="sql/06-joins.md" data-title="JOINs — Combining Tables"><span class="ch-num">06</span><span>🔗 JOINs — Combining Tables</span></div>
+      <div class="chapter-item" data-idx="16" data-sec="s" data-file="sql/07-aggregations.md" data-title="Aggregations & GROUP BY"><span class="ch-num">07</span><span>📈 Aggregations & GROUP BY</span></div>
+      <div class="chapter-item" data-idx="17" data-sec="s" data-file="sql/08-subqueries.md" data-title="Subqueries"><span class="ch-num">08</span><span>🎭 Subqueries</span></div>
+      <div class="chapter-item" data-idx="18" data-sec="s" data-file="sql/09-views-procedures-functions.md" data-title="Views, Procedures & Functions"><span class="ch-num">09</span><span>👁️ Views, Procedures & Functions</span></div>
+      <div class="chapter-item" data-idx="19" data-sec="s" data-file="sql/10-triggers.md" data-title="Triggers"><span class="ch-num">10</span><span>⚡ Triggers</span></div>
+      <div class="chapter-item" data-idx="20" data-sec="s" data-file="sql/11-indexes-and-performance.md" data-title="Indexes & Query Performance"><span class="ch-num">11</span><span>⚡ Indexes & Performance</span></div>
+      <div class="chapter-item" data-idx="21" data-sec="s" data-file="sql/12-cte-window-functions.md" data-title="CTEs & Window Functions"><span class="ch-num">12</span><span>🪟 CTEs & Window Functions</span></div>
+      <div class="chapter-item" data-idx="22" data-sec="s" data-file="sql/13-json-in-sql.md" data-title="JSON in SQL"><span class="ch-num">13</span><span>🎯 JSON in SQL</span></div>
+      <div class="chapter-item" data-idx="23" data-sec="s" data-file="sql/14-security.md" data-title="Database Security"><span class="ch-num">14</span><span>🛡️ Database Security</span></div>
+      <div class="chapter-item" data-idx="24" data-sec="s" data-file="sql/15-transactions-locking.md" data-title="Transactions & Locking"><span class="ch-num">15</span><span>🔒 Transactions & Locking</span></div>
+      <div class="chapter-item" data-idx="25" data-sec="s" data-file="sql/16-advanced-features.md" data-title="Full-Text Search & Advanced"><span class="ch-num">16</span><span>🔬 Full-Text Search & Advanced</span></div>
+      <div class="chapter-item" data-idx="26" data-sec="s" data-file="sql/17-database-comparison.md" data-title="PostgreSQL vs MySQL vs SQL Server vs Oracle"><span class="ch-num">17</span><span>📊 PG vs MySQL vs MSSQL vs Oracle</span></div>
+    </div>
+
+    <!-- ORMs -->
+    <div class="section-header sec-o" data-section="o">
+      <span>🔌 ORMs & Prisma</span>
+      <span class="section-arrow">▾</span>
+    </div>
+    <div class="section-items" id="section-o">
+      <div class="chapter-item" data-idx="27" data-sec="o" data-file="orms/01-what-is-an-orm.md" data-title="What is an ORM?"><span class="ch-num">01</span><span>🔌 What is an ORM?</span></div>
+      <div class="chapter-item" data-idx="28" data-sec="o" data-file="orms/02-prisma-setup.md" data-title="Prisma Setup"><span class="ch-num">02</span><span>⚙️ Prisma Setup</span></div>
+      <div class="chapter-item" data-idx="29" data-sec="o" data-file="orms/03-prisma-schema.md" data-title="Prisma Schema"><span class="ch-num">03</span><span>📝 Prisma Schema</span></div>
+      <div class="chapter-item" data-idx="30" data-sec="o" data-file="orms/04-prisma-crud.md" data-title="Prisma CRUD Operations"><span class="ch-num">04</span><span>✏️ Prisma CRUD Operations</span></div>
+      <div class="chapter-item" data-idx="31" data-sec="o" data-file="orms/05-prisma-migrations.md" data-title="Prisma Migrations"><span class="ch-num">05</span><span>🚚 Prisma Migrations</span></div>
+      <div class="chapter-item" data-idx="32" data-sec="o" data-file="orms/06-prisma-advanced.md" data-title="Prisma Advanced"><span class="ch-num">06</span><span>🚀 Prisma Advanced</span></div>
+      <div class="chapter-item" data-idx="33" data-sec="o" data-file="orms/07-other-orms.md" data-title="Drizzle, TypeORM, Sequelize, Knex"><span class="ch-num">07</span><span>🗂️ Drizzle, TypeORM, Sequelize</span></div>
+    </div>
+
+    <!-- Social Network Project -->
+    <div class="section-header sec-p" data-section="p">
+      <span>🏗️ Project: Social Network</span>
+      <span class="section-arrow">▾</span>
+    </div>
+    <div class="section-items" id="section-p">
+      <div class="chapter-item" data-idx="34" data-sec="p" data-file="project-social-network/01-requirements.md" data-title="Requirements & Architecture"><span class="ch-num">01</span><span>📋 Requirements & Architecture</span></div>
+      <div class="chapter-item" data-idx="35" data-sec="p" data-file="project-social-network/02-schema-design.md" data-title="Schema Design"><span class="ch-num">02</span><span>🗄️ Schema Design</span></div>
+      <div class="chapter-item" data-idx="36" data-sec="p" data-file="project-social-network/03-sql-queries.md" data-title="Core SQL Queries"><span class="ch-num">03</span><span>🔍 Core SQL Queries</span></div>
+      <div class="chapter-item" data-idx="37" data-sec="p" data-file="project-social-network/04-prisma-implementation.md" data-title="Prisma Implementation"><span class="ch-num">04</span><span>⚙️ Prisma Implementation</span></div>
+      <div class="chapter-item" data-idx="38" data-sec="p" data-file="project-social-network/05-optimization.md" data-title="Optimization & Scaling"><span class="ch-num">05</span><span>⚡ Optimization & Scaling</span></div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="content-area">
+    <div id="top-bar">
+      <div id="breadcrumb">Database Mastery — <span id="current-section" class="sec-f">Welcome</span></div>
+      <div class="progress-wrap">
+        <span id="progress-text">0 / 39</span>
+        <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div id="loader"><div class="spinner"></div><p>Loading chapter…</p></div>
+    <div id="welcome">
+      <div class="welcome-inner">
+        <h1>Database Mastery Notes</h1>
+        <p>Your complete, beginner-friendly guide to SQL databases — from relational fundamentals to Prisma ORM and a full social network project, with cross-database comparisons throughout.</p>
+        <div class="stats-row">
+          <div class="stat-card sf"><span class="num">10</span><div class="lbl">DB Fundamentals</div></div>
+          <div class="stat-card ss"><span class="num">17</span><div class="lbl">SQL Chapters</div></div>
+          <div class="stat-card so"><span class="num">7</span><div class="lbl">ORM & Prisma</div></div>
+          <div class="stat-card sp"><span class="num">5</span><div class="lbl">Social Network</div></div>
+        </div>
+        <div class="db-badges">
+          <span class="db-badge">🐘 PostgreSQL</span>
+          <span class="db-badge">🐬 MySQL</span>
+          <span class="db-badge">🪟 SQL Server</span>
+          <span class="db-badge">🔶 Oracle DB</span>
+          <span class="db-badge">📦 SQLite</span>
+          <span class="db-badge">▲ Prisma ORM</span>
+        </div>
+        <div class="sections-grid">
+          <div class="section-card sf">
+            <h3>🗄️ DB Fundamentals</h3>
+            <p>Data modeling, ER diagrams, normalization, ACID, indexes, transactions, joins, and when to use SQL vs NoSQL.</p>
+          </div>
+          <div class="section-card ss">
+            <h3>💚 SQL 0 → 100</h3>
+            <p>Every SQL concept from CREATE TABLE to window functions, CTEs, full-text search, and a cross-DB comparison cheatsheet.</p>
+          </div>
+          <div class="section-card so">
+            <h3>🔌 ORMs & Prisma</h3>
+            <p>Prisma schema, CRUD, migrations, transactions, and a comparison of Drizzle, TypeORM, Sequelize, and Knex.</p>
+          </div>
+          <div class="section-card sp">
+            <h3>🏗️ Social Network</h3>
+            <p>Design, build, and optimize a real social network database — schema, raw SQL queries, Prisma services, and scaling strategies.</p>
+          </div>
+        </div>
+        <button class="start-btn" onclick="loadChapter(0)">Start Learning →</button>
+      </div>
+    </div>
+    <div id="content" style="display:none">
+      <div id="server-banner">
+        <h3>⚡ Local Server Required</h3>
+        <p>This viewer fetches markdown files from disk. Open a terminal in the <strong>database-notes</strong> folder and run:</p>
+        <code>npx serve .</code>
+        <p style="margin-top:8px">Then open <strong>http://localhost:3000</strong> — or use the VS Code <em>Live Server</em> extension.</p>
+      </div>
+      <div id="chapter-content"></div>
+    </div>
+  </div>
+  <aside id="toc-panel">
+    <h3>On This Page</h3>
+    <div id="toc-list"></div>
+  </aside>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: false, theme: 'dark',
+  themeVariables: {
+    darkMode: true, background: '#1c2230', primaryColor: '#1f3a5f',
+    primaryTextColor: '#e6edf3', primaryBorderColor: '#58a6ff',
+    lineColor: '#58a6ff', secondaryColor: '#21262d', tertiaryColor: '#161b22',
+    fontFamily: 'Inter, sans-serif', fontSize: '13px'
+  }
+});
+marked.setOptions({ breaks: true, gfm: true });
+
+const chapters = Array.from(document.querySelectorAll('.chapter-item'));
+const TOTAL = chapters.length;
+let currentIdx = -1;
+const visited = new Set();
+const SEC_COLORS = { f: 'sec-f', s: 'sec-s', o: 'sec-o', p: 'sec-p' };
+
+function updateProgress(idx) {
+  visited.add(idx);
+  const pct = Math.round(visited.size / TOTAL * 100);
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = visited.size + ' / ' + TOTAL;
+}
+
+async function loadChapter(idx) {
+  const item = chapters[idx];
+  if (!item) return;
+  const file = item.dataset.file;
+  const title = item.dataset.title;
+  const sec = item.dataset.sec;
+
+  chapters.forEach(c => c.classList.remove('active-f','active-s','active-o','active-p'));
+  item.classList.add('active-' + sec);
+  currentIdx = idx;
+
+  const secEl = document.getElementById('current-section');
+  secEl.textContent = title;
+  secEl.className = SEC_COLORS[sec];
+
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  document.getElementById('chapter-content').innerHTML = '';
+  document.getElementById('server-banner').style.display = 'none';
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('content-area').scrollTo(0, 0);
+
+  try {
+    const res = await fetch(file);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const md = await res.text();
+    renderChapter(md, idx, sec);
+  } catch(e) {
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('server-banner').style.display = 'block';
+    document.getElementById('chapter-content').innerHTML =
+      '<p style="color:var(--text-muted);font-size:14px">Could not load: <code>' + file + '</code></p>';
+  }
+
+  updateProgress(idx);
+}
+
+function renderChapter(md, idx, sec) {
+  const mermaidBlocks = [];
+  const processed = md.replace(/```mermaid\n([\s\S]*?)```/g, (_, code) => {
+    const ph = 'MERMAID_PH_' + mermaidBlocks.length;
+    mermaidBlocks.push(code.trim());
+    return '<div class="mermaid" id="m-' + (mermaidBlocks.length-1) + '">' + ph + '</div>';
+  });
+
+  let html = marked.parse(processed);
+
+  mermaidBlocks.forEach((code, i) => {
+    html = html.replace('MERMAID_PH_' + i, code);
+  });
+
+  // Colorize headings by section
+  html = html.replace(/<h1>/g, '<h1 class="' + SEC_COLORS[sec] + '">');
+  html = html.replace(/<h2>/g, '<h2 class="' + SEC_COLORS[sec] + '">');
+
+  // Wrap code blocks
+  html = html.replace(/<pre><code class="language-([^"]+)">([\s\S]*?)<\/code><\/pre>/g,
+    (_, lang, code) => codeBlock(lang, code));
+  html = html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g,
+    (_, code) => codeBlock('code', code));
+
+  // Prev/Next buttons
+  const prev = chapters[idx - 1];
+  const next = chapters[idx + 1];
+  html += `<div id="chapter-nav">
+    <button class="nav-btn prev ${prev?'':'disabled'}" onclick="${prev?'loadChapter('+(idx-1)+')':''}">
+      <span>←</span><span><span class="nav-label">Previous</span><span class="nav-title">${prev?prev.dataset.title:'—'}</span></span>
+    </button>
+    <button class="nav-btn next ${next?'':'disabled'}" onclick="${next?'loadChapter('+(idx+1)+')':''}">
+      <span><span class="nav-label">Next</span><span class="nav-title">${next?next.dataset.title:'—'}</span></span><span>→</span>
+    </button>
+  </div>`;
+
+  document.getElementById('chapter-content').innerHTML = html;
+  document.getElementById('loader').style.display = 'none';
+
+  document.querySelectorAll('#chapter-content pre code').forEach(b => hljs.highlightElement(b));
+  mermaid.run({ nodes: document.querySelectorAll('#chapter-content .mermaid') });
+  buildTOC();
+}
+
+function codeBlock(lang, code) {
+  return `<div class="code-wrapper"><div class="code-header"><span class="code-lang">${lang}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code class="language-${lang}">${code}</code></pre></div>`;
+}
+
+function buildTOC() {
+  const toc = document.getElementById('toc-list');
+  toc.innerHTML = '';
+  document.querySelectorAll('#chapter-content h2, #chapter-content h3').forEach((h, i) => {
+    if (!h.id) h.id = 'h' + i;
+    const a = document.createElement('a');
+    a.className = 'toc-item' + (h.tagName === 'H3' ? ' toc-h3' : '');
+    a.href = '#' + h.id;
+    a.textContent = h.textContent;
+    a.onclick = e => { e.preventDefault(); h.scrollIntoView({ behavior: 'smooth' }); };
+    toc.appendChild(a);
+  });
+}
+
+function copyCode(btn) {
+  const code = btn.closest('.code-wrapper').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
+// Section collapse
+document.querySelectorAll('.section-header').forEach(h => {
+  h.addEventListener('click', () => h.classList.toggle('section-collapsed'));
+});
+
+// Chapter click
+chapters.forEach(item => {
+  item.addEventListener('click', () => loadChapter(parseInt(item.dataset.idx)));
+});
+
+// Search
+document.getElementById('search').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  chapters.forEach(item => {
+    item.classList.toggle('hidden', q && !item.dataset.title.toLowerCase().includes(q));
+  });
+});
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' && currentIdx < TOTAL - 1) loadChapter(currentIdx + 1);
+  if (e.key === 'ArrowLeft' && currentIdx > 0) loadChapter(currentIdx - 1);
+});
+</script>
+</body>
+</html>

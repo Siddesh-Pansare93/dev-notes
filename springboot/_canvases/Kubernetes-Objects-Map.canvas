@@ -1,0 +1,69 @@
+{
+  "nodes": [
+    {"id":"title","type":"text","x":-100,"y":-900,"width":700,"height":60,"text":"# Kubernetes Objects — What Goes Where","color":"4"},
+    {"id":"subtitle","type":"text","x":-100,"y":-820,"width":700,"height":50,"text":"Docker knowledge on the left → Kubernetes equivalent on the right","color":"5"},
+
+    {"id":"docker_group","type":"group","x":-750,"y":-740,"width":400,"height":600,"label":"🐳 Docker / Compose (what you know)","color":"6"},
+    {"id":"d1","type":"text","x":-730,"y":-710,"width":360,"height":50,"text":"docker run image:tag"},
+    {"id":"d2","type":"text","x":-730,"y":-645,"width":360,"height":50,"text":"docker run --restart=always"},
+    {"id":"d3","type":"text","x":-730,"y":-580,"width":360,"height":50,"text":"--scale=3"},
+    {"id":"d4","type":"text","x":-730,"y":-515,"width":360,"height":50,"text":"-p 8080:8080"},
+    {"id":"d5","type":"text","x":-730,"y":-450,"width":360,"height":50,"text":"--env DB_URL=..."},
+    {"id":"d6","type":"text","x":-730,"y":-385,"width":360,"height":50,"text":"--env DB_PASSWORD=secret"},
+    {"id":"d7","type":"text","x":-730,"y":-320,"width":360,"height":50,"text":"nginx reverse proxy"},
+    {"id":"d8","type":"text","x":-730,"y":-255,"width":360,"height":50,"text":"docker volume"},
+    {"id":"d9","type":"text","x":-730,"y":-190,"width":360,"height":50,"text":"docker exec -it ... sh"},
+    {"id":"d10","type":"text","x":-730,"y":-125,"width":360,"height":50,"text":"docker logs -f"},
+    {"id":"d11","type":"text","x":-730,"y":-60,"width":360,"height":50,"text":"docker network"},
+
+    {"id":"k8s_group","type":"group","x":0,"y":-740,"width":500,"height":600,"label":"☸️ Kubernetes equivalent","color":"3"},
+    {"id":"k1","type":"text","x":20,"y":-710,"width":460,"height":50,"text":"Pod — wraps 1+ containers"},
+    {"id":"k2","type":"text","x":20,"y":-645,"width":460,"height":50,"text":"Deployment (auto-restart crashed pods)","color":"3"},
+    {"id":"k3","type":"text","x":20,"y":-580,"width":460,"height":50,"text":"spec.replicas: 3 in Deployment"},
+    {"id":"k4","type":"text","x":20,"y":-515,"width":460,"height":50,"text":"Service (stable ClusterIP + DNS)","color":"3"},
+    {"id":"k5","type":"text","x":20,"y":-450,"width":460,"height":50,"text":"ConfigMap (envFrom: configMapRef)","color":"5"},
+    {"id":"k6","type":"text","x":20,"y":-385,"width":460,"height":50,"text":"Secret (envFrom: secretRef)","color":"1"},
+    {"id":"k7","type":"text","x":20,"y":-320,"width":460,"height":50,"text":"Ingress (nginx / traefik / cloud LB)","color":"4"},
+    {"id":"k8","type":"text","x":20,"y":-255,"width":460,"height":50,"text":"PersistentVolumeClaim"},
+    {"id":"k9","type":"text","x":20,"y":-190,"width":460,"height":50,"text":"kubectl exec -it <pod> -- sh"},
+    {"id":"k10","type":"text","x":20,"y":-125,"width":460,"height":50,"text":"kubectl logs <pod> -f"},
+    {"id":"k11","type":"text","x":20,"y":-60,"width":460,"height":50,"text":"Cluster network (flat, all pods reachable)"},
+
+    {"id":"kubectl_group","type":"group","x":600,"y":-740,"width":400,"height":600,"label":"🔧 kubectl cheatsheet","color":"2"},
+    {"id":"kc1","type":"text","x":620,"y":-710,"width":360,"height":40,"text":"kubectl get pods -w"},
+    {"id":"kc2","type":"text","x":620,"y":-655,"width":360,"height":40,"text":"kubectl describe pod <name>"},
+    {"id":"kc3","type":"text","x":620,"y":-600,"width":360,"height":40,"text":"kubectl logs <pod> --previous"},
+    {"id":"kc4","type":"text","x":620,"y":-545,"width":360,"height":40,"text":"kubectl exec -it <pod> -- sh"},
+    {"id":"kc5","type":"text","x":620,"y":-490,"width":360,"height":40,"text":"kubectl apply -f manifest.yaml"},
+    {"id":"kc6","type":"text","x":620,"y":-435,"width":360,"height":40,"text":"kubectl delete -f manifest.yaml"},
+    {"id":"kc7","type":"text","x":620,"y":-380,"width":360,"height":40,"text":"kubectl port-forward svc/name 8080:80"},
+    {"id":"kc8","type":"text","x":620,"y":-325,"width":360,"height":40,"text":"kubectl get events --sort-by=.lastTimestamp"},
+    {"id":"kc9","type":"text","x":620,"y":-270,"width":360,"height":40,"text":"kubectl rollout status deploy/<name>"},
+    {"id":"kc10","type":"text","x":620,"y":-215,"width":360,"height":40,"text":"kubectl rollout undo deploy/<name>"},
+
+    {"id":"debug_group","type":"group","x":0,"y":-1050,"width":500,"height":240,"label":"Pod Status Debugging","color":"1"},
+    {"id":"dbg1","type":"text","x":20,"y":-1020,"width":460,"height":50,"text":"Pending → node has no resources (check requests vs capacity)","color":"5"},
+    {"id":"dbg2","type":"text","x":20,"y":-955,"width":460,"height":50,"text":"ImagePullBackOff → wrong image tag / no registry creds","color":"1"},
+    {"id":"dbg3","type":"text","x":20,"y":-890,"width":460,"height":50,"text":"CrashLoopBackOff → app crashes on start (kubectl logs --previous)","color":"1"},
+    {"id":"dbg4","type":"text","x":20,"y":-825,"width":460,"height":50,"text":"0/1 Ready → readiness probe failing (kubectl describe pod)","color":"4"},
+
+    {"id":"probe_note","type":"text","x":600,"y":-130,"width":380,"height":80,"text":"⚠️ ALWAYS add startupProbe for Spring Boot!\nJVM boot takes 10-60s.\nWithout it, liveness kills the pod during startup.","color":"1"},
+
+    {"id":"note_k8s","type":"file","x":-750,"y":100,"width":300,"height":50,"file":"13-Deployment/08-Kubernetes-From-Scratch.md"},
+    {"id":"note_k8s2","type":"file","x":-750,"y":160,"width":300,"height":50,"file":"13-Deployment/04-Kubernetes-Basics.md"},
+    {"id":"note_health","type":"file","x":-750,"y":220,"width":300,"height":50,"file":"12-Observability/05-Health-Checks-and-Readiness.md"}
+  ],
+  "edges": [
+    {"id":"e1","fromNode":"d1","toNode":"k1","label":"≈"},
+    {"id":"e2","fromNode":"d2","toNode":"k2","label":"≈"},
+    {"id":"e3","fromNode":"d3","toNode":"k3","label":"≈"},
+    {"id":"e4","fromNode":"d4","toNode":"k4","label":"≈"},
+    {"id":"e5","fromNode":"d5","toNode":"k5","label":"≈"},
+    {"id":"e6","fromNode":"d6","toNode":"k6","label":"≈"},
+    {"id":"e7","fromNode":"d7","toNode":"k7","label":"≈"},
+    {"id":"e8","fromNode":"d8","toNode":"k8","label":"≈"},
+    {"id":"e9","fromNode":"d9","toNode":"k9","label":"≈"},
+    {"id":"e10","fromNode":"d10","toNode":"k10","label":"≈"},
+    {"id":"e11","fromNode":"d11","toNode":"k11","label":"≈"}
+  ]
+}

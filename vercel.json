@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app/server.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "app/views/**",
+          "app/public/**",
+          "api_security/**",
+          "cloud_deployment/**",
+          "computer_networks/**",
+          "database-notes/**",
+          "devOPS/**",
+          "docker_kubernetes/**",
+          "flutter_dart/**",
+          "golang-notes/**",
+          "js-notes/**",
+          "operating_systems/**",
+          "postgresql/**",
+          "python/**",
+          "react/**",
+          "system-design-notes/**",
+          "springboot/**",
+          "typescript/**",
+          "web3/**",
+          "*.md"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app/server.js"
+    }
+  ]
+}
