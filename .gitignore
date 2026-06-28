@@ -1,1 +1,6 @@
 .vercel
+node_modules/
+notes-sourcecode.zip
+.playwright-mcp/
+.ruff_cache/
+ASCII_REMOVAL_SUMMARY.md
