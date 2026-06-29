@@ -564,11 +564,14 @@
 
   <script>
   // ── Mermaid diagram zoom lens (Amazon-style magnifier) ─────────────────────
-  // Uses SVG viewBox manipulation instead of CSS transforms — no positioning
-  // math, guaranteed content, works with any mermaid diagram size.
+  // Mermaid embeds <style> blocks whose selectors are scoped to the SVG's own
+  // id (e.g. "#mermaid-abc .node rect { fill:… }").  Cloning the element and
+  // stripping/changing the id breaks those rules → transparent diagram.
+  // Fix: serialise the live SVG to a self-contained data-URL (CSS baked in),
+  // then zoom with CSS background-size / background-position.
   (function () {
     const ZOOM = 2.5;
-    const R    = 110;   // lens radius → 220 px diameter
+    const R    = 110;   // lens radius px  (diameter = 220 px)
     const D    = R * 2;
 
     function attachZoom(svg) {
@@ -578,7 +581,7 @@
       const mermaidEl = svg.closest('.mermaid');
       if (!mermaidEl) return;
 
-      // ── wrap ───────────────────────────────────────────────────────────────
+      // ── wrap the mermaid element ───────────────────────────────────────────
       const wrapper = document.createElement('div');
       wrapper.className = 'mz-wrapper';
       mermaidEl.parentNode.insertBefore(wrapper, mermaidEl);
@@ -593,29 +596,34 @@
         '</svg> Hover to zoom';
       wrapper.appendChild(hint);
 
-      // Lens: circular clip window
       const lens = document.createElement('div');
       lens.className = 'mz-lens';
       wrapper.appendChild(lens);
 
-      // ── lazy clone — built once on first hover ─────────────────────────────
-      let clone = null;
-      function buildClone() {
-        if (clone) return;
-        clone = svg.cloneNode(true);
-        clone.removeAttribute('id');
-        // Fill the lens exactly; viewBox controls what region is shown
-        clone.style.cssText = 'display:block;width:' + D + 'px;height:' + D + 'px;';
-        clone.removeAttribute('width');
-        clone.removeAttribute('height');
-        lens.appendChild(clone);
+      // ── build zoom surface lazily on first hover ───────────────────────────
+      let bg = null;  // <div> with background-image set to the serialised SVG
+
+      function buildBg() {
+        if (bg) return;
+        let dataUrl;
+        try {
+          const str = new XMLSerializer().serializeToString(svg);
+          dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+        } catch (_) { return; }
+
+        bg = document.createElement('div');
+        bg.style.cssText =
+          'position:absolute;top:0;left:0;width:' + D + 'px;height:' + D + 'px;' +
+          'background-repeat:no-repeat;pointer-events:none;' +
+          'background-image:url("' + dataUrl + '");';
+        lens.appendChild(bg);
       }
 
       // ── events ─────────────────────────────────────────────────────────────
       let raf;
 
       wrapper.addEventListener('mouseenter', () => {
-        buildClone();
+        buildBg();
         lens.classList.add('mz-on');
       });
       wrapper.addEventListener('mouseleave', () => {
@@ -630,42 +638,35 @@
           const cx = e.clientX - wRect.left;
           const cy = e.clientY - wRect.top;
 
-          // Center lens on cursor
+          // Centre the lens circle on the cursor
           lens.style.left = (cx - R) + 'px';
           lens.style.top  = (cy - R) + 'px';
 
-          if (!clone) return;
+          if (!bg) return;
 
-          // Map cursor pixel position → SVG viewBox coordinates
-          const sRect = svg.getBoundingClientRect();
-          const vb    = svg.viewBox.baseVal;
-          // Fall back to pixel size if mermaid didn't set a viewBox
-          const vbW = vb.width  || sRect.width;
-          const vbH = vb.height || sRect.height;
-          const vbX = vb.x || 0;
-          const vbY = vb.y || 0;
-
-          // Cursor position in SVG coordinate space
-          // (cx is relative to wrapper; SVG may have an offset within wrapper)
+          // Cursor as a fraction of the rendered SVG dimensions
+          const sRect   = svg.getBoundingClientRect();
           const svgLeft = sRect.left - wRect.left;
           const svgTop  = sRect.top  - wRect.top;
-          const svgCx = vbX + ((cx - svgLeft) / sRect.width)  * vbW;
-          const svgCy = vbY + ((cy - svgTop)  / sRect.height) * vbH;
+          const nx = (cx - svgLeft) / sRect.width;   // 0 … 1 across the diagram
+          const ny = (cy - svgTop)  / sRect.height;
 
-          // Region to show: D/ZOOM × D/ZOOM in SVG coords, centred on cursor
-          const halfW = (D / ZOOM) / 2;
-          const halfH = (D / ZOOM) / 2;
+          // The background image is drawn at ZOOM × original pixel size
+          const bgW = sRect.width  * ZOOM;
+          const bgH = sRect.height * ZOOM;
 
-          // Clamp so we don't pan outside the diagram
-          const newX = Math.max(vbX, Math.min(svgCx - halfW, vbX + vbW - halfW * 2));
-          const newY = Math.max(vbY, Math.min(svgCy - halfH, vbY + vbH - halfH * 2));
+          // Offset so the cursor point lands at the lens centre (R, R)
+          //   bgX = R − nx·bgW  →  nx fraction of bgW maps to lens centre R
+          const bgX = R - nx * bgW;
+          const bgY = R - ny * bgH;
 
-          clone.setAttribute('viewBox', newX + ' ' + newY + ' ' + (halfW * 2) + ' ' + (halfH * 2));
+          bg.style.backgroundSize     = bgW + 'px ' + bgH + 'px';
+          bg.style.backgroundPosition = bgX + 'px ' + bgY + 'px';
         });
       });
     }
 
-    // Watch for mermaid SVGs as they render asynchronously
+    // Pick up mermaid SVGs as they render asynchronously
     const obs = new MutationObserver(() => {
       document.querySelectorAll('.mermaid svg:not([data-mz])').forEach(attachZoom);
     });
