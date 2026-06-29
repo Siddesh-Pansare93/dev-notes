@@ -1331,90 +1331,15 @@ body {
 .canvas-card > *:first-child { margin-top: 0; }
 .canvas-card > *:last-child  { margin-bottom: 0; }
 
-/* ── Mermaid zoom lens ─────────────────────────────────────────────────────── */
-.mz-wrapper {
-  position: relative;
-  cursor: crosshair;
-  /* subtle callout that something is here */
-}
-.mz-wrapper:hover .mz-hint { opacity: 0; }
-.mz-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.7rem;
-  color: var(--muted);
-  padding: 0.2rem 0 0.4rem;
-  opacity: 0.65;
-  pointer-events: none;
-  user-select: none;
-  transition: opacity 0.2s;
-}
-
-/* the circular lens window */
-.mz-lens {
-  position: absolute;
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 200;
-  /* ring + glow */
-  border: 2.5px solid var(--accent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent),
-    0 0 0 6px color-mix(in srgb, var(--accent) 8%, transparent),
-    0 10px 40px rgba(0, 0, 0, 0.35);
-  background: var(--bg);
-  /* start hidden */
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.14s ease, visibility 0.14s ease;
-  /* crosshair overlay drawn with pseudo-element */
-}
-.mz-lens.mz-on {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* thin crosshair inside the lens */
-.mz-lens::before,
-.mz-lens::after {
-  content: '';
-  position: absolute;
-  background: color-mix(in srgb, var(--accent) 35%, transparent);
-  z-index: 10;
-  pointer-events: none;
-}
-.mz-lens::before {          /* horizontal hair */
-  width: 100%; height: 1px;
-  top: 50%; left: 0;
-}
-.mz-lens::after {           /* vertical hair */
-  width: 1px; height: 100%;
-  left: 50%; top: 0;
-}
-
-/* Canvas sits directly inside the lens and is clipped to the circle by
-   the lens's border-radius + overflow:hidden */
-.mz-lens > canvas {
-  display: block;
-  position: absolute;
-  top: 0; left: 0;
-  pointer-events: none;
-}
-
 /* ── Mermaid diagram sizing ─────────────────────────────────────────────────── */
-/* Allow diagrams to render at their natural width; the wrapper scrolls. */
+/* Allow diagrams to render at their natural width; container scrolls if needed */
 .mermaid {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
 /* Override the inline max-width mermaid injects on each SVG */
-.mermaid > svg,
-.mz-wrapper .mermaid > svg {
+.mermaid > svg {
   max-width: unset !important;
   display: block;
 }
