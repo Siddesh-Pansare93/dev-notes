@@ -564,11 +564,16 @@
 
   <script>
   // ── Mermaid diagram zoom lens (Amazon-style magnifier) ─────────────────────
-  // Mermaid embeds <style> blocks whose selectors are scoped to the SVG's own
-  // id (e.g. "#mermaid-abc .node rect { fill:… }").  Cloning the element and
-  // stripping/changing the id breaks those rules → transparent diagram.
-  // Fix: serialise the live SVG to a self-contained data-URL (CSS baked in),
-  // then zoom with CSS background-size / background-position.
+  // Approach: serialise the live SVG → Image object → draw onto a <canvas>
+  // with ctx.drawImage(img, dx, dy, scaledW, scaledH).
+  //
+  // Why canvas and not background-image or SVG clone:
+  //   • background-image: SVG with width="100%" has no intrinsic pixel size;
+  //     browsers may refuse to paint it even with explicit background-size.
+  //   • cloneNode: mermaid's embedded <style> uses the SVG's #id as a scope
+  //     prefix — removing/changing the id makes all fills transparent.
+  //   • canvas drawImage: renders the SVG via the browser's native image
+  //     pipeline, bypassing both problems.
   (function () {
     const ZOOM = 2.5;
     const R    = 110;   // lens radius px  (diameter = 220 px)
@@ -581,7 +586,7 @@
       const mermaidEl = svg.closest('.mermaid');
       if (!mermaidEl) return;
 
-      // ── wrap the mermaid element ───────────────────────────────────────────
+      // ── wrap ──────────────────────────────────────────────────────────────
       const wrapper = document.createElement('div');
       wrapper.className = 'mz-wrapper';
       mermaidEl.parentNode.insertBefore(wrapper, mermaidEl);
@@ -600,30 +605,45 @@
       lens.className = 'mz-lens';
       wrapper.appendChild(lens);
 
-      // ── build zoom surface lazily on first hover ───────────────────────────
-      let bg = null;  // <div> with background-image set to the serialised SVG
+      // ── canvas inside the lens ────────────────────────────────────────────
+      const canvas = document.createElement('canvas');
+      canvas.width  = D;
+      canvas.height = D;
+      canvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;';
+      lens.appendChild(canvas);
+      const ctx = canvas.getContext('2d');
 
-      function buildBg() {
-        if (bg) return;
-        let dataUrl;
+      // ── load SVG as Image on first hover ──────────────────────────────────
+      let img      = null;
+      let imgReady = false;
+
+      function buildImg() {
+        if (img) return;
         try {
+          // Give the serialised SVG explicit pixel dimensions so browsers
+          // treat it as a fixed-size image (needed for drawImage to work).
+          const sr  = svg.getBoundingClientRect();
+          const ow  = svg.getAttribute('width');
+          const oh  = svg.getAttribute('height');
+          svg.setAttribute('width',  Math.round(sr.width));
+          svg.setAttribute('height', Math.round(sr.height));
           const str = new XMLSerializer().serializeToString(svg);
-          dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
-        } catch (_) { return; }
+          if (ow === null) svg.removeAttribute('width');
+          else svg.setAttribute('width', ow);
+          if (oh === null) svg.removeAttribute('height');
+          else svg.setAttribute('height', oh);
 
-        bg = document.createElement('div');
-        bg.style.cssText =
-          'position:absolute;top:0;left:0;width:' + D + 'px;height:' + D + 'px;' +
-          'background-repeat:no-repeat;pointer-events:none;' +
-          'background-image:url("' + dataUrl + '");';
-        lens.appendChild(bg);
+          img = new Image();
+          img.onload = () => { imgReady = true; };
+          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(str);
+        } catch (_) { img = null; }
       }
 
-      // ── events ─────────────────────────────────────────────────────────────
+      // ── events ────────────────────────────────────────────────────────────
       let raf;
 
       wrapper.addEventListener('mouseenter', () => {
-        buildBg();
+        buildImg();
         lens.classList.add('mz-on');
       });
       wrapper.addEventListener('mouseleave', () => {
@@ -638,35 +658,35 @@
           const cx = e.clientX - wRect.left;
           const cy = e.clientY - wRect.top;
 
-          // Centre the lens circle on the cursor
+          // Move the lens to be centred on the cursor
           lens.style.left = (cx - R) + 'px';
           lens.style.top  = (cy - R) + 'px';
 
-          if (!bg) return;
+          if (!imgReady) return;
 
           // Cursor as a fraction of the rendered SVG dimensions
           const sRect   = svg.getBoundingClientRect();
           const svgLeft = sRect.left - wRect.left;
           const svgTop  = sRect.top  - wRect.top;
-          const nx = (cx - svgLeft) / sRect.width;   // 0 … 1 across the diagram
+          const nx = (cx - svgLeft) / sRect.width;   // 0…1 across the diagram
           const ny = (cy - svgTop)  / sRect.height;
 
-          // The background image is drawn at ZOOM × original pixel size
-          const bgW = sRect.width  * ZOOM;
-          const bgH = sRect.height * ZOOM;
+          // Scaled image dimensions
+          const iw = sRect.width  * ZOOM;
+          const ih = sRect.height * ZOOM;
 
-          // Offset so the cursor point lands at the lens centre (R, R)
-          //   bgX = R − nx·bgW  →  nx fraction of bgW maps to lens centre R
-          const bgX = R - nx * bgW;
-          const bgY = R - ny * bgH;
+          // Destination offset: cursor fraction of the scaled image lands at
+          // canvas centre (R, R)  →  dx = R − nx·iw
+          const dx = R - nx * iw;
+          const dy = R - ny * ih;
 
-          bg.style.backgroundSize     = bgW + 'px ' + bgH + 'px';
-          bg.style.backgroundPosition = bgX + 'px ' + bgY + 'px';
+          ctx.clearRect(0, 0, D, D);
+          ctx.drawImage(img, dx, dy, iw, ih);
         });
       });
     }
 
-    // Pick up mermaid SVGs as they render asynchronously
+    // Watch for mermaid SVGs appearing asynchronously
     const obs = new MutationObserver(() => {
       document.querySelectorAll('.mermaid svg:not([data-mz])').forEach(attachZoom);
     });

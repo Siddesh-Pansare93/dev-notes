@@ -1396,10 +1396,25 @@ body {
   left: 50%; top: 0;
 }
 
-/* SVG clone sits directly inside the lens (fills it; viewBox controls the visible region) */
-.mz-lens > svg {
+/* Canvas sits directly inside the lens and is clipped to the circle by
+   the lens's border-radius + overflow:hidden */
+.mz-lens > canvas {
   display: block;
-  width: 220px;
-  height: 220px;
+  position: absolute;
+  top: 0; left: 0;
   pointer-events: none;
+}
+
+/* ── Mermaid diagram sizing ─────────────────────────────────────────────────── */
+/* Allow diagrams to render at their natural width; the wrapper scrolls. */
+.mermaid {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+/* Override the inline max-width mermaid injects on each SVG */
+.mermaid > svg,
+.mz-wrapper .mermaid > svg {
+  max-width: unset !important;
+  display: block;
 }
