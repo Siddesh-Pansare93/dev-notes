@@ -1,36 +1,36 @@
----
-tags: [security, production, secrets, vault, aws-secrets-manager, kubernetes, spring-cloud]
-aliases: [Secrets Management, HashiCorp Vault Spring, AWS Secrets Manager Spring, Secret Rotation]
-stage: advanced
----
-
 # Secrets Management
 
-> [!info] For the Express/TS dev
-> You've used `dotenv` and `.env` files. That's fine for local dev. In production, `.env` files on servers are a disaster waiting to happen. This note covers the hierarchy from local dev to production-grade secrets stores — with concrete Spring Boot integration for each tier.
+> [!info] Express/TS wale dev ke liye
+> Tumne `dotenv` aur `.env` files use ki hongi. Local dev ke liye woh bilkul theek hai. Lekin production mein `.env` files server pe rakhna ek disaster hai jo hone wala hai. Yeh note tumhe pura hierarchy dikhayega — local dev se lekar production-grade secrets stores tak — har tier ke liye concrete Spring Boot integration ke saath.
 
 ## Concept / mental model
 
-### The anti-patterns (burned in production)
+### Anti-patterns (jo production mein jal chuke hain)
+
+Kya hota hai jab secrets galat jagah rakhe jaate hain? Chalo dekhte hain woh mistakes jo har company kabhi na kabhi karti hai:
 
 > [!danger]
-> - **Secrets in `application.yml`**: `spring.datasource.password: mysecretpassword` checked into Git. Every developer, CI runner, and GitHub contributor now has your DB password. This happens to *everyone* once.
-> - **Secrets in environment variables in Docker Compose files**: `environment: - DB_PASSWORD=secret` committed to the repo is the same as secrets in code.
-> - **Secrets in code**: `String apiKey = "sk-abc123..."` — now it's in git history *forever*, even after deletion.
-> - **Secrets in CI environment variables visible in logs**: `echo $DB_PASSWORD` in a script prints the secret in CI logs.
+> - **Secrets `application.yml` mein**: `spring.datasource.password: mysecretpassword` Git mein commit ho gaya. Ab har developer, CI runner, aur GitHub contributor ke paas tumhara DB password hai. Yeh *sabke* saath ek baar hota hai.
+> - **Secrets Docker Compose files ke environment variables mein**: `environment: - DB_PASSWORD=secret` repo mein commit karna, code mein secret rakhne jaisa hi hai.
+> - **Secrets code mein**: `String apiKey = "sk-abc123..."` — ab yeh git history mein *hamesha ke liye* hai, delete karne ke baad bhi.
+> - **CI environment variables jo logs mein dikh jaate hain**: script mein `echo $DB_PASSWORD` likhna CI logs mein secret print kar deta hai.
 
-### The hierarchy
+Socho tum Zomato ke backend engineer ho aur galti se restaurant partner ka payment gateway secret key GitHub pe push ho gayi — within minutes koi bot scan karke usko dhundh lega. Isliye yeh mazaak wali baat nahi hai.
+
+### Hierarchy — kaunsa environment, kaunsa secret store
 
 ```
 Developer laptop     → .env file, gitignored, per-developer
 CI/CD pipeline       → CI system's secret store (GitHub Actions Secrets, etc.)
 Staging              → HashiCorp Vault / Cloud provider secrets manager
 Production           → HashiCorp Vault / AWS Secrets Manager / GCP Secret Manager / Azure Key Vault
-Kubernetes           → External Secrets Operator or Sealed Secrets (not raw k8s Secrets)
+Kubernetes           → External Secrets Operator ya Sealed Secrets (raw k8s Secrets nahi)
 ```
 
+Jaise UPI mein different layers of security hoti hain (device PIN, UPI PIN, bank OTP), waise hi secrets ke liye bhi layered approach hai — jitna zyada production ke close jaate ho, utna strong secret management chahiye.
+
 > [!tip]
-> Never put actual secrets in `application.yml`. Use placeholder syntax: `${DB_PASSWORD}`. The value comes from the environment — which is populated from a secrets manager at startup. `application.yml` lives in Git; the actual values don't.
+> Kabhi bhi actual secrets `application.yml` mein mat daalo. Placeholder syntax use karo: `${DB_PASSWORD}`. Value environment se aayegi — jo startup ke time secrets manager se populate hoti hai. `application.yml` Git mein rehta hai; actual values nahi.
 
 ---
 
@@ -38,8 +38,10 @@ Kubernetes           → External Secrets Operator or Sealed Secrets (not raw k8
 
 ### Local development — `.env` with `spring-dotenv`
 
+Local pe kaam karte waqt sabse simple approach yehi hai — Express mein jo `dotenv` use karte the, Spring Boot mein uska equivalent hai `spring-dotenv`.
+
 ```bash
-# .env (ALWAYS in .gitignore)
+# .env (HAMESHA .gitignore mein)
 DB_PASSWORD=localdevpassword
 JWT_SECRET=local-dev-secret-32chars-minimum!!
 STRIPE_API_KEY=sk_test_...
@@ -62,9 +64,11 @@ spring:
 ```
 
 > [!warning]
-> Add `.env` to `.gitignore` and verify it's ignored *before* committing. Use `git check-ignore -v .env` to verify. A pre-commit hook (husky / gitleaks) prevents accidentally staging it.
+> `.env` ko `.gitignore` mein add karo aur commit karne se *pehle* verify karo ki woh ignore ho raha hai. `git check-ignore -v .env` chalake check karo. Ek pre-commit hook (husky / gitleaks) accidentally staging hone se bacha sakta hai.
 
 ### HashiCorp Vault — full Spring Cloud Vault setup
+
+Ab baat karte hain production-grade tool ki — HashiCorp Vault. Isse socho ek centralized "locker" ki tarah jahan saare secrets encrypted rehte hain, aur tumhari app startup ke time authenticate karke unhe fetch karti hai — bilkul CRED app ki tarah jahan tumhare card details ek secure vault mein encrypted rehte hain, app ko sirf token milta hai.
 
 ```xml
 <!-- pom.xml -->
@@ -75,21 +79,21 @@ spring:
 ```
 
 ```yaml
-# bootstrap.yml (loaded before application.yml, needed for Vault)
+# bootstrap.yml (application.yml se pehle load hota hai, Vault ke liye zaruri)
 spring:
   cloud:
     vault:
       host: vault.internal.example.com
       port: 8200
       scheme: https
-      authentication: KUBERNETES      # or TOKEN, AWS_EC2, APPROLE
+      authentication: KUBERNETES      # ya TOKEN, AWS_EC2, APPROLE
       kubernetes:
         role: my-spring-app
         kubernetes-path: kubernetes
       kv:
         enabled: true
         backend: secret
-        default-context: my-app       # reads secret/my-app
+        default-context: my-app       # secret/my-app read karta hai
         application-name: my-app
       database:
         enabled: true                  # dynamic DB credentials
@@ -98,28 +102,30 @@ spring:
 ```
 
 ```java
-// application.yml can now reference Vault-injected properties
-// (Spring Cloud Vault populates them via PropertySource)
+// application.yml ab Vault-injected properties reference kar sakta hai
+// (Spring Cloud Vault unhe PropertySource ke through populate karta hai)
 spring:
   datasource:
     url:      jdbc:postgresql://db:5432/myapp
-    username: ${spring.datasource.username}  # injected by Vault dynamic credentials
+    username: ${spring.datasource.username}  # Vault dynamic credentials se inject hota hai
     password: ${spring.datasource.password}
 ```
 
-**Vault auth methods:**
+**Vault auth methods:** — kaunsa method kab use karna hai, yeh depend karta hai ki tumhari app kahan chal rahi hai:
 
-| Auth method | When to use |
+| Auth method | Kab use karo |
 |---|---|
-| `KUBERNETES` | Running in k8s — pod's service account token authenticates to Vault |
-| `AWS_EC2` / `AWS_IAM` | Running on AWS EC2/ECS — instance identity authenticates |
-| `APPROLE` | CI/CD pipelines, Docker outside k8s |
-| `TOKEN` | Development only — a static Vault token |
+| `KUBERNETES` | k8s mein chal rahe ho — pod ka service account token Vault ko authenticate karta hai |
+| `AWS_EC2` / `AWS_IAM` | AWS EC2/ECS pe chal rahe ho — instance identity authenticate karti hai |
+| `APPROLE` | CI/CD pipelines, Docker k8s ke bahar |
+| `TOKEN` | Sirf development ke liye — ek static Vault token |
 
-**Dynamic DB credentials** — the most powerful Vault feature:
+**Dynamic DB credentials** — Vault ka sabse powerful feature. Yeh samajhna zaruri hai:
+
+Imagine karo tumhare paas 10 microservices hain aur sabka same DB password hardcoded hai — agar ek leak ho gaya, sabko rotate karna padega. Vault isko solve karta hai har app instance ko **unique, time-limited** DB credentials deke. Jaise Ola driver ko trip ke liye ek temporary OTP milta hai jo trip khatam hote hi expire ho jaata hai — waise hi yahan bhi.
 
 ```bash
-# Vault configuration (terraform or vault CLI)
+# Vault configuration (terraform ya vault CLI)
 vault secrets enable database
 
 vault write database/config/my-postgres \
@@ -136,9 +142,11 @@ vault write database/roles/my-app-db-role \
   max_ttl="24h"
 ```
 
-Each app instance gets a **unique, time-limited DB username/password** generated on startup. No shared passwords. No password rotation scripts. When the TTL expires, Vault rotates automatically.
+Har app instance ko startup pe ek **unique, time-limited** DB username/password milta hai. Koi shared passwords nahi. Koi manual password rotation script nahi chahiye. Jab TTL expire hota hai, Vault automatically rotate kar deta hai.
 
 ### AWS Secrets Manager with Spring Cloud AWS
+
+Agar tumhara pura infra AWS pe hai, toh Vault set up karne ke bajaye seedha AWS Secrets Manager use kar sakte ho — yeh managed service hai, khud ka Vault cluster maintain nahi karna padta.
 
 ```xml
 <dependency>
@@ -155,25 +163,25 @@ spring:
         static: us-east-1
       secretsmanager:
         reload:
-          strategy: refresh       # triggers @RefreshScope beans on rotation
-          period: 60000           # check every 60 seconds
+          strategy: refresh       # rotation pe @RefreshScope beans ko trigger karta hai
+          period: 60000           # har 60 seconds check karta hai
 ```
 
 ```yaml
-# Store secrets in AWS Secrets Manager at path /myapp/prod:
+# AWS Secrets Manager mein /myapp/prod path pe secrets store karo:
 # {"db.password": "...", "jwt.secret": "...", "stripe.api-key": "sk_live_..."}
 
 # application.yml
 spring:
   datasource:
-    password: ${db.password}   # Spring Cloud AWS injects from Secrets Manager
+    password: ${db.password}   # Spring Cloud AWS Secrets Manager se inject karta hai
 
 custom:
   jwt:
     secret: ${jwt.secret}
 ```
 
-Use IAM roles for EC2/ECS/Lambda — no static credentials needed. The instance's IAM role must have `secretsmanager:GetSecretValue` permission on the specific secret ARN.
+IAM roles use karo EC2/ECS/Lambda ke liye — static credentials ki zarurat nahi. Instance ke IAM role ko specific secret ARN pe `secretsmanager:GetSecretValue` permission honi chahiye.
 
 ### GCP Secret Manager
 
@@ -206,30 +214,34 @@ spring:
       keyvault:
         secret:
           endpoint: https://my-vault.vault.azure.net/
-          # Uses DefaultAzureCredential — managed identity in production
+          # DefaultAzureCredential use karta hai — production mein managed identity
 ```
 
 ---
 
 ## Kubernetes Secrets — base64 ≠ encryption
 
+Yeh sabse common misconception hai jo naye k8s users karte hain — "Secret" naam sunke lagta hai encrypted hoga. Aisa bilkul nahi hai!
+
 > [!danger]
-> Kubernetes Secrets are base64-encoded, not encrypted. Anyone who can `kubectl get secret my-secret -o yaml` gets the plaintext value. The base64 encoding is just serialization, not protection. Enable etcd encryption at rest AND control RBAC on who can read Secrets.
+> Kubernetes Secrets base64-encoded hote hain, encrypted nahi. Jo bhi `kubectl get secret my-secret -o yaml` chala sakta hai, usse plaintext value mil jaati hai. base64 encoding sirf serialization hai, protection nahi. etcd encryption at rest enable karo AUR RBAC control karo ki kaun Secrets read kar sakta hai.
 
 ```yaml
-# A raw k8s Secret is just base64:
+# Ek raw k8s Secret sirf base64 hai:
 apiVersion: v1
 kind: Secret
 metadata:
   name: db-credentials
 type: Opaque
 data:
-  password: bXlzZWNyZXRwYXNzd29yZA==   # just base64("mysecretpassword")
+  password: bXlzZWNyZXRwYXNzd29yZA==   # bas base64("mysecretpassword")
 ```
+
+Isko decode karna itna easy hai jitna Base64 decoder website pe paste karna — literally koi encryption nahi hai. Toh production mein raw Secrets Git mein commit karna bilkul mat karo.
 
 ### Option A: External Secrets Operator (recommended)
 
-ESO syncs secrets from Vault/AWS Secrets Manager/etc. into k8s Secrets automatically:
+ESO Vault/AWS Secrets Manager/etc. se secrets ko automatically k8s Secrets mein sync karta hai — matlab tumhara source of truth Vault rehta hai, k8s Secret sirf ek "cache" hai:
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -242,7 +254,7 @@ spec:
     name: vault-backend
     kind: SecretStore
   target:
-    name: db-credentials    # creates a k8s Secret with this name
+    name: db-credentials    # is naam se k8s Secret create hoga
     creationPolicy: Owner
   data:
     - secretKey: password
@@ -251,30 +263,32 @@ spec:
         property: db.password
 ```
 
-Your Spring Boot deployment then just mounts the k8s Secret as usual — no change to the app.
+Tumhari Spring Boot deployment fir usual tarike se k8s Secret ko mount karti hai — app mein koi change nahi chahiye.
 
 ### Option B: Sealed Secrets (Bitnami)
 
-Sealed Secrets encrypts the Secret with a cluster-specific key so the encrypted `SealedSecret` can be committed to Git safely:
+Sealed Secrets, Secret ko cluster-specific key se encrypt kar deta hai taaki encrypted `SealedSecret` ko safely Git mein commit kiya ja sake:
 
 ```bash
-# Install kubeseal CLI
+# kubeseal CLI install karo
 kubectl create secret generic db-credentials \
   --dry-run=client \
   --from-literal=password=mysecretpassword \
   -o yaml | kubeseal > sealed-secret.yaml
-# sealed-secret.yaml is safe to commit to Git
+# sealed-secret.yaml Git mein commit karna safe hai
 ```
 
 ---
 
 ## Secret rotation without downtime
 
-### `@RefreshScope` — soft rotation for simple secrets
+Kya hota hai jab secret rotate karna ho lekin app ko restart nahi kar sakte? Production mein downtime lena luxury nahi hai — IRCTC ka tatkal booking window chal raha ho aur tumhe deploy karna pade, toh zero-downtime rotation zaruri hai.
+
+### `@RefreshScope` — simple secrets ke liye soft rotation
 
 ```java
 @Configuration
-@RefreshScope   // re-reads properties when /actuator/refresh is called
+@RefreshScope   // /actuator/refresh call hone pe properties re-read karta hai
 public class JwtConfig {
 
     @Value("${jwt.secret}")
@@ -291,36 +305,38 @@ public class JwtConfig {
 ```
 
 ```bash
-# After rotating the secret in Vault/AWS Secrets Manager:
+# Vault/AWS Secrets Manager mein secret rotate karne ke baad:
 curl -X POST https://my-app/actuator/refresh
-# Spring Cloud Context re-fetches properties and rebuilds @RefreshScope beans
+# Spring Cloud Context properties re-fetch karke @RefreshScope beans rebuild karta hai
 ```
 
 > [!warning]
-> `@RefreshScope` has subtle issues: it creates a new proxy for the bean, and any bean that has cached a reference to the old bean still holds the old value. Only works reliably when all callers go through Spring's bean proxy (not if you stored the bean in a static field or pre-initialized it).
+> `@RefreshScope` ke kuch subtle issues hain: yeh bean ke liye ek naya proxy banata hai, aur jo bhi bean ne purane bean ka reference cache kar rakha hai woh abhi bhi old value hold karega. Reliably tabhi kaam karta hai jab saare callers Spring ke bean proxy se guzarte hon (agar tumne bean ko static field mein store kiya ya pre-initialize kiya, toh nahi chalega).
 
-### Blue-green rotation for static signing keys
+### Static signing keys ke liye blue-green rotation
 
-For JWT signing keys (RSA/EC), you cannot just swap the key mid-flight:
-1. Old tokens were signed with key A. If you rotate to key B, old tokens fail validation.
-2. Solution: serve both keys from JWKS, accept both during overlap window, issue new tokens with key B.
+JWT signing keys (RSA/EC) ke liye tum key ko mid-flight swap nahi kar sakte:
+1. Purane tokens key A se sign hue the. Agar key B pe rotate karoge, purane tokens validation fail karenge.
+2. Solution: JWKS se dono keys serve karo, overlap window ke dauran dono accept karo, naye tokens key B se issue karo.
 
-See [[18-Cryptographic-Key-Management]] for the full key rotation playbook.
+Poora key rotation playbook dekhne ke liye [[18-Cryptographic-Key-Management]] dekho.
 
 ---
 
-## Detecting leaked secrets
+## Leaked secrets detect karna
+
+Agar secret leak ho jaaye, toh usse jaldi pakadna damage control mein sabse zaruri step hai.
 
 ### Pre-commit: gitleaks
 
 ```bash
-# Install gitleaks (homebrew, or binary release)
+# gitleaks install karo (homebrew, ya binary release)
 brew install gitleaks
 
-# Run on your repo
+# apne repo pe run karo
 gitleaks detect --source . --verbose
 
-# As a pre-commit hook (via pre-commit framework)
+# pre-commit hook ke taur pe (pre-commit framework ke through)
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/gitleaks/gitleaks
@@ -342,33 +358,35 @@ repos:
     extra_args: --only-verified
 ```
 
-### If a secret is leaked
+### Agar secret leak ho jaaye toh kya karna hai
 
-1. **Rotate immediately** — before investigating.
-2. Check audit logs for any access using the leaked credential.
-3. Check Git history for how long the secret was exposed.
-4. File an incident report (required for SOC 2, HIPAA, etc.).
-5. Add detection for the credential pattern to gitleaks config.
+1. **Turant rotate karo** — investigate karne se pehle.
+2. Audit logs check karo ki leaked credential se koi access hua ya nahi.
+3. Git history check karo — secret kitne time se expose tha.
+4. Incident report file karo (SOC 2, HIPAA jaise compliance ke liye zaruri).
+5. gitleaks config mein us credential pattern ke liye detection add karo.
 
 ---
 
 ## Express/TS comparison
 
+Agar tum Express background se aa rahe ho, toh yeh mental mapping kaam aayegi:
+
 ```typescript
 // Local: dotenv
 import dotenv from 'dotenv';
-dotenv.config();  // reads .env file into process.env
+dotenv.config();  // .env file ko process.env mein padhta hai
 
-// Production: dotenv-vault (encrypted vault for .env files)
-// or: AWS SSM Parameter Store + @aws-sdk/client-ssm
-// or: HashiCorp Vault Node SDK
+// Production: dotenv-vault (.env files ke liye encrypted vault)
+// ya: AWS SSM Parameter Store + @aws-sdk/client-ssm
+// ya: HashiCorp Vault Node SDK
 
 import Vault from 'node-vault';
 const vault = Vault({ endpoint: 'https://vault.internal.example.com' });
 const { data } = await vault.read('secret/my-app');
 const dbPassword = data.db_password;
 
-// Or AWS Secrets Manager:
+// Ya AWS Secrets Manager:
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 const client = new SecretsManagerClient({ region: 'us-east-1' });
 const { SecretString } = await client.send(
@@ -377,40 +395,42 @@ const { SecretString } = await client.send(
 const secrets = JSON.parse(SecretString);
 ```
 
-Spring Cloud Vault / Spring Cloud AWS Secrets Manager does all of this automatically at startup via `PropertySource` — your `application.yml` just references `${db.password}` and Spring fetches it from the configured backend. No manual SDK calls needed in your application code.
+Express mein tumhe yeh saara SDK code khud likhna padta hai. Spring Cloud Vault / Spring Cloud AWS Secrets Manager yeh sab automatically startup ke time `PropertySource` ke through kar deta hai — tumhara `application.yml` bas `${db.password}` reference karta hai aur Spring configured backend se fetch kar leta hai. Application code mein koi manual SDK call nahi chahiye.
 
 ---
 
 ## Gotchas
 
-> [!danger]
-> **`spring.config.import` with Vault fails fast at startup if Vault is unreachable.** In production, Vault *must* be available when your app starts. Design your deployment so Vault is reachable before app pods start (init container pattern in k8s).
-
-> [!warning]
-> **Dynamic DB credentials with connection pools.** Vault-issued DB credentials have a TTL. If your HikariCP pool holds connections past the credential TTL, those connections will start failing. Set `spring.datasource.hikari.max-lifetime` shorter than the Vault credential TTL, and enable Vault lease renewal.
-
-> [!warning]
-> **`@RefreshScope` and Actuator security.** The `/actuator/refresh` endpoint is the mechanism for pushing secret rotations to running apps. Secure it behind admin auth — an attacker who can call `/actuator/refresh` can trigger re-initialization of your beans.
+Yeh woh cheezein hain jo documentation mein kam likhi milti hain lekin production mein bahut bite karti hain.
 
 > [!danger]
-> **Secrets in JVM heap dumps.** Heap dumps (`-XX:+HeapDumpOnOutOfMemoryError`) contain all in-memory data including secrets stored in Strings. Protect heap dump files, or use `char[]` (which can be zeroed) instead of `String` for the most sensitive values.
+> **`spring.config.import` with Vault startup pe fail-fast hota hai agar Vault unreachable ho.** Production mein Vault *hamesha* available hona chahiye jab tumhari app start ho. Apni deployment aisi design karo ki app pods start hone se pehle Vault reachable ho (k8s mein init container pattern).
+
+> [!warning]
+> **Dynamic DB credentials with connection pools.** Vault-issued DB credentials ka TTL hota hai. Agar tumhara HikariCP pool connections ko TTL ke baad bhi hold karta hai, toh woh connections fail hone lagenge. `spring.datasource.hikari.max-lifetime` ko Vault credential TTL se chota set karo, aur Vault lease renewal enable karo.
+
+> [!warning]
+> **`@RefreshScope` aur Actuator security.** `/actuator/refresh` endpoint hi mechanism hai secret rotations ko running apps tak pahunchane ka. Isse admin auth ke peeche secure karo — jo attacker `/actuator/refresh` call kar sakta hai woh tumhare beans ko re-initialize trigger kar sakta hai.
+
+> [!danger]
+> **Secrets JVM heap dumps mein.** Heap dumps (`-XX:+HeapDumpOnOutOfMemoryError`) mein saara in-memory data hota hai, secrets bhi jo Strings mein stored hain. Heap dump files protect karo, ya sabse sensitive values ke liye `String` ki jagah `char[]` use karo (jise zero kiya ja sakta hai).
 
 ---
 
 ## Production checklist
 
-- [ ] No secrets in `application.yml` committed to Git
-- [ ] `gitleaks` pre-commit hook installed on all developer machines
-- [ ] `trufflehog` scan in CI on every PR
-- [ ] `.env` in `.gitignore`, verified with `git check-ignore -v`
-- [ ] Production uses Vault/Secrets Manager (not env vars in compose files)
-- [ ] k8s Secrets: External Secrets Operator or Sealed Secrets (not raw Secrets committed to repo)
-- [ ] Dynamic DB credentials (Vault) with TTL shorter than connection pool `max-lifetime`
-- [ ] `/actuator/refresh` secured behind admin role
-- [ ] Secret rotation runbook documented and tested
-- [ ] Leaked-secret incident response plan documented
-- [ ] Heap dump files protected (S3 bucket policy, filesystem permissions)
-- [ ] gitleaks config includes custom patterns for your internal token formats
+- [ ] `application.yml` mein koi secrets Git mein commit nahi hue
+- [ ] Saari developer machines pe `gitleaks` pre-commit hook installed hai
+- [ ] Har PR pe CI mein `trufflehog` scan chal raha hai
+- [ ] `.env` `.gitignore` mein hai, `git check-ignore -v` se verify kiya
+- [ ] Production Vault/Secrets Manager use karta hai (compose files mein env vars nahi)
+- [ ] k8s Secrets: External Secrets Operator ya Sealed Secrets (raw Secrets repo mein commit nahi)
+- [ ] Dynamic DB credentials (Vault) ka TTL connection pool ke `max-lifetime` se chota hai
+- [ ] `/actuator/refresh` admin role ke peeche secured hai
+- [ ] Secret rotation runbook documented aur tested hai
+- [ ] Leaked-secret incident response plan documented hai
+- [ ] Heap dump files protected hain (S3 bucket policy, filesystem permissions)
+- [ ] gitleaks config mein tumhare internal token formats ke custom patterns hain
 
 ---
 
@@ -422,3 +442,15 @@ Spring Cloud Vault / Spring Cloud AWS Secrets Manager does all of this automatic
 - [[02-Configuration-and-SecurityFilterChain]]
 - [[01-Spring-Boot-Actuator]]
 - [[20-Production-Security-Checklist]]
+
+## Key Takeaways
+
+- `application.yml` mein kabhi bhi actual secret values mat likho — sirf `${PLACEHOLDER}` syntax use karo.
+- Environment ke hisaab se secret store badalta hai: local `.env` → CI secrets → staging/production mein Vault ya cloud secrets manager → k8s mein External Secrets Operator/Sealed Secrets.
+- HashiCorp Vault ka dynamic DB credentials feature sabse powerful hai — har instance ko unique, time-limited credentials milte hain, koi shared password nahi.
+- Kubernetes Secrets base64-encoded hote hain, encrypted nahi — raw k8s Secrets pe bharosa mat karo, ESO ya Sealed Secrets use karo.
+- `@RefreshScope` zero-downtime secret rotation ke liye kaam aata hai, lekin static field ya pre-initialized beans ke saath reliably kaam nahi karta.
+- JWT signing keys rotate karte waqt overlap window rakho — dono old aur new key JWKS mein accept karo taaki purane tokens fail na hon.
+- gitleaks (pre-commit) aur trufflehog (CI) dono use karo taaki secrets commit hone se pehle aur commit hone ke baad dono jagah pakde jaayein.
+- Secret leak hone pe sabse pehla step rotate karna hai — investigation baad mein.
+- Spring Cloud Vault/AWS/GCP/Azure integrations startup pe automatically secrets fetch kar dete hain via `PropertySource` — Express ki tarah manual SDK calls likhne ki zarurat nahi.

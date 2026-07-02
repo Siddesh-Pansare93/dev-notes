@@ -2,72 +2,73 @@
 
 > **Level:** Absolute Beginner | **Estimated Reading Time:** 15–20 minutes
 >
-> **Prerequisites:** None. Just curiosity.
+> **Prerequisites:** Kuch nahi. Bas curiosity honi chahiye.
 
 ---
 
 ## 🗺️ Chapter Overview
 
-Before we write a single line of Solidity, we need to understand the world our code will live in. This chapter answers the most fundamental question in all of Web3:
+Solidity ki ek line likhne se pehle, humein us duniya ko samajhna hoga jisme hamara code chalega. Yeh chapter Web3 ka sabse fundamental sawaal answer karta hai:
 
-> *"What exactly is a blockchain, and why does it even exist?"*
+> *"Blockchain hai kya, aur yeh exist hi kyun karta hai?"*
 
-We will build the answer from the ground up, using everyday analogies, visual diagrams, and zero assumptions about prior knowledge.
-
----
-
-## 📖 The Problem Blockchain Solves (Start Here)
-
-Imagine you and a friend make a bet: he owes you $50 if it rains tomorrow. It rains. He says, "I never said $50." You say, "Yes you did!" There is no third party, no record, no proof.
-
-Now scale that problem up. Two banks need to transfer $10 million between countries. How do they *trust* the record of who sent what, and who received what, without a war of spreadsheets?
-
-The answer has always been the same: **hire a trusted middleman to keep the record.**
-
-- A bank keeps your balance.
-- Pay/
-
-These middlemen are called **centralized authorities** — one single entity holds the "true" ledger (a fancy word for *record book*).
-
-This system works, but it has painful weaknesses:
-
-| Problem                   | Real-World Example                                |
-| ------------------------- | ------------------------------------------------- |
-| Single point of failure   | Bank servers go down, you cannot pay rent         |
-| Corruption / manipulation | A bank quietly alters its books                   |
-| Censorship                | A government freezes your account without warning |
-| High fees                 | Wire transfers cost $25–$50 per transaction      |
-| Requires trust            | You must believe the bank is honest               |
-
-**Blockchain was invented to solve all of these problems at once.** It is a way to keep a record that no single person controls, that anyone can verify, and that nobody can secretly change.
+Hum ye answer ekdum shuru se banayenge — everyday analogies, visual diagrams ke saath, aur yeh assume kiye bina ki tumhe pehle se kuch pata hai.
 
 ---
 
-## 🔗 What is a Blockchain?
+## 📖 Woh Problem Jo Blockchain Solve Karta Hai (Yahan Se Shuru Karo)
 
-Think of a blockchain as a **shared Google Sheet that nobody can delete rows from, and that everyone can see.**
+Socho tum aur tumhara dost ek bet lagate ho: agar kal baarish hui to woh tumhe ₹500 dega. Baarish hoti hai. Woh keh deta hai, "Maine ₹500 kaha hi nahi tha." Tum kehte ho, "Haan bola tha!" Ab yahan koi third party nahi hai, koi record nahi hai, koi proof nahi hai.
 
-More precisely:
+Ab isi problem ko scale up karo. Do banks ko ek doosre desh mein $10 million transfer karne hain. Woh ek doosre ke record pe *trust* kaise karenge ki kisne kya bheja aur kisne kya receive kiya — bina spreadsheets ki jung ke?
 
-> A **blockchain** is a type of database (a ledger) that stores records in chunks called **blocks**, links each block to the one before it (forming a **chain**), and copies that entire chain across thousands of computers around the world simultaneously.
+Answer hamesha se same raha hai: **ek trusted middleman rakho jo record maintain kare.**
 
-Let us unpack each part of that definition.
+- Bank tumhara balance rakhta hai.
+- Notary ek property deal ka record rakhta hai.
+- Government tumhare land documents rakhti hai.
 
-### Part 1: A Ledger
+Yeh middlemen kehlate hain **centralized authorities** — yaani ek hi entity "true" ledger (fancy word for *record book*) apne paas rakhti hai.
 
-A ledger is just a record book. A bank's ledger says:
+Yeh system kaam karta hai, lekin isme kuch painful weaknesses hain:
+
+| Problem                     | Real-World Example                                     |
+| ---------------------------- | -------------------------------------------------------- |
+| Single point of failure      | Bank ke servers down ho gaye, tum rent nahi de paate     |
+| Corruption / manipulation    | Bank chupke se apni books alter kar deta hai             |
+| Censorship                   | Government bina warning ke tumhara account freeze kar de |
+| High fees                    | Wire transfer ka charge $25–$50 tak ho sakta hai         |
+| Trust zaruri hai             | Tumhe maanna padta hai ki bank honest hai                |
+
+**Blockchain inhi sab problems ko ek saath solve karne ke liye banaya gaya tha.** Yeh ek aisa tareeka hai record rakhne ka jise koi ek insaan control nahi karta, jise koi bhi verify kar sakta hai, aur jise koi chupke se badal nahi sakta.
+
+---
+
+## 🔗 Blockchain Hai Kya?
+
+Blockchain ko aise socho — jaise ek **shared Google Sheet jisme se koi row delete nahi kar sakta, aur jise sab dekh sakte hain.**
+
+Thoda precise define karein toh:
+
+> Ek **blockchain** ek type ka database hai (ek ledger) jo records ko **blocks** naam ke chunks mein store karta hai, har block ko usse pehle wale block se link karta hai (isse ek **chain** banti hai), aur is poori chain ko duniya bhar ke hazaaron computers pe ek saath copy kar deta hai.
+
+Chalo is definition ko part-by-part samajhte hain.
+
+### Part 1: Ek Ledger
+
+Ledger bas ek record book hai. Bank ka ledger kuch aisa dikhta hai:
 
 ```
-Alice has $500
-Bob has $200
-Alice sends Bob $100 → Alice now has $400, Bob now has $300
+Alice ke paas $500 hain
+Bob ke paas $200 hain
+Alice, Bob ko $100 bhejti hai → Ab Alice ke paas $400, Bob ke paas $300
 ```
 
-A blockchain ledger records the same kind of information — who sent what to whom — but in a very different way.
+Blockchain ka ledger bhi waisi hi information store karta hai — kisne kya kisko bheja — lekin ekdum alag tareeke se.
 
-### Part 2: Grouped into Blocks
+### Part 2: Blocks Mein Grouped
 
-Instead of recording one transaction at a time into a long scroll, a blockchain groups many transactions together into a **block**. Think of each block like one page in a notebook:
+Har transaction ko ek lambi list mein ek-ek karke likhne ke bajaye, blockchain bahut saari transactions ko ek saath group karke ek **block** banata hai. Har block ko notebook ke ek page jaisa socho:
 
 ```
 +---------------------------+
@@ -81,11 +82,11 @@ Instead of recording one transaction at a time into a long scroll, a blockchain 
 +---------------------------+
 ```
 
-### Part 3: Chained Together (This is the KEY part)
+### Part 3: Chain Mein Jude Hue (Yeh KEY part hai)
 
-Each new block contains a special fingerprint of the *previous* block. This fingerprint is called a **hash**. Think of it as a wax seal on an envelope that changes completely if you tamper with even one word inside.
+Har naya block, us se pehle wale block ka ek special fingerprint apne andar rakhta hai. Is fingerprint ko **hash** kehte hain. Isse aise socho jaise ek lifafe pe laga wax seal — agar andar ki even ek word bhi tamper karo, poora seal badal jaata hai.
 
-Because each block contains the previous block's fingerprint, they form an unbreakable chain:
+Kyunki har block apne pichle block ka fingerprint rakhta hai, ek unbreakable chain ban jaati hai:
 
 ```mermaid
 graph LR
@@ -95,37 +96,37 @@ graph LR
     D -->|"contains hash of Block 4"| E["📦 Block #5 (latest)<br/>Hash: 0004mno<br/>Prev: 0003jkl"]
 ```
 
-**Why does the chain matter?** If someone tries to secretly change a transaction in Block #2, the block's hash changes. That means Block #3's "previous hash" pointer is now wrong. Block #3 breaks. Block #4 breaks. The entire chain from that point breaks. Tampering is *immediately detectable*.
+**Yeh chain kyun matter karti hai?** Agar koi Block #2 ki koi transaction chupke se badalne ki koshish kare, toh us block ka hash change ho jaayega. Iska matlab Block #3 ka "previous hash" pointer ab galat ho gaya. Block #3 toot jaata hai. Block #4 toot jaata hai. Us point se aage poori chain toot jaati hai. Tampering *turant* pakdi jaati hai.
 
-> **Analogy:** Imagine a library where every book references the exact page count of the previous book. If you secretly add pages to Book 3, every reference in Books 4 through 1000 becomes wrong. The librarian can instantly detect the tampering just by checking the page counts.
+> **Analogy:** Ek library socho jahan har book, us se pehle wali book ke exact page count ka reference deti hai. Agar tum chupke se Book 3 mein pages add kar do, toh Book 4 se Book 1000 tak sab references galat ho jaayenge. Librarian sirf page counts check karke turant tampering pakad lega.
 
 ---
 
 ## 🌐 Centralized vs. Decentralized
 
-This is perhaps the most important conceptual shift when moving from Web2 to Web3 thinking.
+Web2 se Web3 thinking mein shift karte waqt yeh shaayad sabse important conceptual change hai.
 
 ### Centralized Systems (Traditional Web)
 
-In a centralized system, one server (or one company's cluster of servers) is the single source of truth.
+Centralized system mein, ek server (ya ek company ka cluster of servers) hi single source of truth hota hai.
 
 ```
-         You
+         Tum
           |
           ▼
     ┌───────────┐
     │  BANK     │ ← Single source of truth
-    │  SERVER   │   (one company controls this)
+    │  SERVER   │   (ek hi company control karti hai)
     └───────────┘
 ```
 
-**Pros:** Simple, fast, easy to update, easy to fix mistakes.
+**Pros:** Simple, fast, update karna easy, mistakes fix karna easy.
 
-**Cons:** One target to hack, one entity to bribe or corrupt, one point that can go offline, one entity that can censor you.
+**Cons:** Hack karne ke liye ek hi target, corrupt/bribe karne ke liye ek hi entity, ek hi point jo offline ho sakta hai, ek hi entity jo tumhe censor kar sakti hai.
 
 ### Decentralized Systems (Blockchain)
 
-In a decentralized system, thousands of computers (called **nodes**) each hold a complete copy of the same ledger. There is no single server in charge.
+Decentralized system mein, hazaaron computers (jinhe **nodes** kehte hain) same ledger ki ek complete copy apne paas rakhte hain. Koi ek server incharge nahi hota.
 
 ```mermaid
 graph TD
@@ -147,32 +148,35 @@ graph TD
     N3 --- N6
 ```
 
-Every node in this network holds the full copy of the blockchain. When a new transaction happens:
+Is network ka har node poori blockchain ki full copy rakhta hai. Jab ek naya transaction hota hai:
 
-1. The transaction is broadcast to ALL nodes simultaneously.
-2. The nodes check whether the transaction is valid (e.g., does Alice actually have enough funds?).
-3. If the majority of nodes agree it is valid, the transaction is added to the next block.
-4. Every node updates their copy of the ledger.
+1. Transaction sabhi nodes ko ek saath broadcast kiya jaata hai.
+2. Nodes check karte hain ki transaction valid hai ya nahi (jaise, kya Alice ke paas sach mein itne funds hain?).
+3. Agar majority nodes agree karein ki transaction valid hai, toh usse next block mein add kar diya jaata hai.
+4. Har node apni ledger ki copy update kar leta hai.
 
-No single node can cheat. To corrupt the ledger, you would need to control more than 50% of all the nodes in the world — simultaneously. This is called a **51% attack**, and on major blockchains like Ethereum or Bitcoin, it is economically impossible.
+Koi bhi single node cheat nahi kar sakta. Ledger ko corrupt karne ke liye tumhe duniya ke 50% se zyada nodes ko control karna padega — ek saath. Isse **51% attack** kehte hain, aur Ethereum ya Bitcoin jaisi major blockchains pe yeh economically impossible hai.
+
+> [!info]
+> Isse UPI se compare karo — agar sirf ek bank ka server down ho jaaye toh sirf uske customers affect hote hain, poora UPI network nahi. Blockchain ka idea usse ek level aage le jaata hai: koi bhi single point of failure hi nahi hota, kyunki har node ke paas apni khud ki full copy hai.
 
 ---
 
-## 🔒 Immutability — The "No Erasing" Rule
+## 🔒 Immutability — "No Erasing" Rule
 
-**Immutability** means once data is written to the blockchain, it cannot be altered or deleted. Ever.
+**Immutability** ka matlab hai — ek baar data blockchain pe likh diya, toh usse badla ya delete nahi kiya ja sakta. Kabhi bhi.
 
-This is one of the most mind-bending properties for developers coming from traditional databases where you can freely run `UPDATE` or `DELETE` SQL statements.
+Yeh un developers ke liye sabse mind-bending property hai jo traditional databases se aaye hain, jahan tum freely `UPDATE` ya `DELETE` SQL statements chala sakte ho.
 
-> **Library Book Analogy:** Imagine a library where books are written in permanent ink, and once a book is filed on the shelf, it is sealed in glass. You can always read it, but you can never modify a single word. If the book has an error, you cannot fix it — you can only add a *new* book that says "correction: the previous book had an error on page 5."
+> **Library Book Analogy:** Ek library socho jahan books permanent ink mein likhi jaati hain, aur ek baar shelf pe file ho jaayein toh glass mein seal ho jaati hain. Tum hamesha padh sakte ho, lekin ek word bhi modify nahi kar sakte. Agar book mein error hai, toh tum usse fix nahi kar sakte — tum sirf ek *nayi* book add kar sakte ho jisme likha ho "correction: pichli book mein page 5 pe error tha."
 
-In blockchain terms:
+Blockchain ki language mein:
 
-- You cannot delete a transaction.
-- You cannot change a transaction.
-- You can only *add* new transactions.
+- Tum ek transaction delete nahi kar sakte.
+- Tum ek transaction change nahi kar sakte.
+- Tum sirf naye transactions *add* kar sakte ho.
 
-This seems like a weakness, but it is actually a superpower for trust. When you see a transaction on the blockchain, you know with absolute certainty that it happened and that nobody has tampered with the record.
+Yeh weakness lagta hai, lekin actually yeh trust ke liye ek superpower hai. Jab tum blockchain pe koi transaction dekhte ho, tumhe absolute certainty hoti hai ki woh hua hai aur kisi ne record ke saath chhedchhad nahi ki.
 
 ```
 TRADITIONAL DATABASE          BLOCKCHAIN
@@ -185,20 +189,20 @@ TRADITIONAL DATABASE          BLOCKCHAIN
 
 ---
 
-## 📒 The Distributed Ledger Explained
+## 📒 Distributed Ledger Samjho
 
-The full technical term you will hear is **Distributed Ledger Technology (DLT)**. Let us break that down:
+Poora technical term jo tum sunoge woh hai **Distributed Ledger Technology (DLT)**. Chalo isse break down karte hain:
 
-- **Ledger** = a record book of transactions (we covered this above).
-- **Distributed** = spread across many computers, not kept in one place.
+- **Ledger** = transactions ki ek record book (yeh humne upar cover kiya).
+- **Distributed** = bahut saare computers pe failaya hua, ek jagah pe rakha hua nahi.
 
-Think of it like this:
+Aise socho:
 
-> **Old Way (Centralized):** One teacher keeps the class attendance register. If the teacher loses it, it is gone. If the teacher lies, nobody can prove it.
+> **Purana Tareeka (Centralized):** Ek teacher class ka attendance register rakhti hai. Agar teacher usse kho de, toh woh gaya. Agar teacher jhooth bole, toh koi prove nahi kar sakta.
 
-> **New Way (Distributed):** Every single student keeps an identical copy of the attendance register. If one student changes their copy, it immediately disagrees with all 29 other copies. The truth is determined by the majority.
+> **Naya Tareeka (Distributed):** Har student attendance register ki ek identical copy rakhta hai. Agar ek student apni copy change kare, toh woh turant baaki 29 copies se disagree kar degi. Truth majority se decide hoti hai.
 
-Here is what happens when a new transaction is added to the blockchain:
+Jab blockchain mein ek naya transaction add hota hai, yeh hota hai:
 
 ```mermaid
 sequenceDiagram
@@ -207,20 +211,20 @@ sequenceDiagram
     participant Nodes as 💻 All Nodes (1000s)
     participant Chain as ⛓️ Blockchain
 
-    Alice->>Network: "I want to send 1 ETH to Bob"
-    Network->>Nodes: Broadcast transaction to all nodes
-    Nodes->>Nodes: Each node independently validates the transaction
-    Nodes->>Network: Majority agrees: "Transaction is valid!"
-    Network->>Chain: Transaction is bundled into a new block
-    Chain->>Nodes: All nodes add the new block to their copy
-    Note over Chain, Nodes: Every node now has the same updated ledger
+    Alice->>Network: "Main Bob ko 1 ETH bhejna chahti hoon"
+    Network->>Nodes: Transaction sabhi nodes ko broadcast hota hai
+    Nodes->>Nodes: Har node independently transaction validate karta hai
+    Nodes->>Network: Majority agree karti hai: "Transaction valid hai!"
+    Network->>Chain: Transaction ek naye block mein bundle hota hai
+    Chain->>Nodes: Sabhi nodes apni copy mein naya block add karte hain
+    Note over Chain, Nodes: Ab har node ke paas same updated ledger hai
 ```
 
 ---
 
-## 🧱 What Actually Lives Inside a Block?
+## 🧱 Ek Block Ke Andar Actually Hota Kya Hai?
 
-Let us crack open a block and look at its anatomy:
+Chalo ek block khol ke uski anatomy dekhte hain:
 
 ```
 ╔══════════════════════════════════════════════════╗
@@ -241,62 +245,63 @@ Let us crack open a block and look at its anatomy:
 ╚══════════════════════════════════════════════════╝
 ```
 
-Key fields explained in plain English:
+Key fields plain language mein:
 
-| Field                   | What It Is                                    | Plain English                                     |
-| ----------------------- | --------------------------------------------- | ------------------------------------------------- |
-| **Block Number**  | Sequential index                              | "This is the 18,500,001st page in the notebook"   |
-| **Timestamp**     | When the block was created                    | "This page was written on Jan 15, 2024"           |
-| **Previous Hash** | Fingerprint of prior block                    | "The seal from the last page, proving continuity" |
-| **Merkle Root**   | Fingerprint of ALL transactions in this block | "A single checksum of everything on this page"    |
-| **Nonce**         | A number miners guessed to create the block   | "The answer to a very hard puzzle"                |
-| **Transactions**  | The actual data                               | "The list of events recorded on this page"        |
+| Field                | Yeh Kya Hai                                     | Simple Bhasha Mein                                    |
+| ---------------------- | -------------------------------------------------- | -------------------------------------------------------- |
+| **Block Number**    | Sequential index                                   | "Yeh notebook ka 18,500,001va page hai"                 |
+| **Timestamp**       | Block kab bana                                     | "Yeh page 15 Jan, 2024 ko likha gaya"                   |
+| **Previous Hash**   | Pichle block ka fingerprint                        | "Pichle page ka seal, jo continuity prove karta hai"    |
+| **Merkle Root**     | Is block ki SAARI transactions ka fingerprint      | "Is page pe jo bhi hai uska ek single checksum"         |
+| **Nonce**           | Ek number jo miners ne guess karke block banaya    | "Ek bahut hard puzzle ka answer"                        |
+| **Transactions**    | Actual data                                        | "Is page pe record hue events ki list"                  |
 
 ---
 
-## ⚙️ How Does Everyone Agree? (Consensus, Simply Explained)
+## ⚙️ Sab Log Agree Kaise Karte Hain? (Consensus, Simply Explained)
 
-If no one is in charge, how do thousands of nodes agree on which version of the ledger is "correct"? This is solved by a **consensus mechanism**.
+Agar koi incharge nahi hai, toh hazaaron nodes kaise agree karte hain ki ledger ka kaunsa version "correct" hai? Isse solve karta hai ek **consensus mechanism**.
 
-Think of it like a classroom vote. Before a new block is officially added:
+Isse ek classroom vote jaisa socho. Naya block officially add hone se pehle:
 
-- All the nodes must run the same rules.
-- They each independently verify all transactions.
-- They vote or compete to agree on the next block.
+- Sabhi nodes same rules follow karte hain.
+- Woh har transaction ko independently verify karte hain.
+- Woh next block pe agree karne ke liye vote karte hain ya compete karte hain.
 
-The two most famous consensus mechanisms are:
+Do sabse famous consensus mechanisms hain:
 
-### Proof of Work (PoW) — Used by Bitcoin
+### Proof of Work (PoW) — Bitcoin Use Karta Hai
 
-Nodes (called **miners**) compete to solve a computationally hard math puzzle. The winner gets to add the next block and earns a reward (Bitcoin). It is like a race where the first to solve the puzzle wins.
+Nodes (jinhe **miners** kehte hain) ek computationally hard math puzzle solve karne ke liye compete karte hain. Jo jeetta hai woh next block add kar sakta hai aur reward (Bitcoin) kamaata hai. Yeh ek race jaisa hai jisme sabse pehle puzzle solve karne wala jeetta hai.
 
 ```
-[Many miners competing] → [First to solve puzzle] → [Wins the right to add block]
+[Bahut saare miners compete kar rahe hain] → [Sabse pehle puzzle solve kiya] → [Block add karne ka right jeeta]
         ⛏️⛏️⛏️                      🏆                        ⛓️
 ```
 
-**Cost:** Enormous electricity consumption.
-**Benefit:** Proven security over 15+ years.
+**Cost:** Bahut zyada electricity consumption.
+**Benefit:** 15+ saal se proven security.
 
-### Proof of Stake (PoS) — Used by Ethereum (since 2022)
+### Proof of Stake (PoS) — Ethereum Use Karta Hai (2022 se)
 
-Instead of solving puzzles, nodes (called **validators**) lock up (stake) their own cryptocurrency as collateral. They are randomly selected to add the next block, proportional to how much they have staked. If they cheat, they lose their stake.
+Puzzle solve karne ke bajaye, nodes (jinhe **validators** kehte hain) apna khud ka cryptocurrency collateral ke roop mein lock (stake) kar dete hain. Unhe randomly select kiya jaata hai next block add karne ke liye, jitna zyada stake utna zyada chance. Agar woh cheat karte hain, toh unka stake chala jaata hai.
 
 ```
-[Validators stake ETH] → [Random validator selected] → [Adds block, earns reward]
+[Validators ETH stake karte hain] → [Random validator select hota hai] → [Block add karta hai, reward kamaata hai]
        🔒💰                        🎲                          ⛓️
 ```
 
-**Cost:** Low energy (no puzzle-solving).
+**Cost:** Kam energy (koi puzzle-solving nahi).
 **Benefit:** Eco-friendly, faster, equally secure.
 
-> As a Solidity developer, you will be writing code for the Ethereum network which uses Proof of Stake. You do not need to implement consensus yourself — the network handles it for you. But understanding it helps you write smarter, more gas-efficient code.
+> [!tip]
+> Solidity developer ban ke tum Ethereum network ke liye code likhoge, jo Proof of Stake use karta hai. Tumhe khud consensus implement nahi karna — network yeh handle karta hai. Lekin isse samajhna tumhe smarter, zyada gas-efficient code likhne mein help karta hai.
 
 ---
 
 ## 🌍 Public vs. Private Blockchains
 
-Not all blockchains are open to the public. Here is a quick orientation:
+Har blockchain public ke liye open nahi hoti. Chalo quick orientation lete hain:
 
 ```mermaid
 graph TD
@@ -314,36 +319,36 @@ graph TD
     PRV --> R3[Less decentralized]
 ```
 
-For this course, we will be focused entirely on **public blockchains**, specifically **Ethereum** — the most popular platform for writing smart contracts (programs that run on the blockchain).
+Is course mein hum poori tarah **public blockchains** pe focus karenge, specifically **Ethereum** pe — jo smart contracts (programs jo blockchain pe chalte hain) likhne ke liye sabse popular platform hai.
 
 ---
 
 ## 🔑 Key Takeaways
 
-Let us pull it all together. After reading this chapter, you should be able to explain these five concepts to a 10-year-old:
+Chalo sab kuch ek saath samet lete hain. Yeh chapter padhne ke baad, tumhe ye paanch concepts ek 10-saal ke bacche ko explain karne aa jaane chahiye:
 
-1. **A blockchain is a shared record book** (ledger) that stores data in linked blocks. Each block contains a fingerprint of the previous one, forming an unbreakable chain.
-2. **It is decentralized** — thousands of computers around the world each hold an identical copy. No single entity is in control, which eliminates the need to "trust" any one party.
-3. **It is immutable** — once data is written, it cannot be changed or deleted. Tampering with any block would break the chain and be detected instantly by all other nodes.
-4. **Consensus keeps everyone honest** — nodes agree on the valid state of the ledger through rules (like Proof of Work or Proof of Stake), without needing a central authority.
-5. **It exists to solve the trust problem** — blockchain removes the need for middlemen (banks, governments, notaries) when recording value or agreements between people who do not know each other.
+1. **Blockchain ek shared record book hai** (ledger) jo data ko linked blocks mein store karta hai. Har block, pichle block ka fingerprint apne andar rakhta hai, jisse ek unbreakable chain banti hai.
+2. **Yeh decentralized hai** — duniya bhar ke hazaaron computers ek identical copy rakhte hain. Koi single entity control mein nahi hai, isliye kisi ek party pe "trust" karne ki zaroorat khatam ho jaati hai.
+3. **Yeh immutable hai** — ek baar data likh diya toh usse change ya delete nahi kiya ja sakta. Kisi bhi block ke saath tampering chain tod degi aur sabhi doosre nodes turant pakad lenge.
+4. **Consensus sabko honest rakhta hai** — nodes rules ke through (jaise Proof of Work ya Proof of Stake) ledger ke valid state pe agree karte hain, bina kisi central authority ke.
+5. **Yeh trust problem solve karne ke liye exist karta hai** — blockchain middlemen (banks, governments, notaries) ki zaroorat khatam kar deta hai jab un logon ke beech value ya agreements record karni ho jo ek doosre ko jaante nahi hain.
 
 ---
 
 ## 🧠 Quiz Yourself
 
-Test your understanding before moving to the next chapter. Try to answer from memory first, then re-read the relevant section if you get stuck.
+Next chapter pe jaane se pehle apna understanding test karo. Pehle memory se answer karne ki koshish karo, phir agar atak jaao toh relevant section dobara padh lo.
 
 ---
 
 **Question 1:**
 
-> Alice secretly changes a transaction in Block #47 of a blockchain. What happens to Blocks #48, #49, and all blocks after it?
+> Alice chupke se ek blockchain ke Block #47 mein ek transaction change kar deti hai. Block #48, #49, aur uske baad ke sabhi blocks ka kya hoga?
 
 <details>
-<summary>Click to reveal answer</summary>
+<summary>Answer dekhne ke liye click karo</summary>
 
-Because Block #48 contains the hash (fingerprint) of Block #47, and that hash has now changed due to the tampering, Block #48's "previous hash" field is now incorrect. This breaks Block #48's validity. And since Block #49 contains Block #48's hash, it is also broken — and so on down the chain. Every single block after #47 is now invalidated. All other nodes on the network would reject Alice's tampered chain because it no longer matches their own valid copies.
+Kyunki Block #48 mein Block #47 ka hash (fingerprint) hota hai, aur tampering ki wajah se woh hash ab change ho gaya hai, Block #48 ka "previous hash" field ab galat ho gaya. Isse Block #48 ki validity toot jaati hai. Aur kyunki Block #49 mein Block #48 ka hash hota hai, woh bhi toot jaata hai — aur aise hi chain ke aage tak. Block #47 ke baad ka har block ab invalid ho gaya hai. Network ke baaki sabhi nodes Alice ki tampered chain ko reject kar denge kyunki woh unki apni valid copies se match nahi karti.
 
 </details>
 
@@ -351,14 +356,14 @@ Because Block #48 contains the hash (fingerprint) of Block #47, and that hash ha
 
 **Question 2:**
 
-> What is the difference between a centralized database (like a bank) and a distributed ledger (like a blockchain)?
+> Ek centralized database (jaise bank) aur ek distributed ledger (jaise blockchain) mein kya farak hai?
 
 <details>
-<summary>Click to reveal answer</summary>
+<summary>Answer dekhne ke liye click karo</summary>
 
-A centralized database is controlled by one entity and stored on their servers. You have to trust that entity to be honest, to stay online, and not to censor you. If their server is hacked or goes offline, the data is compromised or lost.
+Ek centralized database ek entity ke control mein hota hai aur unke servers pe store hota hai. Tumhe us entity pe trust karna padta hai ki woh honest rahegi, online rahegi, aur tumhe censor nahi karegi. Agar unka server hack ho jaaye ya offline ho jaaye, toh data compromise ya lost ho sakta hai.
 
-A distributed ledger stores identical copies across thousands of independent computers (nodes). No single entity controls it. For the ledger to be corrupted, an attacker would need to take over the majority of all nodes simultaneously — which is practically impossible on large networks.
+Ek distributed ledger identical copies hazaaron independent computers (nodes) pe store karta hai. Koi single entity isse control nahi karti. Ledger ko corrupt karne ke liye, ek attacker ko ek saath sabhi nodes ki majority pe control karna padega — jo large networks pe practically impossible hai.
 
 </details>
 
@@ -366,22 +371,22 @@ A distributed ledger stores identical copies across thousands of independent com
 
 **Question 3:**
 
-> If blockchain data is immutable (cannot be changed), what happens if a smart contract is deployed with a bug in it?
+> Agar blockchain data immutable hai (change nahi ho sakta), toh agar ek smart contract mein bug ke saath deploy ho jaaye toh kya hoga?
 
 <details>
-<summary>Click to reveal answer</summary>
+<summary>Answer dekhne ke liye click karo</summary>
 
-This is one of the most important practical consequences of immutability. Once a smart contract is deployed to the blockchain, its code is permanent and cannot be patched. If there is a bug, you cannot update that contract. Instead, developers must deploy a *new* version of the contract and migrate users to it.
+Yeh immutability ke sabse important practical consequences mein se ek hai. Ek baar smart contract blockchain pe deploy ho jaaye, uska code permanent ho jaata hai aur usse patch nahi kiya ja sakta. Agar usme bug hai, toh tum us contract ko update nahi kar sakte. Iske bajaye, developers ko contract ka ek *naya* version deploy karna padta hai aur users ko usme migrate karna padta hai.
 
-This is why smart contract auditing and careful testing before deployment is absolutely critical — mistakes can be permanent and costly. (We will cover upgrade patterns and safety practices in later chapters.)
+Isiliye smart contract auditing aur deployment se pehle careful testing bahut critical hai — mistakes permanent aur costly ho sakti hain. (Upgrade patterns aur safety practices hum later chapters mein cover karenge.)
 
 </details>
 
 ---
 
-## 📚 What's Next?
+## 📚 Aage Kya?
 
-Now that you understand what a blockchain is, the next chapter dives into **Ethereum specifically** — why it was created, what makes it different from Bitcoin, and how its concept of a "world computer" enables programmable money and decentralized applications (dApps).
+Ab jab tumhe pata chal gaya blockchain hai kya, next chapter mein hum specifically **Ethereum** ke baare mein deep dive karenge — yeh kyun banaya gaya, Bitcoin se yeh kaise alag hai, aur "world computer" ka concept kaise programmable money aur decentralized applications (dApps) ko possible banata hai.
 
 > **Next Chapter:** `02-what-is-ethereum.md` — Ethereum: The World's Computer
 

@@ -23,7 +23,7 @@
 
 ## 🛠️ Setup & Schema Overview
 
-Every Prisma project starts by instantiating the client. You typically do this once and reuse the same instance throughout your application.
+Kya hota hai jab Prisma project start karte ho? Sabse pehle client instantiate karna padta hai. Aur ye kaam ek hi baar karna hai — usko poore app mein reuse karo, jaise tum Express app mein `app` object ko ek hi jagah banate ho aur sab jagah use karte ho.
 
 ```typescript
 import { PrismaClient } from '@prisma/client'
@@ -31,9 +31,9 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 ```
 
-> **Tip:** In a Node.js server, create the client once at module level. Re-creating it on every request opens too many database connections.
+> **Tip:** Node.js server mein client ko module level pe ek hi baar banao. Har request pe naya client banaoge to bohot saare DB connections khul jayenge — bilkul waise jaise har order pe Zomato naya delivery partner hire kar le, instead of reusing available riders.
 
-Throughout this chapter we use a **social network schema** with the following models:
+Is chapter mein hum ek **social network schema** use karenge, jisme ye models hain:
 
 ```prisma
 model User {
@@ -98,9 +98,9 @@ model Follow {
 
 ## ✏️ CREATE Operations
 
-### `create()` — Insert a Single Record
+### `create()` — Ek Record Insert Karna
 
-The `create()` method inserts one row and returns the newly created record. You pass the data inside a `data` object.
+Kya karta hai `create()`? Simple — ek row insert karta hai aur wahi naya banaya hua record wapas return karta hai. Data ko `data` object ke andar pass karna hota hai.
 
 ```typescript
 // Create a new user
@@ -116,7 +116,7 @@ const newUser = await prisma.user.create({
 console.log(newUser.id) // e.g., 1
 ```
 
-You can also **create related records in the same call** using nested writes. Prisma wraps these in a single database transaction automatically.
+Isse aage badhkar, tum **related records bhi same call mein bana sakte ho** — nested writes ke through. Prisma inko automatically ek hi database transaction mein wrap kar deta hai, matlab ya to sab ho jayega ya kuch nahi hoga.
 
 ```typescript
 // Create a post with an inline author connection and tags
@@ -141,13 +141,13 @@ const post = await prisma.post.create({
 })
 ```
 
-**`connectOrCreate`** is extremely useful: it connects to an existing record if it matches the `where` condition, or creates a new one. Perfect for tags, categories, or any pre-existing lookup table.
+**`connectOrCreate`** ek kamaal ka feature hai: agar `where` condition wala record already exist karta hai to bas usse connect kar dega, warna naya bana dega. Tags, categories, ya kisi bhi pre-existing lookup table ke liye ye perfect hai — jaise Swiggy pe restaurant category "North Indian" already hai to reuse karo, nahi hai to nayi bana do.
 
 ---
 
 ### `createMany()` — Bulk Insert
 
-When you need to insert dozens or hundreds of rows at once, `createMany()` is far more efficient than calling `create()` in a loop — it sends a single SQL `INSERT` statement.
+Jab tumhe ek saath dus-sau records insert karne ho, `create()` ko loop mein chalana bilkul galat approach hai. Uske jagah `createMany()` use karo — ye ek hi SQL `INSERT` statement bhejta hai database ko, matlab bohot fast.
 
 ```typescript
 // Bulk-create tags
@@ -164,13 +164,13 @@ const result = await prisma.tag.createMany({
 console.log(result.count) // number of records actually inserted
 ```
 
-> **Limitation:** `createMany()` does not return the created records themselves — only a count. If you need the IDs back, use `create()` in a loop or `createManyAndReturn()` (available in Prisma 5.14+).
+> **Limitation:** `createMany()` banaye gaye records wapas nahi deta — sirf count deta hai. Agar IDs chahiye to `create()` loop mein use karo, ya `createManyAndReturn()` (Prisma 5.14+ mein available).
 
 ---
 
-### `upsert()` — Create or Update
+### `upsert()` — Create Ya Update
 
-`upsert()` is the "insert if not exists, otherwise update" operation. It takes three keys: `where`, `create`, and `update`.
+`upsert()` ka matlab hai: "agar record exist nahi karta to create kar do, warna update kar do." Isme teen keys hoti hain: `where`, `create`, aur `update`.
 
 ```typescript
 // Ensure a tag exists; create it if it does not
@@ -188,13 +188,15 @@ const user = await prisma.user.upsert({
 })
 ```
 
+Socho jaise CRED pe koi naya user login kare — agar uska account already hai to profile update ho jaye, nahi hai to naya account create ho jaye. Yahi kaam `upsert()` ek hi call mein kar deta hai.
+
 ---
 
 ## 🔍 READ Operations
 
-### `findUnique()` — Find by a Unique Field
+### `findUnique()` — Unique Field Se Dhundna
 
-Use this when you know the exact value of a field marked `@unique` or `@id` in your schema. Prisma guarantees at most one result; the return type is `T | null`.
+Kab use karein? Jab tumhe pata ho ki field `@unique` ya `@id` marked hai schema mein. Prisma guarantee deta hai ki result zyada se zyada ek hi milega; return type hota hai `T | null`.
 
 ```typescript
 // Find by primary key
@@ -214,9 +216,9 @@ if (!userByEmail) {
 
 ---
 
-### `findFirst()` — Find the First Matching Record
+### `findFirst()` — Pehla Matching Record
 
-When a field is not unique but you still want a single record, use `findFirst()`. It returns the first record that matches the `where` clause (you can control which "first" via `orderBy`).
+Agar field unique nahi hai, phir bhi tumhe sirf ek record chahiye, to `findFirst()` use karo. Ye `where` clause se match hone wala pehla record return karta hai (kaunsa "pehla" hoga, wo tum `orderBy` se control karte ho).
 
 ```typescript
 // Find the most recent published post by a specific user
@@ -233,9 +235,9 @@ const latestPost = await prisma.post.findFirst({
 
 ---
 
-### `findMany()` — Find All Matching Records
+### `findMany()` — Saare Matching Records
 
-The workhorse of READ operations. Returns an array (empty array, never null, if nothing matches).
+Ye hai READ operations ka workhorse — asli mehnat karne wala method. Ye ek array return karta hai (kuch match na ho to empty array, kabhi bhi `null` nahi).
 
 ```typescript
 // Get all published posts
@@ -253,7 +255,7 @@ const userPosts = await prisma.post.findMany({
 
 ## 🎯 Filtering Deep Dive
 
-The `where` clause accepts a rich set of filter operators. All operators live inside the field key.
+`where` clause ke andar bohot saare filter operators milte hain. Sab operators field key ke andar hi likhe jaate hain.
 
 ### Comparison Operators
 
@@ -269,7 +271,7 @@ const posts = await prisma.post.findMany({
 })
 ```
 
-### `in` and `notIn`
+### `in` aur `notIn`
 
 ```typescript
 // Posts written by users 1, 2, or 3
@@ -332,7 +334,9 @@ const results = await prisma.user.findMany({
 })
 ```
 
-### Filtering on Relations
+### Relations Pe Filtering
+
+Yaha thoda interesting part aata hai — related table ke data ke basis pe filter lagana.
 
 ```typescript
 // Users who have at least one published post
@@ -361,6 +365,8 @@ const prolificAuthors = await prisma.user.findMany({
 })
 ```
 
+`some`, `none`, `every` — bilkul English jaisa hi matlab hai: "kam se kam ek," "koi bhi nahi," "sab ke sab."
+
 ---
 
 ## 📑 Sorting & Pagination
@@ -384,7 +390,7 @@ const sorted = await prisma.post.findMany({
 
 ### Offset Pagination (`skip` + `take`)
 
-This is the classic "page 1, page 2..." pagination. Easy to understand, works fine on moderate datasets.
+Ye woh classic "page 1, page 2..." wala pagination hai jo tumne har website pe dekha hoga. Samajhna easy hai, aur chhote-medium datasets pe theek kaam karta hai.
 
 ```typescript
 const PAGE_SIZE = 10
@@ -402,11 +408,11 @@ const page1 = await getPage(1) // records 1-10
 const page2 = await getPage(2) // records 11-20
 ```
 
-> **Drawback of offset pagination:** If new records are inserted between page fetches, pages can shift — you may see duplicates or miss records. Fine for most use cases, problematic for real-time feeds.
+> **Offset pagination ki dikkat:** Agar do page-fetch ke beech naye records insert ho jayein, to pages "shift" ho sakte hain — tumhe duplicate records dikh sakte hain ya kuch miss ho sakte hain. Zyadatar use-cases ke liye theek hai, lekin real-time feeds (jaise Instagram feed) ke liye problematic hai.
 
-### Cursor Pagination (Better for Large / Real-Time Datasets)
+### Cursor Pagination (Bade / Real-Time Datasets Ke Liye Better)
 
-Instead of counting how many rows to skip, cursor pagination remembers the last item seen and asks "give me records after this one." Much more efficient on large tables.
+Kitni rows skip karni hain, ye count karne ke bajaye, cursor pagination last dekha hua item yaad rakhta hai aur poochta hai "iske baad wale records de do." Bade tables pe ye kaafi zyada efficient hai.
 
 ```typescript
 async function getNextPage(cursor?: number, take = 10) {
@@ -429,13 +435,15 @@ const lastId    = firstPage[firstPage.length - 1]?.id
 const nextPage  = await getNextPage(lastId)
 ```
 
+Socho jaise IRCTC ki tatkal booking list ho ya BigBasket ka infinite-scroll product listing — jitni tezi se naya data aata rehta hai, cursor pagination utna hi zaroori ho jaata hai kyunki skip/take wala approach wahan gadbad kar dega.
+
 ---
 
 ## 🧩 Selecting Fields & Loading Relations
 
-### `select` — Pick Specific Fields
+### `select` — Specific Fields Chunna
 
-By default Prisma returns every scalar field on a model. Use `select` to get only what you need — smaller payloads, faster queries.
+Default mein Prisma model ke sab scalar fields return karta hai. `select` use karke sirf wahi fields mangao jo chahiye — chhota payload, fast query.
 
 ```typescript
 // Only return id, username, and avatar — nothing else
@@ -450,9 +458,9 @@ const users = await prisma.user.findMany({
 // No email, no bio, no createdAt
 ```
 
-### `include` — Eager Load Relations
+### `include` — Relations Eager Load Karna
 
-`include` tells Prisma to JOIN the related table and attach the results as nested objects or arrays.
+`include` Prisma ko batata hai ki related table ko JOIN karo aur result ko nested object ya array ki tarah attach kar do.
 
 ```typescript
 // Post with its author and all its comments
@@ -466,9 +474,9 @@ const postWithRelations = await prisma.post.findUnique({
 })
 ```
 
-### Nested `select` Inside `include`
+### `include` Ke Andar Nested `select`
 
-You can nest a `select` inside an `include` to pick only certain fields of the related model.
+Related model ke sirf kuch fields chahiye? To `include` ke andar `select` nest kar sakte ho.
 
 ```typescript
 const post = await prisma.post.findUnique({
@@ -490,9 +498,9 @@ const post = await prisma.post.findUnique({
 })
 ```
 
-### `_count` — Count Related Records Without Fetching Them
+### `_count` — Related Records Ko Fetch Kiye Bina Count Karna
 
-A very common need: "show the number of likes and comments on a post" without loading every like/comment row.
+Ek bahut common requirement: "post pe kitne likes aur comments hain ye dikhao" — bina har like/comment row load kiye. Zomato pe restaurant card mein "500+ ratings" dikhta hai na, exactly waisa hi — puri list load nahi hoti, sirf count hota hai.
 
 ```typescript
 const postsWithCounts = await prisma.post.findMany({
@@ -512,7 +520,7 @@ const postsWithCounts = await prisma.post.findMany({
 
 ### Real-World Feed Example
 
-Combining everything above into a production-style paginated feed:
+Upar ki sab cheezein jod ke, ek production-style paginated feed banate hain:
 
 ```typescript
 async function getFeed(page: number) {
@@ -542,9 +550,9 @@ async function getFeed(page: number) {
 
 ## 🔄 UPDATE Operations
 
-### `update()` — Update a Single Record
+### `update()` — Ek Record Update Karna
 
-`update()` requires a `where` clause that targets a unique field. Prisma throws an error if no record matches.
+Kyun zaruri hai `where` clause? Kyunki `update()` ko ek unique field targeting `where` chahiye hi hota. Agar koi record match nahi karta to Prisma error throw karega.
 
 ```typescript
 // Update a user's bio
@@ -560,9 +568,9 @@ const publishedPost = await prisma.post.update({
 })
 ```
 
-### `updateMany()` — Update Multiple Records at Once
+### `updateMany()` — Ek Saath Multiple Records Update Karna
 
-Like `deleteMany()`, this returns a count rather than the updated records.
+`deleteMany()` ki tarah, ye bhi updated records ke bajaye sirf ek count return karta hai.
 
 ```typescript
 // Unpublish all posts by a banned user
@@ -576,7 +584,7 @@ console.log(result.count) // number of rows updated
 
 ### Atomic Number Operations
 
-When incrementing/decrementing counters you must avoid race conditions. Prisma lets you perform these operations atomically at the database level — no need to read the current value first.
+Jab counters ko increment/decrement karna ho, race conditions se bachna zaruri hai. Prisma tumhe ye operations database level pe atomically karne deta hai — pehle current value read karne ki koi zarurat nahi.
 
 ```typescript
 // Increment a hypothetical view count by 1
@@ -610,15 +618,15 @@ await prisma.post.update({
 })
 ```
 
-> **Why atomic?** Without atomic operations, two simultaneous requests could both read `viewCount: 5`, both compute `5 + 1 = 6`, and both write `6` — losing one increment. The database-level operation avoids this entirely.
+> **Atomic kyun zaruri hai?** Bina atomic operations ke, do simultaneous requests dono `viewCount: 5` read kar sakte hain, dono `5 + 1 = 6` calculate karke `6` hi likh denge — matlab ek increment kho gaya. Bilkul waise jaise UPI mein do log ek hi second mein balance check karke transaction bhej dein aur system race condition mein fas jaye. Database-level operation isko puri tarah avoid karta hai.
 
 ---
 
 ## 🗑️ DELETE Operations
 
-### `delete()` — Delete a Single Record
+### `delete()` — Ek Record Delete Karna
 
-Like `update()`, `delete()` requires a unique `where` clause and throws if the record does not exist.
+`update()` ki tarah, `delete()` ko bhi unique `where` clause chahiye, aur record na milne pe error throw karta hai.
 
 ```typescript
 // Delete a specific comment
@@ -629,9 +637,9 @@ const deleted = await prisma.comment.delete({
 console.log(deleted.id) // the deleted record is returned
 ```
 
-### `deleteMany()` — Delete Multiple Records
+### `deleteMany()` — Multiple Records Delete Karna
 
-Returns only a count. The `where` clause is optional — omitting it deletes every row in the table (use with extreme care!).
+Ye sirf count return karta hai. `where` clause optional hai — agar chhod diya to poori table ke saare rows delete ho jayenge (bohot dhyan se use karo!).
 
 ```typescript
 // Delete all unpublished posts older than 30 days
@@ -647,13 +655,14 @@ const result = await prisma.post.deleteMany({
 console.log(`Deleted ${result.count} draft posts.`)
 ```
 
-> **Cascading Deletes:** If your schema uses `onDelete: Cascade` on relations, Prisma (and the database) will automatically delete related records. Without cascade rules, deleting a record with existing related rows throws a foreign key constraint error.
+> [!warning]
+> **Cascading Deletes:** Agar tumhare schema mein relations pe `onDelete: Cascade` set hai, to Prisma (aur database) automatically related records bhi delete kar dega. Cascade rules na ho to existing related rows wale record ko delete karne pe foreign key constraint error aayega.
 
 ---
 
 ## 📊 AGGREGATE Operations
 
-### `count()` — Count Records
+### `count()` — Records Count Karna
 
 ```typescript
 // Total number of users
@@ -689,9 +698,9 @@ console.log(stats._avg.viewCount)  // average views per published post
 console.log(stats._sum.viewCount)  // total views across all published posts
 ```
 
-### `groupBy()` — Group and Aggregate
+### `groupBy()` — Group Karke Aggregate Karna
 
-`groupBy()` is the Prisma equivalent of SQL's `GROUP BY`. You specify which fields to group on, then which aggregations to compute per group.
+`groupBy()` SQL ke `GROUP BY` ka Prisma version hai. Tum batate ho kis field pe group karna hai, phir har group ke liye kaunsi aggregation chahiye.
 
 ```typescript
 // Count posts grouped by authorId, only groups with more than 2 posts
@@ -710,6 +719,8 @@ const postsByAuthor = await prisma.post.groupBy({
 
 // postsByAuthor[0] => { authorId: 1, _count: { _all: 8 } }
 ```
+
+Isko aise socho — jaise Swiggy ye pata karna chahta ho "kaunse restaurants ne is mahine 2 se zyada orders complete kiye," `groupBy` + `having` exactly ye kaam karte hain.
 
 ---
 
@@ -731,29 +742,29 @@ const postsByAuthor = await prisma.post.groupBy({
 | Aggregate stats | `aggregate()` | Stats object |
 | Group & aggregate | `groupBy()` | Array of groups |
 
-**Mental model checklist before writing a query:**
+**Query likhne se pehle ye mental checklist chalao:**
 
-1. **How many records do I need?** One → `findUnique` / `findFirst`. Many → `findMany`.
-2. **Do I need related data?** Yes → `include`. Only specific fields of it → nested `select`.
-3. **Do I need to count relations without loading them?** → `_count`.
-4. **Am I on a large table?** Use cursor pagination over offset pagination.
-5. **Am I updating a number?** Use atomic `increment`/`decrement` over read-then-write.
-6. **Am I inserting many rows?** Use `createMany()` over a loop.
-7. **Does the record need to exist already?** `update()` or `delete()` throw if not found; `updateMany()` and `deleteMany()` silently return `{ count: 0 }`.
+1. **Kitne records chahiye?** Ek → `findUnique` / `findFirst`. Zyada → `findMany`.
+2. **Related data bhi chahiye?** Haan → `include`. Sirf kuch specific fields → nested `select`.
+3. **Relations ko load kiye bina count chahiye?** → `_count`.
+4. **Bade table pe kaam kar rahe ho?** Offset pagination ke bajaye cursor pagination use karo.
+5. **Number update kar rahe ho?** Read-then-write ke bajaye atomic `increment`/`decrement` use karo.
+6. **Bohot saari rows insert kar rahe ho?** Loop ke bajaye `createMany()` use karo.
+7. **Record ka exist karna zaruri hai?** `update()` aur `delete()` na milne pe error throw karte hain; `updateMany()` aur `deleteMany()` chupchaap `{ count: 0 }` return kar dete hain.
 
 ---
 
 ## 🧪 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test kar lo.
 
 ---
 
 **Question 1**
 
-You are building a "Trending Posts" endpoint. It should return the 5 most-liked posts from the last 7 days, showing only the post `id`, `content`, and the like count — without loading every `Like` record into memory.
+Tum ek "Trending Posts" endpoint bana rahe ho. Isse pichle 7 dino ke top-5 sabse zyada liked posts return karne hain — sirf post ka `id`, `content`, aur like count ke saath, bina har `Like` record ko memory mein load kiye.
 
-Which Prisma features do you need to combine? Write the query.
+Ye karne ke liye kaunse Prisma features combine karne padenge? Query likho.
 
 <details>
 <summary>Answer</summary>
@@ -778,7 +789,7 @@ const trending = await prisma.post.findMany({
 })
 ```
 
-Key features: `where` with date filter, `orderBy` on relation count, `take` for limit, `select` with `_count`.
+Key features: date filter wala `where`, relation count pe `orderBy`, limit ke liye `take`, aur `_count` wala `select`.
 
 </details>
 
@@ -786,14 +797,14 @@ Key features: `where` with date filter, `orderBy` on relation count, `take` for 
 
 **Question 2**
 
-A user updates their profile. Your endpoint receives `{ email, name, bio }` but you only want to update the fields the user actually provided (not overwrite with `undefined`).
+Ek user apna profile update karta hai. Tumhare endpoint ko `{ email, name, bio }` milta hai, lekin tumhe sirf wahi fields update karne hain jo user ne actually diye hain (`undefined` waali fields ko overwrite nahi karna).
 
-Why is this safe with Prisma's `update()`, and how would you handle it?
+Prisma ke `update()` ke saath ye kyun safe hai, aur isse kaise handle karoge?
 
 <details>
 <summary>Answer</summary>
 
-Prisma's `data` object only updates the fields you explicitly include. Passing `undefined` for a key is the same as not passing it — Prisma will not set that column to `NULL`. You can safely spread only the defined values:
+Prisma ka `data` object sirf wahi fields update karta hai jo tum explicitly usme daalte ho. Kisi key ke liye `undefined` pass karna waisa hi hai jaisa uss key ko pass hi na karna — Prisma us column ko `NULL` set nahi karega. Isliye tum safely sirf defined values ko spread kar sakte ho:
 
 ```typescript
 async function updateProfile(userId: number, input: {
@@ -818,14 +829,14 @@ async function updateProfile(userId: number, input: {
 
 **Question 3**
 
-You have a `Post` model with a `viewCount Int @default(0)` field. Two users open the same post simultaneously. Both requests read `viewCount = 100`, add 1, and write back `101`. The real count should be `102`.
+Tumhare paas `Post` model hai jisme `viewCount Int @default(0)` field hai. Do users same post ek saath open karte hain. Dono requests `viewCount = 100` read karti hain, 1 add karti hain, aur wapas `101` likh deti hain. Real count `102` hona chahiye tha.
 
-What Prisma operation prevents this race condition, and what does the generated SQL look like?
+Kaunsa Prisma operation is race condition ko rokta hai, aur generated SQL kaisa dikhta hai?
 
 <details>
 <summary>Answer</summary>
 
-Use the atomic `increment` operation:
+Atomic `increment` operation use karo:
 
 ```typescript
 await prisma.post.update({
@@ -834,7 +845,7 @@ await prisma.post.update({
 })
 ```
 
-Prisma generates:
+Prisma ye generate karta hai:
 
 ```sql
 UPDATE "Post"
@@ -842,7 +853,7 @@ SET "viewCount" = "viewCount" + 1
 WHERE "id" = $1;
 ```
 
-Because the increment happens in a single SQL statement inside the database, no application-level read is needed. Both concurrent requests safely produce `102` because the database serialises the two `+1` operations.
+Kyunki increment ek hi SQL statement mein database ke andar hota hai, application-level read ki zarurat hi nahi padti. Dono concurrent requests safely `102` produce karte hain kyunki database dono `+1` operations ko serialize kar deta hai — ek ke baad ek, bina kisi conflict ke.
 
 </details>
 

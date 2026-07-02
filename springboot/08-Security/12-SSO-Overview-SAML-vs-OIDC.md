@@ -1,89 +1,92 @@
----
-tags: [security, production, sso, saml, oidc, federation, identity]
-aliases: [SSO, Single Sign-On, SAML vs OIDC, Federation]
-stage: advanced
----
-
 # SSO Overview — SAML vs OIDC
 
-> [!info] For the Express/TS dev
-> You've used `passport-google-oauth20` and `passport-openidconnect`. OIDC is what those are implementing. SAML is the enterprise cousin — XML-heavy, certificate-based, and unavoidable when selling to Fortune 500 companies. This note covers the concepts so you can have an informed conversation with the enterprise IdP team on day one.
+> [!info] Express/TS dev ke liye
+> Tumne `passport-google-oauth20` aur `passport-openidconnect` use kiya hi hoga. OIDC wahi hai jo yeh packages implement karte hain. SAML uska enterprise wala cousin hai — XML se bhara hua, certificate-based, aur jab bhi tum Fortune 500 companies ko bechne jaoge, unavoidable ban jaata hai. Yeh note concepts cover karta hai taaki enterprise IdP team ke saath din pehle hi informed conversation kar sako.
 
 ## Concept / mental model
 
-### Federation concepts — the cast of characters
+### Federation ke characters — kaun kya hai?
 
-| Term | Meaning | Example |
+SSO samajhne se pehle in players ko jaan lo, warna documentation padhte hue confuse ho jaoge:
+
+| Term | Matlab | Example |
 |---|---|---|
-| **IdP** (Identity Provider) | Issues identity assertions. Knows who you are. | Okta, Azure AD, Google Workspace, ADFS |
-| **SP** (Service Provider) — SAML term | Consumes assertions from IdP. Your app. | Your Spring Boot service |
-| **RP** (Relying Party) — OIDC term | Same role as SP but in OIDC/OAuth2 terminology | Your Spring Boot service |
-| **Assertion** (SAML) | Signed XML document containing identity claims | `<saml:Assertion>` |
-| **ID Token** (OIDC) | Signed JWT containing identity claims | `eyJ...` |
-| **Claim** | A key-value pair about the user | `email`, `groups`, `department` |
-| **Metadata** (SAML) | XML document describing an IdP or SP (endpoints, certs) | `metadata.xml` |
-| **JWKS** (OIDC) | JSON Web Key Set — public keys for ID token verification | `/.well-known/jwks.json` |
+| **IdP** (Identity Provider) | Identity assertions issue karta hai. Jaanta hai tum kaun ho. | Okta, Azure AD, Google Workspace, ADFS |
+| **SP** (Service Provider) — SAML term | IdP se assertions consume karta hai. Yeh tumhara app hai. | Tumhara Spring Boot service |
+| **RP** (Relying Party) — OIDC term | Same role jo SP ka hai, bas OIDC/OAuth2 ki terminology mein | Tumhara Spring Boot service |
+| **Assertion** (SAML) | Signed XML document jisme identity claims hote hain | `<saml:Assertion>` |
+| **ID Token** (OIDC) | Signed JWT jisme identity claims hote hain | `eyJ...` |
+| **Claim** | User ke baare mein ek key-value pair | `email`, `groups`, `department` |
+| **Metadata** (SAML) | XML document jo IdP ya SP describe karta hai (endpoints, certs) | `metadata.xml` |
+| **JWKS** (OIDC) | JSON Web Key Set — ID token verify karne ke liye public keys | `/.well-known/jwks.json` |
 
-### The SSO flow in 4 steps (both protocols)
+Basically SP aur RP same role play karte hain — bas naming convention alag hai kyunki dono protocols alag standards bodies se aaye hain.
 
-1. User hits your app without a session → app redirects to IdP
-2. IdP authenticates the user (password, MFA, etc.)
-3. IdP sends an assertion/token back to your app
-4. Your app validates the assertion/token, creates a session, redirects to original URL
+### SSO flow — 4 steps mein (dono protocols ke liye same)
 
-The difference is *how* the assertion is transported and *what format* it takes.
+Socho tum Zomato pe login karte ho apne Google account se. Kya hota hai backstage?
+
+1. User tumhare app pe bina session ke aata hai → app use IdP pe redirect karta hai (jaise "Login with Google" click karna)
+2. IdP user ko authenticate karta hai (password, MFA, waghera)
+3. IdP tumhare app ko ek assertion/token bhejta hai wapas
+4. Tumhara app us assertion/token ko validate karta hai, session banata hai, aur original URL pe redirect kar deta hai
+
+Difference sirf itna hai ki assertion *kaise* transport hota hai aur *kis format* mein aata hai.
 
 ---
 
-## SAML 2.0 vs OIDC comparison
+## SAML 2.0 vs OIDC — comparison table
+
+Yeh table baar-baar refer karoge, so bookmark kar lo:
 
 | Dimension | SAML 2.0 | OIDC |
 |---|---|---|
 | **Format** | XML (`<saml:Assertion>`) | JSON (JWT) |
-| **Transport** | HTTP POST (browser form) or HTTP Redirect (URL-encoded) | HTTP Redirect (code) + HTTPS back-channel (token fetch) |
-| **Signature** | XML Digital Signature (RSA/DSA) on the Assertion | JWS (RS256, ES256, HS256) on the JWT |
-| **Browser required for initial flow?** | Yes — browser posts form to SP | Yes — browser redirects code to RP; then RP makes back-channel call |
-| **Mobile/SPA friendly?** | Poor — form POST flow doesn't work natively in mobile apps | Yes — PKCE extension designed for this |
+| **Transport** | HTTP POST (browser form) ya HTTP Redirect (URL-encoded) | HTTP Redirect (code) + HTTPS back-channel (token fetch) |
+| **Initial flow mein browser chahiye?** | Haan — browser form ko SP pe POST karta hai | Haan — browser code ko RP pe redirect karta hai; phir RP back-channel call karta hai |
+| **Mobile/SPA friendly?** | Kharab — form POST flow mobile apps mein natively nahi chalta | Haan — PKCE extension isi ke liye design hua hai |
 | **Session management** | SAML sessions + SLO (complex) | OAuth2 sessions, token revocation |
-| **Standard age** | 2005 (feels it) | 2014, regularly updated |
+| **Standard ki age** | 2005 (aur dikhta bhi hai) | 2014, regularly update hota rehta hai |
 | **Config complexity** | High — metadata XML exchange, certs | Moderate — discovery URL, client ID/secret |
-| **Tooling ecosystem** | Enterprise-heavy | Large, modern |
-| **Spec complexity** | Very high | Moderate (built on OAuth2) |
+| **Tooling ecosystem** | Enterprise-heavy | Bada, modern |
+| **Spec complexity** | Bahut high | Moderate (OAuth2 ke upar bana hai) |
 
-### When you'll be forced into SAML
+### Kab tumhe SAML implement karna hi padega
 
-1. **Enterprise B2B customers** — large enterprises have Okta/Azure AD/ADFS configured for SAML and won't reconfigure just for you.
-2. **Healthcare/Government** — SAML is often mandated by procurement requirements.
-3. **Federated university login** — Shibboleth IdPs speak SAML.
+Kyun zaruri hai yeh jaanna? Kyunki bade clients tumse yeh maang sakte hain, aur tab decide karna late ho jaata hai.
 
-If any of these apply to your product, you *will* implement SAML eventually. Build a feature flag from day one: `sso.provider = oidc | saml`.
+1. **Enterprise B2B customers** — badi enterprises ke paas already Okta/Azure AD/ADFS SAML ke liye configured hota hai, aur woh sirf tumhare liye reconfigure nahi karenge.
+2. **Healthcare/Government** — procurement requirements mein aksar SAML mandate hota hai.
+3. **Federated university login** — Shibboleth IdPs SAML hi bolte hain.
 
-### When you can use OIDC (choose it when you can)
+Agar in mein se koi bhi tumhare product pe apply hota hai, tum *zaroor* SAML implement karoge kabhi na kabhi. Din pehle se ek feature flag bana lo: `sso.provider = oidc | saml`.
 
-- SaaS product targeting tech-forward companies
-- Consumer apps (Google, Apple, GitHub login)
+### Kab OIDC use kar sakte ho (jab option ho, ise choose karo)
+
+- SaaS product jo tech-forward companies ko target karta hai
+- Consumer apps (Google, Apple, GitHub login — bilkul "Continue with Google" jaisa jo tumne Swiggy pe dekha hoga)
 - Internal company SSO with a modern IdP (Keycloak, Auth0, Okta OIDC endpoint)
-- Mobile and SPA applications
+- Mobile aur SPA applications
 
 ---
 
-## Trust establishment
+## Trust establish kaise hota hai?
 
 ### SAML: metadata XML exchange
 
-SP generates a metadata XML file and shares it with the IdP (email, URL, or IdP admin portal). The IdP does the same. Each party pins the other's signing certificate from the metadata.
+SP ek metadata XML file generate karta hai aur IdP ke saath share karta hai (email se, URL se, ya IdP admin portal se). IdP bhi wahi karta hai. Har party doosre ka signing certificate metadata se pin kar leti hai.
 
 ```
-Your app (SP) → uploads to Okta/Azure AD admin portal → IdP registers SP
-IdP → provides metadata URL → Your app downloads and trusts it
+Tumhara app (SP) → Okta/Azure AD admin portal pe upload karta hai → IdP SP ko register karta hai
+IdP → metadata URL provide karta hai → Tumhara app download karke trust karta hai
 ```
 
 > [!warning]
-> **Certificate rotation in SAML is painful.** The new certificate must be added to both sides before the old one is removed. Plan for a 2-week overlap window and document the exact steps. See [[14-SAML-with-Spring-Security]] for the playbook.
+> **SAML mein certificate rotation dard-bhara hota hai.** Naya certificate dono taraf add hona chahiye purane ko remove karne se pehle. 2-week overlap window plan karo aur exact steps document karo. Playbook ke liye [[14-SAML-with-Spring-Security]] dekho.
 
 ### OIDC: discovery endpoint
 
-The IdP publishes a well-known discovery document:
+IdP ek well-known discovery document publish karta hai — yeh ek tarah ka "yahan sab kuch mil jayega" JSON hota hai:
 
 ```
 GET https://accounts.google.com/.well-known/openid-configuration
@@ -97,43 +100,45 @@ GET https://accounts.google.com/.well-known/openid-configuration
 }
 ```
 
-Your app fetches this once at startup and caches it. Key rotation is handled via `kid` (Key ID) in the JWT header — your app fetches the new JWKS when it sees an unknown `kid`. No manual intervention required.
+Tumhara app isse startup pe ek baar fetch karta hai aur cache kar leta hai. Key rotation `kid` (Key ID) se handle hota hai JWT header mein — jab bhi tumhara app koi unknown `kid` dekhta hai, naya JWKS fetch kar leta hai. Koi manual intervention nahi chahiye. Isliye OIDC ka config experience SAML se kaafi zyada smooth feel hota hai.
 
 ---
 
-## PKCE — public clients
+## PKCE — public clients ke liye
 
-PKCE (Proof Key for Code Exchange, RFC 7636) prevents authorization code interception in mobile/SPA apps that can't store a client secret:
+**Kya hota hai?** PKCE (Proof Key for Code Exchange, RFC 7636) authorization code interception ko rokta hai un mobile/SPA apps mein jo client secret store nahi kar sakte (kyunki frontend code decompile ho sakta hai — secret chhupa nahi rahega).
 
 ```
-1. App generates code_verifier (random 32-64 bytes)
-2. App computes code_challenge = BASE64URL(SHA256(code_verifier))
-3. Auth request includes code_challenge + code_challenge_method=S256
-4. Token request includes code_verifier — IdP verifies SHA256(verifier) == challenge
+1. App code_verifier generate karta hai (random 32-64 bytes)
+2. App code_challenge compute karta hai = BASE64URL(SHA256(code_verifier))
+3. Auth request mein code_challenge + code_challenge_method=S256 include hota hai
+4. Token request mein code_verifier bheja jaata hai — IdP verify karta hai SHA256(verifier) == challenge
 ```
 
-Spring Security handles PKCE automatically for public clients when configured properly (see [[13-Spring-Security-OIDC-Login]]).
+Socho jaise tum ek locked box (challenge) bhejte ho pehle, aur baad mein chaabi (verifier) dikhate ho — agar chaabi box ko unlock karti hai, tabhi trust hoga.
+
+Spring Security PKCE ko automatically handle karta hai public clients ke liye jab properly configure kiya ho (dekho [[13-Spring-Security-OIDC-Login]]).
 
 ---
 
-## Single Logout (SLO) — why it's hard
+## Single Logout (SLO) — yeh itna hard kyun hai?
 
-SAML SLO is the mechanism for logging out of the IdP *and* all SPs simultaneously. It sounds useful. In practice:
+SAML SLO woh mechanism hai jo IdP *aur* saare SPs se ek saath logout kar deta hai. Sunne mein useful lagta hai. Practically:
 
-1. IdP sends a logout request to every SP that has a session for the user.
-2. Every SP must have an SLO endpoint, process the request synchronously, and respond.
-3. If any SP is down or slow, SLO hangs.
-4. Browser-based SLO requires chains of redirects — breaks in mobile/SPA.
+1. IdP har us SP ko logout request bhejta hai jiska user ke liye session hai.
+2. Har SP ka apna SLO endpoint hona chahiye, request ko synchronously process kare, aur respond kare.
+3. Agar koi ek bhi SP down ya slow hai, poora SLO hang ho jaata hai.
+4. Browser-based SLO redirects ki chain maangta hai — mobile/SPA mein toot jaata hai.
 
-**The honest reality**: most enterprises implement SLO but users don't notice because their session cookies expire anyway. Many teams skip front-channel SLO and implement only:
-- Short session lifetimes (1 hour)
-- Back-channel token revocation (OIDC) or RP-initiated logout
-- A "logout" button that clears local session
+**Honest reality**: zyada enterprises SLO implement toh karte hain, lekin users ko farak nahi padta kyunki unke session cookies anyway expire ho jaate hain. Bahut saari teams front-channel SLO skip karke sirf yeh karti hain:
+- Short session lifetimes (1 hour) — jaise UPI apps mein bhi session jaldi expire hota hai
+- Back-channel token revocation (OIDC) ya RP-initiated logout
+- Ek "logout" button jo sirf local session clear karta hai
 
-OIDC's RP-Initiated Logout (OIDC Session Management, OIDC Back-Channel Logout) is more reliable than SAML SLO but still complex. See [[13-Spring-Security-OIDC-Login]] for the Spring implementation.
+OIDC ka RP-Initiated Logout (OIDC Session Management, OIDC Back-Channel Logout) SAML SLO se zyada reliable hai, par phir bhi complex hai. Spring implementation ke liye [[13-Spring-Security-OIDC-Login]] dekho.
 
 > [!warning]
-> Don't promise "SSO logout logs you out everywhere instantly" in your product documentation unless you've tested it end-to-end with all your SP integrations. It rarely works perfectly.
+> Apni product documentation mein yeh promise mat karo ki "SSO logout se sab jagah instantly logout ho jaata hai" jab tak tumne end-to-end test na kiya ho apne saare SP integrations ke saath. Yeh perfectly kaam karna rare hai.
 
 ---
 
@@ -167,35 +172,35 @@ passport.use(new OidcStrategy({
 }));
 ```
 
-Spring equivalents: `spring-security-saml2-service-provider` (see [[14-SAML-with-Spring-Security]]) and `spring-boot-starter-oauth2-client` (see [[13-Spring-Security-OIDC-Login]]). The conceptual mapping is 1:1; Spring's implementation is more configuration-heavy but has deeper integration with the rest of the security filter chain.
+Spring ke equivalents: `spring-security-saml2-service-provider` (dekho [[14-SAML-with-Spring-Security]]) aur `spring-boot-starter-oauth2-client` (dekho [[13-Spring-Security-OIDC-Login]]). Conceptual mapping 1:1 hai; Spring ka implementation zyada configuration-heavy hai, lekin security filter chain ke baaki hisson ke saath deeper integration deta hai.
 
 ---
 
-## Gotchas
+## Gotchas — yahan log fasenge
 
 > [!danger]
-> **Never validate SAML assertions without checking the signature AND the audience restriction.** A signed assertion from your IdP can be replayed by a malicious SP at another SP if the audience restriction check is skipped. Spring Security's SAML implementation does this correctly — but only if you don't bypass it.
+> **SAML assertions ko kabhi bhi signature AND audience restriction check kiye bina validate mat karo.** Tumhare IdP se aaya ek signed assertion kisi malicious SP dwara replay kiya ja sakta hai kisi doosre SP pe, agar audience restriction check skip ho jaaye. Spring Security ka SAML implementation yeh correctly karta hai — lekin sirf tab jab tum ise bypass na karo.
 
 > [!warning]
-> **Clock skew in SAML.** SAML assertions have `NotBefore` and `NotOnOrAfter` timestamps. If your app server's clock is > 2–5 minutes off the IdP's clock, assertion validation fails. Run NTP on your servers. Spring Security's SAML support allows configuring a `clockSkew` tolerance.
+> **SAML mein clock skew.** SAML assertions mein `NotBefore` aur `NotOnOrAfter` timestamps hote hain. Agar tumhare app server ka clock IdP ke clock se 2–5 minutes se zyada off hai, assertion validation fail ho jaayega. Apne servers pe NTP run karo. Spring Security ka SAML support `clockSkew` tolerance configure karne deta hai.
 
 > [!warning]
-> **OIDC `nonce` and `state` parameters** are critical for security. The `state` parameter prevents CSRF on the callback endpoint; the `nonce` prevents ID token replay. Spring Security handles both automatically. Don't implement OAuth2/OIDC flows manually unless you deeply understand these.
+> **OIDC ke `nonce` aur `state` parameters** security ke liye critical hain. `state` parameter callback endpoint pe CSRF rokta hai; `nonce` ID token replay rokta hai. Spring Security dono ko automatically handle karta hai. OAuth2/OIDC flows manually implement mat karo jab tak in cheezon ko deeply samajh na lo.
 
 > [!tip]
-> When debugging SAML, use the browser network inspector to capture the POST to the `/saml2/authenticate/{id}` endpoint and Base64-decode the SAMLResponse. `echo 'BASE64DATA' | base64 -d | xmllint --format -` gives you readable XML. Essential for diagnosing assertion validation failures.
+> SAML debug karte waqt, browser network inspector use karo `/saml2/authenticate/{id}` endpoint pe POST capture karne ke liye, aur SAMLResponse ko Base64-decode karo. `echo 'BASE64DATA' | base64 -d | xmllint --format -` tumhe readable XML de dega. Assertion validation failures diagnose karne ke liye essential hai.
 
 ---
 
 ## Production checklist
 
-- [ ] Decision documented: OIDC vs SAML (with rationale — don't implement both without a use case)
-- [ ] Trust chain documented: which certificates are used, rotation schedule
-- [ ] SLO scope documented and agreed with customer: "local logout only" is a valid choice
-- [ ] IdP metadata/discovery URL version-pinned in config (not `latest` wildcards)
-- [ ] Clock synchronization (NTP) verified on all app servers
-- [ ] Certificate rotation runbook written and tested before first rotation
-- [ ] Fallback authentication path defined: what happens when IdP is down?
+- [ ] Decision documented: OIDC vs SAML (rationale ke saath — bina use case ke dono implement mat karo)
+- [ ] Trust chain documented: kaunse certificates use ho rahe hain, rotation schedule
+- [ ] SLO scope documented aur customer ke saath agree kiya hua: "sirf local logout" bhi ek valid choice hai
+- [ ] IdP metadata/discovery URL config mein version-pinned hai (`latest` wildcards nahi)
+- [ ] Clock synchronization (NTP) saare app servers pe verify kiya hua
+- [ ] Certificate rotation runbook likha aur test kiya hua pehli rotation se pehle
+- [ ] Fallback authentication path define kiya hua: jab IdP down ho jaaye toh kya hoga?
 
 ---
 

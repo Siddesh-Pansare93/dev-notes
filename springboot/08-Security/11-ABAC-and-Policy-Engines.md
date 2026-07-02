@@ -1,45 +1,41 @@
----
-tags: [security, production, abac, opa, cerbos, spicedb, policy-engine, authorization]
-aliases: [ABAC, Attribute-Based Access Control, OPA, Cerbos, SpiceDB, ReBAC]
-stage: advanced
----
-
 # ABAC and Policy Engines
 
-> [!info] For the Express/TS dev
-> CASL is ABAC-lite. When your CASL `defineAbility` functions grow to hundreds of lines, teams reach for a dedicated policy engine. This note covers the spectrum: custom Spring `AuthorizationManager` → OPA → Cerbos → SpiceDB, with a decision guide.
+> [!info] Express/TS wale dev ke liye
+> CASL basically ABAC-lite hai. Jab tumhare CASL `defineAbility` functions badhte-badhte sau-sau lines ke ho jaate hain, tab teams dedicated policy engine ki taraf jaati hain. Ye note poora spectrum cover karta hai: custom Spring `AuthorizationManager` → OPA → Cerbos → SpiceDB, saath mein ek decision guide bhi.
 
 ## Concept / mental model
 
-### When RBAC isn't enough
+### RBAC kab kaam nahi karta
 
-RBAC breaks down when authorization rules involve:
+Socho tum Zomato ke backend pe kaam kar rahe ho. RBAC mein bas itna hota hai — "delivery-partner", "restaurant-owner", "admin" jaise roles, aur har role ke fixed permissions. Lekin real duniya mein rules itne simple nahi hote. RBAC wahan fail hota hai jab authorization rules in cheezon pe depend karte hain:
 
-- **Resource attributes** — "can only approve invoices under $50,000"
-- **Subject attributes** — "users from the EU can only see EU data"
-- **Environmental attributes** — "admin actions only allowed during business hours"
-- **Relationship graphs** — "can edit if you're a collaborator on the project, or the project is owned by your organization"
+- **Resource attributes** — "sirf ₹50,000 se kam ke invoice approve kar sakte ho"
+- **Subject attributes** — "EU ke users sirf EU ka data dekh sakte hain"
+- **Environmental attributes** — "admin actions sirf business hours mein allowed hain"
+- **Relationship graphs** — "edit kar sakte ho agar tum project ke collaborator ho, ya project tumhari organization ka hai"
 
-The classic signal: your `@PreAuthorize` SpEL is calling service methods to load data needed just to *decide* whether to allow the call. That's ABAC — you're just doing it without a name for it.
+Classic signal ye hai: tumhara `@PreAuthorize` SpEL, service methods ko call kar raha hai sirf data load karne ke liye taaki decide kiya ja sake ki call allow karni hai ya nahi. Bhai, ye toh ABAC hi hai — bas tumne isko naam nahi diya.
 
-### The four-factor ABAC model
+### Four-factor ABAC model
+
+Ise yaad rakhne ka sabse aasan tarika — jaise Swiggy order approve karne se pehle 4 cheezein check karta hai: kaun order kar raha hai, kya order kar raha hai, kya karna chahta hai, aur kis situation mein:
 
 ```
 Decision = Policy(Subject, Resource, Action, Environment)
 
-Subject:     who is asking?         (user id, roles, department, clearance level)
-Resource:    what are they touching? (order id, status, owner, amount)
-Action:      what are they doing?   (read, write, approve, delete)
-Environment: context of the request (time, IP, request path, tenant)
+Subject:     kaun request kar raha hai?         (user id, roles, department, clearance level)
+Resource:    kis cheez ko touch kar raha hai?   (order id, status, owner, amount)
+Action:      kya kar raha hai?                  (read, write, approve, delete)
+Environment: request ka context                 (time, IP, request path, tenant)
 ```
 
 ---
 
 ## Code examples
 
-### Custom `AuthorizationManager` with attributes
+### Custom `AuthorizationManager` attributes ke saath
 
-For moderate complexity that doesn't warrant an external policy engine:
+Moderate complexity ke liye jahan external policy engine laane ki zarurat nahi hai — apna khud ka `AuthorizationManager` likh lo:
 
 ```java
 @Component
@@ -62,18 +58,18 @@ public class InvoiceAuthorizationManager
         Invoice invoice      = invoiceRepo.findById(invoiceId).orElseThrow();
         User currentUser     = userRepo.findByEmail(auth.getName()).orElseThrow();
 
-        // Rule 1: global approvers can approve anything
+        // Rule 1: global approvers kuch bhi approve kar sakte hain
         if (hasAuthority(auth, "invoice:approve")) {
             return new AuthorizationDecision(true);
         }
-        // Rule 2: department managers can approve invoices in their dept
-        //         if amount is under their limit
+        // Rule 2: department managers apne department ke invoices approve
+        //         kar sakte hain agar amount unki limit ke andar hai
         if (hasAuthority(auth, "invoice:approve:dept")
             && currentUser.getDepartmentId().equals(invoice.getDepartmentId())
             && invoice.getAmount().compareTo(SELF_APPROVE_LIMIT) <= 0) {
             return new AuthorizationDecision(true);
         }
-        // Rule 3: no self-approval ever
+        // Rule 3: apna khud ka request kabhi bhi self-approve nahi kar sakte
         if (invoice.getRequestedById().equals(currentUser.getId())) {
             return new AuthorizationDecision(false);
         }
@@ -87,7 +83,7 @@ public class InvoiceAuthorizationManager
     }
 }
 
-// Wire it — use InterceptorAopBean for method-level
+// Wire it — method-level ke liye InterceptorAopBean use karo
 @Configuration
 @EnableMethodSecurity
 public class InvoiceSecurityConfig {
@@ -104,9 +100,9 @@ public class InvoiceSecurityConfig {
 }
 ```
 
-### Integration with OPA (Open Policy Agent) via REST sidecar
+### OPA (Open Policy Agent) ke saath integration via REST sidecar
 
-OPA runs as a sidecar (Docker/k8s) and your Spring app makes HTTP calls to it:
+OPA sidecar ki tarah chalta hai (Docker/k8s mein), aur tumhara Spring app usko HTTP calls karta hai — bilkul waise jaise tum kisi internal microservice ko call karte ho:
 
 ```yaml
 # docker-compose.yml — OPA sidecar
@@ -128,26 +124,26 @@ import future.keywords.if
 
 default allow = false
 
-# Admins can do anything
+# Admins kuch bhi kar sakte hain
 allow if {
     "order:manage" in input.subject.permissions
 }
 
-# Users can read their own orders
+# Users apna khud ka order read kar sakte hain
 allow if {
     input.action == "read"
     "order:read:own" in input.subject.permissions
     input.resource.ownerId == input.subject.userId
 }
 
-# Managers can read all orders in their department
+# Managers apne department ke saare orders read kar sakte hain
 allow if {
     input.action == "read"
     "order:read" in input.subject.permissions
     input.resource.departmentId == input.subject.departmentId
 }
 
-# No self-approval
+# Self-approval kabhi allow nahi
 deny if {
     input.action == "approve"
     input.resource.requestedById == input.subject.userId
@@ -165,7 +161,7 @@ allow if {
 @RequiredArgsConstructor
 public class OpaAuthorizationManager<T> implements AuthorizationManager<T> {
 
-    private final WebClient opaClient;    // configured to point at OPA sidecar
+    private final WebClient opaClient;    // OPA sidecar ki taraf point karta hai
     private final ObjectMapper mapper;
 
     @Override
@@ -180,13 +176,13 @@ public class OpaAuthorizationManager<T> implements AuthorizationManager<T> {
                 .bodyValue(Map.of("input", input))
                 .retrieve()
                 .bodyToMono(OpaResponse.class)
-                .block(Duration.ofMillis(50));  // tight timeout — policy is on loopback
+                .block(Duration.ofMillis(50));  // tight timeout — policy loopback pe hai
 
             return new AuthorizationDecision(
                 response != null && Boolean.TRUE.equals(response.getResult())
             );
         } catch (Exception e) {
-            // Fail closed on OPA unavailability
+            // OPA unavailable ho toh fail closed — deny kar do
             log.error("OPA check failed — denying access", e);
             return new AuthorizationDecision(false);
         }
@@ -215,11 +211,11 @@ opa:
 ```
 
 > [!tip]
-> OPA's REST API adds latency. Keep OPA on loopback (same pod in k8s, same host in Docker). Target < 5ms for policy evaluation. Use OPA bundles for distributing policies so all instances load policies from a central store without a network hop per request.
+> OPA ka REST API latency add karta hai. OPA ko hamesha loopback pe rakho (k8s mein same pod, Docker mein same host). Policy evaluation ka target < 5ms rakho. Policies distribute karne ke liye OPA bundles use karo, taaki har instance central store se policies load kare bina har request pe network hop kiye — jaise CDN se static assets serve karte ho, waise hi.
 
 ### Cerbos integration
 
-Cerbos is an open-source, self-hosted authorization service with a richer policy DSL than raw OPA:
+Cerbos ek open-source, self-hosted authorization service hai jiska policy DSL raw OPA se zyada rich hai — thoda zyada "developer-friendly" bolo:
 
 ```yaml
 # cerbos/policies/order_resource_policy.yaml
@@ -279,7 +275,7 @@ public class CerbosAuthorizationService {
 
 ### SpiceDB / Authzed — relationship-based access (ReBAC)
 
-SpiceDB implements Google Zanzibar (the model behind Google Drive sharing). Use it when your authorization is fundamentally about *graph relationships*: "User A can edit Document D if A is a member of Group G which has editor access to Folder F which contains D."
+SpiceDB, Google Zanzibar model implement karta hai — wahi model jo Google Drive ke sharing ke peeche hai. Isko use karo jab tumhara authorization fundamentally *graph relationships* ke baare mein ho — jaise: "User A, Document D ko edit kar sakta hai agar A, Group G ka member hai, jiske paas Folder F pe editor access hai, aur Folder F mein D hai." Soch lo jaise ek WhatsApp group ka admin, sub-groups pe permissions cascade kar raha ho.
 
 ```
 // SpiceDB schema (Authzed Schema Language)
@@ -331,24 +327,24 @@ public class SpiceDBAuthorizationService {
 
 ---
 
-## Decision matrix — which model to use
+## Decision matrix — kaunsa model kab use karein
 
 | Scenario | Recommended |
 |---|---|
 | Simple roles, < 10 rule types | RBAC — `@PreAuthorize` + `hasRole` |
-| Resource ownership + a few resource attributes | Permission-based + `PermissionEvaluator` |
-| Complex rules with many attributes, business conditions | Custom `AuthorizationManager` or **Cerbos** |
-| Policy-as-code, centralized across multiple services | **OPA** |
-| Graph/hierarchy relationships (Google Drive sharing model) | **SpiceDB / ReBAC** |
-| Compliance-heavy: audit trail of every policy evaluation | **Cerbos** (built-in audit) or OPA with decision logs |
-| Prototype / small team | Stay in Spring — avoid external dependencies until you feel pain |
+| Resource ownership + thode se resource attributes | Permission-based + `PermissionEvaluator` |
+| Complex rules, kai attributes, business conditions | Custom `AuthorizationManager` ya **Cerbos** |
+| Policy-as-code, multiple services mein centralized | **OPA** |
+| Graph/hierarchy relationships (Google Drive sharing jaisa model) | **SpiceDB / ReBAC** |
+| Compliance-heavy: har policy evaluation ka audit trail chahiye | **Cerbos** (built-in audit) ya OPA with decision logs |
+| Prototype / chhoti team | Spring mein hi raho — jab tak dard na ho, external dependency mat lo |
 
 > [!warning]
-> Don't adopt OPA/Cerbos/SpiceDB prematurely. Each adds an operational dependency, a network hop, and a new language to learn. Start with Spring's built-in tools and migrate when you hit concrete scaling problems.
+> OPA/Cerbos/SpiceDB ko premature adopt mat karo. Har ek operational dependency, network hop, aur naya language sikhne ka overhead add karta hai. Spring ke built-in tools se shuru karo, aur jab concrete scaling problem face karo tabhi migrate karo. Zomato bhi din 1 se microservices mein nahi tha — monolith se shuru hua tha.
 
 ---
 
-## Caching authorization decisions safely
+## Authorization decisions safely cache karna
 
 ```java
 @Component
@@ -368,7 +364,7 @@ public class CachingAuthorizationManager<T> implements AuthorizationManager<T> {
         if (cached != null) return cached;
 
         AuthorizationDecision decision = delegate.check(authSupplier, object);
-        // Only cache ALLOW decisions — DENY may be stale if data changes
+        // Sirf ALLOW decisions cache karo — DENY stale ho sakta hai agar data change ho jaaye
         if (decision.isGranted()) {
             authzCache.put(cacheKey, decision);
         }
@@ -378,13 +374,13 @@ public class CachingAuthorizationManager<T> implements AuthorizationManager<T> {
 ```
 
 > [!danger]
-> Caching authorization decisions is risky. A cached ALLOW becomes incorrect the moment: the resource changes owner, the user's role changes, or the resource status changes. Set very short TTLs (< 30 seconds) or cache only on read-heavy immutable resources. When in doubt, don't cache authorization — cache the policy input data (user attributes, resource attributes) instead.
+> Authorization decisions cache karna risky hai. Ek cached ALLOW galat ho jaata hai jaise hi: resource ka owner change ho, user ka role change ho, ya resource ka status change ho. Bahut chhota TTL rakho (< 30 seconds), ya sirf read-heavy immutable resources pe cache karo. Confusion ho toh authorization cache mat karo — uski jagah policy input data (user attributes, resource attributes) ko cache karo. Socho jaise UPI transaction cache nahi hota, lekin merchant ka static profile cache ho sakta hai.
 
 ---
 
 ## Express/TS comparison
 
-OPA has a Node.js SDK (`@open-policy-agent/opa-wasm` for WASM, or HTTP calls for the sidecar model). Cerbos has a Node.js SDK (`@cerbos/http`). The pattern is the same:
+OPA ka Node.js SDK hai (`@open-policy-agent/opa-wasm` WASM ke liye, ya sidecar model ke liye plain HTTP calls). Cerbos ka bhi Node.js SDK hai (`@cerbos/http`). Pattern wahi hai jo Spring mein hai:
 
 ```typescript
 // Node.js + Cerbos
@@ -403,34 +399,34 @@ if (!decisions.isAllowed(order.id, 'approve')) {
 }
 ```
 
-The structural advantage of the Spring approach: `@PreAuthorize("hasPermission(...)")` enforces the check even when the service method is called from a non-HTTP context (scheduled job, Kafka consumer). In Express, you enforce at the route level and may forget to check in a background worker.
+Spring approach ka structural advantage ye hai: `@PreAuthorize("hasPermission(...)")` check ko enforce karta hai chahe service method non-HTTP context se call ho — scheduled job ho ya Kafka consumer. Express mein tum route level pe enforce karte ho, aur background worker mein check karna bhool sakte ho — production mein ye ek chhupa hua landmine ban jaata hai.
 
 ---
 
 ## Gotchas
 
 > [!danger]
-> **Fail closed on policy engine unavailability.** If OPA/Cerbos is down, deny all requests — do not fall back to allowing. A flimsy fallback is worse than downtime.
+> **Policy engine unavailable ho toh fail closed raho.** Agar OPA/Cerbos down hai, toh saari requests deny karo — allow karne pe fallback mat karo. Ek weak fallback, downtime se bhi zyada bura hota hai. Socho — agar Paytm ka fraud-check service down ho jaaye, toh woh transactions block karega, allow nahi.
 
 > [!warning]
-> **OPA bundle staleness.** When OPA loads policies from a bundle, there's a propagation delay when policies change. During that window, old policies are active. Design policy changes to be additive (add new rules before removing old ones) to avoid authorization gaps.
+> **OPA bundle staleness.** Jab OPA bundle se policies load karta hai, policies change hone par ek propagation delay hota hai. Us window mein purani policies hi active rehti hain. Policy changes ko additive design karo (purani rules hatane se pehle nayi rules add karo) taaki authorization gap na aaye.
 
 > [!warning]
-> **SpiceDB eventual consistency.** SpiceDB offers zookie-based consistency tokens to avoid new-enemy problems. If you write a permission relationship and immediately check it, you may get a stale answer. Always pass the zookie from the write operation to subsequent read operations.
+> **SpiceDB eventual consistency.** SpiceDB zookie-based consistency tokens deta hai taaki "new enemy problem" avoid ho. Agar tum ek permission relationship write karte ho aur turant check karte ho, toh stale answer mil sakta hai. Hamesha write operation ka zookie, baad ke read operations mein pass karo.
 
 ---
 
 ## Production checklist
 
-- [ ] Decision matrix documented in ADR: why RBAC/ABAC/ReBAC/OPA was chosen
-- [ ] Policy engine (OPA/Cerbos) deployed on loopback or same-pod — not across network
-- [ ] Timeout set on policy engine calls (< 50ms)
-- [ ] Fail-closed behaviour on policy engine unavailability
-- [ ] Policy changes are additive (no gap where neither old nor new rule applies)
-- [ ] Authorization decision caching TTL ≤ 30 seconds, with manual invalidation hooks
-- [ ] Integration test: change a resource attribute, verify auth decision changes
-- [ ] Audit log captures all DENY decisions (see [[16-Audit-Logging-and-Compliance]])
-- [ ] For SpiceDB: zookie tokens used for consistency on write-then-check flows
+- [ ] Decision matrix ADR mein documented hai: kyun RBAC/ABAC/ReBAC/OPA choose kiya
+- [ ] Policy engine (OPA/Cerbos) loopback ya same-pod pe deployed hai — network ke across nahi
+- [ ] Policy engine calls pe timeout set hai (< 50ms)
+- [ ] Policy engine unavailable hone par fail-closed behaviour hai
+- [ ] Policy changes additive hain (koi gap nahi jahan na purani rule apply ho na nayi)
+- [ ] Authorization decision caching TTL ≤ 30 seconds, manual invalidation hooks ke saath
+- [ ] Integration test: resource attribute change karo, verify karo ki auth decision badalta hai
+- [ ] Audit log saari DENY decisions capture karta hai (dekho [[16-Audit-Logging-and-Compliance]])
+- [ ] SpiceDB ke liye: zookie tokens write-then-check flows mein consistency ke liye use ho rahe hain
 
 ---
 

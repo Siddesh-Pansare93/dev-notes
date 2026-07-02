@@ -1,30 +1,31 @@
----
-tags: [security, authentication, jwt, oauth2, basic-auth, form-login]
-aliases: [Basic Auth, Form Login, JWT Auth, OAuth2 Auth]
-stage: intermediate
----
-
 # Authentication Methods
 
-> [!info] For the Express/TS dev
-> Same options you'd reach for in Node:
-> - **HTTP Basic** — username/password in header. Local-dev only.
-> - **Form login** — server-rendered apps; session cookie.
-> - **JWT bearer** — stateless API auth.
-> - **OAuth2 / OIDC** — federated identity (Google, Auth0, Keycloak).
-> Spring Security supports all four, often combined in one app via multiple `SecurityFilterChain` beans.
+Socho ek second ke liye — jab bhi koi user tumhare app pe aata hai, sabse pehla sawaal yehi hota hai: **"Tu hai kaun?"** Yeh jo verification process hai na, isi ko authentication kehte hain. Ab yeh verification kaise ho — username/password se, session cookie se, JWT token se, ya Google/GitHub jaise kisi third-party se — uske alag-alag tareeke hain. Aaj hum yehi saare tareeke dekhenge, ekdum practically, Spring Security ke saath.
 
-## Decision matrix
+> [!info] Express/TS wale dev ke liye
+> Tumne Node/Express mein yeh options already dekhe honge:
+> - **HTTP Basic** — username/password seedha header mein. Sirf local-dev ke liye theek hai.
+> - **Form login** — server-rendered apps ke liye; session cookie use hota hai.
+> - **JWT bearer** — stateless API auth, mobile/SPA ke liye popular.
+> - **OAuth2 / OIDC** — federated identity (Google, Auth0, Keycloak) — matlab "Login with Google" wala flow.
+>
+> Spring Security in chaaron ko support karta hai, aur ek hi app mein multiple `SecurityFilterChain` beans banake inhe combine bhi kar sakte ho — jaise Zomato app mein customer login alag hota hai aur delivery partner login alag.
 
-| Method | Token | State | Use when |
+## Decision matrix — kab kaunsa use karna hai?
+
+Yeh table samajh lo cheat-sheet jaisa. Jab bhi confusion ho ki "iss project mein kaunsa auth lagau", yahan wapas aa jana.
+
+| Method | Token | State | Kab use karna hai |
 | --- | --- | --- | --- |
-| HTTP Basic | `Authorization: Basic base64(user:pass)` | Stateless | Internal tools, dev, machine-to-machine over TLS |
-| Form login + session | `JSESSIONID` cookie | Stateful | Server-rendered apps |
-| JWT bearer | `Authorization: Bearer <jwt>` | Stateless | SPA / mobile / microservices |
-| OAuth2 client | Cookie/session of the IdP | Stateful (usually) | "Login with Google" flows |
-| OAuth2 resource server | JWT or opaque token from IdP | Stateless | Backend protected by external IdP |
+| HTTP Basic | `Authorization: Basic base64(user:pass)` | Stateless | Internal tools, dev environment, machine-to-machine (TLS ke saath) |
+| Form login + session | `JSESSIONID` cookie | Stateful | Server-rendered apps (Thymeleaf jaise) |
+| JWT bearer | `Authorization: Bearer <jwt>` | Stateless | SPA / mobile app / microservices |
+| OAuth2 client | Cookie/session of the IdP | Stateful (usually) | "Login with Google" jaise flows |
+| OAuth2 resource server | JWT ya opaque token IdP se | Stateless | Backend jo kisi external IdP se protect hota hai |
 
-## HTTP Basic
+## HTTP Basic — sabse simple, lekin sabse "kaccha"
+
+**Kya hota hai?** Har request ke header mein `username:password` ko base64 encode karke bhej diya jaata hai. Browser khud ek native popup dikhata hai login ke liye — woh ugly wala dialog box jo tumne kabhi na kabhi dekha hoga.
 
 ```java
 @Bean
@@ -37,9 +38,13 @@ public SecurityFilterChain chain(HttpSecurity http) throws Exception {
 }
 ```
 
-Browsers will pop up a native auth dialog. Almost never what you want for production; fine for `/actuator` behind a VPN.
+**Kyun careful rehna hai?** Base64 encoding hai, encryption nahi. Matlab agar koi network traffic sniff kar le (bina HTTPS ke), toh username-password seedha nikal sakta hai — jaise koi tumhara UPI PIN plaintext mein bhej de. Isliye production mein almost kabhi use nahi karte. `/actuator` endpoints ko VPN ke peeche protect karne jaisi cheezon ke liye theek hai.
 
-## Form login (server-side rendered)
+## Form login (server-side rendered apps)
+
+**Kya hota hai?** Yeh woh classic wala login hai — HTML form bharo, submit karo, server session banata hai aur `JSESSIONID` cookie browser ko de deta hai. Ab har request pe woh cookie automatically jaata hai, aur server pehchan leta hai "arre yeh toh wahi user hai".
+
+Node ke `express-session` + Passport `LocalStrategy` ka Spring Security version samjho isse.
 
 ```java
 @Bean
@@ -61,7 +66,7 @@ public SecurityFilterChain chain(HttpSecurity http) throws Exception {
 }
 ```
 
-Login template (`src/main/resources/templates/login.html` if using Thymeleaf):
+Login template (`src/main/resources/templates/login.html`, agar Thymeleaf use kar rahe ho):
 
 ```html
 <form method="post" action="/login">
@@ -72,7 +77,7 @@ Login template (`src/main/resources/templates/login.html` if using Thymeleaf):
 </form>
 ```
 
-`UserDetailsService` provides users:
+Ab yeh users kahan se aayenge? Woh batata hai `UserDetailsService` — yeh interface bolta hai "mujhe email do, main tumhe user ka pura data doonga (password hash, roles, sab kuch)":
 
 ```java
 @Service
@@ -97,14 +102,19 @@ public class DbUserDetailsService implements UserDetailsService {
 }
 ```
 
-## JWT bearer (the typical SPA backend setup)
+> [!tip] Node comparison
+> Yeh bilkul `passport.use(new LocalStrategy(async (username, password, done) => {...}))` jaisa hai — jahan tum khud DB se user dhoondh ke `done(null, user)` call karte ho.
 
-Spring Security has two parts you might use:
+## JWT bearer — typical SPA backend ka setup
 
-1. **Resource server** — validates incoming JWT (most common). See [[08-OAuth2-Resource-Server]] and [[04-JWT-with-Spring-Security]].
-2. **Self-issued JWT** — your app issues tokens (e.g., custom login endpoint).
+Ab yeh wala sabse zyada use hota hai aajkal — React/Angular frontend, mobile app, ya microservices ke beech communication. Yahan koi session/cookie nahi hota, sirf ek token jo har request ke header mein jaata hai: `Authorization: Bearer <token>`.
 
-Quickstart for resource server (validates JWT from a configured issuer):
+Spring Security mein iske do parts hain, confuse mat hona:
+
+1. **Resource server** — yeh tumhare app mein aane wale JWT ko **validate** karta hai (sabse common case). Dekh lo [[08-OAuth2-Resource-Server]] aur [[04-JWT-with-Spring-Security]].
+2. **Self-issued JWT** — jab tumhara khud ka app token **banata** hai (custom login endpoint ke through).
+
+**Resource server** ka quickstart (yeh maan ke chal raha hai ki JWT kisi configured issuer se aa raha hai):
 
 ```xml
 <dependency>
@@ -129,9 +139,11 @@ http
   .sessionManagement(s -> s.sessionCreationPolicy(STATELESS));
 ```
 
-That's it. Spring fetches the JWKS, validates signatures, populates `@AuthenticationPrincipal Jwt`.
+Bas itna hi! Spring khud JWKS (public keys) fetch kar lega, signature verify karega, aur tumhare controller mein `@AuthenticationPrincipal Jwt` inject kar dega. Ekdum jaadu jaisa lagta hai pehli baar, but yeh bas standard OAuth2/OIDC flow follow kar raha hai.
 
-## OAuth2 client (login with Google / Auth0 / Keycloak)
+## OAuth2 client — "Login with Google/Auth0/Keycloak"
+
+**Kya hota hai?** Jab tum khud password store nahi karna chahte — user Google se login kare, Google confirm kare "haan yeh sahi bandaa hai", aur tumhara app trust kar le. Bilkul CRED ya Swiggy jaisa — "Continue with Google" button dabao, redirect ho jao, wapas aa jao logged-in.
 
 ```xml
 <dependency>
@@ -161,9 +173,9 @@ http
   .oauth2Login(Customizer.withDefaults());
 ```
 
-Visit `/oauth2/authorization/google` and Spring handles redirect, code exchange, token storage.
+`/oauth2/authorization/google` pe jao, aur Spring sab kuch khud handle kar leta hai — redirect Google ko, authorization code wapas lena, token exchange karna, sab automatic.
 
-Access user info:
+Logged-in user ka data chahiye? Bas yeh:
 
 ```java
 @GetMapping("/me")
@@ -172,9 +184,9 @@ public Map<String, Object> me(@AuthenticationPrincipal OidcUser principal) {
 }
 ```
 
-## Combining methods
+## Combining methods — ek hi app mein multiple auth types
 
-Two chains, one app:
+Real projects mein aksar aisa hota hai — tumhara `/api/**` JWT se protect hai (mobile app ke liye), aur `/`, `/dashboard` waala web UI session-based login use karta hai. Dono ek saath chal sakte hain, do alag `SecurityFilterChain` beans ke through:
 
 ```java
 @Bean @Order(1)
@@ -199,7 +211,12 @@ SecurityFilterChain web(HttpSecurity http) throws Exception {
 }
 ```
 
+> [!warning] Order matters!
+> `@Order(1)` wala chain pehle try hota hai. Jo request `securityMatcher` se match nahi karti, woh agle chain ke paas jaati hai. Agar order galat rakh doge, toh galat rule apply ho sakta hai — jaise Ola driver-app ka request accidentally customer-app ke rules follow kar le.
+
 ## Express/TS comparison
+
+Tumhare liye direct mapping table — Passport strategies vs Spring Security:
 
 ```ts
 // Express + Passport
@@ -221,25 +238,27 @@ app.get('/auth/google', passport.authenticate('google'));
 | `GoogleStrategy` | `oauth2Login()` + provider config |
 | `req.user` | `@AuthenticationPrincipal` |
 
-## Gotchas
+Basically jo kaam tum Node mein manually strategies likh ke, middleware chain set karke karte ho, woh Spring Security mein configuration + annotations se ho jaata hai. Thoda "magic" zyada lagta hai shuru mein, lekin ek baar pattern samajh aa jaaye toh boilerplate bahut kam ho jaata hai.
 
-> [!warning] HTTP Basic without TLS
-> Base64 is encoding, not encryption. Always require HTTPS in any environment that isn't localhost.
+## Gotchas — yeh galtiyan mat karna
 
-> [!danger] Issuing your own JWTs
-> Easy to get wrong: weak secrets, missing `aud` validation, no rotation, no revocation. Prefer an established IdP (Keycloak, Auth0, Cognito) and use resource server. If you must issue, use `nimbus-jose-jwt` and rotate keys.
+> [!warning] HTTP Basic bina TLS ke
+> Base64 encoding hai, encryption nahi. Localhost ke alawa har environment mein HTTPS mandatory rakho. Warna password plaintext mein ghoomta rahega jaise unencrypted WhatsApp message.
 
-> [!warning] Session management policy for JWT
-> Set `STATELESS`. Otherwise Spring creates an `HttpSession` per request, defeating the point.
+> [!danger] Khud ke JWT issue karna
+> Yeh galat karna bahut aasaan hai — weak secret keys, `aud` (audience) validation missing, koi key rotation nahi, revoke karne ka koi tareeka nahi. Jab tak koi bahut strong reason na ho, established IdP (Keycloak, Auth0, AWS Cognito) use karo aur resource server ban jao. Agar khud issue karna hi hai, toh `nimbus-jose-jwt` library use karo aur keys rotate karte raho.
 
-> [!warning] CSRF and form login
-> Required when using session-based auth. Spring's CSRF protection is automatic but your forms must include the token.
+> [!warning] JWT ke saath session policy
+> `STATELESS` set karna mat bhoolna. Nahi toh Spring har request pe ek `HttpSession` bana dega — jo poore JWT/stateless approach ka matlab hi khatam kar dega. Yeh waisi hi galti hai jaise REST API banake bhi har request pe cookie session maintain karna — dono duniya ka fayda nahi milega.
+
+> [!warning] CSRF aur form login
+> Session-based auth use kar rahe ho toh CSRF protection zaruri hai. Spring ka CSRF protection automatic hai, lekin tumhare forms mein token include hona chahiye (jaise upar `th:value="${_csrf.token}"` mein dikhaya).
 
 > [!warning] OAuth2 redirect URIs
-> Must match EXACTLY what the IdP expects. `http://localhost:8080/login/oauth2/code/google` is the default for Google.
+> IdP ke paas jo register kiya hai, redirect URI usse **EXACTLY** match hona chahiye — ek bhi trailing slash ya http/https mismatch aur poora flow fail. `http://localhost:8080/login/oauth2/code/google` Google ke liye default hai.
 
-> [!tip] Use `PasswordEncoderFactories.createDelegatingPasswordEncoder()`
-> Future-proofs against migrating hashing algorithms ([[06-Password-Encoding]]).
+> [!tip] `PasswordEncoderFactories.createDelegatingPasswordEncoder()` use karo
+> Yeh future-proof karta hai — agar kabhi hashing algorithm change karna pade (bcrypt se argon2 ya kuch aur), toh migration easy ho jaata hai. Detail ke liye [[06-Password-Encoding]] dekho.
 
 ## Related
 
@@ -248,3 +267,13 @@ app.get('/auth/google', passport.authenticate('google'));
 - [[04-JWT-with-Spring-Security]]
 - [[06-Password-Encoding]]
 - [[08-OAuth2-Resource-Server]]
+
+## Key Takeaways
+
+- **HTTP Basic** — sabse simple, sabse insecure bina TLS ke. Sirf internal/dev use ke liye.
+- **Form login** — server-rendered apps ke liye, session/cookie based, CSRF protection zaruri.
+- **JWT bearer (resource server)** — SPA/mobile/microservices ka standard, hamesha `STATELESS` session policy ke saath.
+- **OAuth2 client** — "Login with Google/Auth0" jaisa federated login, redirect URI exact match hona chahiye.
+- Ek app mein multiple `SecurityFilterChain` beans banake alag-alag URL patterns ke liye alag auth strategy use kar sakte ho — order (`@Order`) sahi rakhna zaruri hai.
+- Khud JWT issue karne se bachna — established IdP use karo jab tak koi strong reason na ho.
+- Passport strategies ki tarah hi Spring Security ke bhi building blocks hain — bas config-driven aur annotation-based zyada hai.

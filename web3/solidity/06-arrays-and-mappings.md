@@ -2,15 +2,15 @@
 
 > **Difficulty:** Beginner | **Chapter:** 06 | **Prerequisites:** Structs, Value Types, Functions
 
-Data structures are the backbone of any smart contract. If you've ever built a backend API, you've used arrays and hash maps constantly — Solidity has both, but with some blockchain-specific twists that can trip up newcomers. This chapter covers everything you need to know to store, retrieve, and manage collections of data on-chain efficiently.
+Data structures kisi bhi smart contract ki backbone hoti hain. Agar tumne kabhi backend API banaya hai, toh tum arrays aur hash maps ka use already daily basis pe kar chuke ho. Solidity mein bhi dono hain, but blockchain ke apne kuch twists ke saath jo naye developers ko confuse kar dete hain. Yeh chapter tumhe woh sab sikhayega jo on-chain data ko efficiently store, retrieve, aur manage karne ke liye chahiye — bilkul aise jaise Swiggy apne restaurants aur orders ko organize karta hai.
 
 ---
 
 ## 🗂️ Part 1: Arrays
 
-### What Is an Array?
+### Array Hota Kya Hai?
 
-An array is an ordered list of items of the same type. Solidity supports two flavors: **fixed-size** and **dynamic**.
+Array ek ordered list hoti hai same type ke items ki. Solidity mein do flavors milte hain: **fixed-size** aur **dynamic**.
 
 ---
 
@@ -20,10 +20,10 @@ An array is an ordered list of items of the same type. Solidity supports two fla
 uint256[5] public scores;
 ```
 
-- The size is baked in at compile time — it **cannot change**.
-- Stored contiguously in a single storage slot (for small types).
-- Best used when the count is known and constant: days of the week, RGB channels, etc.
-- Slightly cheaper to use than dynamic arrays because there is no length bookkeeping overhead.
+- Size compile time pe hi fix ho jaata hai — **change nahi ho sakta** baad mein.
+- Contiguously ek hi storage slot mein store hota hai (chhote types ke liye).
+- Best tab use karo jab count pehle se pata ho aur constant ho: jaise hafte ke 7 din, RGB ke 3 channels, etc.
+- Dynamic arrays se thoda sasta padta hai kyunki length track karne ka overhead nahi hota.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -45,10 +45,10 @@ contract FixedArrayDemo {
 }
 ```
 
-**When to use fixed arrays:**
-- Storing a fixed set of parameters (e.g., fee tiers, price bands).
-- Working with cryptographic proofs where element count is fixed (e.g., Merkle proofs).
-- Avoiding the gas overhead of a dynamic length slot.
+**Fixed arrays kab use karein:**
+- Jab fixed set of parameters store karne hon (jaise fee tiers, price bands).
+- Cryptographic proofs ke saath kaam karte waqt jahan element count fixed hota hai (jaise Merkle proofs).
+- Dynamic length slot ke gas overhead se bachne ke liye.
 
 ---
 
@@ -58,9 +58,9 @@ contract FixedArrayDemo {
 uint256[] public scores;
 ```
 
-- Size is **unknown at compile time** — the array grows and shrinks at runtime.
-- Solidity tracks `length` automatically in storage.
-- The go-to choice for lists that change over time (members, orders, bids).
+- Size **compile time pe pata nahi hoti** — array runtime pe grow aur shrink hoti rehti hai.
+- Solidity `length` ko automatically storage mein track karta hai.
+- Yeh woh go-to choice hai jab list time ke saath badalti rahe — members, orders, bids, jaise Zomato pe naye restaurants add hote rehte hain.
 
 ```solidity
 contract DynamicArrayDemo {
@@ -86,12 +86,12 @@ contract DynamicArrayDemo {
 
 | Operation | Syntax | Effect |
 |---|---|---|
-| Append | `arr.push(value)` | Adds value at the end, increments length |
-| Remove last | `arr.pop()` | Removes last element, decrements length |
-| Read length | `arr.length` | Returns current number of elements |
-| Delete element | `delete arr[i]` | **Resets** element to default value; length unchanged |
+| Append | `arr.push(value)` | Value ko end mein add karta hai, length badha deta hai |
+| Remove last | `arr.pop()` | Last element remove karta hai, length ghata deta hai |
+| Read length | `arr.length` | Current elements ki count return karta hai |
+| Delete element | `delete arr[i]` | Element ko **reset** karta hai default value pe; length wahi rehti hai |
 
-> ⚠️ **`delete` does NOT shrink the array.** It sets the element to its zero value (`0` for uint, `address(0)` for address, etc.) but leaves a "hole". This is a common beginner mistake.
+> ⚠️ **`delete` array ko chhota NAHI karta.** Yeh sirf element ko uski zero value pe set kar deta hai (`uint` ke liye `0`, `address` ke liye `address(0)`, etc.) lekin ek "hole" chhod deta hai. Yeh ek common beginner mistake hai.
 
 ```solidity
 uint256[] public data = [10, 20, 30, 40];
@@ -104,7 +104,7 @@ delete data[1];
 
 ### 4. Storage vs Memory Arrays
 
-This is one of the most important distinctions in Solidity.
+Yeh Solidity ke sabse important distinctions mein se ek hai.
 
 ```mermaid
 flowchart LR
@@ -120,11 +120,11 @@ flowchart LR
 
 | Property | Storage Array | Memory Array |
 |---|---|---|
-| Lifetime | Permanent (state variable) | Temporary (function execution) |
-| Cost | Expensive (SSTORE ~20,000 gas) | Cheap (in-memory ops ~3 gas) |
-| `push` / `pop` | Supported | **Not supported** |
-| Size | Can grow dynamically | Must be fixed at creation time |
-| Declared | At contract level | Inside a function with `memory` keyword |
+| Lifetime | Permanent (state variable) | Temporary (function execution ke time tak) |
+| Cost | Mehenga (SSTORE ~20,000 gas) | Sasta (in-memory ops ~3 gas) |
+| `push` / `pop` | Supported | **Supported nahi** |
+| Size | Dynamically grow ho sakta hai | Creation time pe hi fixed hona chahiye |
+| Declared | Contract level pe | Function ke andar `memory` keyword ke saath |
 
 ```solidity
 contract StorageVsMemory {
@@ -145,13 +145,13 @@ contract StorageVsMemory {
 }
 ```
 
-**Rule of thumb:** Use `memory` arrays for intermediate calculations inside functions. Use `storage` arrays (state variables) only when data must persist between transactions.
+**Rule of thumb:** Function ke andar intermediate calculations ke liye `memory` arrays use karo. `storage` arrays (state variables) sirf tab use karo jab data ko transactions ke beech persist karna zaruri ho.
 
 ---
 
 ### 5. Array of Structs Pattern
 
-Pairing arrays with structs is one of the most common patterns in Solidity:
+Arrays ko structs ke saath pair karna Solidity ka sabse common pattern hai:
 
 ```solidity
 contract Auction {
@@ -184,11 +184,13 @@ contract Auction {
 }
 ```
 
+Socho ek IRCTC tatkal jaisi auction — sab log bid daal rahe hain, aur tumhe sabse highest bid nikalni hai. Bas array loop karo aur top wala track kar lo.
+
 ---
 
 ### 6. 2D Arrays
 
-Solidity supports arrays of arrays — useful for grids, matrices, and multi-dimensional data.
+Solidity arrays-of-arrays support karta hai — grids, matrices, aur multi-dimensional data ke liye useful.
 
 ```solidity
 contract TicTacToe {
@@ -211,13 +213,13 @@ contract Matrix {
 }
 ```
 
-> **Note on syntax:** `uint8[3][3]` — the **rightmost** dimension is the outer dimension. `uint8[3][3]` means an array of 3 items, each being an array of 3 `uint8`s. This is opposite to many other languages — read it right to left.
+> **Syntax ka note:** `uint8[3][3]` — **rightmost** dimension outer dimension hoti hai. `uint8[3][3]` ka matlab hai 3 items ka ek array, jisme har item khud `uint8` ka ek 3-size array hai. Yeh bahut languages ke opposite hai — ise right se left padho.
 
 ---
 
-### 7. Removing an Element: The Swap-and-Pop Pattern
+### 7. Element Remove Karna: Swap-and-Pop Pattern
 
-Since `delete` leaves holes and doesn't shrink the array, a clean removal technique is **swap-and-pop**:
+Chunki `delete` holes chhod deta hai aur array shrink nahi karta, ek clean removal technique hai **swap-and-pop**:
 
 ```mermaid
 flowchart LR
@@ -233,15 +235,15 @@ function removeAtIndex(uint256[] storage arr, uint256 index) internal {
 }
 ```
 
-**Trade-off:** This does NOT preserve order. If order matters, you need a shift-left approach (much more gas-expensive) or a different data structure entirely.
+**Trade-off:** Yeh order preserve NAHI karta. Agar order matter karta hai, toh tumhe shift-left approach chahiye (jo bahut zyada gas-expensive hai) ya phir koi alag data structure.
 
 ---
 
 ## 🗺️ Part 2: Mappings
 
-### What Is a Mapping?
+### Mapping Hoti Kya Hai?
 
-Think of a mapping as a **hash map** or **dictionary** — it maps keys to values. But unlike in traditional programming, a Solidity mapping is backed by the blockchain's key-value store (the EVM's trie), not an in-memory hash table.
+Mapping ko ek **hash map** ya dictionary jaisa socho — yeh keys ko values se map karti hai. Lekin traditional programming se alag, Solidity mapping blockchain ke key-value store (EVM ke trie) se backed hoti hai, na ki koi in-memory hash table.
 
 ```mermaid
 flowchart LR
@@ -272,7 +274,7 @@ mapping(bytes32 => bool)    public usedNonces;
 
 ### 2. Allowed Key Types
 
-Keys must be **value types** (no dynamic-sized types like arrays or structs):
+Keys sirf **value types** ho sakti hain (dynamic-sized types jaise arrays ya structs allowed nahi hain):
 
 | Allowed Key Types | Examples |
 |---|---|
@@ -280,16 +282,16 @@ Keys must be **value types** (no dynamic-sized types like arrays or structs):
 | `address` | `address`, `address payable` |
 | `bool` | `bool` |
 | `bytes` (fixed) | `bytes32`, `bytes4` |
-| `string` | `string` (special case — treated like `bytes`) |
-| Enums | Any user-defined enum |
+| `string` | `string` (special case — `bytes` jaisa treat hota hai) |
+| Enums | Koi bhi user-defined enum |
 
-> ❌ You **cannot** use structs, arrays, or other mappings as key types.
+> ❌ Tum structs, arrays, ya doosri mappings ko key types ke roop mein use **nahi** kar sakte.
 
 ---
 
-### 3. Default Values for Unset Keys
+### 3. Unset Keys Ke Liye Default Values
 
-Every possible key in a mapping exists conceptually and returns the **zero/default value** of the value type if never set:
+Mapping mein har possible key conceptually exist karti hai aur agar kabhi set nahi hui toh value type ki **zero/default value** return karti hai:
 
 ```solidity
 mapping(address => uint256) public balances;
@@ -304,13 +306,13 @@ mapping(address => uint256) public balances;
 | `bool` | `false` |
 | `address` | `address(0)` |
 | `string` | `""` |
-| struct | All fields at their zero values |
+| struct | Saare fields apni zero values pe |
 
 ---
 
 ### 4. Nested Mappings
 
-Mappings can be nested to create two-dimensional lookup tables:
+Mappings ko nest karke two-dimensional lookup tables banaye ja sakte hain:
 
 ```solidity
 // ERC-20 allowances: owner => spender => amount
@@ -325,7 +327,7 @@ function allowance(address owner, address spender) public view returns (uint256)
 }
 ```
 
-This is a canonical pattern from the ERC-20 token standard — Alice approves Bob to spend 100 tokens on her behalf:
+Yeh ERC-20 token standard ka canonical pattern hai — Alice, Bob ko apni taraf se 100 tokens spend karne ki permission de rahi hai, bilkul UPI mandate jaisa jahan tum kisi app ko apne account se auto-debit ki limited permission dete ho:
 
 ```
 allowances[Alice][Bob] = 100
@@ -333,11 +335,11 @@ allowances[Alice][Bob] = 100
 
 ---
 
-### 5. Mappings Are Not Iterable
+### 5. Mappings Iterable Nahi Hoti
 
-This is the single biggest gotcha with mappings. You **cannot** loop over a mapping or find out what keys exist in it. Solidity does not maintain a list of keys — values are scattered across storage by their hash.
+Yeh mappings ka sabse bada gotcha hai. Tum ek mapping pe loop **nahi** kar sakte ya yeh nahi pata kar sakte ki usme kaunsi keys exist karti hain. Solidity keys ki koi list maintain nahi karta — values apne hash ke hisab se storage mein bikhri (scattered) hoti hain.
 
-**Workaround: pair the mapping with an array of keys**
+**Workaround: mapping ko keys ke array ke saath pair karo**
 
 ```solidity
 mapping(address => uint256) public balances;
@@ -357,7 +359,7 @@ function getTotalDeposited() public view returns (uint256 total) {
 }
 ```
 
-> ⚠️ Be careful: iterating over unbounded arrays costs unbounded gas. For large user bases, this can hit the block gas limit and make functions un-callable.
+> ⚠️ Dhyan rakhna: unbounded arrays pe iterate karna unbounded gas cost karta hai. Bade user base ke liye, yeh block gas limit hit kar sakta hai aur function ko un-callable bana sakta hai — jaise Diwali sale pe Flipkart ka server load na sambhal paana.
 
 ---
 
@@ -397,31 +399,33 @@ function addToWhitelist(address user) public onlyOwner {
 }
 ```
 
+Yeh bilkul CRED ke waise hai jahan sirf approved credit-score wale users hi platform use kar sakte hain — `whitelist[user]` check ek bouncer jaisa kaam karta hai.
+
 ---
 
-### 7. Mapping vs Array: When to Use Which
+### 7. Mapping vs Array: Kab Kaunsa Use Karein
 
 | Factor | Mapping | Array |
 |---|---|---|
-| Lookup by key | O(1) — instant | O(n) — must loop |
-| Iteration | Not possible natively | Straightforward |
-| Ordered data | No | Yes |
-| Checking membership | `map[key] != 0` | Must loop or pair with mapping |
-| Gas for lookup | Cheap (single SLOAD) | Cheap if you know index |
-| Removing elements | `delete map[key]` — O(1), no holes | Swap-and-pop or shift — O(1)/O(n) |
-| Key enumeration | Not possible | Built-in via index |
-| Best for | Balances, permissions, lookups | Ordered lists, iterating over all items |
+| Key se lookup | O(1) — instant | O(n) — loop karna padega |
+| Iteration | Natively possible nahi | Straightforward |
+| Ordered data | Nahi | Haan |
+| Membership check | `map[key] != 0` | Loop karna padega ya mapping ke saath pair |
+| Lookup ka gas | Sasta (single SLOAD) | Sasta agar index pata ho |
+| Elements remove karna | `delete map[key]` — O(1), no holes | Swap-and-pop ya shift — O(1)/O(n) |
+| Key enumeration | Possible nahi | Built-in via index |
+| Best for | Balances, permissions, lookups | Ordered lists, saare items pe iterate karna |
 
 **Quick decision guide:**
-- Need to look up by address/ID → **mapping**
-- Need to iterate over all items → **array** (or mapping + array combo)
-- Need both → **use both** (as shown in the TokenVault pattern below)
+- Address/ID se lookup chahiye → **mapping**
+- Saare items pe iterate karna hai → **array** (ya mapping + array combo)
+- Dono chahiye → **dono use karo** (jaise neeche TokenVault pattern mein dikhaya hai)
 
 ---
 
 ### 8. OpenZeppelin EnumerableMap
 
-For cases where you need both O(1) lookup AND iteration, OpenZeppelin provides `EnumerableMap` and `EnumerableSet`:
+Jab tumhe O(1) lookup AND iteration dono chahiye, OpenZeppelin `EnumerableMap` aur `EnumerableSet` provide karta hai:
 
 ```solidity
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
@@ -445,7 +449,7 @@ contract Registry {
 }
 ```
 
-This is how ERC-721 (NFTs) internally manage token ownership. Under the hood, it maintains both a mapping and an array, keeping them in sync automatically.
+ERC-721 (NFTs) internally bilkul isi tarah token ownership manage karte hain. Under the hood, yeh ek mapping aur ek array dono maintain karta hai, aur automatically dono ko sync mein rakhta hai.
 
 ---
 
@@ -544,14 +548,14 @@ contract TokenVault {
 }
 ```
 
-**What this contract demonstrates:**
+**Yeh contract kya demonstrate karta hai:**
 
-1. `mapping(address => uint256) balances` — classic token balance pattern
-2. `mapping(address => bool) whitelist` — O(1) membership check
-3. `address[] members` — enables iteration over all members
-4. `addMember` — uses mapping to prevent duplicates before pushing to array
-5. `removeMember` — swap-and-pop pattern keeps array compact
-6. `totalDeposited` — iterates the array, reads from mapping per element
+1. `mapping(address => uint256) balances` — classic token balance pattern, bilkul Paytm wallet balance jaisa.
+2. `mapping(address => bool) whitelist` — O(1) membership check.
+3. `address[] members` — saare members pe iterate karne ka rasta deta hai.
+4. `addMember` — pehle mapping se duplicates check karta hai, phir array mein push karta hai.
+5. `removeMember` — swap-and-pop pattern array ko compact rakhta hai.
+6. `totalDeposited` — array pe iterate karta hai, har element ke liye mapping se read karta hai.
 
 ---
 
@@ -583,21 +587,21 @@ graph TD
 
 ## 🎯 Key Takeaways
 
-1. **Fixed arrays** are great for known, constant-size collections; **dynamic arrays** are flexible but cost more gas to manage.
+1. **Fixed arrays** known, constant-size collections ke liye great hain; **dynamic arrays** flexible hain lekin manage karne mein zyada gas lagti hai.
 
-2. **`delete arr[i]`** resets an element to zero — it does NOT remove the slot. Use **swap-and-pop** to actually shrink an array.
+2. **`delete arr[i]`** element ko zero pe reset karta hai — slot ko remove NAHI karta. Array ko actually shrink karne ke liye **swap-and-pop** use karo.
 
-3. **Storage arrays** persist on-chain and support `push`/`pop`. **Memory arrays** are temporary, cheaper, and require a fixed size at creation.
+3. **Storage arrays** on-chain persist karti hain aur `push`/`pop` support karti hain. **Memory arrays** temporary hoti hain, sasti hoti hain, aur creation time pe fixed size maangti hain.
 
-4. **Mappings** give you O(1) lookup by key but are completely un-iterable — you can never loop over their keys natively.
+4. **Mappings** key se O(1) lookup dete hain lekin poori tarah un-iterable hoti hain — tum kabhi bhi natively unki keys pe loop nahi kar sakte.
 
-5. **Pair a mapping with an array** when you need both fast lookup and the ability to iterate over all entries.
+5. Jab tumhe fast lookup aur saare entries pe iterate karne ki ability dono chahiye, **mapping ko array ke saath pair karo**.
 
-6. Every unset mapping key returns the **zero value** for its type — there is no "key not found" error.
+6. Har unset mapping key apne type ki **zero value** return karti hai — koi "key not found" error nahi aata.
 
-7. **Nested mappings** (`mapping(address => mapping(address => uint256))`) are the standard pattern for ERC-20 allowances and similar two-party relationships.
+7. **Nested mappings** (`mapping(address => mapping(address => uint256))`) ERC-20 allowances aur aise hi two-party relationships ke liye standard pattern hain.
 
-8. For production code that requires both lookup and iteration, consider OpenZeppelin's **EnumerableMap** / **EnumerableSet**.
+8. Production code jisme lookup aur iteration dono chahiye, wahan OpenZeppelin ke **EnumerableMap** / **EnumerableSet** consider karo.
 
 ---
 
@@ -605,17 +609,17 @@ graph TD
 
 **Question 1**
 
-You have `uint256[] public ids;` with values `[1, 2, 3, 4, 5]`. You call `delete ids[2]`. What is the resulting array state?
+Tumhare paas `uint256[] public ids;` hai jisme values `[1, 2, 3, 4, 5]` hain. Tum `delete ids[2]` call karte ho. Resulting array state kya hoga?
 
 - A) `[1, 2, 4, 5]` — length 4
 - B) `[1, 2, 0, 4, 5]` — length 5
-- C) Reverts with an out-of-bounds error
+- C) Out-of-bounds error ke saath revert
 - D) `[1, 2, 3, 4, 5]` — unchanged
 
 <details>
 <summary>Answer</summary>
 
-**B.** `delete` resets the element at index 2 to its zero value (`0`), but does NOT change the array length. The array becomes `[1, 2, 0, 4, 5]` with length 5.
+**B.** `delete` index 2 ke element ko uski zero value (`0`) pe reset karta hai, lekin array length CHANGE nahi karta. Array ban jaata hai `[1, 2, 0, 4, 5]`, length 5 ke saath.
 
 </details>
 
@@ -623,7 +627,7 @@ You have `uint256[] public ids;` with values `[1, 2, 3, 4, 5]`. You call `delete
 
 **Question 2**
 
-Which of the following is a valid key type for a Solidity mapping?
+Inme se kaunsa Solidity mapping ke liye valid key type hai?
 
 - A) `uint256[]` (dynamic array)
 - B) `struct Person { string name; uint age; }`
@@ -633,7 +637,7 @@ Which of the following is a valid key type for a Solidity mapping?
 <details>
 <summary>Answer</summary>
 
-**C.** `bytes32` is a fixed-size value type and is a valid mapping key. Dynamic arrays, structs, and nested mappings cannot be used as key types.
+**C.** `bytes32` ek fixed-size value type hai aur valid mapping key hai. Dynamic arrays, structs, aur nested mappings key types ke roop mein use nahi ho sakte.
 
 </details>
 
@@ -641,17 +645,17 @@ Which of the following is a valid key type for a Solidity mapping?
 
 **Question 3**
 
-You need a data structure to store user reputation scores where you want to: (1) look up any user's score instantly by address, and (2) iterate over all users to compute the average score. What is the best approach?
+Tumhe ek data structure chahiye jo user reputation scores store kare jahan tum: (1) kisi bhi user ka score address se instantly lookup kar sako, aur (2) saare users pe iterate karke average score compute kar sako. Best approach kya hai?
 
-- A) Use only a `mapping(address => uint256)` and iterate using a for loop
-- B) Use only an `address[]` array and search it linearly for each lookup
-- C) Use a `mapping(address => uint256)` for lookup and an `address[]` to track all keys, keeping them in sync
-- D) Use a 2D array `address[][2]` where index 0 stores addresses and index 1 stores scores
+- A) Sirf `mapping(address => uint256)` use karo aur for loop se iterate karo
+- B) Sirf `address[]` array use karo aur har lookup ke liye linearly search karo
+- C) Lookup ke liye `mapping(address => uint256)` aur saari keys track karne ke liye `address[]` use karo, dono ko sync mein rakhte hue
+- D) 2D array `address[][2]` use karo jahan index 0 addresses store kare aur index 1 scores store kare
 
 <details>
 <summary>Answer</summary>
 
-**C.** The canonical pattern for "both fast lookup and iterability" is a mapping paired with an array of keys. The mapping gives O(1) lookup; the array enables full iteration. Options A and B each sacrifice one of the two requirements, and option D is not how Solidity 2D arrays work.
+**C.** "Fast lookup aur iterability dono" ke liye canonical pattern ek mapping hai jo keys ke array ke saath paired ho. Mapping O(1) lookup deta hai; array full iteration enable karta hai. Options A aur B dono mein se ek requirement sacrifice karte hain, aur option D Solidity 2D arrays ka actual working nahi hai.
 
 </details>
 

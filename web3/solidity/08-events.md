@@ -5,65 +5,65 @@
 
 ---
 
-## 🧭 What You Will Learn
+## 🧭 Kya Seekhoge Is Chapter Mein
 
-- What Solidity events are and why they exist
-- How to define and emit events with `indexed` parameters
-- How events are stored (transaction logs vs. state)
-- How frontends listen to and query events using ethers.js
-- Standard events in ERC-20 and ERC-721 contracts
-- How The Graph protocol solves complex event querying at scale
+- Solidity events kya hote hain aur exist kyun karte hain
+- `indexed` parameters ke saath events kaise define aur emit karte hain
+- Events kahan store hote hain (transaction logs vs. state)
+- Frontend ethers.js use karke events kaise sunta aur query karta hai
+- ERC-20 aur ERC-721 contracts ke standard events
+- The Graph protocol scale pe complex event querying kaise solve karta hai
 
 ---
 
-## 1. 🔔 What Are Events?
+## 1. 🔔 Events Hote Kya Hain?
 
-Think of Solidity events as **`console.log` for the blockchain** — but with a superpower: the logs are stored permanently in the transaction receipt and can never be altered or deleted.
+Socho Solidity events ko **blockchain ka `console.log`** samajh lo — bas iska ek superpower hai: iske logs transaction receipt mein permanently store ho jaate hain aur kabhi alter ya delete nahi ho sakte.
 
-When you call `console.log` in JavaScript, the output disappears the moment the tab closes. When you `emit` an event in Solidity, the data is written into the **transaction log** of the Ethereum blockchain and is accessible forever to anyone who knows the transaction hash — or who queries the logs programmatically.
+Jab tum JavaScript mein `console.log` chalate ho, tab tab jaise hi browser tab band hota hai, output gayab ho jaata hai. Lekin jab tum Solidity mein koi event `emit` karte ho, toh woh data Ethereum blockchain ke **transaction log** mein likha jaata hai — aur jisko bhi transaction hash pata hai, ya jo logs ko programmatically query karta hai, uske liye woh data hamesha ke liye available rehta hai.
 
-Here is the key mental model:
+Yeh raha mental model, ek table mein:
 
 | Feature | `console.log` (JS) | Solidity Event |
 |---|---|---|
-| Lives in | Browser console | Blockchain transaction receipt |
-| Persistent? | No | Yes — forever |
-| Readable by contract? | Yes | **No** — contracts cannot read their own past logs |
-| Readable by off-chain code? | Yes | Yes — via RPC / ethers.js |
-| Cost | Free | Much cheaper than `storage` |
+| Kahan rehta hai | Browser console | Blockchain transaction receipt |
+| Permanent? | Nahi | Haan — hamesha ke liye |
+| Contract khud padh sakta hai? | Haan | **Nahi** — contract apne hi purane logs nahi padh sakta |
+| Off-chain code padh sakta hai? | Haan | Haan — RPC / ethers.js ke zariye |
+| Cost | Free | `storage` se kaafi sasta |
 
-> **Important:** Events are **write-only** from the contract's perspective. Once emitted, the contract itself cannot query them back. Events are purely a communication channel to the outside world.
+> **Important:** Events contract ke perspective se **write-only** hote hain. Ek baar emit hone ke baad, contract khud unhe query back nahi kar sakta. Events sirf bahar ki duniya ko batane ka ek communication channel hain — jaise ek megaphone jo sirf bolta hai, sunta nahi.
 
 ---
 
-## 2. 💡 Why Events Matter
+## 2. 💡 Events Kyun Zaruri Hain
 
-Events are not just a nice-to-have — they are essential to how production dApps function.
+Events koi "nice to have" cheez nahi hain — production dApps ke liye yeh backbone jaisa kaam karte hain.
 
 ### Frontend Real-Time Updates
-Your React/Vue frontend cannot "see" what is happening inside the contract in real time unless it listens for events. Polling the blockchain every few seconds is expensive and slow. Subscribing to events gives you instant push notifications when something changes.
+Tumhara React/Vue frontend contract ke andar kya ho raha hai, woh real time mein "dekh" nahi sakta jab tak woh events sunna shuru na kare. Har chand second mein blockchain ko poll karna expensive aur slow hai — jaise Swiggy ka delivery status baar baar manually refresh karna. Events subscribe karne se tumhe instant push notification milti hai jaise hi kuch change hota hai.
 
 ### Indexing and Search
-State variables are great for looking up "current" values (`balances[alice]`), but they cannot answer questions like "show me every transfer Alice has ever made." Events give you a queryable history of everything that happened.
+State variables current values dekhne ke liye zabardast hain (`balances[alice]`), lekin woh yeh sawaal nahi answer kar sakte: "Alice ne ab tak jitne bhi transfers kiye hain, sab dikhao." Events tumhe har cheez ki queryable history dete hain — jaise Paytm ka transaction history tab.
 
 ### Audit Trail and Compliance
-Financial protocols, DAOs, and NFT marketplaces use events to create an immutable audit trail. Every deposit, withdrawal, ownership change, or vote can be logged permanently.
+Financial protocols, DAOs, aur NFT marketplaces events use karke ek immutable audit trail banate hain. Har deposit, withdrawal, ownership change, ya vote permanently log ho sakta hai.
 
 ### The Graph Protocol
-For complex queries — "show me all wallets that received more than 10 ETH this week" — you need an indexing layer. The Graph listens to your contract's events, indexes them into a GraphQL API, and lets frontends query data in milliseconds. Events are the raw input that makes The Graph possible.
+Complex queries ke liye — jaise "is hafte 10 ETH se zyada kisne receive kiya" — tumhe ek indexing layer chahiye. The Graph tumhare contract ke events sunta hai, unhe ek GraphQL API mein index kar deta hai, aur frontends ko milliseconds mein data query karne deta hai. Events hi woh raw input hain jo The Graph ko possible banate hain.
 
 ---
 
-## 3. 📝 Defining an Event
+## 3. 📝 Event Define Karna
 
-Events are declared at the contract level using the `event` keyword.
+Events contract level pe `event` keyword use karke declare hote hain.
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract EventsDemo {
-    // Event declarations — think of these as type definitions for your logs
+    // Event declarations — inhe apne logs ke type definitions samjho
     event Transfer(address indexed from, address indexed to, uint256 amount);
     event Deposit(address indexed user, uint256 amount, uint256 timestamp);
     event OwnerChanged(address indexed oldOwner, address indexed newOwner);
@@ -95,89 +95,89 @@ contract EventsDemo {
 }
 ```
 
-The syntax is straightforward:
+Syntax bilkul simple hai:
 
 ```
 event EventName(type param1, type param2, ...);
 ```
 
-You can have as many parameters as you need. Parameters marked `indexed` get special treatment (more on that next).
+Jitne chahiye utne parameters rakh sakte ho. Jo parameters `indexed` marked hain, unhe special treatment milti hai (aage detail mein dekhenge).
 
 ---
 
-## 4. 📢 Emitting an Event
+## 4. 📢 Event Emit Karna
 
-Once declared, you fire an event using `emit`:
+Ek baar declare karne ke baad, `emit` use karke event fire karte ho:
 
 ```solidity
 emit Transfer(msg.sender, to, amount);
 ```
 
-`emit` is not a function call — it writes data to the **transaction log**. No gas is spent on changing contract state, which makes it significantly cheaper than a `SSTORE` (storage write) operation.
+`emit` koi function call nahi hai — yeh **transaction log** mein data likhta hai. Contract state change karne mein koi gas nahi lagta, isliye yeh `SSTORE` (storage write) operation se kaafi sasta hai.
 
-> **Gas intuition:** Writing 32 bytes to contract storage costs ~20,000 gas. Emitting a log with 32 bytes of data costs roughly 375 gas + 8 gas per byte. Events are **~50x cheaper** than storage for the same data.
+> **Gas intuition:** Contract storage mein 32 bytes likhna ~20,000 gas leta hai. Waheen 32 bytes ka log emit karna roughly 375 gas + 8 gas per byte leta hai. Matlab events storage se **~50x sasta** hain same data ke liye — jaise Ola vs auto-rickshaw ka fare comparison, bahut bada difference.
 
 ---
 
-## 5. 🔍 The `indexed` Keyword
+## 5. 🔍 `indexed` Keyword Ka Kamaal
 
-The `indexed` keyword is how you make event parameters **searchable**.
+`indexed` keyword se tum event parameters ko **searchable** bana sakte ho.
 
 ```solidity
 event Transfer(address indexed from, address indexed to, uint256 amount);
 //                      ^^^^^^^^              ^^^^^^^^
-//               These become "topics"   This stays as "data"
+//               Yeh "topics" ban jaate hain   Yeh "data" mein rehta hai
 ```
 
 ### Rules
-- Maximum **3 indexed parameters** per event.
-- Indexed parameters are ABI-encoded and stored as **topics** in the log.
-- Non-indexed parameters are ABI-encoded and stored in the **data** field.
+- Ek event mein maximum **3 indexed parameters** ho sakte hain.
+- Indexed parameters ABI-encoded hokar log ke **topics** mein store hote hain.
+- Non-indexed parameters ABI-encoded hokar **data** field mein store hote hain.
 
-### Why does this matter?
-When you query logs, you can **filter by topics**. For example:
+### Yeh matter kyun karta hai?
+Jab tum logs query karte ho, tab tum **topics ke basis pe filter** kar sakte ho. Jaise:
 
-- "Give me all `Transfer` events **where `from` is Alice**"
-- "Give me all `Transfer` events **where `to` is Bob**"
-- "Give me all `Transfer` events **where `from` is Alice AND `to` is Bob**"
+- "Mujhe woh saare `Transfer` events do **jahan `from` Alice ho**"
+- "Mujhe woh saare `Transfer` events do **jahan `to` Bob ho**"
+- "Mujhe woh saare `Transfer` events do **jahan `from` Alice AND `to` Bob ho**"
 
-You cannot filter by the non-indexed `amount` field without downloading all logs and filtering client-side. Choose what to index based on what you expect to search.
+Lekin non-indexed `amount` field ko tum filter nahi kar sakte bina saare logs download karke client-side filter kiye. Toh yeh soch samajh ke decide karo ki kya index karna hai — jo search karna hai woh index karo.
 
 ---
 
 ## 6. 🏗️ Event Topics vs. Data
 
-Every emitted event log has two parts:
+Har emit hue event log ke do parts hote hain:
 
 ### Topics (indexed parameters)
-- Up to 4 topics (Topic 0 is always the **event signature hash**, e.g., `keccak256("Transfer(address,address,uint256)`)
-- Topics 1–3 hold your `indexed` parameters
-- Topics are 32 bytes each, ABI-padded
-- **Filterable** at the node/RPC level — fast lookups
+- Maximum 4 topics hote hain (Topic 0 hamesha **event signature ka hash** hota hai, jaise `keccak256("Transfer(address,address,uint256)")`)
+- Topics 1–3 tumhare `indexed` parameters hold karte hain
+- Har topic 32 bytes ka hota hai, ABI-padded
+- **Filterable** node/RPC level pe — fast lookups milti hain
 
 ### Data (non-indexed parameters)
-- All non-indexed parameters are ABI-encoded together into the `data` field
-- Not directly filterable at the node level
-- Can hold variable-length data like `string` and `bytes` (indexed parameters of dynamic types are stored as their Keccak-256 hash, losing the original value)
+- Saare non-indexed parameters ek saath ABI-encoded hokar `data` field mein jaate hain
+- Node level pe directly filter nahi ho sakte
+- `string` aur `bytes` jaisi variable-length data hold kar sakta hai (agar dynamic type indexed ho, toh unka Keccak-256 hash store hota hai, original value kho jaata hai)
 
 ```
 Log Structure
 ├── address: contract address
 ├── topics[0]: keccak256("Transfer(address,address,uint256)")
-├── topics[1]: indexed `from` address (padded to 32 bytes)
-├── topics[2]: indexed `to` address (padded to 32 bytes)
+├── topics[1]: indexed `from` address (32 bytes tak padded)
+├── topics[2]: indexed `to` address (32 bytes tak padded)
 └── data: ABI-encoded `amount` (non-indexed)
 ```
 
-> **Tip:** Avoid indexing `string` or `bytes` parameters — you only get their hash, making the original value unrecoverable from the log alone.
+> **Tip:** `string` ya `bytes` parameters ko index karne se bacho — tumhe sirf unka hash milega, original value log se recover nahi ho payegi.
 
 ---
 
-## 7. 💾 How Events Are Stored (Logs vs. State)
+## 7. 💾 Events Kaise Store Hote Hain (Logs vs. State)
 
-This is one of the most misunderstood aspects of Solidity events.
+Yeh Solidity events ka sabse zyada misunderstand kiya jaane wala part hai.
 
-Events are **NOT** stored in contract storage (`mapping`, `uint256`, etc.). They live in the **transaction receipt**, which is part of the block data maintained by Ethereum nodes.
+Events contract storage (`mapping`, `uint256`, etc.) mein **store NAHI** hote. Woh **transaction receipt** mein rehte hain, jo Ethereum nodes ke maintain kiye hue block data ka part hai.
 
 ```
 Ethereum Block
@@ -188,7 +188,7 @@ Ethereum Block
 │       └── Receipt
 │           ├── Status (success/fail)
 │           ├── Gas used
-│           └── Logs []          ← Events live here
+│           └── Logs []          ← Events yahan rehte hain
 │               └── Log entry
 │                   ├── address
 │                   ├── topics[]
@@ -196,15 +196,15 @@ Ethereum Block
 └── ...
 ```
 
-Because logs are not in the EVM state trie, they:
-- Cannot be read by other smart contracts
-- Are much cheaper to write
-- Are prunable in some node configurations (archive nodes keep all; full nodes may not)
-- Are indexed by Ethereum nodes for efficient querying via `eth_getLogs`
+Kyunki logs EVM state trie mein nahi hote, isliye woh:
+- Doosre smart contracts se padhe nahi ja sakte
+- Likhne mein kaafi sasta padta hai
+- Kuch node configurations mein prunable ho sakte hain (archive nodes sab kuch rakhte hain; full nodes shayad na rakhein)
+- Ethereum nodes efficient querying ke liye inhe index karte hain `eth_getLogs` ke through
 
 ---
 
-## 8. 🌐 Event Flow: Contract to Frontend
+## 8. 🌐 Event Flow: Contract Se Frontend Tak
 
 ```mermaid
 sequenceDiagram
@@ -228,7 +228,7 @@ sequenceDiagram
 
 ---
 
-## 9. 👂 Listening to Events in ethers.js
+## 9. 👂 ethers.js Mein Events Sunna
 
 ### Real-Time Subscription
 
@@ -240,7 +240,7 @@ const signer = await provider.getSigner();
 
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
-// Listen for future Transfer events in real time
+// Future mein aane wale Transfer events real time mein suno
 contract.on("Transfer", (from, to, amount, event) => {
     console.log(`Transfer detected!`);
     console.log(`From: ${from}`);
@@ -248,23 +248,23 @@ contract.on("Transfer", (from, to, amount, event) => {
     console.log(`Amount: ${ethers.formatEther(amount)} ETH`);
     console.log(`Tx hash: ${event.log.transactionHash}`);
 
-    // Update your React state, refresh a balance, show a toast, etc.
+    // Apna React state update karo, balance refresh karo, toast dikhao, waghera
     updateUI(from, to, amount);
 });
 
-// Stop listening when the component unmounts (important for React!)
+// Component unmount hote hi sunna band kar do (React mein bahut zaruri hai!)
 return () => {
     contract.off("Transfer");
 };
 ```
 
-### Querying Historical Events
+### Historical Events Query Karna
 
 ```javascript
-// Build a filter for Transfer events TO a specific address
+// Ek specific address ko TO wale Transfer events ka filter banao
 const filter = contract.filters.Transfer(null, userAddress);
 
-// Query all matching events from block 0 to latest
+// Block 0 se latest tak saare matching events query karo
 const events = await contract.queryFilter(filter, 0, "latest");
 
 events.forEach((event) => {
@@ -276,12 +276,12 @@ events.forEach((event) => {
 ### getLogs (low-level RPC)
 
 ```javascript
-// Low-level approach using eth_getLogs
+// eth_getLogs use karke low-level approach
 const logs = await provider.getLogs({
     address: CONTRACT_ADDRESS,
     topics: [
         ethers.id("Transfer(address,address,uint256)"), // Topic 0: event sig
-        null,                                            // Topic 1: any `from`
+        null,                                            // Topic 1: koi bhi `from`
         ethers.zeroPadValue(userAddress, 32),            // Topic 2: specific `to`
     ],
     fromBlock: 0,
@@ -293,78 +293,78 @@ const logs = await provider.getLogs({
 
 ## 10. 🕵️ Anonymous Events
 
-You can declare an event with the `anonymous` keyword to omit Topic 0 (the event signature hash):
+Tum ek event ko `anonymous` keyword ke saath declare kar sakte ho taaki Topic 0 (event signature hash) skip ho jaaye:
 
 ```solidity
 event SecretLog(address indexed who, uint256 value) anonymous;
 ```
 
-With `anonymous`:
-- Topic 0 is freed up, giving you **4 indexed parameters** instead of 3
-- The event **cannot be filtered by name** — you lose the ability to look it up by its signature
-- Marginally cheaper gas (saves storing Topic 0)
+`anonymous` ke saath:
+- Topic 0 free ho jaata hai, matlab tumhe 3 ki jagah **4 indexed parameters** mil jaate hain
+- Event ko **naam se filter nahi kar sakte** — signature se lookup karne ki ability chali jaati hai
+- Gas thoda sa kam lagta hai (Topic 0 store nahi karna padta)
 
-Anonymous events are rarely used in practice. They make sense only when you need 4 indexed topics and have no need to identify the event type by signature.
+Anonymous events practice mein bahut kam use hote hain. Yeh tabhi sense banate hain jab tumhe 4 indexed topics chahiye ho aur event type ko signature se identify karne ki zaroorat na ho.
 
 ---
 
 ## 11. 🪙 ERC-20 Standard Events
 
-The ERC-20 standard mandates two events that every fungible token must emit:
+ERC-20 standard mandate karta hai ki har fungible token ko yeh do events emit karne chahiye:
 
 ```solidity
-// Emitted when tokens are transferred (including mint and burn)
+// Jab tokens transfer hote hain (mint aur burn including) tab emit hota hai
 event Transfer(address indexed from, address indexed to, uint256 value);
 
-// Emitted when an allowance is set via approve()
+// Jab approve() ke through allowance set hoti hai tab emit hota hai
 event Approval(address indexed owner, address indexed spender, uint256 value);
 ```
 
 ### Transfer
-- `from` = zero address (`0x000...000`) on **mint**
-- `to` = zero address on **burn**
-- Both non-zero on a regular transfer
+- `from` = zero address (`0x000...000`) **mint** ke case mein
+- `to` = zero address **burn** ke case mein
+- Regular transfer mein dono non-zero
 
 ### Approval
-- `owner` approved `spender` to move up to `value` tokens on their behalf
-- Used by DEXes like Uniswap to pull funds from your wallet
+- `owner` ne `spender` ko approve kiya hai ki woh unki taraf se `value` tokens tak move kar sakta hai
+- Uniswap jaise DEXes yeh use karte hain tumhare wallet se funds pull karne ke liye
 
-These events are what allows block explorers like Etherscan to show you a complete token transfer history, and what lets wallets auto-detect token balances.
+Yeh events hi hain jinki wajah se Etherscan jaise block explorers tumhe complete token transfer history dikha paate hain, aur wallets automatically token balances detect kar paate hain.
 
 ---
 
 ## 12. 🖼️ ERC-721 Standard Events (NFTs)
 
-ERC-721 (NFT standard) defines these key events:
+ERC-721 (NFT standard) yeh key events define karta hai:
 
 ```solidity
-// Single NFT transfer
+// Single NFT ka transfer
 event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 
-// Approval for a single token
+// Ek single token ke liye approval
 event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
 
-// Approval for ALL tokens owned by `owner`
+// `owner` ke saare tokens ke liye approval
 event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 ```
 
-Notice that ERC-721's `Transfer` indexes all three parameters (`from`, `to`, `tokenId`) — this is possible because there is no non-indexed `value` field. This makes it extremely efficient to filter: "find every transfer of token #42" or "find every NFT Alice has received."
+Notice karo — ERC-721 ka `Transfer` teeno parameters (`from`, `to`, `tokenId`) ko index karta hai — yeh possible hai kyunki yahan koi non-indexed `value` field nahi hai. Isse filtering extremely efficient ho jaati hai: "token #42 ke saare transfers dhoondo" ya "Alice ko mile saare NFTs dhoondo."
 
 ---
 
-## 13. 🖥️ Events for Frontend UX Patterns
+## 13. 🖥️ Frontend UX Patterns Ke Liye Events
 
-Here are the most common real-world patterns for using events in your dApp UI:
+Yeh rahe dApp UI mein events use karne ke sabse common real-world patterns:
 
-### Pattern 1 — Optimistic UI with Event Confirmation
+### Pattern 1 — Optimistic UI With Event Confirmation
 ```javascript
-// 1. Show "pending" state immediately
+// 1. "pending" state turant dikhao
 setStatus("pending");
 
-// 2. Send the transaction
+// 2. Transaction bhejo
 const tx = await contract.deposit({ value: ethers.parseEther("1") });
 
-// 3. Wait for the Deposit event to confirm (more reliable than tx.wait())
+// 3. Deposit event ka wait karo confirm karne ke liye (tx.wait() se zyada reliable)
 contract.once("Deposit", (user, amount, timestamp) => {
     if (user === signerAddress) {
         setStatus("confirmed");
@@ -375,7 +375,7 @@ contract.once("Deposit", (user, amount, timestamp) => {
 
 ### Pattern 2 — Activity Feed / History
 ```javascript
-// Fetch the last 100 blocks of Transfer events for the connected wallet
+// Connected wallet ke last 100 blocks ke Transfer events fetch karo
 const filter = contract.filters.Transfer(signerAddress);
 const recentEvents = await contract.queryFilter(filter, -100);
 setActivityFeed(recentEvents.map(e => ({
@@ -388,7 +388,7 @@ setActivityFeed(recentEvents.map(e => ({
 
 ### Pattern 3 — Live Dashboard
 ```javascript
-// Subscribe to all incoming transfers for a live dashboard
+// Live dashboard ke liye saare incoming transfers subscribe karo
 contract.on("Transfer", (from, to, amount) => {
     if (to === dashboardAddress) {
         addToLiveFeed({ from, amount: ethers.formatEther(amount) });
@@ -399,25 +399,25 @@ contract.on("Transfer", (from, to, amount) => {
 
 ---
 
-## 14. 🕸️ The Graph: Indexing Events at Scale
+## 14. 🕸️ The Graph: Scale Pe Events Ko Index Karna
 
-`queryFilter` and `getLogs` work fine for simple queries over small time ranges. But they break down when you need:
+`queryFilter` aur `getLogs` chhoti time ranges ke simple queries ke liye theek kaam karte hain. Lekin yeh tab fail ho jaate hain jab tumhe chahiye:
 
-- Aggregations: "total volume in the last 30 days"
-- Joins: "all wallets that sent AND received tokens"
-- Large history: scanning millions of blocks
-- Complex filters: multiple conditions across multiple events
+- Aggregations: "pichle 30 din ka total volume"
+- Joins: "woh saare wallets jinhone tokens send bhi kiye aur receive bhi kiye"
+- Large history: millions blocks scan karna
+- Complex filters: multiple events ke across multiple conditions
 
-This is why **The Graph** exists. It is a decentralized indexing protocol that:
+Isliye **The Graph** exist karta hai. Yeh ek decentralized indexing protocol hai jo:
 
-1. Listens to your contract's events in real time
-2. Processes and stores them in a structured database (indexers)
-3. Exposes a **GraphQL API** that frontends can query
+1. Tumhare contract ke events real time mein sunta hai
+2. Unhe process karke ek structured database (indexers) mein store karta hai
+3. Ek **GraphQL API** expose karta hai jise frontends query kar sakte hain
 
-You define a **Subgraph** — a mapping of events to database entities — and The Graph does the rest.
+Tum ek **Subgraph** define karte ho — events ka database entities se ek mapping — aur baaki kaam The Graph khud kar leta hai.
 
 ```graphql
-# Example query on a deployed subgraph
+# Ek deployed subgraph pe example query
 {
   transfers(
     where: { from: "0xAlice", amount_gt: "1000000000000000000" }
@@ -433,9 +433,9 @@ You define a **Subgraph** — a mapping of events to database entities — and T
 }
 ```
 
-> Without The Graph, answering this query would require downloading and scanning millions of log entries on the client side. With The Graph, it returns in milliseconds.
+> The Graph ke bina, yeh query answer karne ke liye client-side pe millions log entries download aur scan karne padte. The Graph ke saath, yeh milliseconds mein return ho jaata hai — bilkul Zomato pe order search karne jaisa fast.
 
-Events are not optional for protocols that want to use The Graph — they are the **only** input the indexer can consume.
+Jo protocols The Graph use karna chahte hain unke liye events optional nahi hain — yeh indexer ke liye **ekmatra** input hote hain.
 
 ---
 
@@ -443,42 +443,42 @@ Events are not optional for protocols that want to use The Graph — they are th
 
 | Concept | Summary |
 |---|---|
-| Events are cheap | ~50x cheaper than storage writes for the same data |
-| Events are permanent | Stored in transaction receipts on the blockchain forever |
-| Events are write-only | Contracts cannot read their own past events |
-| `indexed` = searchable | Up to 3 indexed params become filterable topics |
-| Topics vs. data | Indexed params go in topics (filterable); others go in data |
-| `anonymous` events | Rare; frees Topic 0, gains a 4th indexed slot |
-| ERC-20 events | `Transfer` and `Approval` are mandatory |
+| Events sasta hai | Same data ke liye storage writes se ~50x sasta |
+| Events permanent hai | Blockchain pe transaction receipts mein hamesha ke liye stored |
+| Events write-only hai | Contracts apne purane events nahi padh sakte |
+| `indexed` = searchable | Maximum 3 indexed params filterable topics ban jaate hain |
+| Topics vs. data | Indexed params topics mein jaate hain (filterable); baaki data mein |
+| `anonymous` events | Rare use case; Topic 0 free karta hai, 4th indexed slot deta hai |
+| ERC-20 events | `Transfer` aur `Approval` mandatory hain |
 | ERC-721 events | `Transfer`, `Approval`, `ApprovalForAll` |
-| The Graph | Decentralized indexer that turns events into a GraphQL API |
+| The Graph | Decentralized indexer jo events ko GraphQL API mein badalta hai |
 
 ---
 
 ## 🧠 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test kar lo.
 
 **Question 1.**
-You emit an event with 4 parameters. Two are marked `indexed`, two are not. Where is each type stored in the transaction log, and what is the maximum number of `indexed` parameters you can have (excluding anonymous events)?
+Tumne ek event emit kiya jisme 4 parameters hain. Do `indexed` marked hain, do nahi. Har type transaction log mein kahan store hoga, aur (anonymous events chhod kar) maximum kitne `indexed` parameters ho sakte hain?
 
 **Question 2.**
-A frontend developer complains that after calling `contract.queryFilter(filter)`, they cannot filter results by a `string` parameter they marked as `indexed`. Why does this not work as expected, and how should they redesign the event to fix it?
+Ek frontend developer complain kar raha hai ki `contract.queryFilter(filter)` call karne ke baad, woh apne `indexed` marked kiye hue ek `string` parameter se results filter nahi kar pa raha. Yeh expected tareeke se kaam kyun nahi karta, aur event ko fix karne ke liye kaise redesign karna chahiye?
 
 **Question 3.**
-Your DeFi protocol has been live for 2 years. A user asks: "Can you show me every wallet that deposited more than 5 ETH in January 2024?" You have a `Deposit(address indexed user, uint256 amount, uint256 timestamp)` event. What tool or approach would you use to answer this query efficiently, and why would `queryFilter` alone be insufficient?
+Tumhara DeFi protocol 2 saal se live hai. Ek user poochta hai: "Mujhe woh saare wallets dikhao jinhone January 2024 mein 5 ETH se zyada deposit kiya." Tumhare paas `Deposit(address indexed user, uint256 amount, uint256 timestamp)` event hai. Is query ko efficiently answer karne ke liye tum kaunsa tool ya approach use karoge, aur sirf `queryFilter` kyun insufficient hoga?
 
 <details>
 <summary>Answers (click to reveal)</summary>
 
 **Answer 1.**
-Indexed parameters are stored as **topics** (topics 1–3; topic 0 is always the event signature hash). Non-indexed parameters are ABI-encoded together in the **data** field. The maximum number of indexed parameters per non-anonymous event is **3**.
+Indexed parameters **topics** mein store hote hain (topics 1–3; topic 0 hamesha event signature hash hota hai). Non-indexed parameters ek saath ABI-encoded hokar **data** field mein jaate hain. Ek non-anonymous event mein maximum indexed parameters ki limit **3** hai.
 
 **Answer 2.**
-When a `string` (or any dynamic type like `bytes`) is marked `indexed`, Solidity stores its **Keccak-256 hash** as the topic, not the original value. The original string is lost and cannot be recovered from the log. To fix this, either leave the string as non-indexed (it goes into the `data` field intact) or use a `bytes32` identifier instead.
+Jab koi `string` (ya `bytes` jaisa koi dynamic type) `indexed` marked hota hai, Solidity uska **Keccak-256 hash** topic mein store karta hai, original value nahi. Original string kho jaata hai aur log se recover nahi ho sakta. Ise fix karne ke liye, ya toh string ko non-indexed rehne do (yeh poori tarah `data` field mein intact chala jaata hai) ya iske badle ek `bytes32` identifier use karo.
 
 **Answer 3.**
-`queryFilter` would require scanning potentially millions of blocks, downloading all `Deposit` events, and filtering client-side — this is too slow and unreliable at scale. The correct approach is to build a **subgraph on The Graph** that indexes `Deposit` events into a database, then query it via GraphQL with filters like `amount_gt: "5000000000000000000"` and a timestamp range. This returns results in milliseconds.
+`queryFilter` ko potentially millions blocks scan karne padenge, saare `Deposit` events download karne padenge, aur client-side filter karna padega — yeh scale pe bahut slow aur unreliable hai. Sahi approach hai The Graph pe ek **subgraph** banana jo `Deposit` events ko database mein index kare, phir usse GraphQL ke through query karo filters ke saath jaise `amount_gt: "5000000000000000000"` aur ek timestamp range. Isse results milliseconds mein return ho jaate hain.
 
 </details>
 

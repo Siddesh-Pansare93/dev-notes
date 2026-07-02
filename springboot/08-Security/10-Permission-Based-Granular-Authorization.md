@@ -1,51 +1,47 @@
----
-tags: [security, production, authorization, permissions, abac, casl, permission-evaluator]
-aliases: [Granular Authorization, Permission-Based Auth, PermissionEvaluator, Object-Level Security]
-stage: advanced
----
-
 # Permission-Based Granular Authorization
 
-> [!info] For the Express/TS dev
-> You've used CASL in Node — you know that `can('read', 'Order', { ownerId: user.id })` is far more expressive than `checkRole('user')`. Spring Security has an equivalent mechanism called `PermissionEvaluator` that powers `hasPermission()` in SpEL. This note shows how to wire it up properly, including object-level (row-level) and field-level authorization.
+> [!info] Express/TS wale dev ke liye
+> Node mein CASL use kiya hoga tumne — pata hai `can('read', 'Order', { ownerId: user.id })` kitna zyada expressive hai `checkRole('user')` se. Spring Security mein bhi bilkul yehi cheez hai, naam hai `PermissionEvaluator`, jo SpEL ke `hasPermission()` ko power deta hai. Is note mein dekhenge ise sahi tarike se kaise wire karte hain — object-level (row-level) aur field-level dono authorization ke saath.
 
 ## Concept / mental model
 
-### Why role-only fails at scale
+### Sirf roles se kaam kyun nahi chalta at scale?
 
-Imagine an order management system:
+Zara socho ek order management system — jaise Flipkart ka seller-cum-admin panel:
 
-- `ROLE_MANAGER` can view *all* orders.
-- `ROLE_USER` can view *their own* orders only.
-- `ROLE_APPROVER` can approve orders *under $10,000*.
-- A `ROLE_ADMIN` can view and approve everything but cannot delete — deletion requires `data:delete`.
+- `ROLE_MANAGER` — *saare* orders dekh sakta hai.
+- `ROLE_USER` — sirf *apne* orders dekh sakta hai.
+- `ROLE_APPROVER` — sirf ₹10,000 *se kam* ke orders approve kar sakta hai.
+- `ROLE_ADMIN` — sab dekh aur approve kar sakta hai, lekin delete nahi — delete ke liye alag se `data:delete` chahiye.
 
-You cannot model these rules cleanly with roles alone. As soon as a rule involves *data values* (ownership, amount, status), you've left RBAC territory and entered permission-string or attribute-based territory.
+Yeh rules sirf roles se clean tarike se model nahi ho sakte. Jaise hi rule mein *data ki value* aati hai — ownership, amount, status — waise hi tum RBAC (Role-Based Access Control) ki duniya se nikal ke permission-string ya attribute-based (ABAC) duniya mein chale jaate ho. Yeh bilkul waise hi hai jaise Swiggy pe sirf "delivery partner" role kaafi nahi — tumhe yeh bhi check karna padta hai ki "yeh order isi partner ko assign hua tha ya nahi."
 
 ### Permission naming convention
 
 ```
 resource:action[:scope]
 
-order:read              # read any order
-order:read:own          # read only your own orders
-order:write             # create/update orders
-order:write:own         # create/update your own orders
-order:approve           # approve an order (any)
-order:approve:low-value # approve orders under $10k
+order:read              # kisi bhi order ko read karo
+order:read:own          # sirf apna order read karo
+order:write             # order create/update karo
+order:write:own         # sirf apna order create/update karo
+order:approve           # koi bhi order approve karo
+order:approve:low-value # sirf $10k se kam ke orders approve karo
 user:manage             # full user administration
-report:view             # access the reports module
-data:delete             # hard-delete anything (admin-only)
+report:view             # reports module access karo
+data:delete             # hard-delete kuch bhi (sirf admin ke liye)
 ```
 
 > [!tip]
-> The `:own` scope suffix is a convention, not a Spring feature. Your `PermissionEvaluator` implementation reads that suffix and enforces the ownership check.
+> `:own` scope suffix ek convention hai, Spring ka koi built-in feature nahi. Tumhara `PermissionEvaluator` implementation hi is suffix ko padh ke ownership check enforce karega. Spring ko khud kuch pata nahi ki "own" ka matlab kya hai — yeh sab tumhara likha hua logic hai.
 
 ---
 
 ## Code examples
 
-### `PermissionEvaluator` — full implementation
+### `PermissionEvaluator` — pura implementation
+
+Socho `PermissionEvaluator` ek bouncer hai jo club (tumhara API) ke gate pe khada hai. Uske paas do tarike se log aate hain — kabhi sirf ID leke ("bhai is order ID ka access chahiye"), kabhi pura object leke ("yeh raha order, isko access karne do"). Dono cases handle karne padte hain.
 
 ```java
 @Component
@@ -56,8 +52,8 @@ public class AppPermissionEvaluator implements PermissionEvaluator {
     private final UserRepository   userRepo;
 
     /**
-     * Called by hasPermission(#id, 'Order', 'read') — targetDomainObject is null,
-     * we receive the ID and type as separate arguments.
+     * hasPermission(#id, 'Order', 'read') se call hota hai — targetDomainObject null hota hai,
+     * hume ID aur type alag arguments ke roop mein milte hain.
      */
     @Override
     public boolean hasPermission(Authentication auth,
@@ -75,7 +71,7 @@ public class AppPermissionEvaluator implements PermissionEvaluator {
     }
 
     /**
-     * Called by hasPermission(#order, 'read') — targetDomainObject is the actual object.
+     * hasPermission(#order, 'read') se call hota hai — targetDomainObject actual object hota hai.
      */
     @Override
     public boolean hasPermission(Authentication auth,
@@ -88,10 +84,10 @@ public class AppPermissionEvaluator implements PermissionEvaluator {
     }
 
     private boolean checkOrderPermission(Authentication auth, Long orderId, String perm) {
-        // Avoid DB call if user has unrestricted permission
+        // Unrestricted permission hai toh DB call avoid karo
         if (hasAuthority(auth, "order:" + perm)) return true;
         if (!hasAuthority(auth, "order:" + perm + ":own")) return false;
-        // DB call only when :own scope is involved
+        // DB call sirf tab jab :own scope involve ho
         return orderRepo.existsByIdAndOwnerId(orderId, currentUserId(auth));
     }
 
@@ -111,14 +107,14 @@ public class AppPermissionEvaluator implements PermissionEvaluator {
     }
 
     private Long currentUserId(Authentication auth) {
-        // Assumes your UserDetails impl exposes getId()
+        // Assume kar rahe hain tumhari UserDetails impl mein getId() hai
         return ((CustomUserDetails) auth.getPrincipal()).getId();
     }
 }
 ```
 
 ```java
-// Wire into method security
+// Method security mein wire karo
 @Configuration
 @EnableMethodSecurity
 public class MethodSecurityConfig {
@@ -133,7 +129,9 @@ public class MethodSecurityConfig {
 }
 ```
 
-### Using `@PreAuthorize` with `hasPermission`
+Dekha kaise `checkOrderPermission` pehle cheap check karta hai (`hasAuthority` — sirf authorities list mein dekhna hai, koi DB call nahi), aur DB call sirf tab karta hai jab zaroorat pade? Yeh bilkul ek chaiwale jaisa hai jo pehle poochta hai "regular customer ho?" (fast check), aur sirf tab register kholta hai jab pehchan na paaye.
+
+### `@PreAuthorize` ke saath `hasPermission` use karna
 
 ```java
 @Service
@@ -142,13 +140,13 @@ public class OrderService {
 
     private final OrderRepository repo;
 
-    // Load the entity then check — Spring passes the returned object to @PostAuthorize
+    // Pehle entity load karo, phir check karo — return object @PostAuthorize ko milta hai
     @PostAuthorize("hasPermission(returnObject, 'read')")
     public Order findById(Long id) {
         return repo.findById(id).orElseThrow();
     }
 
-    // ID-based check before loading — cheaper (no DB hit if denied)
+    // ID-based check load karne se pehle — sasta hai (deny hone pe DB hit nahi hota)
     @PreAuthorize("hasPermission(#id, 'Order', 'read')")
     public Order findByIdSecure(Long id) {
         return repo.findById(id).orElseThrow();
@@ -157,7 +155,7 @@ public class OrderService {
     @PreAuthorize("hasPermission(#id, 'Order', 'write')")
     public Order update(Long id, UpdateOrderRequest req) {
         Order order = repo.findById(id).orElseThrow();
-        // apply updates...
+        // updates apply karo...
         return repo.save(order);
     }
 
@@ -171,19 +169,21 @@ public class OrderService {
 ```
 
 > [!warning]
-> `@PostAuthorize` loads the object from the DB *before* checking permissions. Prefer `@PreAuthorize` with an ID-based check when the ownership is derivable without loading the full entity. Reserve `@PostAuthorize` for when you genuinely need the object state to decide.
+> `@PostAuthorize` object ko DB se load karta hai *permission check hone se pehle*. Jab bhi ownership bina pura entity load kiye pata chal sake, `@PreAuthorize` ke saath ID-based check ko prefer karo. `@PostAuthorize` sirf tab use karo jab genuinely object ki state dekhe bina decide hi nahi ho sakta.
 
-### Filtering query results — `@PostFilter` and custom repositories
+### Query results filter karna — `@PostFilter` aur custom repositories
+
+Kya hota hai jab tumhe ek poori list return karni ho, lekin usme se sirf woh items dikhane ho jo user access kar sakta hai? Do tarike hain — ek "sab load karo, phir chhaanto" (aasan lekin slow), doosra "database se hi sirf zaruri rows maango" (thoda extra kaam, lekin fast).
 
 ```java
-// Option A: @PostFilter — Spring iterates the list and removes unauthorized items.
-// Only use for small result sets — it loads everything from DB first.
+// Option A: @PostFilter — Spring pura list iterate karke unauthorized items hata deta hai.
+// Sirf chhote result sets ke liye use karo — yeh pehle DB se sab kuch load karta hai.
 @PostFilter("hasPermission(filterObject, 'read')")
 public List<Order> findAll() {
     return repo.findAll();
 }
 
-// Option B: inject ownership into the query — scales to millions of rows
+// Option B: query mein hi ownership inject karo — lakhon rows tak scale karta hai
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("""
@@ -192,22 +192,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
           AND o.status IN :statuses
         """)
     Page<Order> findByOwnerOrAll(
-        @Param("ownerId") Long ownerId,   // null for admins with order:read
+        @Param("ownerId") Long ownerId,   // admins ke liye null, jinke paas order:read hai
         @Param("statuses") Set<OrderStatus> statuses,
         Pageable pageable
     );
 }
 
-// In the service:
+// Service mein:
 public Page<Order> search(OrderSearchRequest req, Authentication auth) {
     Long ownerId = hasAuthority(auth, "order:read") ? null : currentUserId(auth);
     return repo.findByOwnerOrAll(ownerId, req.statuses(), req.pageable());
 }
 ```
 
+Yeh bilkul waise hi hai jaise agar tum Swiggy ki team mein ho aur tumhe apne saare orders dikhane ho — koi sahi engineer poora database query nahi karega aur phir application mein filter nahi karega, seedha `WHERE user_id = ?` laga dega query mein. `@PostFilter` waala approach us jaisa hai jaise tum poora restaurant ka menu utha lo aur phir ghar pe baithke chhaanto ki tumhe kya-kya pasand hai — kaam ho jaata hai, lekin waste bahut hota hai.
+
 ### `AuthorizationManager<T>` — programmatic fine-grained checks
 
-For complex rules that don't fit SpEL nicely:
+Jab rules itne complex ho jaayein ki SpEL expression mein likhna bhi ajeeb lage, tab poora Java class bana lo:
 
 ```java
 @Component
@@ -223,7 +225,7 @@ public class OrderAuthorizationManager
         Object[] args = invocation.getArguments();
         Long orderId = (Long) args[0];
 
-        boolean granted = /* your complex logic */ false;
+        boolean granted = /* tumhara complex logic yahan */ false;
         return new AuthorizationDecision(granted);
     }
 }
@@ -231,7 +233,9 @@ public class OrderAuthorizationManager
 
 ---
 
-## Field-level authorization — redacting per role
+## Field-level authorization — role ke hisaab se data chhupana (redact karna)
+
+Kabhi kabhi poora object toh dikhana hai, lekin usme se kuch fields kuch logon se chhupane hain. Jaise CRED app mein — normal user ko sirf apna credit score dikhta hai, lekin internal ops team ko poora risk profile dikhta hai. Isi ko field-level authorization kehte hain.
 
 ### Option A: `@JsonView`
 
@@ -251,10 +255,10 @@ public class Order {
     @JsonView(Views.Public.class)
     private OrderStatus status;
 
-    @JsonView(Views.Internal.class)   // managers+ only
+    @JsonView(Views.Internal.class)   // sirf managers+ ke liye
     private BigDecimal totalAmount;
 
-    @JsonView(Views.Admin.class)      // admin only
+    @JsonView(Views.Admin.class)      // sirf admin ke liye
     private String internalNote;
 }
 
@@ -308,13 +312,13 @@ public class OrderSerializer extends StdSerializer<Order> {
 ```
 
 > [!warning]
-> Accessing `SecurityContextHolder` inside a serializer is a code smell — it couples your domain model to the security layer. Prefer `@JsonView` with the view selection in the controller, or use separate DTO classes per role (most explicit, most maintainable).
+> Serializer ke andar `SecurityContextHolder` access karna ek code smell hai — isse tumhara domain model security layer se tightly coupled ho jaata hai. `@JsonView` ke saath controller mein view select karna prefer karo, ya har role ke liye alag DTO class banao (sabse explicit, sabse maintainable approach).
 
 ---
 
-## "Is owner OR has admin permission" pattern
+## "Owner hai YA admin permission hai" pattern
 
-This is the most common ownership check pattern:
+Yeh sabse common ownership check pattern hai — production mein baar baar milega:
 
 ```java
 @PreAuthorize("""
@@ -325,12 +329,12 @@ This is the most common ownership check pattern:
 public Order findByIdForUser(Long id) { ... }
 ```
 
-Or via `PermissionEvaluator` (cleaner for complex logic):
+Ya phir `PermissionEvaluator` ke through (complex logic ke liye zyada clean):
 
 ```java
 @PreAuthorize("hasPermission(#id, 'Order', 'read')")
 public Order findByIdForUser(Long id) { ... }
-// PermissionEvaluator handles the "any vs own" branching internally
+// PermissionEvaluator "any vs own" ka pura branching internally handle karta hai
 ```
 
 ---
@@ -352,7 +356,7 @@ function defineAbilityFor(user: User) {
   });
 }
 
-// In route handler:
+// Route handler mein:
 const ability = defineAbilityFor(req.user);
 if (ability.cannot('read', order)) {
   return res.status(403).json({ error: 'Forbidden' });
@@ -360,48 +364,48 @@ if (ability.cannot('read', order)) {
 ```
 
 ```java
-// Spring equivalent — same semantics, different syntax
+// Spring equivalent — same meaning, alag syntax
 @PreAuthorize("hasPermission(#id, 'Order', 'read')")
 public Order getOrder(Long id) {
     return repo.findById(id).orElseThrow();
 }
 
-// PermissionEvaluator implements the same logic as CASL's defineAbility:
-// hasAuthority('order:read') → can('read', 'Order') for admins
+// PermissionEvaluator wahi logic implement karta hai jo CASL ka defineAbility karta hai:
+// hasAuthority('order:read') → admins ke liye can('read', 'Order')
 // hasAuthority('order:read:own') → can('read', 'Order', { ownerId: user.id })
 ```
 
-The mental model is identical. CASL's `defineAbility` maps to `PermissionEvaluator`; CASL's `can/cannot` maps to `hasPermission()`; CASL's conditions (`{ ownerId: user.id }`) map to the DB check inside `hasPermission`. The difference: CASL is checked imperatively in middleware; Spring's check is declarative on the method and fires for *every* caller, including scheduled jobs.
+Mental model bilkul same hai. CASL ka `defineAbility` map hota hai `PermissionEvaluator` se; CASL ka `can/cannot` map hota hai `hasPermission()` se; CASL ki conditions (`{ ownerId: user.id }`) map hoti hain `hasPermission` ke andar ke DB check se. Farak sirf itna hai — CASL imperatively middleware mein check hota hai, jabki Spring ka check method pe declarative hota hai aur *har* caller ke liye fire hota hai, chahe woh scheduled job hi kyun na ho.
 
 ---
 
-## Gotchas
+## Gotchas — yahan log fasenge
 
 > [!danger]
-> **`@PostFilter` on large collections is a performance disaster.** Spring loads every entity from the DB, then iterates and removes unauthorized ones in memory. Use query-level filtering (pass `ownerId` to the repository) for any collection larger than ~50 items.
+> **Bade collections pe `@PostFilter` ek performance disaster hai.** Spring pehle DB se har entity load karta hai, phir memory mein iterate karke unauthorized ones hata deta hai. Jaise agar tumhare paas 1 lakh orders hain aur user ke paas sirf 5 access hain, toh Spring pehle **saare 1 lakh** load karega, phir 99,995 phenk dega. Query-level filtering use karo (repository ko `ownerId` pass karo) ~50 se zyada items waale kisi bhi collection ke liye.
 
 > [!warning]
-> **`@PreAuthorize` is not inherited.** If a subclass overrides a secured method without re-declaring `@PreAuthorize`, the security check is gone. Always annotate on the concrete method, not just the interface/superclass. (Spring Security 6.3+ has improvements here, but explicit annotation is still safest.)
+> **`@PreAuthorize` inherit nahi hota.** Agar koi subclass secured method ko override karti hai bina `@PreAuthorize` re-declare kiye, toh security check gayab ho jaata hai — silently! Hamesha concrete method pe hi annotate karo, sirf interface/superclass pe nahi. (Spring Security 6.3+ mein kuch improvements hain, par explicit annotation abhi bhi safest hai.)
 
 > [!warning]
-> **`SecurityContext` is thread-local.** When using `@Async` methods or virtual threads, the `SecurityContext` may not propagate automatically. Configure `DelegatingSecurityContextExecutor` or use `SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL)` — but understand the implications for thread pools.
+> **`SecurityContext` thread-local hota hai.** `@Async` methods ya virtual threads use karte waqt, `SecurityContext` automatically propagate nahi hota. `DelegatingSecurityContextExecutor` configure karo, ya `SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL)` use karo — lekin thread pools ke liye iske implications samajh ke hi karo. Node se aane waalon ke liye — yeh us jaisa hai jaise ek naye async callback mein `req` object accidentally undefined aa jaaye kyunki context transfer hi nahi hua.
 
 > [!danger]
-> **Don't put authorization logic in the controller layer only.** Services and repositories are callable from scheduled tasks, message consumers, and admin CLI commands — none of which go through the HTTP filter chain. `@PreAuthorize` on the service method is defense-in-depth that the controller layer alone cannot provide.
+> **Authorization logic sirf controller layer mein mat rakho.** Services aur repositories scheduled tasks, message consumers, aur admin CLI commands se bhi call ho sakte hain — inme se koi bhi HTTP filter chain se nahi guzarta. Service method pe `@PreAuthorize` ek defense-in-depth hai jo akela controller layer nahi de sakta. Socho — tumne UPI transaction ka authorization sirf REST controller mein likha, lekin ek background reconciliation job seedha service call kar rahi hai — woh job bina kisi check ke sab kuch access kar legi.
 
 ---
 
 ## Production checklist
 
-- [ ] Permission naming follows `resource:action[:scope]` convention
-- [ ] `AppPermissionEvaluator` handles at least the top 3 resource types
-- [ ] `@PostFilter` replaced with repository-level filtering on all collections > 50 items
-- [ ] `@PreAuthorize` preferred over `@PostAuthorize` where possible (cheaper)
-- [ ] Field-level redaction uses `@JsonView` or separate DTO classes (not `SecurityContextHolder` in serializer)
-- [ ] `PermissionEvaluator` has unit tests for: own-resource allowed, other-resource denied, admin always allowed
-- [ ] No authorization logic lives solely in controllers
-- [ ] `@EnableMethodSecurity` configured with `MethodSecurityExpressionHandler` wiring `PermissionEvaluator`
-- [ ] Async methods use `DelegatingSecurityContextExecutor` to propagate `SecurityContext`
+- [ ] Permission naming `resource:action[:scope]` convention follow karti hai
+- [ ] `AppPermissionEvaluator` kam se kam top 3 resource types handle karta hai
+- [ ] `@PostFilter` ko replace kar diya gaya hai repository-level filtering se un saare collections mein jo > 50 items ke hain
+- [ ] `@PreAuthorize` ko `@PostAuthorize` se prefer kiya gaya hai jahan bhi possible ho (sasta padta hai)
+- [ ] Field-level redaction `@JsonView` ya separate DTO classes use karta hai (serializer mein `SecurityContextHolder` nahi)
+- [ ] `PermissionEvaluator` ke unit tests hain: own-resource allowed, other-resource denied, admin hamesha allowed
+- [ ] Authorization logic sirf controllers mein nahi rehti
+- [ ] `@EnableMethodSecurity` configured hai `MethodSecurityExpressionHandler` ke saath jo `PermissionEvaluator` wire karta hai
+- [ ] Async methods `DelegatingSecurityContextExecutor` use karte hain `SecurityContext` propagate karne ke liye
 
 ---
 

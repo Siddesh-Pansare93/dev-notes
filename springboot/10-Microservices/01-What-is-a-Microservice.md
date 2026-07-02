@@ -1,82 +1,78 @@
----
-tags: [microservices, architecture, philosophy]
-aliases: [Microservices, Services]
-stage: advanced
----
-
 # What is a Microservice (and when NOT to use one)
 
-> [!info] For the Express/TS dev
-> You've probably seen Node teams break a backend into 10 microservices because "Netflix does it." Spring's tooling makes microservices easy — which makes the temptation worse. The honest answer: **start with a modular monolith.** Reach for microservices when you have a real organizational or scaling reason, not because the architecture diagram looks cool.
+> [!info] Express/TS wale dev ke liye
+> Tumne shayad Node teams ko dekha hoga jo backend ko 10 microservices mein tod dete hain sirf isliye kyunki "Netflix aisa karta hai." Spring ka tooling microservices ko itna easy bana deta hai ki temptation aur badh jaata hai. Honest baat yeh hai: **modular monolith se start karo.** Microservices tab lo jab tumhare paas koi real organizational ya scaling reason ho, na ki isliye ki architecture diagram cool lag raha hai.
 
 ## Concept
 
-A microservice is a small, independently-deployed service with its own data store and team responsibility. The defining traits:
+Kya hota hai ek microservice? Simple bhasha mein — ek chota, independently-deployed service jiska apna data store hota hai aur apni team responsibility hoti hai. Socho Swiggy ka backend — order lena, restaurant manage karna, delivery partner track karna, payment karna — yeh sab agar alag-alag independently deployable cheezein hain, apne apne database ke saath, toh yeh microservices hain.
 
-- **Owned by one team** (Conway's Law: services mirror org structure).
-- **Independently deployable** — you can ship Service A without redeploying B, C, D.
-- **Owns its data** — no other service touches its DB. See [[13-Database-per-Service]].
-- **Communicates over a network** — REST, gRPC, async messaging.
-- **Failure-isolated** — one service down ≠ whole system down (with proper resilience).
+Defining traits:
 
-### Why people choose microservices
+- **Ek team ka ownership** — Conway's Law kehta hai ki services tumhare org structure ko mirror karti hain. Jaise team ho, waisi hi service boundaries ban jaati hain.
+- **Independently deployable** — Service A ko deploy karne ke liye B, C, D ko redeploy karne ki zaroorat nahi.
+- **Apna data owns karta hai** — koi doosri service uske DB ko touch nahi karti. Dekho [[13-Database-per-Service]].
+- **Network ke through communicate karta hai** — REST, gRPC, ya async messaging.
+- **Failure-isolated** — ek service down hone se poora system down nahi hota (agar resilience sahi se set hai toh).
 
-1. **Independent deployment** — small teams ship without coordination.
-2. **Independent scaling** — only the recommendation engine needs 50 replicas.
-3. **Tech heterogeneity** — Java for transactions, Python for ML, Go for proxies.
-4. **Fault isolation** — a memory leak in `notifications` doesn't kill `checkout`.
-5. **Org scaling** — 200 engineers in one repo = a coordination nightmare.
+### Log microservices kyun choose karte hain?
 
-### Why people regret microservices
+1. **Independent deployment** — chhoti teams bina coordination ke apna kaam ship kar sakti hain.
+2. **Independent scaling** — sirf recommendation engine ko 50 replicas chahiye, baaki ko nahi. Jaise Flipkart pe Big Billion Day ke time sirf checkout aur search service scale karni padti hai, poora system nahi.
+3. **Tech heterogeneity** — transactions ke liye Java, ML ke liye Python, proxies ke liye Go. Har kaam ke liye best tool use kar sakte ho.
+4. **Fault isolation** — `notifications` service mein memory leak ho jaaye toh `checkout` service nahi marti.
+5. **Org scaling** — 200 engineers ek hi repo mein kaam karein toh coordination ek nightmare ban jaata hai.
 
-1. **Distributed systems are HARD.** Network failures, partial outages, retries, idempotency, eventual consistency — every problem becomes a distributed problem.
-2. **Operational overhead** — 30 services × deploy pipelines × dashboards × oncall rotations.
-3. **Debugging is brutal** — a request now flows through 8 services. See [[09-Distributed-Tracing]].
-4. **Distributed transactions** — there is no `BEGIN; ...; COMMIT;` across services. See [[10-Saga-Pattern]].
-5. **Latency cost** — each network hop is ~1-10ms.
-6. **Data consistency** — gone is your nice ACID monolith. Welcome to [[14-Eventual-Consistency]].
+### Log microservices ka pachhtaava kyun karte hain?
 
-> [!danger] Sam Newman's Rule
-> "If you can't build a well-structured monolith, what makes you think microservices are the answer?"
+1. **Distributed systems HARD hote hain.** Network failures, partial outages, retries, idempotency, eventual consistency — har problem ab ek distributed problem ban jaati hai.
+2. **Operational overhead** — 30 services × deploy pipelines × dashboards × oncall rotations. Matlab 30 gunA zyada operational headache.
+3. **Debugging bahut mushkil ho jaati hai** — ek request ab 8 services se hokar guzarti hai. Dekho [[09-Distributed-Tracing]].
+4. **Distributed transactions** — services ke beech koi `BEGIN; ...; COMMIT;` nahi hota. Dekho [[10-Saga-Pattern]].
+5. **Latency ka cost** — har network hop ~1-10ms lagta hai. Chhota lage but 8 hops mein add ho jaata hai.
+6. **Data consistency** — tumhara nice ACID monolith gaya. Ab welcome to [[14-Eventual-Consistency]].
 
-### Monolith first
+> [!danger] Sam Newman ka rule
+> "Agar tum ek well-structured monolith nahi bana sakte, toh kya lagta hai microservices tumhare liye answer hain?"
 
-A modular monolith — one deployable, but with strict module boundaries (separate Maven modules, no cross-module DB access, defined APIs) — is almost always the right starting point.
+### Monolith first — pehle monolith banao
+
+Kya hota hai modular monolith? Ek hi deployable unit hoti hai, lekin uske andar strict module boundaries hoti hain — separate Maven modules, koi cross-module DB access nahi, defined APIs. Yeh almost hamesha sahi starting point hota hai.
 
 ```
 my-app (monolith)
 ├── modules/
-│   ├── orders/        ← could become a service later
+│   ├── orders/        ← baad mein service ban sakta hai
 │   ├── catalog/
 │   ├── shipping/
 │   └── payments/
 └── application.java
 ```
 
-When a module has:
-- A clear, stable API
-- Its own scaling needs
-- A team that owns it end-to-end
-- A reason to deploy independently
+Jab ek module ke paas yeh saari cheezein ho:
+- Ek clear, stable API
+- Apni khud ki scaling needs
+- Ek team jo use end-to-end owns kare
+- Independently deploy karne ka ek real reason
 
-...then extract it. Not before.
+...tab usse extract karo. Uske pehle nahi.
 
-### "Should I use microservices?" — honest checklist
+### "Kya mujhe microservices use karne chahiye?" — honest checklist
 
-Use microservices if **most** of these are true:
+Microservices use karo agar **zyadatar** yeh baatein sach hain:
 
-- [ ] More than ~20 engineers working on the same codebase.
-- [ ] Different parts have wildly different scaling profiles.
-- [ ] Different parts genuinely need different tech stacks.
-- [ ] You have a mature DevOps capability (CI/CD, monitoring, on-call).
-- [ ] You can absorb the latency cost.
-- [ ] You're willing to rewrite shared logic 4x or invest in shared libs.
+- [ ] 20+ engineers ek hi codebase pe kaam kar rahe hain.
+- [ ] Alag-alag parts ke scaling profiles bilkul alag hain.
+- [ ] Alag-alag parts ko genuinely alag tech stacks chahiye.
+- [ ] Tumhare paas mature DevOps capability hai (CI/CD, monitoring, on-call).
+- [ ] Tum latency ka cost absorb kar sakte ho.
+- [ ] Tum shared logic ko 4 baar rewrite karne ke liye ya shared libs mein invest karne ke liye tayaar ho.
 
-If most are false: **modular monolith.** You can always extract later. Going the other way ("service mesh of cards" → monolith) is a multi-quarter project.
+Agar zyadatar false hain: **modular monolith jao.** Baad mein hamesha extract kar sakte ho. Ulta direction ("services ka jaal" → monolith) ek multi-quarter project ban jaata hai — bahut painful hota hai.
 
 ## Code example
 
-A modular monolith in Maven (extractable to microservices later):
+Ek modular monolith Maven mein (jo baad mein microservices mein extract ho sake):
 
 ```xml
 <!-- parent pom.xml -->
@@ -84,11 +80,11 @@ A modular monolith in Maven (extractable to microservices later):
     <module>app-orders</module>
     <module>app-catalog</module>
     <module>app-shipping</module>
-    <module>app-shell</module>   <!-- the actual Boot app -->
+    <module>app-shell</module>   <!-- yeh hai asli Boot app -->
 </modules>
 ```
 
-Module boundaries enforced via [Spring Modulith](https://spring.io/projects/spring-modulith):
+Module boundaries [Spring Modulith](https://spring.io/projects/spring-modulith) ke through enforce ki jaati hain:
 
 ```java
 // app-orders/src/main/java/com/example/orders/package-info.java
@@ -98,7 +94,7 @@ Module boundaries enforced via [Spring Modulith](https://spring.io/projects/spri
 package com.example.orders;
 ```
 
-The `OrderService` in module `orders` cannot import from `shipping` directly — only via published events or APIs. Tests prove it:
+`orders` module ka `OrderService` `shipping` se directly import nahi kar sakta — sirf published events ya APIs ke through. Tests isko prove karte hain:
 
 ```java
 @Test
@@ -107,9 +103,9 @@ void modulesRespectBoundaries() {
 }
 ```
 
-When you later extract `orders` to its own service, the boundary is already there.
+Jab baad mein tum `orders` ko apni khud ki service mein extract karoge, boundary pehle se hi ready hoti hai.
 
-### A simple HTTP-based microservice (Spring Boot)
+### Ek simple HTTP-based microservice (Spring Boot)
 
 ```java
 @SpringBootApplication
@@ -132,37 +128,37 @@ class OrderController {
 }
 ```
 
-That's it. A microservice in Spring is just a Boot app with a focused responsibility. The complexity comes from the **system**, not any one service.
+Bas itna hi. Spring mein ek microservice sirf ek focused-responsibility wala Boot app hai. Complexity kisi ek service se nahi aati — woh **poore system** se aati hai jab tum sabko jodte ho.
 
 ## Express/Node comparison
 
 | Spring world | Node world |
 |--------------|------------|
-| Modular monolith with Spring Modulith | Nx monorepo with library boundaries |
-| Spring Cloud + Eureka + Config Server | NestJS Microservices, or Kubernetes-native |
+| Spring Modulith wala modular monolith | Nx monorepo with library boundaries |
+| Spring Cloud + Eureka + Config Server | NestJS Microservices, ya Kubernetes-native |
 | Resilience4j circuit breakers | `opossum` |
-| OpenFeign | `axios` with retry interceptors |
+| OpenFeign | `axios` retry interceptors ke saath |
 | Spring Cloud Stream | `kafkajs` / `bullmq` |
-| Service mesh (Istio) | (same — Istio is language-agnostic) |
+| Service mesh (Istio) | (same — Istio language-agnostic hai) |
 
-The Spring Cloud ecosystem gives you batteries-included tools that take Node teams weeks to assemble.
+Spring Cloud ecosystem tumhe batteries-included tools deta hai jo Node teams ko haftey lagte hain assemble karne mein.
 
 ## Gotchas
 
-> [!danger] Microservices are an organizational pattern, not a technical one
-> If your org can't ship coordinated changes, microservices won't fix it — they'll surface it more painfully.
+> [!danger] Microservices ek organizational pattern hai, technical nahi
+> Agar tumhara org coordinated changes ship nahi kar sakta, microservices usko fix nahi karenge — woh problem ko aur zyada painfully surface karenge.
 
-> [!warning] "Nano-services"
-> 50 services where 30 are CRUD wrappers around a single table. You've turned method calls into network calls and gained nothing.
+> [!warning] "Nano-services" ka jaal
+> 50 services jinme se 30 sirf ek table ke around CRUD wrappers hain. Tumne method calls ko network calls bana diya aur badle mein kuch bhi nahi mila.
 
-> [!warning] The distributed monolith
-> Five "microservices" that must be deployed together because they share a DB or have synchronous chains. Worst of both worlds.
+> [!warning] Distributed monolith
+> Paanch "microservices" jinhe saath mein deploy karna padta hai kyunki woh ek DB share karte hain ya unme synchronous chains hain. Yeh dono duniya ka sabse bura combo hai — microservices ki complexity, monolith ki flexibility bhi nahi.
 
-> [!warning] Each service ≈ a team
-> A team can plausibly own 1-3 services. 5 services per 2-person team = nobody understands any of them.
+> [!warning] Har service ≈ ek team
+> Ek team plausibly 1-3 services own kar sakti hai. 5 services per 2-person team ka matlab hai koi bhi unme se kisi ko theek se nahi samajhta.
 
-> [!tip] Start with one service
-> Even if you "know" you need microservices, ship one. Add a second when there's a clear seam. The architecture emerges; it isn't designed top-down.
+> [!tip] Ek service se start karo
+> Chahe tumhe "pata" ho ki microservices chahiye, phir bhi ek service ship karo. Doosri tab add karo jab clear seam dikhe. Architecture emerge hota hai — top-down design nahi hota.
 
 ## Related
 - [[02-Spring-Cloud-Overview]]

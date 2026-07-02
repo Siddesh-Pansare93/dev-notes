@@ -33,11 +33,11 @@
 
 ### What is a Struct?
 
-A **struct** is a custom data type that lets you group related pieces of data together under one name. Think of it like a form or a record card — a single "thing" that carries multiple attributes.
+Socho tumhe ek order ka pura record rakhna hai — order ID, buyer ka naam, seller kaun hai, total amount, delivery status. Agar tum yeh sab alag-alag variables mein rakhoge toh mess ho jayega. Isi problem ko solve karta hai **struct** — ek custom data type jo related data ko ek naam ke under bundle kar deta hai. Socho ek form ya record card — ek hi "cheez" jismein multiple attributes bhare hote hain.
 
-In traditional object-oriented languages you might use a class. A Solidity struct is similar, **but without methods** — it is purely a data container. All the logic lives in the contract functions that operate on the struct.
+Agar tum OOP languages se aaye ho (jaise TypeScript ki classes), toh struct thoda similar lagega — bas fark itna hai ki **struct mein methods nahi hote**. Yeh sirf ek data container hai. Saara logic contract ke functions mein likha jata hai jo struct pe operate karte hain.
 
-**Real-world analogy:** An order receipt at an online store holds an order ID, the buyer's name, the seller, the total amount, and the delivery status. Instead of tracking five separate variables per order, you bundle them into one `Order` struct.
+**Real-world analogy:** Zomato pe jab tum order karte ho, uska ek receipt banta hai — order ID, buyer ka naam, seller (restaurant), total amount, aur delivery status — sab ek saath. Paanch alag-alag variables track karne ke bajaye, tum inhe ek `Order` struct mein bundle kar dete ho.
 
 ```solidity
 // Without a struct — messy and hard to manage
@@ -58,7 +58,7 @@ mapping(uint256 => Order) public orders;
 
 ### Defining a Struct
 
-You define a struct at the contract level using the `struct` keyword followed by a name and a set of typed fields inside curly braces.
+Struct define karne ke liye contract level pe `struct` keyword use karo, uske baad naam, aur curly braces ke andar typed fields.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -75,20 +75,20 @@ contract Registry {
 ```
 
 **Naming conventions:**
-- Struct names use **PascalCase** (`MyStruct`, not `myStruct`)
-- Field names use **camelCase** (`firstName`, not `FirstName`)
+- Struct ke naam **PascalCase** mein hote hain (`MyStruct`, `myStruct` nahi)
+- Field ke naam **camelCase** mein hote hain (`firstName`, `FirstName` nahi)
 
-Structs can contain any valid Solidity type: `uint`, `address`, `bool`, `string`, `bytes`, other structs, arrays, and mappings (with some restrictions — a struct cannot contain a mapping if it will be used in `memory`).
+Struct ke andar koi bhi valid Solidity type ho sakta hai: `uint`, `address`, `bool`, `string`, `bytes`, dusre structs, arrays, aur mappings bhi (thodi restrictions ke saath — agar struct `memory` mein use hoga toh usmein mapping nahi rakh sakte).
 
 ---
 
 ### Creating Struct Instances: storage vs memory
 
-This is one of the most important things to understand. Where a struct variable lives determines how it behaves and what it costs in gas.
+Yeh sabse important cheez hai jo samajhni chahiye. Struct variable kahan "reh raha hai" — yeh decide karta hai ki woh kaise behave karega aur gas kitna lagega.
 
 #### Storage — persistent, on-chain
 
-A `storage` struct variable is a **reference** directly into contract storage. Changes to it are automatically written back to the blockchain.
+`storage` struct variable ek **reference** hota hai jo directly contract storage ko point karta hai. Isme change karoge toh woh automatically blockchain pe likha jayega — bilkul Google Sheets ki tarah jahan koi bhi edit turant save ho jata hai.
 
 ```solidity
 struct Counter {
@@ -106,11 +106,11 @@ function increment() public {
 }
 ```
 
-> **Warning:** If you omit the `storage` keyword and just write `Counter counter = counters[msg.sender]`, Solidity will warn you or error — always be explicit.
+> **Warning:** Agar tum `storage` keyword bhool jaate ho aur sirf `Counter counter = counters[msg.sender]` likhte ho, toh Solidity warning ya error dega — hamesha explicit raho.
 
 #### Memory — temporary, off-chain
 
-A `memory` struct is a temporary copy that exists only during the function call. It is cheaper to work with but changes do **not** persist automatically.
+`memory` struct ek temporary copy hota hai jo sirf function call ke duration tak zinda rehta hai. Yeh use karna sasta padta hai (kam gas), lekin isme kiya gaya change automatically persist nahi hota — bilkul Excel ki ek local unsaved copy ki tarah jo browser band karte hi gayab ho jaati hai.
 
 ```solidity
 function buildTempPerson(string memory name, uint256 age)
@@ -129,14 +129,14 @@ function buildTempPerson(string memory name, uint256 age)
 }
 ```
 
-**When to use which:**
-| Use `storage` | Use `memory` |
+**Kab kya use karein:**
+| `storage` use karo | `memory` use karo |
 |---|---|
-| Updating existing on-chain data | Building a new struct to return from a function |
-| Avoiding extra copy costs for large structs | Short-lived computation inside a function |
-| Modifying state variables | Reading data without needing to write back |
+| Existing on-chain data update karna ho | Function se return karne ke liye naya struct banana ho |
+| Bade structs ke liye extra copy cost bachana ho | Function ke andar short-lived calculation |
+| State variables modify karna ho | Sirf padhna ho, wapas likhna na ho |
 
-#### Two ways to initialise a struct
+#### Struct initialise karne ke do tarike
 
 ```solidity
 // Named field syntax (recommended — order-independent, readable)
@@ -151,13 +151,13 @@ Order memory o1 = Order({
 Order memory o2 = Order(1, msg.sender, sellerAddress, msg.value);
 ```
 
-The named-field style is strongly preferred because adding a new field to the struct in the future will not silently break your positional initialisation.
+Named-field style zyada preferred hai kyunki agar future mein struct mein naya field add karo, toh yeh silently tumhara positional initialisation nahi todega.
 
 ---
 
 ### Accessing Struct Members
 
-Use **dot notation** — exactly like accessing properties on an object in JavaScript or Python.
+**Dot notation** use karo — bilkul waise hi jaise JavaScript ya Python mein object ki properties access karte ho.
 
 ```solidity
 Order storage order = orders[orderId];
@@ -175,9 +175,9 @@ order.status = OrderStatus.Confirmed;
 
 ### Structs in Arrays and Mappings
 
-This is the most common pattern you will encounter in real contracts. Combining structs with arrays or mappings lets you manage collections of complex objects.
+Yeh sabse common pattern hai jo real contracts mein milega. Structs ko arrays ya mappings ke saath combine karke tum complex objects ke collections manage kar sakte ho.
 
-#### Struct in a dynamic array
+#### Struct ek dynamic array mein
 
 ```solidity
 contract TaskManager {
@@ -210,7 +210,7 @@ contract TaskManager {
 }
 ```
 
-#### Struct in a mapping (most efficient lookup pattern)
+#### Struct ek mapping mein (sabse efficient lookup pattern)
 
 ```solidity
 contract UserRegistry {
@@ -233,13 +233,13 @@ contract UserRegistry {
 }
 ```
 
-Mappings give O(1) lookup by key — perfect when you need to look up a user's or order's data by ID or address.
+Mapping tumhe O(1) lookup deta hai key ke through — matlab jaise UPI mein tumhara mobile number seedha tumhare account tak le jaata hai, waise hi yahan address ya ID se seedha user/order ka data mil jaata hai.
 
 ---
 
 ### Nested Structs
 
-A struct can contain another struct as a field. This lets you model hierarchical data naturally.
+Ek struct dusre struct ko field ke roop mein rakh sakta hai. Isse tum hierarchical data ko naturally model kar sakte ho.
 
 ```solidity
 contract ShippingTracker {
@@ -277,11 +277,13 @@ contract ShippingTracker {
 }
 ```
 
+Bilkul jaise Flipkart ka shipment tracking hota hai — ek Shipment ke andar origin address aur destination address dono nested structs ki tarah rehte hain.
+
 ---
 
 ### Structs as Function Parameters and Return Values
 
-Structs can be passed into functions and returned from them. The `memory` keyword is required for reference types used in function signatures.
+Structs ko functions mein pass kiya ja sakta hai aur unse return bhi kiya ja sakta hai. Reference types ke liye function signature mein `memory` keyword zaruri hota hai.
 
 ```solidity
 contract ProductStore {
@@ -311,17 +313,17 @@ contract ProductStore {
 }
 ```
 
-> **ABI note:** Returning structs from `public` functions is fully supported from Solidity 0.8.x and generates proper ABI encoding so external callers (your frontend, other contracts) can decode the result.
+> **ABI note:** Solidity 0.8.x se `public` functions se structs return karna fully supported hai aur proper ABI encoding generate karta hai — matlab tumhara frontend (ya doosra contract) result ko easily decode kar sakta hai.
 
 ---
 
 ### Structs and Storage Layout
 
-Understanding how structs occupy storage slots helps you write cheaper contracts.
+Yeh samajhna zaruri hai ki struct storage slots mein kaise fit hota hai — isse tum sasta (kam gas wala) contract likh sakte ho.
 
-- Each storage slot is **32 bytes** (256 bits).
-- Solidity tries to **pack** smaller variables into the same slot.
-- The compiler packs fields **in declaration order**, so putting small types (`uint8`, `bool`, `address` which is 20 bytes) together allows slot sharing.
+- Har storage slot **32 bytes** (256 bits) ka hota hai.
+- Solidity chhote variables ko ek hi slot mein **pack** karne ki koshish karta hai.
+- Compiler fields ko **declaration order** mein pack karta hai, isliye chhote types (`uint8`, `bool`, `address` jo 20 bytes ka hota hai) ko saath rakhoge toh slot share ho sakta hai.
 
 ```solidity
 // Inefficient — each bool takes its own full slot
@@ -342,7 +344,8 @@ struct Good {
 }
 ```
 
-This is relevant for high-frequency contracts where minimising SSTORE operations saves real money in gas.
+> [!tip]
+> Yeh cheez high-frequency contracts ke liye bahut relevant hai — kam SSTORE operations matlab real paisa bachega gas mein.
 
 ---
 
@@ -350,7 +353,7 @@ This is relevant for high-frequency contracts where minimising SSTORE operations
 
 ### What is an Enum?
 
-An **enum** (enumeration) defines a **finite, named set of values**. Instead of using raw integers to represent states (0 = pending, 1 = active, 2 = cancelled — easy to get wrong), you give each value a meaningful name that the compiler enforces.
+**Enum** (enumeration) ek **finite, named set of values** define karta hai. Raw integers use karne ke bajaye (0 = pending, 1 = active, 2 = cancelled — inme galti hona bahut aasan hai), tum har value ko ek meaningful naam de dete ho jise compiler enforce karta hai.
 
 ```solidity
 // Bad — magic numbers everywhere
@@ -361,7 +364,7 @@ enum Status { Pending, Active, Cancelled }
 Status public status;
 ```
 
-Under the hood Solidity stores enums as `uint8`, meaning you can have at most 256 values in a single enum (more than enough for any real use case).
+Under the hood, Solidity enums ko `uint8` ki tarah store karta hai, matlab ek enum mein maximum 256 values ho sakti hain (jo kisi bhi real use case ke liye kaafi zyada hai).
 
 ---
 
@@ -393,20 +396,20 @@ contract AuctionRoom {
 }
 ```
 
-Access enum values with `EnumName.ValueName` syntax. Comparisons use `==` and `!=`.
+Enum values ko `EnumName.ValueName` syntax se access karo. Comparison ke liye `==` aur `!=` use hota hai.
 
 ---
 
 ### Enums as State Machines
 
-This is the **most powerful** use of enums in Solidity. A state machine is a model where a system can be in exactly one state at a time, and transitions between states are controlled.
+Yeh Solidity mein enums ka **sabse powerful** use hai. State machine ek aisa model hai jahan system kisi bhi time pe exactly ek state mein hota hai, aur states ke beech transitions controlled hote hain.
 
-A well-designed state machine using an enum gives you:
-- **Clarity** — anyone reading the code immediately understands what states exist.
-- **Safety** — `require` guards prevent illegal transitions.
-- **Auditability** — the set of possible states is right there in the enum definition.
+Ek achhe se design kiya gaya state machine (enum ke saath) tumhe deta hai:
+- **Clarity** — code padhte hi pata chal jata hai ki kaunse states possible hain.
+- **Safety** — `require` guards illegal transitions ko rokte hain.
+- **Auditability** — saare possible states enum definition mein hi likhe hote hain.
 
-**Order lifecycle state machine:**
+**Order lifecycle state machine** (Zomato/Flipkart order ki tarah socho):
 
 ```mermaid
 stateDiagram-v2
@@ -419,9 +422,9 @@ stateDiagram-v2
     Cancelled --> [*]
 ```
 
-Each arrow represents a function call with a `require` guard that checks the current state. You can only move forward through the lifecycle — no jumping from `Pending` to `Delivered`, and no going backward from `Shipped` to `Confirmed`.
+Har arrow ek function call ko represent karta hai jisme `require` guard current state check karta hai. Tum sirf aage badh sakte ho lifecycle mein — `Pending` se seedha `Delivered` pe jump nahi kar sakte, aur `Shipped` se peeche `Confirmed` pe bhi nahi ja sakte.
 
-**Role management with enums:**
+**Enums se role management:**
 
 ```solidity
 contract AccessControl {
@@ -457,7 +460,7 @@ contract AccessControl {
 
 ### Enum uint Conversion
 
-Because enums are stored as `uint8`, you can convert between them explicitly.
+Kyunki enums `uint8` ki tarah store hote hain, tum inhe explicitly convert kar sakte ho.
 
 ```solidity
 enum Phase { Alpha, Beta, Launch }  // Alpha=0, Beta=1, Launch=2
@@ -472,9 +475,10 @@ Phase fromNumber = Phase(2);       // fromNumber = Phase.Launch
 Phase invalid = Phase(99);         // REVERTS — 99 is not a valid Phase
 ```
 
-The out-of-range revert (added in Solidity 0.8.x) is a safety net. In older versions (pre-0.8) an invalid cast would silently produce garbage — another reason to always use `^0.8.0`.
+> [!warning]
+> Out-of-range revert (Solidity 0.8.x mein add hua) ek safety net hai. Purani versions mein (pre-0.8) invalid cast silently garbage value produce kar deta tha — isliye hamesha `^0.8.0` use karo.
 
-**Practical use — storing enum values off-chain or in events:**
+**Practical use — enum value ko off-chain ya events mein store karna:**
 
 ```solidity
 function getCurrentPhaseNumber() public view returns (uint8) {
@@ -486,7 +490,7 @@ function getCurrentPhaseNumber() public view returns (uint8) {
 
 ### Enums in Events
 
-Events record things that happened on-chain so that frontends and indexers can react to them. Enums work naturally in events — the ABI encodes them as `uint8`.
+Events on-chain jo hua usko record karte hain taaki frontends aur indexers usse react kar saken. Enums events mein naturally kaam karte hain — ABI unhe `uint8` ki tarah encode karta hai.
 
 ```solidity
 event PhaseChanged(Phase indexed oldPhase, Phase indexed newPhase);
@@ -499,13 +503,13 @@ function advancePhase() internal {
 }
 ```
 
-On the frontend (via ethers.js or viem) you receive the numeric value. Your ABI includes the enum definition, so libraries can decode it back to the named string for display.
+Frontend pe (ethers.js ya viem ke through) tumhe numeric value milegi. Tumhara ABI enum definition include karta hai, isliye libraries usse wapas naam wale string mein decode karke display kar sakti hain — bilkul jaise Swiggy app tumhe "Order Placed", "Preparing", "On the way" dikhata hai, backend mein woh sirf numbers hote hain.
 
 ---
 
 ### Default Enum Value
 
-When a variable of an enum type is declared but never assigned, it defaults to the **first member** (index 0). This is important to design around.
+Jab enum type ka variable declare kiya jata hai lekin kabhi assign nahi kiya jata, toh woh default **first member** (index 0) ban jata hai. Yeh design karte waqt dhyan mein rakhna zaruri hai.
 
 ```solidity
 enum OrderStatus { Pending, Confirmed, Shipped, Delivered, Cancelled }
@@ -516,7 +520,10 @@ mapping(uint256 => OrderStatus) public statuses;
 // statuses[999] == OrderStatus.Pending  <- even though order 999 was never created!
 ```
 
-This is a common source of bugs. A common defensive pattern is to add a sentinel first value:
+> [!warning]
+> Yeh ek common bug ka source hai. Order 999 kabhi bana hi nahi, phir bhi uska status "Pending" dikhega — jaise kisi ne kabhi order kiya hi nahi, lekin app bole "Order Placed"!
+
+Iska ek defensive pattern hai — pehli value ko sentinel bana do:
 
 ```solidity
 enum OrderStatus {
@@ -537,7 +544,7 @@ enum OrderStatus {
 
 ### Pattern 1 — Order Status Lifecycle
 
-The canonical example: an e-commerce marketplace where orders move through stages.
+Sabse classic example: ek e-commerce marketplace (Flipkart/Amazon type) jahan orders alag-alag stages se guzarte hain.
 
 ```
 Pending -> Confirmed -> Shipped -> Delivered
@@ -545,7 +552,7 @@ Pending -> Confirmed -> Shipped -> Delivered
      -> Cancelled (from Pending or Confirmed)
 ```
 
-Guards on each transition ensure business rules are respected on-chain without trusting any off-chain service.
+Har transition pe guards yeh confirm karte hain ki business rules on-chain hi follow ho rahe hain, bina kisi off-chain service pe trust kiye.
 
 ### Pattern 2 — Role-Based Access Control
 
@@ -554,7 +561,7 @@ enum Role { Guest, Member, Moderator, Admin }
 mapping(address => Role) public roles;
 ```
 
-Modifiers like `onlyAdmin` and `atLeastModerator` wrap sensitive functions. Combined with structs that store user profiles, this gives you a complete permission system.
+`onlyAdmin` aur `atLeastModerator` jaise modifiers sensitive functions ko wrap karte hain. Structs (jo user profiles store karte hain) ke saath combine karke tumhe ek complete permission system mil jata hai — bilkul jaise CRED app mein alag-alag tier ke members ko alag access milta hai.
 
 ### Pattern 3 — Auction States
 
@@ -562,7 +569,7 @@ Modifiers like `onlyAdmin` and `atLeastModerator` wrap sensitive functions. Comb
 enum AuctionState { NotStarted, Accepting, Closed, Finalized, Refunding }
 ```
 
-The `Refunding` state handles the edge case where the auction is cancelled after bids were placed — bidders can withdraw their ETH only in this state.
+`Refunding` state us edge case ko handle karta hai jahan auction cancel ho jaaye bids place hone ke baad — bidders apna ETH sirf isi state mein withdraw kar sakte hain.
 
 ---
 
@@ -686,7 +693,7 @@ contract Marketplace {
 }
 ```
 
-**What this example demonstrates:**
+**Yeh example kya-kya demonstrate karta hai:**
 
 | Feature | Where used |
 |---|---|
@@ -704,21 +711,21 @@ contract Marketplace {
 
 ## ✅ Key Takeaways
 
-1. **Structs group related data** into a single named type — use them whenever you have more than two or three related variables.
+1. **Structs related data ko group karte hain** ek single named type mein — jab bhi teen-chaar se zyada related variables ho, struct use karo.
 
-2. **`storage` vs `memory` matters:** Use `storage` when you need to modify on-chain state. Use `memory` for temporary data and function return values.
+2. **`storage` vs `memory` matter karta hai:** On-chain state modify karna ho toh `storage` use karo. Temporary data aur function return values ke liye `memory` use karo.
 
-3. **Named field initialisation** (`Order({ id: 1, buyer: ... })`) is safer than positional initialisation because it does not break when you add fields.
+3. **Named field initialisation** (`Order({ id: 1, buyer: ... })`) positional initialisation se zyada safe hai kyunki naye fields add karne pe yeh nahi tootta.
 
-4. **Pack your struct fields** — place smaller types together to share storage slots and reduce gas costs.
+4. **Struct fields ko pack karo** — chhote types ko saath rakho taaki storage slots share ho saken aur gas cost kam ho.
 
-5. **Enums are self-documenting integers** — they prevent magic number bugs and make your code readable.
+5. **Enums self-documenting integers hote hain** — yeh magic number bugs ko rokte hain aur code readable banate hain.
 
-6. **Design enums as state machines** — pair them with `require` guards on every state-changing function to enforce your business rules on-chain.
+6. **Enums ko state machines ki tarah design karo** — har state-changing function pe `require` guards lagao taaki business rules on-chain enforce ho saken.
 
-7. **The default enum value is index 0** — plan for this: either make index 0 a meaningful default (e.g., `Pending`) or use a `None` sentinel to distinguish "not found" from "freshly created".
+7. **Default enum value index 0 hoti hai** — isko dhyan mein rakhkar design karo: ya toh index 0 ko meaningful default banao (jaise `Pending`), ya `None` sentinel use karo taaki "not found" aur "freshly created" mein fark pata chal sake.
 
-8. **Enums are emitted as `uint8`** in events — your frontend decodes them by matching against the ABI.
+8. **Enums events mein `uint8` ki tarah emit hote hain** — frontend inhe ABI ke against match karke decode karta hai.
 
 ---
 
@@ -726,7 +733,7 @@ contract Marketplace {
 
 **Question 1**
 
-You have a `mapping(uint256 => Product)` and you want to update the `price` field of `products[42]`. Which of the following is correct?
+Tumhare paas `mapping(uint256 => Product)` hai aur tum `products[42]` ka `price` field update karna chahte ho. Inme se kaunsa sahi hai?
 
 ```solidity
 // Option A
@@ -741,7 +748,7 @@ p.price = 999;
 <details>
 <summary>Answer</summary>
 
-**Option B** is correct. `storage` gives you a direct reference into contract storage, so `p.price = 999` writes the value to the blockchain. With `memory` (Option A), you are working on a local copy — the change is lost when the function returns and `products[42].price` is unchanged.
+**Option B** sahi hai. `storage` tumhe contract storage ka direct reference deta hai, isliye `p.price = 999` value ko blockchain pe likh deta hai. `memory` (Option A) ke saath, tum ek local copy pe kaam kar rahe ho — function return hote hi change gayab ho jayega aur `products[42].price` unchanged rahega.
 
 </details>
 
@@ -749,19 +756,19 @@ p.price = 999;
 
 **Question 2**
 
-Given this enum:
+Yeh enum diya gaya hai:
 
 ```solidity
 enum Phase { Alpha, Beta, Launch }
 Phase public phase;
 ```
 
-What is the value of `phase` immediately after the contract is deployed, before any function is called?
+Contract deploy hone ke turant baad, kisi bhi function call se pehle, `phase` ki value kya hogi?
 
 <details>
 <summary>Answer</summary>
 
-`Phase.Alpha` — the first enum member (index 0). Unassigned enum state variables default to the member at index 0.
+`Phase.Alpha` — pehla enum member (index 0). Unassigned enum state variables default index 0 wale member pe hote hain.
 
 </details>
 
@@ -769,7 +776,7 @@ What is the value of `phase` immediately after the contract is deployed, before 
 
 **Question 3**
 
-A developer writes this code to cancel an order:
+Ek developer order cancel karne ke liye yeh code likhta hai:
 
 ```solidity
 function cancel(uint256 orderId) public {
@@ -777,18 +784,18 @@ function cancel(uint256 orderId) public {
 }
 ```
 
-What is missing, and what are the two risks?
+Kya missing hai, aur do risks kya hain?
 
 <details>
 <summary>Answer</summary>
 
-Two things are missing:
+Do cheezein missing hain:
 
-1. **Access control** — there is no check that `msg.sender` is the buyer or seller. Anyone can cancel any order.
+1. **Access control** — koi check nahi hai ki `msg.sender` buyer ya seller hai. Koi bhi kisi ka bhi order cancel kar sakta hai.
 
-2. **State guard** — there is no `require` ensuring the order is in a state where cancellation is valid (e.g., `Pending`). An already-`Delivered` order could be set back to `Cancelled`, potentially allowing a second refund if the contract also sends ETH on cancellation.
+2. **State guard** — koi `require` nahi hai jo ensure kare ki order ek valid state mein hai cancellation ke liye (jaise `Pending`). Ek already-`Delivered` order ko wapas `Cancelled` set kiya ja sakta hai, jisse potentially double refund ho sakta hai agar contract cancellation pe ETH bhi bhejta hai.
 
-The corrected version should include:
+Corrected version mein yeh hona chahiye:
 ```solidity
 require(
     msg.sender == orders[orderId].buyer ||

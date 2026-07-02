@@ -1,29 +1,29 @@
 # Chapter 8: Solana Client Development — @solana/web3.js
 
-> "The blockchain is the bank vault. @solana/web3.js is the key, the teller, and the security camera — all in one."
+> "Blockchain ek bank ka vault hai. `@solana/web3.js` uski chaabi, teller, aur security camera — teeno ek saath hai."
 
 ---
 
-## 🗺️ What This Chapter Covers
+## 🗺️ Is Chapter Mein Kya Milega
 
-By the end of this chapter you will be able to:
+Is chapter ke end tak tum ye sab kar paoge:
 
-- Connect your JavaScript/TypeScript app to any Solana cluster
-- Generate and manage keypairs and public keys
-- Build, sign, and send transactions
-- Read on-chain data (accounts, tokens, programs)
-- Subscribe to live account changes over WebSocket
-- Derive Program Derived Addresses (PDAs)
-- Call Anchor programs from the frontend using an IDL
-- Integrate the Phantom wallet via `@solana/wallet-adapter-react`
+- Apne JavaScript/TypeScript app ko kisi bhi Solana cluster se connect karna
+- Keypairs aur public keys generate + manage karna
+- Transactions build, sign, aur send karna
+- On-chain data (accounts, tokens, programs) read karna
+- WebSocket ke through live account changes subscribe karna
+- Program Derived Addresses (PDAs) derive karna
+- Anchor programs ko frontend se IDL ke through call karna
+- Phantom wallet ko `@solana/wallet-adapter-react` se integrate karna
 
-Everything is TypeScript. Every snippet is copy-paste ready.
+Sab kuch TypeScript mein hai. Har snippet copy-paste ready hai.
 
 ---
 
-## 🔌 Connection — Talking to the Network
+## 🔌 Connection — Network Se Baat Karna
 
-**Real-world analogy:** Your app is a customer. The Solana network is a bank. `Connection` is the phone line between you and the bank's call centre. Before you can ask anything, you need to dial in.
+**Real-world analogy:** Tumhara app ek customer hai. Solana network ek bank hai. `Connection` us phone line jaisa hai jo tumhe bank ke call centre se jodta hai. Kuch bhi poochne se pehle, pehle dial karna padega.
 
 ```mermaid
 graph LR
@@ -40,30 +40,32 @@ graph LR
 
 ### Cluster Endpoints
 
+**Kya hota hai?** Solana ke alag-alag "environments" hote hain — bilkul waise jaise tumhare paas dev, staging, aur production servers hote hain.
+
 | Cluster | Purpose | Free Endpoint |
 |---------|---------|---------------|
-| `mainnet-beta` | Real money, real users | `https://api.mainnet-beta.solana.com` |
-| `devnet` | Testing with fake SOL | `https://api.devnet.solana.com` |
+| `mainnet-beta` | Real paisa, real users | `https://api.mainnet-beta.solana.com` |
+| `devnet` | Testing, fake SOL ke saath | `https://api.devnet.solana.com` |
 | `testnet` | Validator stress testing | `https://api.testnet.solana.com` |
-| `localnet` | Your machine only | `http://localhost:8899` |
+| `localnet` | Sirf tumhare machine pe | `http://localhost:8899` |
 
-### When to use which cluster
+### Kaunsa cluster kab use karein
 
-**Use devnet when:** you are building or testing — free airdrops, no real money.
+**Devnet use karo jab:** tum build ya test kar rahe ho — free airdrops milte hain, koi real paisa involve nahi.
 
-**Use mainnet-beta when:** you are shipping to users with real assets.
+**Mainnet-beta use karo jab:** tum real users ko real assets ke saath ship kar rahe ho.
 
-**Never use mainnet for development.** Mistakes cost real SOL.
+**Development ke liye kabhi mainnet use mat karo.** Galti hui toh real SOL ka nuksaan hoga.
 
 ### Basic Connection
 
 ```typescript
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 
-// Built-in helper resolves the right URL for you
+// Built-in helper tumhare liye sahi URL resolve karta hai
 const devnet = new Connection(clusterApiUrl("devnet"), "confirmed");
 
-// Or use a premium RPC provider (Helius, QuickNode, etc.)
+// Ya phir ek premium RPC provider use karo (Helius, QuickNode, etc.)
 const helius = new Connection(
   "https://mainnet.helius-rpc.com/?api-key=YOUR_KEY",
   {
@@ -73,28 +75,28 @@ const helius = new Connection(
 );
 ```
 
-### Commitment Levels — How Sure Do You Want To Be?
+### Commitment Levels — Kitna Sure Hona Hai?
 
-**Analogy:** When you send a letter, you can ask for:
-- "Just drop it in the mailbox" (processed — fast, uncertain)
-- "Confirm it was delivered" (confirmed — safe for most apps)
-- "Get a signed receipt" (finalized — absolute certainty, slower)
+**Analogy:** Jab tum courier bhejte ho (Zomato order ki tarah), tum keh sakte ho:
+- "Bas dabbe mein daal do" (processed — fast, par uncertain)
+- "Confirm karo delivery ho gayi" (confirmed — zyaadatar apps ke liye safe)
+- "Signed receipt do" (finalized — 100% pakka, but slow)
 
 ```typescript
-// "processed"  — included in a block, may still be rolled back (~400 ms)
-// "confirmed"  — 66% of stake voted on it (~800 ms)
-// "finalized"  — fully irreversible (~10-15 s)
+// "processed"  — block mein include ho gaya, par rollback ho sakta hai (~400 ms)
+// "confirmed"  — 66% stake ne vote kar diya (~800 ms)
+// "finalized"  — poori tarah irreversible (~10-15 s)
 
 const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
 ```
 
-For most user-facing apps, `"confirmed"` is the sweet spot.
+Zyaadatar user-facing apps ke liye `"confirmed"` hi sweet spot hai.
 
 ---
 
-## 🔑 Keypair — Your Identity on Solana
+## 🔑 Keypair — Solana Pe Tumhari Pehchaan
 
-**Analogy:** A keypair is like a mailbox. The public key is the address printed on it — anyone can send mail there. The secret key is the key in your pocket — only you can open it and take things out.
+**Analogy:** Keypair ek mailbox jaisa hai. Public key woh address hai jo mailbox pe likha hota hai — koi bhi wahan chitthi bhej sakta hai. Secret key tumhari jeb ki chaabi hai — sirf tum hi usse khol ke cheezein nikaal sakte ho.
 
 ```mermaid
 graph TD
@@ -105,38 +107,38 @@ graph TD
     SK & PK --> KP
 ```
 
-### Generate a New Keypair
+### Naya Keypair Generate Karna
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
 
-// Brand new random keypair (never seen before)
+// Bilkul naya random keypair (kabhi dekha nahi gaya)
 const keypair = Keypair.generate();
 
 console.log("Public Key :", keypair.publicKey.toBase58());
 // "7xKXtg2CW..."
 console.log("Secret Key :", keypair.secretKey);
-// Uint8Array(64) — first 32 bytes are the private key seed
+// Uint8Array(64) — pehle 32 bytes private key seed hai
 ```
 
-### Restore from a Raw Secret Key
+### Raw Secret Key Se Restore Karna
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 
-// If you have it as a base58 string (Phantom export format)
+// Agar base58 string hai (Phantom export format)
 const secretKeyBase58 = "YOUR_BASE58_SECRET_KEY";
 const keypair = Keypair.fromSecretKey(bs58.decode(secretKeyBase58));
 
-// If you have it as a raw byte array (e.g., from a JSON file)
+// Agar raw byte array hai (jaise JSON file se)
 const rawBytes = new Uint8Array([12, 34, 56, /* ... 64 bytes total */]);
 const keypairFromBytes = Keypair.fromSecretKey(rawBytes);
 ```
 
-### Restore from a Mnemonic (BIP39 Seed Phrase)
+### Mnemonic (BIP39 Seed Phrase) Se Restore Karna
 
-This is how Phantom, Backpack, and most wallets derive keys.
+Phantom, Backpack aur zyaadatar wallets isi tarah keys derive karte hain.
 
 ```typescript
 import { Keypair } from "@solana/web3.js";
@@ -155,7 +157,7 @@ const keypair = Keypair.fromSeed(derivedSeed);
 console.log(keypair.publicKey.toBase58());
 ```
 
-### PublicKey — The Address Type
+### PublicKey — Address Ka Type
 
 ```typescript
 import { PublicKey } from "@solana/web3.js";
@@ -165,7 +167,7 @@ const pk = new PublicKey("7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU");
 // Comparison
 pk.equals(new PublicKey("7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU")); // true
 
-// Commonly used system addresses
+// Commonly use hone wale system addresses
 const SYSTEM_PROGRAM = PublicKey.default; // 11111111111111111111111111111111
 ```
 
@@ -173,7 +175,7 @@ const SYSTEM_PROGRAM = PublicKey.default; // 11111111111111111111111111111111
 
 ## 🏗️ Transaction Anatomy
 
-**Analogy:** A Solana transaction is like a signed legal document. It names who is paying the notary fee (fee payer), what actions to take (instructions), and has a freshness date stamped on it (recent blockhash) so it cannot be replayed days later.
+**Analogy:** Solana transaction ek signed legal document jaisa hai. Ismein likha hota hai kaun notary fee de raha hai (fee payer), kya actions karne hain (instructions), aur ek freshness date stamp lagi hoti hai (recent blockhash) taaki koi usko din baad replay na kar sake.
 
 ```mermaid
 graph TD
@@ -195,9 +197,9 @@ graph TD
     I1 --> D1["instruction data (bytes)"]
 ```
 
-### TransactionInstruction — The Atomic Unit
+### TransactionInstruction — Sabse Chhoti Unit
 
-Every instruction says: "Hey *this program*, do *this thing*, to *these accounts*, with *this data*."
+Har instruction basically ye kehta hai: "Aye *ye program*, *ye kaam* kar, *in accounts* pe, *is data* ke saath."
 
 ```typescript
 import {
@@ -208,38 +210,40 @@ import {
 const instruction = new TransactionInstruction({
   programId: new PublicKey("YourProgramId..."),
 
-  // Every account the instruction touches
+  // Instruction jitne bhi accounts touch karta hai
   keys: [
     {
       pubkey: new PublicKey("AccountA..."),
-      isSigner: true,   // must sign the transaction
-      isWritable: true, // will be modified
+      isSigner: true,   // transaction ko sign karna zaruri hai
+      isWritable: true, // modify hoga
     },
     {
       pubkey: new PublicKey("AccountB..."),
       isSigner: false,
-      isWritable: false, // read-only
+      isWritable: false, // sirf read-only
     },
   ],
 
-  // Raw bytes — program interprets this however it wants
+  // Raw bytes — program isko jaise chaahe interpret karega
   data: Buffer.from([0, 1, 2, 3]),
 });
 ```
 
 ### Legacy Transaction vs VersionedTransaction
 
+**Kya farak hai?** Socho Legacy `Transaction` ek chhoti UPI app jaisa hai — simple, limited accounts. `VersionedTransaction` ek advanced payment gateway jaisa hai jo Address Lookup Tables (ALTs) ke through bahut zyada accounts handle kar sakta hai.
+
 | Feature | Legacy `Transaction` | `VersionedTransaction` |
 |---|---|---|
-| Introduced | Genesis | Solana 1.14+ |
-| Address Lookup Tables (ALTs) | No | Yes |
-| Max unique accounts | ~35 | ~256 (with ALTs) |
+| Introduced | Genesis se | Solana 1.14+ |
+| Address Lookup Tables (ALTs) | Nahi | Haan |
+| Max unique accounts | ~35 | ~256 (ALTs ke saath) |
 | Serialization format | v0 legacy | v0 message format |
-| Use today? | Simple scripts | Production DeFi/NFT apps |
+| Aaj use hota hai? | Simple scripts | Production DeFi/NFT apps |
 
-**When to use Legacy:** quick scripts, learning, simple SOL transfers.
+**Legacy kab use karein:** quick scripts, seekhne ke liye, simple SOL transfers.
 
-**When to use VersionedTransaction:** complex DeFi instructions touching many accounts, any app using Address Lookup Tables.
+**VersionedTransaction kab use karein:** complex DeFi instructions jo bahut saare accounts touch karte hain, ya jab Address Lookup Tables use ho rahi hain.
 
 ```typescript
 import {
@@ -279,7 +283,7 @@ const message = new TransactionMessage({
       lamports: 1_000_000,
     }),
   ],
-}).compileToV0Message(); // pass Address Lookup Tables here if needed
+}).compileToV0Message(); // yahan Address Lookup Tables pass karo agar chahiye
 
 const versionedTx = new VersionedTransaction(message);
 versionedTx.sign([payer]);
@@ -287,11 +291,11 @@ versionedTx.sign([payer]);
 
 ---
 
-## 🚀 Sending Transactions
+## 🚀 Transactions Send Karna
 
-**Analogy:** Building a transaction is writing a cheque. Sending it is depositing it at the bank. You need both steps — and you need to watch the teller confirm it went through.
+**Analogy:** Transaction banana ek cheque likhne jaisa hai. Usko bhejna bank mein deposit karna hai. Dono steps chahiye — aur teller ke confirm karne tak dekhna bhi padta hai.
 
-### sendAndConfirmTransaction (easiest way)
+### sendAndConfirmTransaction (sabse aasan tareeka)
 
 ```typescript
 import {
@@ -320,7 +324,7 @@ async function transferSOL(
     })
   );
 
-  // This call: fetches blockhash, signs, sends, and polls for confirmation
+  // Ye ek call: blockhash fetch karta hai, sign karta hai, bhejta hai, aur confirmation ke liye poll karta hai
   const signature = await sendAndConfirmTransaction(conn, transaction, [from]);
 
   console.log(`Transaction confirmed: https://solscan.io/tx/${signature}?cluster=devnet`);
@@ -328,9 +332,9 @@ async function transferSOL(
 }
 ```
 
-### sendRawTransaction (more control)
+### sendRawTransaction (zyaada control)
 
-Use this when the wallet has already signed (e.g., Phantom), or you need fine-grained error handling.
+Ye tab use karo jab wallet pehle se sign kar chuka ho (jaise Phantom), ya jab tumhe fine-grained error handling chahiye.
 
 ```typescript
 async function sendSigned(
@@ -340,12 +344,12 @@ async function sendSigned(
   const rawTx = signedTx.serialize();
 
   const signature = await conn.sendRawTransaction(rawTx, {
-    skipPreflight: false,    // simulate before sending (catch errors early)
+    skipPreflight: false,    // bhejne se pehle simulate karo (errors jaldi pakdo)
     preflightCommitment: "confirmed",
     maxRetries: 5,
   });
 
-  // Now manually confirm
+  // Ab manually confirm karo
   const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
   await conn.confirmTransaction(
     { signature, blockhash, lastValidBlockHeight },
@@ -358,20 +362,20 @@ async function sendSigned(
 
 ### confirmTransaction Strategies
 
-| Strategy | When To Use |
+| Strategy | Kab Use Karein |
 |---|---|
 | `sendAndConfirmTransaction` | Scripts, server-side code |
-| Poll `getSignatureStatuses` | Custom UI with progress bar |
-| `confirmTransaction` with blockhash | Most reliable (avoids false timeouts) |
-| WebSocket `onSignature` | Real-time notification to UI |
+| `getSignatureStatuses` poll karna | Custom UI with progress bar |
+| Blockhash ke saath `confirmTransaction` | Sabse reliable (false timeouts avoid karta hai) |
+| WebSocket `onSignature` | UI ko real-time notification |
 
-Always prefer the **blockhash-based** `confirmTransaction` — it avoids spurious timeout errors because the node knows exactly when the transaction has "expired" vs "not yet confirmed."
+Hamesha **blockhash-based** `confirmTransaction` use karna prefer karo — ye galat timeout errors se bachata hai kyunki node ko exactly pata hota hai transaction "expire" hua ya sirf "abhi confirm nahi hua."
 
 ---
 
-## 🪂 Airdrop SOL on Devnet
+## 🪂 Devnet Pe SOL Airdrop Karna
 
-**Analogy:** Devnet has a faucet — like a free water fountain. You can ask it for test SOL to pay for fees.
+**Analogy:** Devnet mein ek faucet hota hai — free paani ke fountain jaisa. Tum usse test SOL maang sakte ho fees pay karne ke liye.
 
 ```typescript
 import {
@@ -390,7 +394,7 @@ async function airdropDevnet(keypair: Keypair, solAmount: number) {
     solAmount * LAMPORTS_PER_SOL
   );
 
-  // Wait for confirmation
+  // Confirmation ka wait karo
   const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
   await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight });
 
@@ -403,13 +407,13 @@ const wallet = Keypair.generate();
 await airdropDevnet(wallet, 2);
 ```
 
-> Devnet airdrop is rate-limited. If it fails, use https://faucet.solana.com or `solana airdrop` CLI.
+> Devnet airdrop rate-limited hai. Agar fail ho jaaye, toh https://faucet.solana.com ya `solana airdrop` CLI use karo.
 
 ---
 
-## 📖 Reading Account Data
+## 📖 Account Data Padhna
 
-**Analogy:** Every account on Solana is like a safe deposit box at the bank. You can see who owns it and how much is in it without needing a key. But to understand what's *inside* (the raw bytes), you need to know the box's "format" (the account schema).
+**Analogy:** Solana pe har account bank ka safe deposit box jaisa hai. Tum dekh sakte ho kiska hai aur usmein kitna balance hai bina key ke. Par andar kya hai (raw bytes) ye samajhne ke liye tumhe us box ka "format" (account schema) pata hona chahiye.
 
 ### getAccountInfo
 
@@ -423,21 +427,21 @@ async function readAccount(address: string) {
   const accountInfo = await conn.getAccountInfo(pubkey);
 
   if (!accountInfo) {
-    console.log("Account does not exist (or has no SOL lamports)");
+    console.log("Account exist nahi karta (ya usme lamports nahi hai)");
     return;
   }
 
   console.log("Owner program :", accountInfo.owner.toBase58());
-  console.log("Lamports      :", accountInfo.lamports);         // in lamports
+  console.log("Lamports      :", accountInfo.lamports);         // lamports mein
   console.log("Executable?   :", accountInfo.executable);       // true = program
   console.log("Data length   :", accountInfo.data.length, "bytes");
   console.log("Raw data      :", accountInfo.data);             // Buffer
 }
 ```
 
-### getProgramAccounts — Find All Accounts Owned By a Program
+### getProgramAccounts — Ek Program Ke Saare Accounts Dhoondo
 
-**Analogy:** Instead of looking up one safe deposit box by number, you ask: "Show me every box in this branch owned by Company X."
+**Analogy:** Ek box number se ek box dhoondne ke bajaye, tum poochte ho: "Is branch mein Company X ke saare boxes dikhao."
 
 ```typescript
 import {
@@ -452,12 +456,12 @@ async function getProgramAccounts(programId: string) {
 
   const filters: GetProgramAccountsFilter[] = [
     {
-      dataSize: 165, // only accounts with exactly 165 bytes (e.g., SPL token accounts)
+      dataSize: 165, // sirf 165 bytes wale accounts (jaise SPL token accounts)
     },
     {
       memcmp: {
-        offset: 32,          // byte offset inside account data
-        bytes: "YourWalletBase58Address", // must match at that offset
+        offset: 32,          // account data ke andar byte offset
+        bytes: "YourWalletBase58Address", // usi offset pe match hona chahiye
       },
     },
   ];
@@ -473,13 +477,13 @@ async function getProgramAccounts(programId: string) {
 }
 ```
 
-> `getProgramAccounts` can be slow on mainnet for popular programs. Use Helius DAS API or indexed RPCs when possible.
+> `getProgramAccounts` mainnet pe popular programs ke liye slow ho sakta hai. Jab possible ho, Helius DAS API ya indexed RPCs use karo.
 
 ---
 
 ## 📡 WebSocket Subscriptions — Live Updates
 
-**Analogy:** Instead of calling the bank every 5 seconds to check your balance, you ask them to text you whenever something changes. That is what WebSocket subscriptions do.
+**Analogy:** Har 5 second mein bank ko call karke balance check karne ke bajaye, tum unse kehte ho ki jab bhi kuch change ho, text kar dena. WebSocket subscriptions bilkul yahi karte hain.
 
 ### onAccountChange
 
@@ -487,7 +491,7 @@ async function getProgramAccounts(programId: string) {
 import { Connection, PublicKey, clusterApiUrl, AccountInfo } from "@solana/web3.js";
 
 function watchAccount(address: string) {
-  // Must use a WebSocket-capable RPC (wss://)
+  // WebSocket-capable RPC (wss://) use karna zaruri hai
   const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
 
   const pubkey = new PublicKey(address);
@@ -504,12 +508,12 @@ function watchAccount(address: string) {
 
   console.log("Subscribed, id:", subscriptionId);
 
-  // To stop listening later:
+  // Baad mein sunna band karne ke liye:
   // await conn.removeAccountChangeListener(subscriptionId);
 }
 ```
 
-### onProgramAccountChange — Watch All Accounts of a Program
+### onProgramAccountChange — Ek Program Ke Saare Accounts Watch Karna
 
 ```typescript
 function watchProgramAccounts(programId: string) {
@@ -525,15 +529,15 @@ function watchProgramAccounts(programId: string) {
     [{ dataSize: 165 }] // optional filters
   );
 
-  return id; // store to unsubscribe later
+  return id; // baad mein unsubscribe karne ke liye store karo
 }
 ```
 
-> WebSocket connections drop. In production, reconnect on disconnect and re-subscribe. Libraries like `@solana/spl-token` handle some of this for you.
+> WebSocket connections drop ho jaate hain. Production mein disconnect pe reconnect karo aur re-subscribe karo. `@solana/spl-token` jaisi libraries kuch cheezein tumhare liye handle kar deti hain.
 
 ---
 
-## 💰 Reading Token Balances
+## 💰 Token Balances Padhna
 
 ```typescript
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
@@ -547,26 +551,26 @@ async function getTokenBalance(walletAddress: string, mintAddress: string) {
   const wallet = new PublicKey(walletAddress);
   const mint   = new PublicKey(mintAddress);
 
-  // Derive the Associated Token Account (ATA) address
+  // Associated Token Account (ATA) ka address derive karo
   const ataAddress = await getAssociatedTokenAddress(mint, wallet);
 
   try {
     const tokenAccount = await getAccount(conn, ataAddress);
-    const decimals = 6; // get this from the mint account or hardcode for known tokens
+    const decimals = 6; // ye mint account se lo ya known tokens ke liye hardcode karo
 
     const uiAmount = Number(tokenAccount.amount) / Math.pow(10, decimals);
     console.log(`Token balance: ${uiAmount}`);
     return uiAmount;
   } catch (e) {
-    console.log("Token account does not exist — wallet holds 0 of this token");
+    console.log("Token account exist nahi karta — wallet ke paas is token ka 0 balance hai");
     return 0;
   }
 }
 
-// Example: read USDC balance
+// Example: USDC balance padho
 await getTokenBalance(
   "YourWalletAddress...",
-  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" // USDC mint on mainnet
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" // Mainnet pe USDC mint
 );
 ```
 
@@ -574,7 +578,7 @@ await getTokenBalance(
 
 ## 🧮 Program Derived Addresses (PDAs)
 
-**Analogy:** A PDA is like a P.O. Box assigned to a specific company and customer combination. No one has the private key for that box — only the program (company) can "open" it by signing from inside the program itself.
+**Analogy:** PDA ek P.O. Box jaisa hai jo ek specific company aur customer combination ko assign kiya gaya hai. Uss box ki private key kisi ke paas nahi hoti — sirf woh program (company) us box ko "khol" sakta hai, program ke andar se sign karke.
 
 ```mermaid
 graph LR
@@ -596,7 +600,7 @@ import { PublicKey } from "@solana/web3.js";
 const PROGRAM_ID = new PublicKey("YourProgramId...");
 const userWallet = new PublicKey("UserWalletAddress...");
 
-// Seeds are arbitrary bytes — must match what your program uses on-chain
+// Seeds arbitrary bytes hote hain — on-chain program jo use kar raha hai wahi match karna chahiye
 const [pdaAddress, bumpSeed] = PublicKey.findProgramAddressSync(
   [
     Buffer.from("vault"),         // string seed
@@ -607,16 +611,16 @@ const [pdaAddress, bumpSeed] = PublicKey.findProgramAddressSync(
 
 console.log("PDA address:", pdaAddress.toBase58());
 console.log("Bump seed  :", bumpSeed);
-// bump is included in instructions so the program can re-derive and verify
+// bump instructions mein include hota hai taaki program re-derive karke verify kar sake
 ```
 
-The bump guarantees the derived address is NOT on the ed25519 curve, which means no one can have a private key for it. Only the program can "sign" for it via `invoke_signed` in Rust.
+Bump guarantee karta hai ki derived address ed25519 curve pe NAHI hai, jiska matlab hai ki uske liye kisi ke paas private key ho hi nahi sakti. Sirf program hi uske liye "sign" kar sakta hai Rust mein `invoke_signed` ke through.
 
 ---
 
-## ⚓ Calling Anchor Programs from the Frontend
+## ⚓ Frontend Se Anchor Programs Call Karna
 
-**Analogy:** An Anchor IDL is like a restaurant menu. Instead of writing raw bytes, you say "I want item #3 with these parameters," and the Anchor client handles the serialization for you.
+**Analogy:** Anchor IDL ek restaurant ke menu jaisa hai. Raw bytes likhne ke bajaye, tum bolte ho "mujhe item #3 chahiye in parameters ke saath," aur serialization Anchor client khud handle kar leta hai.
 
 ```mermaid
 graph LR
@@ -638,13 +642,13 @@ graph LR
 npm install @coral-xyz/anchor
 ```
 
-### Full Example — Initialize and Call an Anchor Program
+### Full Example — Anchor Program Initialize Aur Call Karna
 
 ```typescript
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program, web3, BN, Idl } from "@coral-xyz/anchor";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import myIdl from "./idl/my_program.json"; // generated by `anchor build`
+import myIdl from "./idl/my_program.json"; // `anchor build` se generate hota hai
 
 const PROGRAM_ID = new PublicKey("YourProgramId...");
 
@@ -653,21 +657,21 @@ async function callAnchorInstruction(wallet: ReturnType<typeof useAnchorWallet>)
 
   const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
 
-  // AnchorProvider wraps connection + wallet into one object
+  // AnchorProvider connection + wallet ko ek object mein wrap karta hai
   const provider = new AnchorProvider(conn, wallet, {
     commitment: "confirmed",
   });
 
-  // Typed program client generated from IDL
+  // IDL se generate hua typed program client
   const program = new Program(myIdl as Idl, PROGRAM_ID, provider);
 
-  // Derive any PDAs your instruction needs
+  // Instruction ko jo bhi PDAs chahiye woh derive karo
   const [vault, bump] = PublicKey.findProgramAddressSync(
     [Buffer.from("vault"), wallet.publicKey.toBuffer()],
     PROGRAM_ID
   );
 
-  // Call the instruction — Anchor handles serialization, accounts, etc.
+  // Instruction call karo — Anchor serialization, accounts, sab handle karta hai
   const tx = await program.methods
     .initializeVault(new BN(1_000_000)) // instruction arguments
     .accounts({
@@ -681,13 +685,13 @@ async function callAnchorInstruction(wallet: ReturnType<typeof useAnchorWallet>)
 }
 ```
 
-The `.rpc()` call builds the transaction, requests the wallet to sign it, sends it, and waits for confirmation. You can also use `.transaction()` to get the raw `Transaction` object and sign it yourself.
+`.rpc()` call transaction build karta hai, wallet se sign karwane ki request karta hai, bhejta hai, aur confirmation ka wait karta hai. Tum `.transaction()` bhi use kar sakte ho agar raw `Transaction` object chahiye aur khud sign karna ho.
 
 ---
 
 ## 👻 Phantom Wallet Adapter Integration
 
-**Analogy:** Your app doesn't hold anyone's private keys — that's the wallet's job. The wallet adapter is the official handshake protocol between your app and wallets like Phantom, Backpack, or Solflare.
+**Analogy:** Tumhara app kisi ki bhi private key hold nahi karta — woh wallet ka kaam hai. Wallet adapter tumhare app aur Phantom, Backpack, ya Solflare jaise wallets ke beech official handshake protocol hai.
 
 ### Installation
 
@@ -716,7 +720,7 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 
-// Import default styles
+// Default styles import karo
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 const App: FC = () => {
@@ -726,7 +730,7 @@ const App: FC = () => {
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      // Add more: new SolflareWalletAdapter(), new BackpackWalletAdapter(), etc.
+      // Aur add karo: new SolflareWalletAdapter(), new BackpackWalletAdapter(), etc.
     ],
     []
   );
@@ -744,7 +748,7 @@ const App: FC = () => {
 };
 ```
 
-### Using Wallet in Components
+### Components Mein Wallet Use Karna
 
 ```tsx
 // SendSOL.tsx
@@ -764,7 +768,7 @@ export const SendSOL: React.FC = () => {
 
   const handleSend = async () => {
     if (!publicKey) {
-      setStatus("Connect your wallet first");
+      setStatus("Pehle apna wallet connect karo");
       return;
     }
 
@@ -782,7 +786,7 @@ export const SendSOL: React.FC = () => {
     );
 
     try {
-      // sendTransaction handles: blockhash, signing via Phantom, sending
+      // sendTransaction handle karta hai: blockhash, Phantom se signing, sending
       const { blockhash, lastValidBlockHeight } =
         await connection.getLatestBlockhash();
 
@@ -817,17 +821,17 @@ export const SendSOL: React.FC = () => {
 
 ### Key Hooks Reference
 
-| Hook | Returns | Use For |
+| Hook | Return Karta Hai | Kab Use Karein |
 |---|---|---|
-| `useWallet()` | `{ publicKey, connected, signTransaction, sendTransaction, ... }` | Signing and sending |
-| `useConnection()` | `{ connection }` | Reading on-chain data |
-| `useAnchorWallet()` | `wallet` compatible with `AnchorProvider` | Calling Anchor programs |
+| `useWallet()` | `{ publicKey, connected, signTransaction, sendTransaction, ... }` | Signing aur sending |
+| `useConnection()` | `{ connection }` | On-chain data padhna |
+| `useAnchorWallet()` | `wallet` (AnchorProvider ke compatible) | Anchor programs call karna |
 
 ---
 
-## 🧩 Putting It All Together — Full TypeScript Examples
+## 🧩 Sab Kuch Ek Saath — Full TypeScript Examples
 
-### Example 1: Transfer SOL (Node.js script, no wallet adapter)
+### Example 1: SOL Transfer (Node.js script, wallet adapter ke bina)
 
 ```typescript
 import {
@@ -840,7 +844,7 @@ import bs58 from "bs58";
 async function main() {
   const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
 
-  // Load sender from environment (never hardcode in production)
+  // Sender ko environment se load karo (production mein kabhi hardcode mat karo)
   const sender = Keypair.fromSecretKey(
     bs58.decode(process.env.SENDER_SECRET_KEY!)
   );
@@ -865,7 +869,7 @@ async function main() {
 main().catch(console.error);
 ```
 
-### Example 2: Read Token Balance (any mint)
+### Example 2: Token Balance Padhna (koi bhi mint)
 
 ```typescript
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
@@ -880,7 +884,7 @@ async function readTokenBalance(walletStr: string, mintStr: string) {
   const wallet = new PublicKey(walletStr);
   const mint   = new PublicKey(mintStr);
 
-  // Fetch mint info to get decimals
+  // Decimals ke liye mint info fetch karo
   const mintInfo = await getMint(conn, mint);
 
   const ata = getAssociatedTokenAddressSync(mint, wallet);
@@ -891,7 +895,7 @@ async function readTokenBalance(walletStr: string, mintStr: string) {
     console.log(`Balance: ${amount} tokens`);
     return amount;
   } catch {
-    console.log("No token account (balance = 0)");
+    console.log("Token account nahi hai (balance = 0)");
     return 0;
   }
 }
@@ -902,7 +906,7 @@ await readTokenBalance(
 );
 ```
 
-### Example 3: Call Program Instruction (raw, no Anchor)
+### Example 3: Program Instruction Call Karna (raw, bina Anchor ke)
 
 ```typescript
 import {
@@ -912,7 +916,7 @@ import {
 } from "@solana/web3.js";
 import * as borsh from "borsh";
 
-// Define your instruction data schema (must match on-chain program)
+// Instruction data schema define karo (on-chain program se match hona chahiye)
 class IncrementInstruction {
   instruction: number;
   amount: number;
@@ -951,59 +955,61 @@ async function callProgram(signer: Keypair, counterAccount: PublicKey) {
 
 ## 📊 RPC Provider Comparison
 
+**Kyun zaruri hai?** Public RPC endpoint free hai, par production app ke liye woh IRCTC ki tatkal booking jaisa hai — bharosa nahi kar sakte peak load pe. Isliye dedicated provider chunna zaruri hota hai.
+
 | Provider | Free Tier | Standout Feature | Best For |
 |---|---|---|---|
-| Public Solana RPC | Unlimited (rate-limited) | Zero setup | Development/testing only |
+| Public Solana RPC | Unlimited (rate-limited) | Zero setup | Sirf development/testing |
 | Helius | 100k credits/day | DAS API (NFT/token indexing), webhooks | Production DeFi/NFT apps |
 | QuickNode | 10M credits/month | Multi-chain, low-latency | High-throughput trading bots |
 | Triton | Custom pricing | Archive nodes, gRPC (Geyser) | Analytics, indexers |
-| Alchemy | 100M compute units/month | Best web2 DevEx | Web2 teams entering Solana |
+| Alchemy | 100M compute units/month | Best web2 DevEx | Web2 teams jo Solana mein aa rahe hain |
 
-**When NOT to use the public endpoint in production:** The public Solana RPC is heavily rate-limited and has no SLA. A single large NFT drop or DEX trade can cause it to be unavailable. Always use a dedicated provider for user-facing apps.
+**Production mein public endpoint kab use NA karein:** Public Solana RPC heavily rate-limited hai aur koi SLA nahi hota. Ek bada NFT drop ya DEX trade isko unavailable kar sakta hai. User-facing apps ke liye hamesha dedicated provider use karo.
 
 ---
 
 ## ⚡ Performance Tips
 
-1. **Reuse your `Connection` object** — creating one per request is wasteful. Create once, export, reuse.
-2. **Use `getMultipleAccountsInfo`** instead of many `getAccountInfo` calls — batches up to 100 accounts in one request.
-3. **Set `skipPreflight: true` for high-frequency bots** — preflight simulation adds ~100 ms latency.
-4. **Use `dataSlice`** in `getAccountInfo` to read only the bytes you need from large accounts.
-5. **Prefer `getParsedAccountInfo`** for token accounts — returns human-readable JSON instead of raw bytes.
+1. **`Connection` object reuse karo** — har request pe naya banana wasteful hai. Ek baar banao, export karo, reuse karo.
+2. **`getMultipleAccountsInfo` use karo** bahut saare `getAccountInfo` calls ke bajaye — ek hi request mein 100 tak accounts batch karta hai.
+3. **High-frequency bots ke liye `skipPreflight: true` set karo** — preflight simulation ~100 ms latency add karta hai.
+4. **`dataSlice` use karo** `getAccountInfo` mein — bade accounts se sirf jo bytes chahiye woh padhne ke liye.
+5. **`getParsedAccountInfo` prefer karo** token accounts ke liye — raw bytes ke bajaye human-readable JSON return karta hai.
 
 ```typescript
-// Batch multiple account reads
+// Multiple account reads batch karna
 const accounts = await conn.getMultipleAccountsInfo([
   pubkey1, pubkey2, pubkey3
 ]);
-// Returns array of AccountInfo | null, one per pubkey
+// Har pubkey ke liye AccountInfo | null ka array return karta hai
 ```
 
 ---
 
 ## 🎯 Key Takeaways
 
-| Topic | Remember This |
+| Topic | Yaad Rakho |
 |---|---|
-| **Connection** | Use `"confirmed"` commitment for most apps. Use a premium RPC in production. |
-| **Keypair** | Never store secret keys in code. Use env vars, KMS, or hardware wallets. |
-| **Transaction** | Always include `recentBlockhash` and `feePayer`. Blockhashes expire in ~60 seconds. |
-| **VersionedTransaction** | Use v0 for complex DeFi. Legacy is fine for simple transfers. |
-| **confirmTransaction** | Use the blockhash-based overload — it is more reliable than polling. |
-| **getAccountInfo** | Returns raw bytes. You need to know the schema to decode them. |
-| **WebSocket subs** | Great for live UIs. Always handle reconnects in production. |
-| **PDA** | Deterministic, no private key. Derived from seeds + program ID. Must match on-chain. |
-| **Anchor IDL** | Generates a typed client. `.rpc()` does everything. Use `.transaction()` for manual control. |
-| **Wallet Adapter** | Never touch private keys in your frontend. The wallet signs, you send. |
+| **Connection** | Zyaadatar apps ke liye `"confirmed"` commitment use karo. Production mein premium RPC use karo. |
+| **Keypair** | Secret keys kabhi code mein store mat karo. Env vars, KMS, ya hardware wallets use karo. |
+| **Transaction** | Hamesha `recentBlockhash` aur `feePayer` include karo. Blockhash ~60 second mein expire ho jaata hai. |
+| **VersionedTransaction** | Complex DeFi ke liye v0 use karo. Simple transfers ke liye Legacy theek hai. |
+| **confirmTransaction** | Blockhash-based overload use karo — polling se zyaada reliable hai. |
+| **getAccountInfo** | Raw bytes return karta hai. Decode karne ke liye schema pata hona chahiye. |
+| **WebSocket subs** | Live UIs ke liye badhiya. Production mein reconnects hamesha handle karo. |
+| **PDA** | Deterministic hai, private key nahi hoti. Seeds + program ID se derive hota hai. On-chain se match hona chahiye. |
+| **Anchor IDL** | Typed client generate karta hai. `.rpc()` sab kuch kar deta hai. Manual control ke liye `.transaction()` use karo. |
+| **Wallet Adapter** | Frontend mein kabhi private keys touch mat karo. Wallet sign karta hai, tum bhejte ho. |
 
 ---
 
-## 📚 What Comes Next
+## 📚 Aage Kya Aayega
 
 - **Chapter 9:** SPL Token Program — minting, transferring, burning, associated token accounts
-- **Chapter 10:** Anchor Programs — writing on-chain Rust programs with the Anchor framework
-- **Chapter 11:** Metaplex — NFTs, compressed NFTs, and the Digital Asset Standard
+- **Chapter 10:** Anchor Programs — Anchor framework ke saath on-chain Rust programs likhna
+- **Chapter 11:** Metaplex — NFTs, compressed NFTs, aur Digital Asset Standard
 
 ---
 
-*The best way to learn this is to run it. Start with a devnet keypair, airdrop some SOL, and send your first transaction. The blockchain does not lie — if the transaction lands, your code works.*
+*Isko seekhne ka sabse achha tareeka hai run karna. Devnet keypair se shuru karo, thoda SOL airdrop karo, aur apna pehla transaction bhejo. Blockchain jhooth nahi bolta — agar transaction land ho gaya, matlab tumhara code kaam kar raha hai.*

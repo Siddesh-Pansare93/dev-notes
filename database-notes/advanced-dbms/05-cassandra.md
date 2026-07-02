@@ -1,90 +1,90 @@
 # 🏔️ Chapter 5: Cassandra — Wide Column Store for Massive Scale
 
-> **Who this is for:** Developers who understand SQL and basic NoSQL but want to go deep on how systems like Netflix, Apple, and Instagram handle millions of writes per second without a single point of failure.
+> **Ye kiske liye hai:** Un developers ke liye jo SQL aur basic NoSQL samajhte hain, lekin ab deep jaana chahte hain ki Netflix, Apple, aur Instagram jaise systems kaise millions writes per second handle karte hain, woh bhi bina kisi single point of failure ke.
 
 ---
 
-## 🌍 The Scale Problem That Created Cassandra
+## 🌍 Scale Ka Problem Jisne Cassandra Ko Janm Diya
 
-Imagine you run the world's largest inbox system. Every user on the planet can send messages to every other user. At peak, you have **millions of writes per second**. Your relational database — no matter how beefy the server — starts to buckle. You try to add read replicas. Writes are still a bottleneck because they all go to one primary server. You try sharding PostgreSQL manually. Now you have 64 shards, each with its own primary, and cross-shard queries are a nightmare.
+Socho tum duniya ka sabse bada inbox system chala rahe ho. Planet ka har user har dusre user ko message bhej sakta hai. Peak time pe tumhare paas **millions writes per second** aa rahe hain. Tumhara relational database — chahe server kitna bhi beefy ho — buckle karna shuru kar deta hai. Tum read replicas add karte ho. Par writes abhi bhi bottleneck hain kyunki sab ek hi primary server pe jaate hain. Tum PostgreSQL ko manually shard karte ho. Ab tumhare paas 64 shards hain, har ek ka apna primary, aur cross-shard queries ek nightmare ban jaate hain.
 
-Facebook built Cassandra in 2007 exactly to solve this problem. They needed a database where:
+Facebook ne 2007 mein Cassandra bilkul isi problem ko solve karne ke liye banaya. Unhe ek aisa database chahiye tha jahan:
 
-- **Every node can accept writes** — no single primary server
-- **Adding more nodes linearly increases capacity** — no re-sharding pain
-- **The system stays up even when data centers go down** — multi-region by design
-- **Reads and writes are always fast** — O(log N) or better, even at petabyte scale
+- **Har node writes accept kar sake** — koi single primary server na ho
+- **Zyada nodes add karne se capacity linearly badhe** — re-sharding ka dard na ho
+- **System up rahe chahe data centers down ho jaayein** — multi-region by design
+- **Reads aur writes hamesha fast ho** — O(log N) ya usse behtar, petabyte scale pe bhi
 
-Facebook open-sourced Cassandra to Apache in 2008. Today, Netflix uses it to store viewing history for 300 million subscribers. Apple runs one of the world's largest Cassandra deployments — thousands of nodes storing iCloud data. Discord stored trillions of messages in it.
+Facebook ne 2008 mein Cassandra ko Apache ko open-source kar diya. Aaj, Netflix ise 300 million subscribers ki viewing history store karne ke liye use karta hai. Apple duniya ke sabse bade Cassandra deployments mein se ek chalata hai — thousands of nodes jo iCloud data store karte hain. Discord ne trillions messages isi mein store kiye.
 
 ---
 
-## 🗂️ What Kind of Database IS Cassandra?
+## 🗂️ Cassandra Hai Kaunsa Type Ka Database?
 
-Think of a traditional spreadsheet: rows and columns, every row has the same columns. That is a relational model.
+Ek traditional spreadsheet ke baare mein socho: rows aur columns, har row ke same columns hote hain. Ye relational model hai.
 
-Now think of a spreadsheet where **each row can have completely different columns**, and you can have **billions of rows per "sheet"**, spread across hundreds of servers. That is a **wide column store**.
+Ab socho ek spreadsheet jahan **har row ke bilkul alag columns ho sakte hain**, aur ek hi "sheet" mein **billions rows** ho sakti hain, jo hundreds servers mein spread hai. Ye hai **wide column store**.
 
-Cassandra is a **wide column store** — not a relational database, not a document database. Its data model sits between the two:
+Cassandra ek **wide column store** hai — na ye relational database hai, na document database. Iska data model dono ke beech kahin hai:
 
-- Like SQL: it has tables, rows, and typed columns. You query with CQL (Cassandra Query Language) which looks like SQL.
-- Like NoSQL: it has no joins, no foreign keys, no referential integrity, and schema is flexible per row in some configurations.
-- Unique to wide column: the primary key is split into a **partition key** (controls which server holds the data) and **clustering columns** (controls how data is sorted within that server).
+- SQL jaisa: isme tables, rows, aur typed columns hote hain. Tum CQL (Cassandra Query Language) se query karte ho jo SQL jaisa dikhta hai.
+- NoSQL jaisa: koi joins nahi, koi foreign keys nahi, koi referential integrity nahi, aur schema kuch configurations mein per-row flexible hai.
+- Wide column ki apni khaasiyat: primary key do parts mein bat jaata hai — **partition key** (decide karta hai konsa server data hold karega) aur **clustering columns** (decide karta hai us server ke andar data kaise sort hoga).
 
 ---
 
 ## ⚖️ Cassandra vs PostgreSQL vs MongoDB
 
-Before going deep, here is the big picture comparison:
+Deep jaane se pehle, ye raha big picture comparison:
 
 | Feature | PostgreSQL | MongoDB | Cassandra |
 |---|---|---|---|
 | Data model | Tables, rows, columns | JSON documents | Wide column (partitions + columns) |
-| Schema | Strict (migrations needed) | Flexible per document | Flexible per row, but PK is fixed |
-| Joins | Yes, full JOIN support | Limited ($lookup) | **No joins — ever** |
-| Transactions | Full ACID | Multi-doc ACID | Lightweight transactions only (LWT) |
+| Schema | Strict (migrations chahiye) | Per-document flexible | Per-row flexible, par PK fixed hai |
+| Joins | Haan, full JOIN support | Limited ($lookup) | **Joins kabhi nahi — never** |
+| Transactions | Full ACID | Multi-doc ACID | Sirf lightweight transactions (LWT) |
 | Horizontal scaling | Hard (manual sharding) | Easy (built-in sharding) | **Native, linear scaling** |
 | Write throughput | Medium | High | **Extremely high** |
-| Read pattern | Any pattern (indexes help) | Any pattern | **Must query by partition key** |
-| Consistency | Strong (ACID) | Configurable | **Eventual by default, tunable** |
-| Multi-region | Painful | Atlas handles it | **Built-in multi-datacenter** |
+| Read pattern | Koi bhi pattern (indexes help karte hain) | Koi bhi pattern | **Partition key se hi query karna padega** |
+| Consistency | Strong (ACID) | Configurable | **Default eventual hai, tunable** |
+| Multi-region | Painful | Atlas handle karta hai | **Built-in multi-datacenter** |
 | Best for | Transactional apps, complex queries | Flexible schemas, rapid iteration | **Time-series, IoT, messaging, audit logs** |
 
-The short version: **use PostgreSQL when you need correctness and flexibility; use MongoDB when you need a flexible schema with moderate scale; use Cassandra when you need to write millions of records per second across multiple data centers with guaranteed uptime.**
+Short mein: **PostgreSQL use karo jab correctness aur flexibility chahiye; MongoDB use karo jab flexible schema chahiye moderate scale pe; Cassandra use karo jab tumhe millions records per second write karne hain multiple data centers mein, woh bhi guaranteed uptime ke saath.**
 
 ---
 
-## 🎯 CAP Theorem — Where Cassandra Sits
+## 🎯 CAP Theorem — Cassandra Kahan Khada Hai
 
-Picture three friends: **Consistency**, **Availability**, and **Partition Tolerance**. The CAP theorem says you can only fully guarantee two of them when network partitions (nodes losing contact with each other) happen.
+Teen dosto ko socho: **Consistency**, **Availability**, aur **Partition Tolerance**. CAP theorem kehta hai ki tum in teeno mein se sirf do ko fully guarantee kar sakte ho, jab network partitions (nodes ek dusre se contact kho dein) hote hain.
 
-Cassandra makes a deliberate choice: **AP — Available + Partition Tolerant**.
+Cassandra ek deliberate choice karta hai: **AP — Available + Partition Tolerant**.
 
-| CAP Choice | What It Means | Examples |
+| CAP Choice | Iska Matlab | Examples |
 |---|---|---|
-| **CA** (Consistency + Availability) | Works perfectly — but can't handle network splits | Traditional SQL (single node) |
-| **CP** (Consistency + Partition Tolerant) | Stays consistent during splits — but may refuse requests | HBase, Zookeeper, etcd |
-| **AP** (Availability + Partition Tolerant) | Always accepts reads/writes during splits — data may be briefly stale | **Cassandra**, DynamoDB, CouchDB |
+| **CA** (Consistency + Availability) | Perfectly kaam karta hai — par network splits handle nahi kar sakta | Traditional SQL (single node) |
+| **CP** (Consistency + Partition Tolerant) | Splits ke dauran consistent rehta hai — par requests refuse kar sakta hai | HBase, Zookeeper, etcd |
+| **AP** (Availability + Partition Tolerant) | Splits ke dauran hamesha reads/writes accept karta hai — data thoda stale ho sakta hai | **Cassandra**, DynamoDB, CouchDB |
 
-When a network partition splits your Cassandra cluster into two halves, both halves keep accepting reads and writes. Once the partition heals, the nodes **reconcile** their data using a process called **last-write-wins** (based on timestamps). This means you might read slightly stale data for a brief window — that is **eventual consistency**.
+Jab network partition tumhare Cassandra cluster ko do halves mein split karta hai, dono halves reads aur writes accept karte rehte hain. Partition heal hone ke baad, nodes apna data **reconcile** karte hain ek process se jise **last-write-wins** kehte hain (timestamps ke basis pe). Iska matlab ye hai ki tum thoda stale data padh sakte ho ek chhote window mein — isko hi kehte hain **eventual consistency**.
 
-This is not a bug — it is the price you pay for never going down. For most applications (user feeds, metrics, IoT sensor data), reading data that is 50 milliseconds stale is completely fine. For a bank transfer, it is not — use PostgreSQL for that.
+Ye bug nahi hai — ye woh price hai jo tum chukate ho kabhi down na hone ke liye. Zyaadatar applications ke liye (user feeds, metrics, IoT sensor data), 50 milliseconds stale data padhna bilkul theek hai. Bank transfer ke liye nahi — uske liye PostgreSQL use karo.
 
-Cassandra lets you **tune** consistency per query. You do not have to accept eventual consistency everywhere if you do not want to — you can ask for QUORUM consistency on critical reads, at the cost of some latency.
+Cassandra tumhe consistency **tune** karne deta hai, per query. Tumhe har jagah eventual consistency accept karna zaruri nahi hai — tum critical reads pe QUORUM consistency maang sakte ho, thodi latency ki keemat pe.
 
 ---
 
-## 🏗️ Cassandra Data Model — From Top to Bottom
+## 🏗️ Cassandra Data Model — Upar Se Neeche
 
-### The Hierarchy
+### Hierarchy
 
-Think of organizing a library. The library building is the **keyspace**. Each floor is a **table**. Each bookshelf on a floor is a **partition**. The books on a shelf are **rows** (clustered in a specific order). The information inside each book is the **column values**.
+Ek library organize karne ke baare mein socho. Library building hai **keyspace**. Har floor ek **table** hai. Floor ka har bookshelf ek **partition** hai. Shelf ki books hain **rows** (ek specific order mein clustered). Har book ke andar ki information hai **column values**.
 
 ```mermaid
 graph TD
-    A["🏛️ Keyspace\n(like a database / schema)\nDefines replication strategy"]
-    A --> B["📋 Table\n(like a SQL table)\nDefines columns and primary key"]
-    B --> C["📦 Partition\n(group of rows on ONE node)\nDetermined by partition key hash"]
+    A["🏛️ Keyspace\n(database / schema jaisa)\nReplication strategy define karta hai"]
+    A --> B["📋 Table\n(SQL table jaisa)\nColumns aur primary key define karta hai"]
+    B --> C["📦 Partition\n(rows ka group EK node pe)\nPartition key hash se decide"]
     C --> D["📄 Row 1\nclustering_col=2024-01-01\ntemp=22.5, humidity=60"]
     C --> E["📄 Row 2\nclustering_col=2024-01-02\ntemp=23.1, humidity=58"]
     C --> F["📄 Row 3\nclustering_col=2024-01-03\ntemp=21.8, humidity=65"]
@@ -97,12 +97,12 @@ graph TD
     style F fill:#2ECC71,color:#fff
 ```
 
-### Keyspace — The Top-Level Container
+### Keyspace — Top-Level Container
 
-A **keyspace** is roughly equivalent to a database or schema in PostgreSQL. Its most important setting is the **replication factor** — how many copies of each piece of data exist across nodes.
+Ek **keyspace** roughly PostgreSQL ke database ya schema jaisa hi hai. Iska sabse important setting hai **replication factor** — nodes mein data ke kitne copies exist karte hain.
 
 ```sql
--- Create a keyspace with 3 replicas per datacenter
+-- Ek keyspace banao 3 replicas per datacenter ke saath
 CREATE KEYSPACE iot_platform
   WITH replication = {
     'class': 'NetworkTopologyStrategy',
@@ -111,27 +111,27 @@ CREATE KEYSPACE iot_platform
   };
 ```
 
-With `replication_factor = 3`, every partition is stored on 3 different nodes. You can lose 2 nodes and still read/write data. The `NetworkTopologyStrategy` lets you place replicas intelligently across racks and data centers.
+`replication_factor = 3` ke saath, har partition 3 alag nodes pe store hota hai. Tum 2 nodes lose kar sakte ho aur phir bhi data read/write kar sakte ho. `NetworkTopologyStrategy` tumhe replicas ko racks aur data centers mein intelligently place karne deta hai.
 
-### The Primary Key — The Most Important Decision You Will Make
+### Primary Key — Sabse Important Decision Jo Tum Loge
 
-In Cassandra, the **primary key** is everything. It determines:
+Cassandra mein, **primary key** hi sab kuch hai. Ye decide karta hai:
 
-1. **Which node** stores the data (via the partition key)
-2. **How rows are sorted** within a node (via clustering columns)
-3. **What queries are even possible** (you almost always must filter by partition key)
+1. **Konsa node** data store karega (partition key ke through)
+2. **Rows kaise sort honge** node ke andar (clustering columns ke through)
+3. **Konsi queries possible hain** (tumhe almost hamesha partition key se filter karna padega)
 
 ```
 PRIMARY KEY = (partition_key) + clustering_columns
 ```
 
-Think of the partition key as the **shipping address** — it decides which warehouse (node) stores the package. The clustering columns are like the **shelf number** inside that warehouse — they decide the order of items once they arrive.
+Partition key ko **shipping address** samjho — ye decide karta hai konsa warehouse (node) package store karega. Clustering columns ek **shelf number** jaisa hai us warehouse ke andar — ye items ka order decide karta hai jab woh arrive hote hain.
 
 ```sql
 -- Example: IoT sensor readings
 CREATE TABLE sensor_readings (
-  device_id   TEXT,          -- partition key: one node per device
-  recorded_at TIMESTAMP,     -- clustering key: sorted by time within node
+  device_id   TEXT,          -- partition key: ek device = ek node
+  recorded_at TIMESTAMP,     -- clustering key: node ke andar time se sorted
   temperature DECIMAL,
   humidity    DECIMAL,
   pressure    DECIMAL,
@@ -139,33 +139,33 @@ CREATE TABLE sensor_readings (
 ) WITH CLUSTERING ORDER BY (recorded_at DESC);
 ```
 
-Here:
-- `device_id` is the **partition key** — all readings for a device live on the same node(s)
-- `recorded_at` is the **clustering column** — readings are stored newest-first on disk
-- Querying "give me the last 100 readings for device `sensor_42`" is blazing fast — it is a single partition scan in reverse order
+Yahan:
+- `device_id` hai **partition key** — ek device ki saari readings same node(s) pe rehti hain
+- `recorded_at` hai **clustering column** — readings disk pe newest-first store hoti hain
+- "Mujhe `sensor_42` ki last 100 readings do" query karna blazing fast hai — ye ek single partition scan hai reverse order mein
 
 ### Composite Partition Keys
 
-Sometimes a single column does not distribute data evenly across nodes. You can use a **composite partition key**:
+Kabhi kabhi ek single column data ko nodes mein evenly distribute nahi karta. Tum **composite partition key** use kar sakte ho:
 
 ```sql
--- Partition by BOTH device_id AND date (YYYYMMDD)
--- Limits one partition to one day of readings per device
+-- device_id AUR date (YYYYMMDD) dono se partition karo
+-- Ek partition ko limit karta hai ek device ke ek din ki readings tak
 CREATE TABLE sensor_readings_daily (
   device_id   TEXT,
   date        TEXT,      -- e.g. '2024-01-15'
   recorded_at TIMESTAMP,
   temperature DECIMAL,
   PRIMARY KEY ((device_id, date), recorded_at)
-  --           ^^^^^^^^^^^^^^^^^ composite partition key (note double parens)
+  --           ^^^^^^^^^^^^^^^^^ composite partition key (double parens dekho)
 ) WITH CLUSTERING ORDER BY (recorded_at DESC);
 ```
 
-The double parentheses `((device_id, date))` tell Cassandra that BOTH columns together form the partition key. This is a common pattern for time-series data — it prevents any single partition from growing unbounded.
+Double parentheses `((device_id, date))` Cassandra ko batate hain ki DONO columns milkar partition key banate hain. Ye ek common pattern hai time-series data ke liye — ye kisi single partition ko unbounded grow hone se rokta hai.
 
 ---
 
-## 🎨 The Data Model Diagram
+## 🎨 Data Model Diagram
 
 ```mermaid
 erDiagram
@@ -198,15 +198,15 @@ erDiagram
 
 ---
 
-## ✍️ Denormalization Is Not Optional — It Is The Rule
+## ✍️ Denormalization Optional Nahi Hai — Ye Hi Rule Hai
 
-In SQL, you normalize data to avoid duplication. In Cassandra, you **denormalize by design**. There are no joins. You must store data the way you want to read it.
+SQL mein, tum data normalize karte ho duplication avoid karne ke liye. Cassandra mein, tum **denormalize karte ho design se hi**. Koi joins nahi hain. Tumhe data waise store karna padta hai jaise tum use padhna chahte ho.
 
-**The Golden Rule of Cassandra Data Modeling:**
+**Cassandra Data Modeling Ka Golden Rule:**
 
-> Design your tables around your queries, not around your entities.
+> Apne tables ko apni queries ke around design karo, apne entities ke around nahi.
 
-Imagine you are building a messaging app. In PostgreSQL you might have:
+Socho tum ek messaging app bana rahe ho. PostgreSQL mein tumhare paas ho sakta hai:
 
 ```sql
 -- PostgreSQL (normalized)
@@ -219,14 +219,14 @@ CREATE TABLE messages (
   body TEXT,
   sent_at TIMESTAMP
 );
--- Query: get last 50 messages in a conversation
+-- Query: ek conversation ke last 50 messages lao
 SELECT m.*, u.username FROM messages m
 JOIN users u ON m.sender_id = u.id
 WHERE m.conversation_id = 42
 ORDER BY m.sent_at DESC LIMIT 50;
 ```
 
-In Cassandra, you identify your query first: **"Get the last 50 messages in a conversation."** Then you build a table that makes that query a single partition read:
+Cassandra mein, tum pehle apni query identify karte ho: **"Ek conversation ke last 50 messages lao."** Phir tum aisa table banate ho jo is query ko single partition read bana de:
 
 ```sql
 -- Cassandra (query-driven design)
@@ -234,7 +234,7 @@ CREATE TABLE messages_by_conversation (
   conversation_id BIGINT,
   sent_at         TIMESTAMP,
   message_id      UUID,
-  sender_username TEXT,        -- denormalized! copied from users table
+  sender_username TEXT,        -- denormalized! users table se copy kiya
   body            TEXT,
   PRIMARY KEY (conversation_id, sent_at, message_id)
 ) WITH CLUSTERING ORDER BY (sent_at DESC, message_id DESC);
@@ -245,16 +245,16 @@ WHERE conversation_id = 42
 LIMIT 50;
 ```
 
-Yes, you store `sender_username` in every single message row. That is intentional. If the username changes, you update all the copies — but reads are always instant. This trade-off is the heart of Cassandra design.
+Haan, tum `sender_username` har ek message row mein store karte ho. Ye intentional hai. Agar username change ho, tumhe saari copies update karni padengi — par reads hamesha instant rahengi. Ye trade-off hi Cassandra design ka dil hai.
 
 ---
 
 ## 💬 CQL — Cassandra Query Language
 
-CQL looks like SQL but has important restrictions:
+CQL SQL jaisa dikhta hai par isme important restrictions hain:
 
 ```sql
--- USE a keyspace
+-- Ek keyspace USE karo
 USE iot_platform;
 
 -- CREATE TABLE
@@ -266,12 +266,12 @@ CREATE TABLE sensor_readings (
   PRIMARY KEY (device_id, recorded_at)
 ) WITH CLUSTERING ORDER BY (recorded_at DESC);
 
--- INSERT (always a full upsert — no separate INSERT/UPDATE)
+-- INSERT (hamesha full upsert hai — koi separate INSERT/UPDATE nahi)
 INSERT INTO sensor_readings (device_id, recorded_at, temperature, humidity)
 VALUES ('sensor_42', '2024-01-15 12:00:00', 22.5, 60.3)
-USING TTL 604800;  -- automatically delete after 7 days (604800 seconds)
+USING TTL 604800;  -- 7 din baad automatically delete (604800 seconds)
 
--- SELECT — must include partition key
+-- SELECT — partition key include karna zaruri hai
 SELECT * FROM sensor_readings
 WHERE device_id = 'sensor_42'
   AND recorded_at >= '2024-01-15 00:00:00'
@@ -282,33 +282,33 @@ SELECT * FROM sensor_readings
 WHERE device_id = 'sensor_42'
 LIMIT 100;
 
--- UPDATE a specific row
+-- Ek specific row UPDATE karo
 UPDATE sensor_readings
 SET temperature = 23.1
 WHERE device_id = 'sensor_42'
   AND recorded_at = '2024-01-15 12:00:00';
 
--- DELETE a specific row
+-- Ek specific row DELETE karo
 DELETE FROM sensor_readings
 WHERE device_id = 'sensor_42'
   AND recorded_at = '2024-01-15 12:00:00';
 
--- DELETE a whole partition
+-- Poora partition DELETE karo
 DELETE FROM sensor_readings
 WHERE device_id = 'sensor_42';
 ```
 
 ### TTL (Time-To-Live) — Automatic Data Expiry
 
-One of Cassandra's killer features for IoT and logging: you can attach a TTL to any row or column. After the TTL expires, Cassandra automatically deletes the data. This is perfect for keeping only the last 30 days of sensor readings without running a separate cleanup job.
+Cassandra ka ek killer feature IoT aur logging ke liye: tum kisi bhi row ya column pe TTL laga sakte ho. TTL expire hone ke baad, Cassandra automatically data delete kar deta hai. Ye perfect hai sirf last 30 din ki sensor readings rakhne ke liye, bina koi separate cleanup job chalaye.
 
 ```sql
--- Insert with a 30-day TTL
+-- 30-day TTL ke saath insert karo
 INSERT INTO sensor_readings (device_id, recorded_at, temperature)
 VALUES ('sensor_42', toTimestamp(now()), 22.5)
-USING TTL 2592000;  -- 30 days in seconds
+USING TTL 2592000;  -- 30 din seconds mein
 
--- Check remaining TTL on a row
+-- Ek row ka remaining TTL check karo
 SELECT TTL(temperature) FROM sensor_readings
 WHERE device_id = 'sensor_42'
   AND recorded_at = '2024-01-15 12:00:00';
@@ -316,15 +316,15 @@ WHERE device_id = 'sensor_42'
 
 ---
 
-## ⚡ The Read/Write Path — How Cassandra Handles Data
+## ⚡ Read/Write Path — Cassandra Data Kaise Handle Karta Hai
 
-### The Write Path
+### Write Path
 
-Writing in Cassandra is designed to be as fast as possible. Think of a chef in a restaurant: they first shout the order to a runner (commit log) so it is never forgotten, then immediately start cooking (memtable in RAM). At no point do they stop to wait for the order to be filed in the archive (SSTable on disk).
+Cassandra mein writing jitna possible ho utna fast design kiya gaya hai. Ek restaurant ke chef ko socho: woh pehle order runner ko chillakar bata dete hain (commit log) taaki woh kabhi bhoola na jaaye, phir turant cooking shuru kar dete hain (memtable jo RAM mein hai). Kisi bhi point pe woh ruk kar wait nahi karte ki order archive mein file ho jaaye (SSTable disk pe).
 
 ```mermaid
 flowchart LR
-    Client["👤 Client Write"] --> Coordinator["Coordinator Node\n(routes request)"]
+    Client["👤 Client Write"] --> Coordinator["Coordinator Node\n(request route karta hai)"]
     Coordinator --> Node1["Replica Node 1"]
     Coordinator --> Node2["Replica Node 2"]
     Coordinator --> Node3["Replica Node 3"]
@@ -342,27 +342,27 @@ flowchart LR
 
 **Step by step:**
 
-1. **CommitLog append** — The write is first appended to a commit log on disk (sequential write — extremely fast). If the node crashes right now, the data can be recovered from the commit log on restart.
+1. **CommitLog append** — Write pehle disk pe ek commit log mein append hota hai (sequential write — extremely fast). Agar node abhi crash ho jaaye, data commit log se recover ho sakta hai restart pe.
 
-2. **Memtable write** — The write goes into an in-memory data structure called the **memtable**. This is the live, queryable copy of recent data.
+2. **Memtable write** — Write ek in-memory data structure mein jaata hai jise **memtable** kehte hain. Ye recent data ki live, queryable copy hai.
 
-3. **Acknowledgement** — Once the required number of replicas confirm the write (based on your consistency level), the coordinator tells the client "success."
+3. **Acknowledgement** — Ek baar jab required number of replicas write confirm kar dete hain (tumhare consistency level ke hisaab se), coordinator client ko "success" bata deta hai.
 
-4. **Flush to SSTable** — When the memtable fills up (typically around 32-64MB), it is flushed to disk as an **SSTable** (Sorted String Table) — an immutable, sorted file. SSTables are never modified after creation; new writes create new SSTables.
+4. **Flush to SSTable** — Jab memtable fill ho jaata hai (typically ~32-64MB), woh disk pe flush hota hai ek **SSTable** (Sorted String Table) ke roop mein — ek immutable, sorted file. SSTables banne ke baad kabhi modify nahi hoti; naye writes naye SSTables banate hain.
 
-### The Read Path
+### Read Path
 
-Reading is more complex because data may be spread across multiple SSTables on disk plus the live memtable:
+Reading zyada complex hai kyunki data multiple SSTables mein disk pe spread ho sakta hai plus live memtable mein bhi:
 
 ```mermaid
 flowchart TD
     Client["👤 Client Read\nWHERE device_id='sensor_42'"] --> Coordinator["Coordinator Node"]
     Coordinator --> RN["Replica Node"]
 
-    RN --> RC["🚀 Row Cache\n(full row, if enabled)"]
-    RC -->|"Cache miss"| BF["🌸 Bloom Filter\n(per SSTable — is this key even here?)"]
-    BF -->|"Probably yes"| KI["🗂️ Key/Partition Index\n(find exact offset in SSTable)"]
-    KI --> MT["🧠 Memtable\n(check latest writes in RAM)"]
+    RN --> RC["🚀 Row Cache\n(full row, agar enabled ho)"]
+    RC -->|"Cache miss"| BF["🌸 Bloom Filter\n(per SSTable — kya ye key yahan hai bhi?)"]
+    BF -->|"Probably haan"| KI["🗂️ Key/Partition Index\n(SSTable mein exact offset dhoondo)"]
+    KI --> MT["🧠 Memtable\n(RAM mein latest writes check karo)"]
     KI --> SST1["💾 SSTable 1"]
     KI --> SST2["💾 SSTable 2"]
     KI --> SST3["💾 SSTable 3"]
@@ -372,7 +372,7 @@ flowchart TD
     SST2 --> Merge
     SST3 --> Merge
 
-    Merge --> Client2["✅ Return to Client"]
+    Merge --> Client2["✅ Client ko return"]
 
     style Client fill:#4A90D9,color:#fff
     style RC fill:#2ECC71,color:#fff
@@ -382,62 +382,62 @@ flowchart TD
 
 **Step by step:**
 
-1. **Row cache check** — If row caching is enabled and the row was recently read, return immediately. Very fast.
+1. **Row cache check** — Agar row caching enabled hai aur row recently padhi gayi thi, turant return kar do. Bahut fast.
 
-2. **Bloom filter** — Each SSTable has a Bloom filter (a space-efficient probabilistic structure — see the Bloom Filters chapter). Before reading any SSTable from disk, Cassandra checks its Bloom filter. If the filter says "definitely not in this SSTable," skip it entirely. This avoids expensive disk seeks.
+2. **Bloom filter** — Har SSTable ka ek Bloom filter hota hai (ek space-efficient probabilistic structure — Bloom Filters chapter dekho). Kisi bhi SSTable ko disk se padhne se pehle, Cassandra uska Bloom filter check karta hai. Agar filter kehta hai "definitely is SSTable mein nahi hai," poore SSTable ko skip kar do. Isse expensive disk seeks bach jaate hain.
 
-3. **Key index** — For SSTables that might have the key, use the partition index to find the exact byte offset on disk.
+3. **Key index** — Jo SSTables mein key ho sakti hai, unke liye partition index use karo exact byte offset disk pe dhoondne ke liye.
 
-4. **Memtable + SSTable merge** — Cassandra reads the relevant data from the memtable (most recent) and from all relevant SSTables. Because each write is timestamped, it can resolve conflicts by taking the latest timestamp — **last write wins**.
+4. **Memtable + SSTable merge** — Cassandra relevant data memtable (sabse recent) se aur saare relevant SSTables se padhta hai. Kyunki har write timestamped hai, ye conflicts ko resolve kar sakta hai latest timestamp lekar — **last write wins**.
 
-5. **Return merged result** — The coordinator collects results from replicas (based on consistency level), reconciles them, and returns to the client.
+5. **Merged result return** — Coordinator replicas se results collect karta hai (consistency level ke hisaab se), unko reconcile karta hai, aur client ko return kar deta hai.
 
-### Compaction — Keeping SSTables Healthy
+### Compaction — SSTables Ko Healthy Rakhna
 
-Over time, dozens or hundreds of SSTables accumulate. Reads become slower because more files must be checked. **Compaction** is the background process that merges multiple SSTables into one:
+Time ke saath, dozens ya hundreds SSTables jama ho jaate hain. Reads slow ho jaate hain kyunki zyada files check karni padti hain. **Compaction** background process hai jo multiple SSTables ko ek mein merge karta hai:
 
-- Eliminates deleted data (tombstones)
-- Eliminates overwritten data (only keeps the latest version)
-- Improves read performance by reducing the number of files to check
-- Frees disk space
+- Deleted data (tombstones) ko eliminate karta hai
+- Overwritten data ko eliminate karta hai (sirf latest version rakhta hai)
+- Files kam karke read performance improve karta hai
+- Disk space free karta hai
 
-Think of compaction like cleaning your desk: work accumulates in piles (SSTables), and periodically you organize everything into neat folders, throw away old drafts, and keep only what matters.
+Compaction ko apna desk saaf karne jaisa socho: kaam piles mein jama hota hai (SSTables), aur periodically tum sab kuch neat folders mein organize karte ho, purane drafts phenk dete ho, aur sirf zaruri cheez rakhte ho.
 
 ```
-Before compaction:
+Compaction se pehle:
 [SSTable-1: device_42 temp=22 at 12:00] + [SSTable-2: device_42 temp=23 at 12:05]
 
-After compaction:
-[SSTable-merged: device_42 temp=23 at 12:05]  ← only latest kept
+Compaction ke baad:
+[SSTable-merged: device_42 temp=23 at 12:05]  ← sirf latest rakha gaya
 ```
 
 ---
 
-## 🎚️ Consistency Levels — Tuning the Trade-off
+## 🎚️ Consistency Levels — Trade-off Ko Tune Karna
 
-Cassandra lets you choose **per query** how many replicas must agree before a read/write is considered successful. This is the most powerful tuning knob Cassandra offers.
+Cassandra tumhe **per query** choose karne deta hai ki kitne replicas ko agree karna hai isse pehle ki read/write successful mana jaaye. Ye sabse powerful tuning knob hai jo Cassandra offer karta hai.
 
-| Consistency Level | Writes Need | Reads Need | Trade-off |
+| Consistency Level | Writes Ko Chahiye | Reads Ko Chahiye | Trade-off |
 |---|---|---|---|
-| `ONE` | 1 replica to confirm | 1 replica to respond | Fastest, weakest consistency |
-| `QUORUM` | Majority (RF/2 + 1) | Majority (RF/2 + 1) | Balanced — most common choice |
-| `ALL` | All replicas to confirm | All replicas to respond | Strongest consistency, slowest, least available |
-| `LOCAL_QUORUM` | Majority in local DC | Majority in local DC | Best for multi-DC apps |
-| `LOCAL_ONE` | 1 replica in local DC | 1 replica in local DC | For latency-sensitive local reads |
+| `ONE` | 1 replica confirm kare | 1 replica respond kare | Sabse fast, weakest consistency |
+| `QUORUM` | Majority (RF/2 + 1) | Majority (RF/2 + 1) | Balanced — sabse common choice |
+| `ALL` | Saare replicas confirm karein | Saare replicas respond karein | Strongest consistency, sabse slow, least available |
+| `LOCAL_QUORUM` | Local DC mein majority | Local DC mein majority | Multi-DC apps ke liye best |
+| `LOCAL_ONE` | Local DC mein 1 replica | Local DC mein 1 replica | Latency-sensitive local reads ke liye |
 
-**The magic of QUORUM:** With RF=3, QUORUM requires 2 replicas. If you write at QUORUM and read at QUORUM, you are guaranteed to always read the latest write — because at least one replica in the read quorum must have participated in the write quorum.
+**QUORUM ka jaadu:** RF=3 ke saath, QUORUM ko 2 replicas chahiye. Agar tum QUORUM pe write aur QUORUM pe read karte ho, tumhe guarantee hai ki tum hamesha latest write padhoge — kyunki read quorum mein kam se kam ek replica ne write quorum mein participate kiya hoga.
 
 ```
 RF=3, QUORUM=2
 
-Write goes to replicas: A ✓, B ✓, C ✗ (down)  → Write succeeds (2 of 3)
-Read comes from:        A ✓, B ✓               → A and B both have latest data ✓
+Write jaata hai replicas mein: A ✓, B ✓, C ✗ (down)  → Write succeed (2 of 3)
+Read aata hai:                A ✓, B ✓               → A aur B dono ke paas latest data hai ✓
 ```
 
-In your application code (using the DataStax Java driver):
+Tumhare application code mein (DataStax Java driver use karke):
 
 ```java
-// Low-latency IoT write — ONE is fine, occasional stale reads acceptable
+// Low-latency IoT write — ONE theek hai, occasional stale reads acceptable
 session.execute(
     SimpleStatement.newInstance(
         "INSERT INTO sensor_readings (device_id, recorded_at, temperature) VALUES (?, ?, ?)",
@@ -445,7 +445,7 @@ session.execute(
     ).setConsistencyLevel(ConsistencyLevel.ONE)
 );
 
-// Critical payment record — use QUORUM
+// Critical payment record — QUORUM use karo
 session.execute(
     SimpleStatement.newInstance(
         "INSERT INTO payment_events (user_id, event_id, amount) VALUES (?, ?, ?)",
@@ -458,25 +458,25 @@ session.execute(
 
 ## 🌡️ Full Data Modeling Example: IoT Sensor Platform
 
-Let us build a complete, real-world data model for an IoT platform that collects sensor readings from millions of devices.
+Chalo ek complete, real-world data model banate hain ek IoT platform ke liye jo millions devices se sensor readings collect karta hai.
 
 ### Requirements
-- Store readings every 10 seconds per device (86,400 readings/day/device)
-- Query: "Get last N readings for a device"
-- Query: "Get all readings for a device on a specific day"
-- Query: "Get latest reading for a device" (dashboard)
-- Auto-delete data older than 90 days
+- Har device se har 10 seconds mein reading store karo (86,400 readings/day/device)
+- Query: "Ek device ki last N readings lao"
+- Query: "Ek device ki kisi specific din ki saari readings lao"
+- Query: "Ek device ki latest reading lao" (dashboard)
+- 90 din se purana data auto-delete karo
 
 ### Step 1: Query-Driven Design
 
-We start with the queries, then design the tables.
+Hum queries se shuru karte hain, phir tables design karte hain.
 
 ```sql
 -- Table 1: Main time-series table
--- Query: readings by device + time range
+-- Query: device + time range se readings
 CREATE TABLE sensor_readings (
   device_id   TEXT,
-  date        TEXT,          -- YYYYMMDD — bounds partition size to 1 day
+  date        TEXT,          -- YYYYMMDD — partition size ko 1 din tak bounds karta hai
   recorded_at TIMESTAMP,
   temperature DECIMAL,
   humidity    DECIMAL,
@@ -484,10 +484,10 @@ CREATE TABLE sensor_readings (
   battery_pct SMALLINT,
   PRIMARY KEY ((device_id, date), recorded_at)
 ) WITH CLUSTERING ORDER BY (recorded_at DESC)
-  AND default_time_to_live = 7776000;  -- 90 days TTL
+  AND default_time_to_live = 7776000;  -- 90 din TTL
 
--- Table 2: Latest reading per device (for dashboards)
--- Query: get current state of any device instantly
+-- Table 2: Har device ki latest reading (dashboards ke liye)
+-- Query: kisi bhi device ka current state instantly lao
 CREATE TABLE sensor_latest (
   device_id   TEXT PRIMARY KEY,
   recorded_at TIMESTAMP,
@@ -498,8 +498,8 @@ CREATE TABLE sensor_latest (
   updated_at  TIMESTAMP
 );
 
--- Table 3: Devices by location (for map view)
--- Query: all devices in a region
+-- Table 3: Location ke hisaab se devices (map view ke liye)
+-- Query: ek region ke saare devices
 CREATE TABLE devices_by_region (
   region      TEXT,
   country     TEXT,
@@ -529,7 +529,7 @@ def record_sensor_reading(device_id: str, temperature: float, humidity: float,
     now = datetime.now(timezone.utc)
     date_str = now.strftime('%Y%m%d')
 
-    # Write to time-series table
+    # Time-series table mein write karo
     session.execute(
         """
         INSERT INTO sensor_readings
@@ -539,7 +539,7 @@ def record_sensor_reading(device_id: str, temperature: float, humidity: float,
         (device_id, date_str, now, temperature, humidity, pressure, battery_pct)
     )
 
-    # Update latest reading (upsert — Cassandra INSERT always overwrites)
+    # Latest reading update karo (upsert — Cassandra INSERT hamesha overwrite karta hai)
     session.execute(
         """
         INSERT INTO sensor_latest
@@ -567,38 +567,38 @@ def get_latest_reading(device_id: str):
 
 ---
 
-## 🚫 Anti-Patterns — What NOT to Do in Cassandra
+## 🚫 Anti-Patterns — Cassandra Mein Ye Kabhi Mat Karna
 
-### 1. ALLOW FILTERING — The Performance Disaster
+### 1. ALLOW FILTERING — Performance Disaster
 
 ```sql
--- BAD: This forces a full cluster scan
+-- BAD: Ye poore cluster ka scan force karta hai
 SELECT * FROM sensor_readings
 WHERE temperature > 30.0
 ALLOW FILTERING;
 ```
 
-`ALLOW FILTERING` tells Cassandra to scan **every partition on every node** to find matching rows. With billions of rows, this can take minutes and cripple your cluster. Never use it in production.
+`ALLOW FILTERING` Cassandra ko batata hai **har node ka har partition** scan karo matching rows dhoondne ke liye. Billions rows ke saath, ye minutes le sakta hai aur tumhara cluster crash kar sakta hai. Production mein isko kabhi use mat karo.
 
-**Fix:** Design a separate table for the query pattern you need. If you need "all devices where temperature > 30," maintain a separate table of `hot_alerts` that you write to when temperature exceeds the threshold.
+**Fix:** Jo query pattern tumhe chahiye uske liye ek separate table design karo. Agar tumhe "saare devices jahan temperature > 30" chahiye, ek separate `hot_alerts` table maintain karo jisme tum write karo jab temperature threshold cross ho.
 
-### 2. Secondary Indexes on High-Cardinality Columns
+### 2. High-Cardinality Columns Pe Secondary Indexes
 
 ```sql
--- BAD: Creating a secondary index on a near-unique column
+-- BAD: Ek near-unique column pe secondary index banana
 CREATE INDEX ON sensor_readings (recorded_at);
--- recorded_at is nearly unique — this index will be huge and slow
+-- recorded_at almost unique hai — ye index huge aur slow hoga
 ```
 
-Secondary indexes in Cassandra are stored locally on each node. Querying by a secondary index requires broadcasting to all nodes — it becomes a scatter-gather query. This works OK for low-cardinality columns (e.g., status = 'active' | 'inactive') but is terrible for high-cardinality columns like timestamps or UUIDs.
+Cassandra mein secondary indexes locally har node pe store hote hain. Secondary index se query karne ke liye saare nodes ko broadcast karna padta hai — ye scatter-gather query ban jaati hai. Ye low-cardinality columns ke liye theek chalta hai (jaise status = 'active' | 'inactive') par timestamps ya UUIDs jaise high-cardinality columns ke liye bahut bura hai.
 
-**Fix:** Use materialized views or a separate denormalized table.
+**Fix:** Materialized views ya ek separate denormalized table use karo.
 
-### 3. Unbounded Partitions (The Hot Partition Problem)
+### 3. Unbounded Partitions (Hot Partition Problem)
 
 ```sql
--- BAD: Partition key is just device_id
--- A device that runs for years will have billions of rows in ONE partition
+-- BAD: Partition key sirf device_id hai
+-- Jo device saalon chalega uske ek hi partition mein billions rows ho jaayengi
 CREATE TABLE sensor_readings (
   device_id   TEXT,
   recorded_at TIMESTAMP,
@@ -607,16 +607,16 @@ CREATE TABLE sensor_readings (
 );
 ```
 
-One partition = one node. If all reads/writes go to the same partition, that one node becomes a **hot spot** while others sit idle. Partitions should be kept under ~100MB.
+Ek partition = ek node. Agar saare reads/writes same partition pe jaate hain, woh ek node **hot spot** ban jaata hai jabki baaki idle baithe rehte hain. Partitions ko ~100MB se neeche rakhna chahiye.
 
-**Fix:** Add a time bucket to the partition key (e.g., `(device_id, date)` splits data into daily partitions).
+**Fix:** Partition key mein ek time bucket add karo (jaise `(device_id, date)` data ko daily partitions mein split kar deta hai).
 
-### 4. Using Cassandra Like a Relational Database
+### 4. Cassandra Ko Relational Database Ki Tarah Use Karna
 
 ```sql
--- BAD: These will fail or be extremely slow
-SELECT * FROM messages ORDER BY sent_at DESC;  -- no partition key = full scan
-SELECT * FROM users WHERE name LIKE '%john%';  -- no text search in CQL
+-- BAD: Ye fail hoge ya extremely slow honge
+SELECT * FROM messages ORDER BY sent_at DESC;  -- koi partition key nahi = full scan
+SELECT * FROM users WHERE name LIKE '%john%';  -- CQL mein text search nahi hai
 SELECT COUNT(*) FROM messages;                  -- full cluster scan
 ```
 
@@ -624,74 +624,74 @@ SELECT COUNT(*) FROM messages;                  -- full cluster scan
 
 ## 🏆 Cassandra vs DynamoDB
 
-Both are wide-column, AP databases designed for massive scale. Here is how they differ:
+Dono hi wide-column, AP databases hain massive scale ke liye design kiye gaye. Yahan dekho ye kaise differ karte hain:
 
 | Feature | Cassandra (Apache/DataStax) | DynamoDB (AWS) |
 |---|---|---|
-| Hosting | Self-managed or DataStax Astra (managed) | Fully managed (AWS only) |
-| Cost model | Fixed server costs | Pay per read/write unit + storage |
-| Multi-cloud | Yes — run anywhere | AWS only |
+| Hosting | Self-managed ya DataStax Astra (managed) | Fully managed (sirf AWS) |
+| Cost model | Fixed server costs | Read/write unit + storage ke hisaab se pay |
+| Multi-cloud | Haan — kahin bhi chalao | Sirf AWS |
 | Data model | Keyspace → Table → Partition | Table → Partition → Sort key |
-| Query language | CQL (SQL-like) | PartiQL or DynamoDB API |
-| Consistency | Tunable (ONE/QUORUM/ALL/etc.) | Eventually consistent or strongly consistent |
+| Query language | CQL (SQL-like) | PartiQL ya DynamoDB API |
+| Consistency | Tunable (ONE/QUORUM/ALL/etc.) | Eventually consistent ya strongly consistent |
 | Secondary indexes | Local secondary indexes, materialized views | GSI (Global Secondary Index), LSI |
-| Scaling | Manual or automatic (DataStax Astra) | Fully automatic (on-demand or provisioned) |
-| Operational burden | High (self-managed) / Low (Astra) | Very low |
-| Vendor lock-in | None (open source) | High (AWS proprietary) |
-| Best for | Multi-cloud, cost-sensitive at huge scale | AWS-native apps, teams wanting zero ops |
+| Scaling | Manual ya automatic (DataStax Astra) | Fully automatic (on-demand ya provisioned) |
+| Operational burden | High (self-managed) / Low (Astra) | Bahut kam |
+| Vendor lock-in | Nahi (open source) | High (AWS proprietary) |
+| Best for | Multi-cloud, cost-sensitive huge scale | AWS-native apps, zero ops chahne wali teams |
 
-**When to pick Cassandra over DynamoDB:** You need multi-cloud or on-premise deployment, you have predictable high-volume workloads (fixed costs beat per-unit pricing), or your team wants open-source tooling.
+**Cassandra kab choose karo DynamoDB se zyada:** Tumhe multi-cloud ya on-premise deployment chahiye, tumhare paas predictable high-volume workloads hain (fixed costs per-unit pricing se better hai), ya tumhari team open-source tooling chahti hai.
 
-**When to pick DynamoDB over Cassandra:** You are all-in on AWS, you want zero operational overhead, you have variable/unpredictable traffic and want automatic scaling with no capacity planning.
-
----
-
-## ✅ When to Use Cassandra
-
-**Use Cassandra when:**
-
-- You need **millions of writes per second** with consistent low latency
-- Your data is **time-series** in nature (IoT, metrics, events, logs, audit trails)
-- You need **multi-datacenter replication** with no single point of failure
-- Your access patterns are **well-defined and read by partition key**
-- Data has a **natural TTL** (you only need the last N days)
-- You need **99.99%+ uptime** — Cassandra never goes down for writes, even during node failures
-
-**Real examples:** Netflix viewing history, Discord messages (trillions), Apple iCloud metadata, Instagram activity feeds, Uber trip data, time-series metrics (InfluxDB actually inspired by Cassandra).
+**DynamoDB kab choose karo Cassandra se zyada:** Tum poori tarah AWS pe ho, zero operational overhead chahiye, tumhare paas variable/unpredictable traffic hai aur automatic scaling chahiye bina capacity planning ke.
 
 ---
 
-## ❌ When NOT to Use Cassandra
+## ✅ Cassandra Kab Use Karo
 
-**Do NOT use Cassandra when:**
+**Cassandra use karo jab:**
 
-- You need **JOINs** or complex relational queries — use PostgreSQL
-- You need **strong ACID transactions** — use PostgreSQL or CockroachDB
-- Your access patterns are **ad-hoc or unpredictable** — use PostgreSQL + proper indexes
-- You have **small data** (< 1TB) — Cassandra's operational overhead is not worth it
-- You need **full-text search** — use Elasticsearch
-- Your team is small and cannot handle distributed systems complexity
-- You need to count things, aggregate data, or run analytics — use ClickHouse or BigQuery
+- Tumhe **millions writes per second** chahiye consistent low latency ke saath
+- Tumhara data **time-series** nature ka hai (IoT, metrics, events, logs, audit trails)
+- Tumhe **multi-datacenter replication** chahiye bina single point of failure ke
+- Tumhare access patterns **well-defined hain aur partition key se read hote hain**
+- Data ka ek **natural TTL** hai (tumhe sirf last N din chahiye)
+- Tumhe **99.99%+ uptime** chahiye — Cassandra writes ke liye kabhi down nahi hota, node failures ke dauran bhi
+
+**Real examples:** Netflix viewing history, Discord messages (trillions), Apple iCloud metadata, Instagram activity feeds, Uber trip data, time-series metrics (InfluxDB actually Cassandra se inspired hai).
+
+---
+
+## ❌ Cassandra Kab NAHI Use Karo
+
+**Cassandra use MAT karo jab:**
+
+- Tumhe **JOINs** ya complex relational queries chahiye — PostgreSQL use karo
+- Tumhe **strong ACID transactions** chahiye — PostgreSQL ya CockroachDB use karo
+- Tumhare access patterns **ad-hoc ya unpredictable** hain — PostgreSQL + proper indexes use karo
+- Tumhare paas **small data** hai (< 1TB) — Cassandra ka operational overhead worth nahi hai
+- Tumhe **full-text search** chahiye — Elasticsearch use karo
+- Tumhari team chhoti hai aur distributed systems complexity handle nahi kar sakti
+- Tumhe cheezein count karni hain, data aggregate karna hai, ya analytics chalane hain — ClickHouse ya BigQuery use karo
 
 ---
 
 ## 🔑 Key Takeaways
 
-| Concept | What to Remember |
+| Concept | Yaad Rakhne Wali Baat |
 |---|---|
-| **Wide column store** | Rows can have different columns; partition key + clustering columns organize data |
-| **AP in CAP** | Always available, eventually consistent — the system never rejects writes |
-| **Partition key = shard key** | The partition key determines which node holds the data — choose it wisely to avoid hot spots |
-| **Clustering columns** | Define the sort order of rows within a partition — design for your read queries |
-| **Denormalize everything** | No joins ever — duplicate data, design tables around query patterns |
+| **Wide column store** | Rows ke alag columns ho sakte hain; partition key + clustering columns data organize karte hain |
+| **AP in CAP** | Hamesha available, eventually consistent — system kabhi writes reject nahi karta |
+| **Partition key = shard key** | Partition key decide karta hai konsa node data hold karega — hot spots avoid karne ke liye wisely choose karo |
+| **Clustering columns** | Partition ke andar rows ka sort order define karte hain — apni read queries ke liye design karo |
+| **Sab kuch denormalize karo** | Kabhi joins nahi — data duplicate karo, tables ko query patterns ke around design karo |
 | **Write path** | CommitLog (durability) → Memtable (speed) → SSTable (persistence) |
-| **Read path** | Memtable + SSTables merged via timestamps; Bloom filters skip irrelevant files |
-| **Compaction** | Background process merging SSTables — keeps reads fast, reclaims space |
-| **Consistency levels** | ONE (fast, weak) → QUORUM (balanced) → ALL (slow, strong) — tune per query |
-| **TTL** | Built-in auto-expiry — perfect for time-series data without cleanup jobs |
-| **Anti-patterns** | Never use ALLOW FILTERING in production; avoid secondary indexes on high-cardinality columns; bound your partition sizes |
+| **Read path** | Memtable + SSTables timestamps se merge hote hain; Bloom filters irrelevant files skip karte hain |
+| **Compaction** | Background process jo SSTables merge karta hai — reads fast rakhta hai, space reclaim karta hai |
+| **Consistency levels** | ONE (fast, weak) → QUORUM (balanced) → ALL (slow, strong) — per query tune karo |
+| **TTL** | Built-in auto-expiry — perfect time-series data ke liye bina cleanup jobs ke |
+| **Anti-patterns** | Production mein ALLOW FILTERING kabhi use mat karo; high-cardinality columns pe secondary indexes avoid karo; apne partition sizes bound karo |
 | **Cassandra vs DynamoDB** | Cassandra = open source, multi-cloud, fixed costs; DynamoDB = AWS-managed, zero ops, variable cost |
 
 ---
 
-> **The single most important thing to remember:** Cassandra forces you to think about your data differently. You do not design tables and then figure out queries. You **start with the queries and design tables that make those queries a single partition read**. Once that mindset clicks, Cassandra becomes one of the most powerful tools in your engineering arsenal.
+> **Sabse important baat jo yaad rakhni hai:** Cassandra tumhe apne data ke baare mein alag tarike se sochne pe force karta hai. Tum pehle tables design nahi karte aur phir queries figure out nahi karte. Tum **queries se shuru karte ho aur aise tables design karte ho jo un queries ko ek single partition read bana dein**. Ek baar ye mindset click ho jaaye, Cassandra tumhare engineering arsenal ka sabse powerful tool ban jaata hai.

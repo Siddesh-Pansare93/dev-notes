@@ -1,19 +1,19 @@
-# 🔍 SELECT — Querying Data
+# 🔍 SELECT — Data Querying Karna
 
 > **Chapter 4 of SQL from Scratch**
 > Prerequisites: Chapter 3 — Tables, Data Types, and Schema Design
 
 ---
 
-## 🗺️ What You Will Learn
+## 🗺️ Is Chapter Mein Kya Seekhoge?
 
-By the end of this chapter you will be able to write `SELECT` statements that retrieve exactly the data you need — picking specific columns, filtering rows, sorting results, handling `NULL`, removing duplicates, paginating through large result sets, and building computed columns with expressions and conditional logic.
+Socho tumhare paas Zomato ka database hai aur tumhe usme se sirf wahi data nikalna hai jo chahiye — poore table ko nahi ghaseetna. Yehi kaam `SELECT` statement karta hai. Is chapter ke end tak tum specific columns pick karna, rows filter karna, results sort karna, `NULL` handle karna, duplicates hatana, bade result sets ko pages mein todna (pagination), aur expressions + conditional logic se naye computed columns banana — sab seekh loge.
 
-All examples use a social-network schema introduced at the end of this section.
+Saare examples ek social-network schema pe based hain jo neeche diya gaya hai.
 
 ---
 
-## 🏗️ The Schema We Will Use
+## 🏗️ Schema Jo Hum Use Karenge
 
 ```sql
 -- users: one row per registered account
@@ -55,61 +55,62 @@ CREATE TABLE followers (
 
 ---
 
-## 🧬 SELECT Statement Anatomy
+## 🧬 SELECT Statement Ka Structure
 
-The general shape of a `SELECT` query reads like plain English: "give me these columns, from this table, where these conditions hold, ordered this way, limited to this many rows."
+`SELECT` query ka general shape plain English jaisa hi lagta hai — "mujhe ye columns do, is table se, jahan ye conditions match karti hain, is order mein sort karke, aur bas itni hi rows do."
 
 ```sql
-SELECT   column1, column2, ...   -- what columns (or expressions)
-FROM     table_name              -- which table
-WHERE    condition               -- filter rows (optional)
-ORDER BY column ASC | DESC       -- sort (optional)
-LIMIT    n                       -- how many rows (optional; syntax varies)
-OFFSET   m;                      -- skip first m rows (optional)
+SELECT   column1, column2, ...   -- kaunse columns (ya expressions)
+FROM     table_name              -- kaunsa table
+WHERE    condition               -- rows filter karo (optional)
+ORDER BY column ASC | DESC       -- sort karo (optional)
+LIMIT    n                       -- kitni rows chahiye (optional; syntax vary karta hai)
+OFFSET   m;                      -- pehli m rows skip karo (optional)
 ```
 
-The database processes clauses in this logical order — even though you write them in the order shown above:
+> [!info]
+> Database in clauses ko is logical order mein process karta hai — bhale hi tum unhe upar diye order mein likho:
+>
+> ```
+> FROM → WHERE → SELECT → ORDER BY → LIMIT/OFFSET
+> ```
 
-```
-FROM → WHERE → SELECT → ORDER BY → LIMIT/OFFSET
-```
-
-This ordering matters when you hit errors: you cannot reference a column alias defined in `SELECT` inside a `WHERE` clause, because `WHERE` runs before `SELECT`.
+Ye order kyun zaruri hai? Jab tumhe koi confusing error milega tab samajh aayega — tum `SELECT` mein banaya hua column alias `WHERE` clause ke andar use nahi kar sakte, kyunki `WHERE` `SELECT` se pehle chalta hai.
 
 ---
 
-## ⭐ SELECT * — The Wildcard
+## ⭐ SELECT * — Wildcard
 
-`SELECT *` returns every column in the table.
+`SELECT *` table ka har column return karta hai. Jaise Swiggy app mein "Select All" dabana — sab kuch aa jayega, chahe chahiye ya nahi.
 
 ```sql
 SELECT * FROM users;
 ```
 
-It is great for quick exploration, but avoid it in production code because:
+Quick exploration ke liye badhiya hai, lekin production code mein iska use avoid karo, kyunki:
 
-- **Fragility** — if someone adds or reorders a column, any application code that destructures by position silently breaks.
-- **Performance** — you transfer columns you do not need across the network and through memory.
-- **Readability** — a reader cannot tell which columns your query actually depends on without looking at the table definition.
+- **Fragility** — agar kisi ne column add ya reorder kar diya, toh position ke hisaab se data padhne wala application code chupchap toot jayega.
+- **Performance** — jo columns chahiye hi nahi, unko bhi network aur memory se transfer karna padta hai — bewajah bandwidth waste.
+- **Readability** — koi bhi reader ye nahi bata payega ki tumhari query actually kaunse columns pe depend karti hai, jab tak table definition na dekhe.
 
 ---
 
-## 📌 Selecting Specific Columns
+## 📌 Specific Columns Select Karna
 
-List only what you need, separated by commas.
+Sirf wahi list karo jo chahiye, comma se separate karke — bilkul waise jaise Zomato pe menu se sirf apni pasand ki dishes select karte ho, poora menu order nahi karte.
 
 ```sql
 SELECT user_id, username, city
 FROM   users;
 ```
 
-The order of columns in the result matches the order you list them — not the order they appear in the table definition.
+Result mein columns ka order wahi hoga jo tumne list kiya — table definition mein jo order hai wo matter nahi karta.
 
 ---
 
 ## 🏷️ Column Aliases: AS
 
-Rename a column in the result set using `AS`. The alias is purely cosmetic — it does not change the table.
+`AS` use karke result set mein column ka naam badal sakte ho. Ye sirf cosmetic hai — actual table change nahi hota.
 
 ```sql
 SELECT username  AS handle,
@@ -118,16 +119,17 @@ SELECT username  AS handle,
 FROM   users;
 ```
 
-The `AS` keyword is optional in all major databases — you can just write the alias after the expression:
+`AS` keyword sabhi major databases mein optional hai — tum bas expression ke baad alias likh sakte ho:
 
 ```sql
 SELECT username handle, city location
 FROM   users;
 ```
 
-Using `AS` is strongly recommended for clarity. Omitting it can cause accidental aliasing if you forget a comma.
+> [!tip]
+> Clarity ke liye `AS` likhna strongly recommended hai. Agar isse omit karoge aur galti se comma bhool gaye, toh accidental aliasing ho sakti hai.
 
-Aliases with spaces or reserved words need quoting:
+Aliases mein agar spaces ya reserved words hain, toh unhe quote karna padta hai:
 
 ```sql
 -- PostgreSQL / Oracle / SQLite
@@ -142,9 +144,9 @@ SELECT username AS [user name] FROM users;
 
 ---
 
-## ➕ Expressions in SELECT
+## ➕ SELECT Mein Expressions
 
-You are not limited to raw column values. You can put any expression in the column list.
+Sirf raw column values tak hi limited nahi ho — column list mein koi bhi expression daal sakte ho.
 
 ### Arithmetic
 
@@ -155,18 +157,18 @@ SELECT post_id,
 FROM   posts;
 ```
 
-Standard arithmetic operators (`+`, `-`, `*`, `/`, `%`) work in every database.
+Standard arithmetic operators (`+`, `-`, `*`, `/`, `%`) har database mein kaam karte hain.
 
 ### String Concatenation
 
-This is one area where databases genuinely differ.
+Ye ek aisi jagah hai jahan databases genuinely alag behave karte hain — thoda dhyan rakhna.
 
 | Database       | Operator / Function                | Notes                                              |
-|----------------|------------------------------------|----------------------------------------------------|
-| PostgreSQL     | `||` or `CONCAT()`                 | `||` with a `NULL` operand returns `NULL`          |
-| Oracle         | `||` or `CONCAT(a, b)` (2-arg only)| Same `NULL` behavior as PostgreSQL                 |
-| MySQL          | `CONCAT()` only                    | `||` is the logical **OR** operator by default!    |
-| SQL Server     | `+` or `CONCAT()`                  | `+` with `NULL` returns `NULL`; `CONCAT()` coerces |
+|----------------|------------------------------------|-----------------------------------------------------|
+| PostgreSQL     | `\|\|` ya `CONCAT()`               | `\|\|` ke saath `NULL` operand ho toh result `NULL` |
+| Oracle         | `\|\|` ya `CONCAT(a, b)` (sirf 2-arg)| PostgreSQL jaisa hi `NULL` behavior                |
+| MySQL          | Sirf `CONCAT()`                    | `\|\|` yahan default mein logical **OR** operator hai! |
+| SQL Server     | `+` ya `CONCAT()`                  | `+` ke saath `NULL` return hota `NULL`; `CONCAT()` handle kar leta hai |
 
 ```sql
 -- PostgreSQL / Oracle
@@ -180,12 +182,13 @@ FROM   users;
 -- SQL Server
 SELECT first_name + ' (@' + username + ')' AS display_name
 FROM   users;
--- or, safely with NULLs:
+-- ya, NULLs ke saath safely:
 SELECT CONCAT(first_name, ' (@', username, ')') AS display_name
 FROM   users;
 ```
 
-> **Tip:** `CONCAT()` is the safest cross-database choice because it exists in all four engines (Oracle 11g+) and handles `NULL` gracefully in MySQL and SQL Server by treating `NULL` as an empty string.
+> [!tip]
+> `CONCAT()` sabse safe cross-database choice hai kyunki ye chaaron engines mein exist karta hai (Oracle 11g+) aur MySQL/SQL Server mein `NULL` ko empty string treat karke gracefully handle karta hai.
 
 ### Built-in Functions
 
@@ -197,33 +200,34 @@ SELECT username,
 FROM   users;
 ```
 
-`UPPER`, `LOWER`, `LENGTH` / `LEN` (SQL Server), and date functions vary by database — consult your database's function reference for the full list.
+`UPPER`, `LOWER`, `LENGTH` / `LEN` (SQL Server), aur date functions database ke hisaab se vary karte hain — apne database ke function reference ki puri list zaroor check karo.
 
 ---
 
-## 🔁 DISTINCT — Removing Duplicate Rows
+## 🔁 DISTINCT — Duplicate Rows Hatana
 
-`DISTINCT` filters out rows where every selected column is identical.
+Kabhi socha hai Flipkart pe agar tum "distinct sellers" nikalna chaho jo ek specific city se hain, toh repeated seller names dikhte rahenge agar tum dedupe na karo? `DISTINCT` yahi karta hai — un rows ko filter karta hai jahan selected har column identical ho.
 
 ```sql
--- List every city that has at least one user (no duplicates)
+-- Har city list karo jahan kam se kam ek user ho (no duplicates)
 SELECT DISTINCT city
 FROM   users;
 ```
 
-`DISTINCT` applies to the entire row, not just the first column:
+`DISTINCT` poori row pe apply hota hai, sirf pehle column pe nahi:
 
 ```sql
 SELECT DISTINCT city, joined_at
 FROM   users;
--- A city appears multiple times if users joined on different dates
+-- Ek city multiple baar aa sakti hai agar users alag-alag dates pe join hue hain
 ```
 
-`DISTINCT` can be expensive on large tables because the database must sort or hash the entire result set. Use it only when you genuinely need unique rows.
+> [!warning]
+> `DISTINCT` bade tables pe expensive ho sakta hai kyunki database ko poora result set sort ya hash karna padta hai. Isko tabhi use karo jab genuinely unique rows chahiye ho.
 
 ---
 
-## 🔎 WHERE — Filtering Rows
+## 🔎 WHERE — Rows Filter Karna
 
 ```sql
 SELECT username, city
@@ -231,9 +235,9 @@ FROM   users
 WHERE  city = 'London';
 ```
 
-Common comparison operators: `=`, `<>` (or `!=`), `<`, `>`, `<=`, `>=`.
+Common comparison operators: `=`, `<>` (ya `!=`), `<`, `>`, `<=`, `>=`.
 
-Combine conditions with `AND`, `OR`, `NOT`:
+Conditions ko `AND`, `OR`, `NOT` se combine karo:
 
 ```sql
 SELECT post_id, views
@@ -244,17 +248,17 @@ WHERE  views > 1000
 
 ---
 
-## 📶 ORDER BY — Sorting Results
+## 📶 ORDER BY — Results Sort Karna
 
-Results from a `SELECT` have no guaranteed order unless you include `ORDER BY`. Never rely on "natural" insertion order.
+`SELECT` ke results ka koi guaranteed order nahi hota jab tak tum `ORDER BY` include na karo. Kabhi bhi "natural" insertion order pe bharosa mat karo — jaise UPI transaction history bina sort ke random order mein aa jaye toh confusion ho jayegi.
 
 ```sql
--- Newest posts first
+-- Sabse naye posts pehle
 SELECT post_id, created_at
 FROM   posts
 ORDER BY created_at DESC;
 
--- Oldest first (ASC is the default and can be omitted)
+-- Sabse purane pehle (ASC default hai aur omit kiya ja sakta hai)
 SELECT post_id, created_at
 FROM   posts
 ORDER BY created_at ASC;
@@ -262,7 +266,7 @@ ORDER BY created_at ASC;
 
 ### Multiple Sort Columns
 
-Separate columns with commas. The database sorts by the first column; ties are broken by the second, and so on.
+Columns ko comma se separate karo. Database pehle column se sort karta hai; ties dusre column se todi jaati hain, aur aage bhi.
 
 ```sql
 SELECT username, city, joined_at
@@ -270,7 +274,7 @@ FROM   users
 ORDER BY city ASC, joined_at DESC;
 ```
 
-### Ordering by Expression
+### Expression Se Order Karna
 
 ```sql
 SELECT post_id, views, (views * 10) AS score
@@ -278,10 +282,10 @@ FROM   posts
 ORDER BY views * 10 DESC;
 ```
 
-You can also order by an alias — but only in databases that allow it (PostgreSQL, MySQL, SQL Server). Oracle does not.
+Alias se bhi order kar sakte ho — lekin sirf un databases mein jo isko allow karte hain (PostgreSQL, MySQL, SQL Server). Oracle nahi karta.
 
 ```sql
--- Works in PostgreSQL, MySQL, SQL Server
+-- PostgreSQL, MySQL, SQL Server mein kaam karta hai
 SELECT post_id, views * 10 AS score
 FROM   posts
 ORDER BY score DESC;
@@ -289,54 +293,54 @@ ORDER BY score DESC;
 
 ### NULL Ordering
 
-`NULL` values have no natural numeric order, so each database picks a convention.
+`NULL` values ka koi natural numeric order nahi hota, isliye har database apna convention decide karta hai.
 
-| Database       | Default NULL position in ASC | Default NULL position in DESC |
-|----------------|------------------------------|-------------------------------|
-| PostgreSQL     | NULLS LAST                   | NULLS FIRST                   |
-| Oracle         | NULLS LAST                   | NULLS FIRST                   |
-| MySQL          | Treated as smallest value → first in ASC | last in DESC |
-| SQL Server     | Treated as smallest value → first in ASC | last in DESC |
+| Database       | ASC mein default NULL position | DESC mein default NULL position |
+|----------------|-------------------------------|----------------------------------|
+| PostgreSQL     | NULLS LAST                     | NULLS FIRST                      |
+| Oracle         | NULLS LAST                     | NULLS FIRST                      |
+| MySQL          | Sabse chota value maana jata → ASC mein pehle | DESC mein last |
+| SQL Server     | Sabse chota value maana jata → ASC mein pehle | DESC mein last |
 
-PostgreSQL and Oracle let you override explicitly:
+PostgreSQL aur Oracle explicitly override karne dete hain:
 
 ```sql
 -- PostgreSQL / Oracle
 SELECT username, city
 FROM   users
-ORDER BY city ASC NULLS FIRST;   -- NULLs appear at the top
+ORDER BY city ASC NULLS FIRST;   -- NULLs sabse upar aayenge
 
 SELECT username, city
 FROM   users
-ORDER BY city DESC NULLS LAST;   -- NULLs appear at the bottom
+ORDER BY city DESC NULLS LAST;   -- NULLs sabse neeche aayenge
 ```
 
-MySQL and SQL Server do not support `NULLS FIRST / NULLS LAST`. The common workaround is to sort a computed column:
+MySQL aur SQL Server `NULLS FIRST / NULLS LAST` support nahi karte. Common workaround ye hai ki ek computed column pe sort karo:
 
 ```sql
--- MySQL / SQL Server: push NULLs to the end in an ASC sort
+-- MySQL / SQL Server: ASC sort mein NULLs ko end pe push karo
 SELECT username, city
 FROM   users
 ORDER BY (city IS NULL) ASC, city ASC;
--- (city IS NULL) returns 0 for non-NULL and 1 for NULL, so NULLs sort last
+-- (city IS NULL) non-NULL ke liye 0 aur NULL ke liye 1 return karta hai, isliye NULLs last mein sort hote hain
 ```
 
 ---
 
 ## 📄 LIMIT / OFFSET — Pagination
 
-Pagination — fetching one page of results at a time — requires a row-count cap and a skip count. Syntax diverges significantly here.
+Pagination — matlab result ko ek-ek page mein fetch karna, jaise IRCTC pe train search results 20-20 karke dikhte hain — iske liye ek row-count cap aur ek skip count chahiye hota hai. Yahan syntax significantly alag hai har database mein.
 
 ### PostgreSQL, MySQL, SQLite
 
 ```sql
--- Page 1: first 10 rows
+-- Page 1: pehli 10 rows
 SELECT post_id, created_at
 FROM   posts
 ORDER BY created_at DESC
 LIMIT  10 OFFSET 0;
 
--- Page 2: next 10 rows
+-- Page 2: agli 10 rows
 SELECT post_id, created_at
 FROM   posts
 ORDER BY created_at DESC
@@ -345,10 +349,10 @@ LIMIT  10 OFFSET 10;
 
 ### SQL Server (2012+)
 
-SQL Server requires `ORDER BY` before `OFFSET … FETCH`.
+SQL Server mein `OFFSET … FETCH` se pehle `ORDER BY` zaruri hai.
 
 ```sql
--- Page 2: skip 10, take 10
+-- Page 2: 10 skip karo, 10 lo
 SELECT post_id, created_at
 FROM   posts
 ORDER BY created_at DESC
@@ -373,17 +377,17 @@ OFFSET 10 ROWS
 FETCH NEXT 10 ROWS ONLY;
 ```
 
-### TOP Keyword (SQL Server and older Oracle)
+### TOP Keyword (SQL Server aur purana Oracle)
 
-Before SQL Server 2012 introduced `OFFSET … FETCH`, `TOP` was the only option. It is still valid and common for simply grabbing the first N rows.
+SQL Server 2012 se pehle jab `OFFSET … FETCH` nahi tha, `TOP` hi ek option tha. Ab bhi valid aur common hai jab sirf first N rows chahiye ho.
 
 ```sql
--- SQL Server: top 5 most-viewed posts
+-- SQL Server: sabse zyada dekhe gaye 5 posts
 SELECT TOP 5 post_id, views
 FROM   posts
 ORDER BY views DESC;
 
--- Oracle (pre-12c via ROWNUM — note: filter BEFORE ORDER BY, so wrap in subquery)
+-- Oracle (pre-12c via ROWNUM — note: filter ORDER BY se PEHLE hota hai, isliye subquery mein wrap karo)
 SELECT *
 FROM (
     SELECT post_id, views
@@ -393,16 +397,17 @@ FROM (
 WHERE ROWNUM <= 5;
 ```
 
-> **Warning:** In Oracle's `ROWNUM` approach, the outer `WHERE` filters the already-sorted subquery result. If you put `WHERE ROWNUM <= 5` in the inner query, Oracle filters before sorting, giving wrong results.
+> [!warning]
+> Oracle ke `ROWNUM` approach mein, outer `WHERE` already-sorted subquery result ko filter karta hai. Agar tum `WHERE ROWNUM <= 5` inner query mein daal doge, toh Oracle sort karne se pehle filter kar dega, jisse galat results milenge.
 
 ---
 
-## 🧮 Calculating New Columns
+## 🧮 Naye Columns Calculate Karna
 
-Expressions in `SELECT` can produce entirely new, computed columns that do not exist in the table.
+`SELECT` mein expressions bilkul naye, computed columns bana sakte hain jo table mein exist hi nahi karte.
 
 ```sql
--- Engagement rate: likes per view (hypothetical join simplified here)
+-- Engagement rate: view ke hisaab se likes (hypothetical join yahan simplify kiya gaya)
 SELECT p.post_id,
        p.views,
        p.views / 1000.0          AS views_k,
@@ -411,15 +416,15 @@ FROM   posts p
 WHERE  p.views > 0;
 ```
 
-This is non-destructive — you are reading and computing, never modifying the stored data.
+Ye non-destructive hai — tum sirf padh aur calculate kar rahe ho, stored data ko kabhi modify nahi kar rahe.
 
 ---
 
 ## 🔀 CASE WHEN — Conditional Logic
 
-`CASE WHEN` is SQL's `if / else if / else`. It appears anywhere an expression is valid: `SELECT`, `ORDER BY`, `WHERE`.
+`CASE WHEN` SQL ka `if / else if / else` hai. Ye kahin bhi use ho sakta hai jahan expression valid hai: `SELECT`, `ORDER BY`, `WHERE`.
 
-### Simple Form (compare one column to fixed values)
+### Simple Form (ek column ko fixed values se compare karna)
 
 ```sql
 SELECT post_id,
@@ -432,7 +437,7 @@ SELECT post_id,
 FROM   posts;
 ```
 
-### Searched Form (arbitrary conditions per branch — more flexible)
+### Searched Form (har branch ke liye arbitrary conditions — zyada flexible)
 
 ```sql
 SELECT post_id,
@@ -446,10 +451,10 @@ SELECT post_id,
 FROM   posts;
 ```
 
-`CASE` always returns the value of the first branch whose condition is true. If no branch matches and there is no `ELSE`, the result is `NULL`.
+`CASE` hamesha us pehli branch ka value return karta hai jiski condition true ho. Agar koi branch match na kare aur `ELSE` bhi na ho, toh result `NULL` hoga.
 
 ```sql
--- Label users based on whether their bio is filled in
+-- Users ko label karo based on ki unka bio bhara hai ya nahi
 SELECT username,
        CASE
            WHEN bio IS NULL OR bio = '' THEN 'No bio'
@@ -460,18 +465,18 @@ FROM   users;
 
 ---
 
-## 🩹 COALESCE — First Non-NULL Value
+## 🩹 COALESCE — Pehla Non-NULL Value
 
-`COALESCE(a, b, c, ...)` returns the first argument that is not `NULL`. It is the standard SQL way to supply a default for nullable columns.
+`COALESCE(a, b, c, ...)` pehla argument return karta hai jo `NULL` nahi hai. Ye nullable columns ke liye default value dene ka standard SQL tarika hai — jaise CRED app mein agar tumhara nickname set nahi hai toh woh tumhara real naam dikha deta hai.
 
 ```sql
--- If city is NULL, display 'Unknown location'
+-- Agar city NULL hai, toh 'Unknown location' dikhao
 SELECT username,
        COALESCE(city, 'Unknown location') AS display_city
 FROM   users;
 ```
 
-You can chain multiple fallbacks:
+Multiple fallbacks ko chain bhi kar sakte ho:
 
 ```sql
 SELECT user_id,
@@ -479,16 +484,16 @@ SELECT user_id,
 FROM   users;
 ```
 
-`COALESCE` is equivalent to a `CASE WHEN` but much more concise. It works identically in PostgreSQL, MySQL, SQL Server, and Oracle.
+`COALESCE` ek `CASE WHEN` ke equivalent hai lekin bahut zyada concise hai. Ye PostgreSQL, MySQL, SQL Server, aur Oracle mein identically kaam karta hai.
 
 ---
 
-## 🔄 NULLIF — Return NULL on Equality
+## 🔄 NULLIF — Equality Pe NULL Return Karna
 
-`NULLIF(a, b)` returns `NULL` when `a = b`, otherwise returns `a`. It is the logical inverse of `COALESCE` and is most often used to avoid division-by-zero errors.
+`NULLIF(a, b)` `NULL` return karta hai jab `a = b` ho, warna `a` return karta hai. Ye `COALESCE` ka logical inverse hai aur zyada tar division-by-zero errors avoid karne ke liye use hota hai.
 
 ```sql
--- Avoid dividing by zero if views = 0
+-- views = 0 hone par divide-by-zero avoid karo
 SELECT post_id,
        likes_count,
        views,
@@ -496,32 +501,32 @@ SELECT post_id,
 FROM   posts;
 ```
 
-When `views` is `0`, `NULLIF(views, 0)` returns `NULL`, and division by `NULL` is `NULL` — safe, no error.
+Jab `views` `0` hota hai, `NULLIF(views, 0)` `NULL` return karta hai, aur `NULL` se division `NULL` hi hota hai — safe, koi error nahi.
 
 ---
 
 ## 🚫 IS NULL / IS NOT NULL
 
-`NULL` represents a missing or unknown value. You cannot test for it with `=` because `NULL = NULL` is not `TRUE` in SQL — it is `NULL` (unknown).
+`NULL` ka matlab hai missing ya unknown value. Isko `=` se test nahi kar sakte kyunki SQL mein `NULL = NULL` `TRUE` nahi hota — woh `NULL` (unknown) hota hai. Ye ek common gotcha hai jo naye developers ko confuse karta hai.
 
 ```sql
--- WRONG — returns no rows even when bio is NULL
+-- GALAT — koi rows return nahi karega, chahe bio NULL ho
 SELECT * FROM users WHERE bio = NULL;
 
--- CORRECT
+-- SAHI
 SELECT * FROM users WHERE bio IS NULL;
 
--- Find users who have filled in their bio
+-- Un users ko dhundo jinhone bio bhara hai
 SELECT * FROM users WHERE bio IS NOT NULL;
 ```
 
-`IS NULL` and `IS NOT NULL` work identically across all major databases.
+`IS NULL` aur `IS NOT NULL` sabhi major databases mein identically kaam karte hain.
 
 ---
 
-## 🧩 Putting It All Together — Full Examples
+## 🧩 Sab Kuch Mila Ke — Full Examples
 
-### Example 1: Recent active posts with a popularity label
+### Example 1: Recent active posts with popularity label
 
 ```sql
 SELECT p.post_id,
@@ -541,7 +546,7 @@ ORDER BY p.views DESC
 LIMIT  20;
 ```
 
-### Example 2: Distinct cities with at least one user, sorted with NULLs last
+### Example 2: Distinct cities with at least one user, NULLs last sorted
 
 ```sql
 -- PostgreSQL / Oracle
@@ -579,7 +584,7 @@ OFFSET 20 ROWS
 FETCH NEXT 10 ROWS ONLY;
 ```
 
-### Example 4: Build a display name with concatenation, handling NULLs
+### Example 4: Concatenation se display name banao, NULLs handle karke
 
 ```sql
 -- PostgreSQL / Oracle
@@ -602,39 +607,37 @@ FROM   users;
 
 ## 🔑 Key Takeaways
 
-| Concept | Remember |
-|---|---|
-| `SELECT *` | Fine for exploration; avoid in production code |
-| Column alias | Use `AS alias_name`; quote if it contains spaces |
-| String concatenation | `\|\|` in PostgreSQL/Oracle; `CONCAT()` everywhere; `+` in SQL Server |
-| `DISTINCT` | Removes fully duplicate rows; can be slow |
-| `ORDER BY` | No guaranteed order without it; `ASC` is default |
-| NULL ordering | Explicit `NULLS FIRST/LAST` only in PostgreSQL/Oracle |
-| Pagination | `LIMIT/OFFSET` in PG/MySQL; `OFFSET…FETCH` in SQL Server/Oracle 12c+ |
-| `CASE WHEN` | SQL's if/else; use searched form for complex conditions |
-| `COALESCE` | Return first non-NULL; great for default values |
-| `NULLIF` | Return NULL when two values match; stops division-by-zero |
-| `IS NULL` | Always use `IS NULL`, never `= NULL` |
+- `SELECT *` exploration ke liye theek hai, production code mein avoid karo
+- Column alias ke liye `AS alias_name` use karo; spaces ho toh quote karo
+- String concatenation: PostgreSQL/Oracle mein `||`; sab jagah `CONCAT()`; SQL Server mein `+`
+- `DISTINCT` poori duplicate rows hatata hai; bade tables pe slow ho sakta hai
+- `ORDER BY` ke bina koi guaranteed order nahi; `ASC` default hota hai
+- NULL ordering: explicit `NULLS FIRST/LAST` sirf PostgreSQL/Oracle mein
+- Pagination: PG/MySQL mein `LIMIT/OFFSET`; SQL Server/Oracle 12c+ mein `OFFSET…FETCH`
+- `CASE WHEN` SQL ka if/else hai; complex conditions ke liye searched form use karo
+- `COALESCE` pehla non-NULL value return karta hai; default values ke liye best
+- `NULLIF` do values match karne pe NULL return karta hai; division-by-zero rokta hai
+- `IS NULL` hamesha use karo, `= NULL` kabhi nahi
 
 ---
 
 ## 🧠 Quiz
 
-Test yourself before moving to the next chapter.
+Agle chapter pe jaane se pehle khud ko test karo.
 
 **Question 1**
 
-You have a `posts` table and want to see the 10 most-viewed posts, but skip the top 3 (perhaps they are pinned and shown separately). Write the query using:
-- (a) PostgreSQL syntax
-- (b) SQL Server syntax
+Tumhare paas ek `posts` table hai aur tumhe 10 most-viewed posts dekhne hain, lekin top 3 skip karke (shayad wo pinned hain aur alag se dikhaye jaate hain). Query likho:
+- (a) PostgreSQL syntax use karke
+- (b) SQL Server syntax use karke
 
 **Question 2**
 
-A `users.city` column is nullable. You want to display the city, but show `'Remote'` if the city is `NULL`. Which function do you use, and what does the expression look like?
+`users.city` column nullable hai. Tumhe city dikhani hai, lekin agar city `NULL` ho toh `'Remote'` dikhana hai. Kaunsa function use karoge, aur expression kaisa dikhega?
 
 **Question 3**
 
-A teammate writes:
+Ek teammate ye likhta hai:
 
 ```sql
 SELECT DISTINCT username, city
@@ -642,7 +645,7 @@ FROM   users
 WHERE  city = NULL;
 ```
 
-Identify **two** bugs in this query and write the corrected version.
+Is query mein **do** bugs identify karo aur corrected version likho.
 
 ---
 
@@ -669,7 +672,7 @@ FETCH NEXT 10 ROWS ONLY;
 
 **Answer 2**
 
-Use `COALESCE`:
+`COALESCE` use karo:
 
 ```sql
 SELECT username, COALESCE(city, 'Remote') AS display_city
@@ -678,11 +681,11 @@ FROM   users;
 
 **Answer 3**
 
-Bug 1: `city = NULL` should be `city IS NULL` — equality with `NULL` always yields `NULL`, not `TRUE`.
+Bug 1: `city = NULL` ko `city IS NULL` hona chahiye — `NULL` ke saath equality hamesha `NULL` deti hai, `TRUE` nahi.
 
-Bug 2: `DISTINCT username, city` with `WHERE city IS NULL` would return only users without a city. If the intent is to list all distinct cities, the column list should be just `city` (and the `WHERE` clause removed unless filtering is intended).
+Bug 2: `WHERE city IS NULL` ke saath `DISTINCT username, city` sirf un users ko return karega jinki city nahi hai. Agar intent ye hai ki saari distinct cities list ki jaayein, toh column list sirf `city` honi chahiye (aur `WHERE` clause hatana chahiye, jab tak filtering intended na ho).
 
-Corrected query (list all distinct cities):
+Corrected query (saari distinct cities list karo):
 
 ```sql
 SELECT DISTINCT city

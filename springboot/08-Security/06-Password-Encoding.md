@@ -1,17 +1,13 @@
----
-tags: [security, password, bcrypt, hashing]
-aliases: [PasswordEncoder, BCrypt, Argon2, Password Hashing]
-stage: intermediate
----
-
 # Password Encoding
 
-> [!info] For the Express/TS dev
-> In Node you reach for `bcrypt` (`bcrypt.hash`, `bcrypt.compare`). Spring Security has the `PasswordEncoder` abstraction with a default implementation that supports BCrypt, Argon2, scrypt, PBKDF2 — and a delegating encoder that auto-upgrades hashes when users log in. Always use the delegating encoder; you'll thank yourself in five years.
+> [!info] Express/TS wale dev ke liye
+> Node mein tum seedha `bcrypt` (`bcrypt.hash`, `bcrypt.compare`) use karte ho. Spring Security mein `PasswordEncoder` naam ka ek abstraction hai jiska default implementation BCrypt, Argon2, scrypt, PBKDF2 sab support karta hai — aur ek "delegating encoder" bhi hai jo login ke time pe hashes ko automatically upgrade kar deta hai. Hamesha delegating encoder use karo — 5 saal baad khud ko thank you bologe.
 
-## Concept / How it works
+## Concept / Ye kaam kaise karta hai
 
-The `PasswordEncoder` interface:
+Socho tum Zomato jaisa app bana rahe ho jahan lakhs users apna password store karte hain. Agar tum plaintext password DB mein daal doge aur kabhi breach ho gaya, toh sabka account gaya. Isliye password ko hash karke store karte hain — matlab ek one-way function jo password ko ek random-dikhne wali string mein convert kar deta hai, jisse wapas original password nikaalna practically impossible ho.
+
+`PasswordEncoder` interface bas yahi kaam karta hai:
 
 ```java
 public interface PasswordEncoder {
@@ -21,31 +17,33 @@ public interface PasswordEncoder {
 }
 ```
 
-`DelegatingPasswordEncoder` stores hashes prefixed with the algorithm:
+`DelegatingPasswordEncoder` har hash ke aage algorithm ka naam prefix karke store karta hai, taaki baad mein pata chale kis algorithm se bana tha:
 
 ```
 {bcrypt}$2a$10$kp...uH4...
 {argon2}$argon2id$v=19$m=16384,t=2,p=1$...
 {scrypt}$e0801$...
 {pbkdf2@SpringSecurity_v5_8}...
-{noop}plaintext        ← TESTING ONLY
+{noop}plaintext        ← SIRF TESTING KE LIYE
 ```
 
-Validation picks the right algorithm; if it's not the current default, `upgradeEncoding` is true and you can re-hash on next login.
+Jab tum `matches` call karte ho, Spring us prefix ko dekh kar sahi algorithm choose kar leta hai automatically. Aur agar wo algorithm current default nahi hai (matlab purana ho chuka hai), toh `upgradeEncoding` `true` return karega, aur tum agle login pe usse re-hash kar sakte ho. Ye bilkul UPI apps jaisa hai jo purane encryption ko silently naye se replace karte rehte hain bina user ko pata chale.
 
 ## Code example
 
-### Use the factory (the right answer 90% of the time)
+### Factory use karo (90% cases mein yahi sahi jawab hai)
+
+Kyun zaruri hai? Kyunki khud se algorithm choose karna, sahi parameters set karna — ye sab galat karne ke bahut chances hain. Spring ki factory ne already best defaults choose kar rakhe hain.
 
 ```java
 @Bean
 public PasswordEncoder passwordEncoder() {
     return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-    // BCrypt is the default at the moment of writing
+    // Is likhte waqt BCrypt hi default hai
 }
 ```
 
-### Hashing on signup
+### Signup pe hashing
 
 ```java
 @Service
@@ -71,16 +69,24 @@ public class UserService {
 }
 ```
 
-### Comparing on login
+Bas itna hi — `encoder.encode()` call karo, jo string wapas aayegi wahi DB mein save kar do. Plaintext password kabhi bhi kahin store mat karo, na hi logs mein print karo.
 
-Spring Security's `DaoAuthenticationProvider` does it for you. Custom flow:
+### Login pe compare karna
+
+Agar tum Spring Security ka standard flow use kar rahe ho, toh `DaoAuthenticationProvider` ye kaam khud hi kar deta hai peeche se. Lekin agar tumhara custom login flow hai (jaise ek REST endpoint jo manually check karta hai):
 
 ```java
 boolean ok = encoder.matches(req.password(), user.getPasswordHash());
 if (!ok) throw new BadCredentialsException("invalid");
 ```
 
-### Auto-upgrade on login
+`matches` ke andar hi constant-time comparison hoti hai, toh timing attacks se bhi bache rehte ho — tumhe khud kuch extra karne ki zarurat nahi.
+
+### Login pe auto-upgrade
+
+Ye feature sabse zyada underrated hai. Socho tumne 2 saal pehle BCrypt strength 10 use kiya tha, ab tumhe Argon2 pe switch karna hai. Sab existing users ka password re-hash karne ke liye migration script chalana headache hai — kyunki tumhare paas unka plaintext password hai hi nahi!
+
+Solution: jab user agli baar login kare, tab silently unka hash naye algorithm se re-hash kar do — kyunki us waqt tumhare paas unka raw password already available hota hai (login form se).
 
 ```java
 @Service
@@ -101,26 +107,26 @@ public class AuthService {
             throw new BadCredentialsException("invalid");
         }
         if (encoder.upgradeEncoding(u.getPasswordHash())) {
-            u.setPasswordHash(encoder.encode(password));   // re-hash with current default
+            u.setPasswordHash(encoder.encode(password));   // current default se re-hash
         }
         return u;
     }
 }
 ```
 
-This silently migrates users from old algorithms over time — no mass migration job needed.
+Isse users dheere-dheere, apne aap purane algorithm se naye pe migrate ho jaate hain — koi bhi mass migration job chalane ki zaroorat nahi padti.
 
-### Configuring BCrypt strength
+### BCrypt ki strength configure karna
 
 ```java
 @Bean
 public PasswordEncoder passwordEncoder() {
-    // strength 12 = 2^12 = 4096 rounds. Default is 10.
+    // strength 12 = 2^12 = 4096 rounds. Default 10 hai.
     return new BCryptPasswordEncoder(12);
 }
 ```
 
-But then you lose delegation. Better: register a delegating encoder with custom maps:
+Lekin isse tumhara delegation feature chala jaata hai — matlab future mein Argon2 pe switch karna mushkil ho jayega. Better approach: delegating encoder ko custom maps ke saath register karo:
 
 ```java
 @Bean
@@ -132,12 +138,12 @@ public PasswordEncoder passwordEncoder() {
     encoders.put("scrypt", SCryptPasswordEncoder.defaultsForSpringSecurity_v5_8());
     encoders.put("pbkdf2@SpringSecurity_v5_8",
                  Pbkdf2PasswordEncoder.defaultsForSpringSecurity_v5_8());
-    encoders.put("noop", NoOpPasswordEncoder.getInstance());   // tests only
+    encoders.put("noop", NoOpPasswordEncoder.getInstance());   // sirf tests ke liye
     return new DelegatingPasswordEncoder(idForEncode, encoders);
 }
 ```
 
-### Argon2 (recommended where available)
+### Argon2 (jahan available ho, wahan recommended)
 
 ```xml
 <dependency>
@@ -153,9 +159,11 @@ public PasswordEncoder passwordEncoder() {
 }
 ```
 
-Argon2id is the modern, memory-hard hash — slower for attackers using GPUs/ASICs.
+Argon2id modern, "memory-hard" hashing algorithm hai — matlab isko crack karne ke liye attacker ko sirf CPU power nahi, bahut zyada RAM bhi chahiye. Isliye GPU/ASIC farms use karke brute-force karna bahut mehenga ho jaata hai. Agar naya project bana rahe ho aur choice hai, toh Argon2id best hai.
 
-## Choosing parameters
+## Parameters kaise choose karein?
+
+Kyun zaruri hai? Kyunki bahut zyada "cost" set kar doge toh login slow ho jayega (bad UX, potential DoS), aur bahut kam set karoge toh attacker aasani se brute-force kar lega.
 
 | Algorithm | Cost knob | Memory | Recommended setting |
 | --- | --- | --- | --- |
@@ -164,7 +172,7 @@ Argon2id is the modern, memory-hard hash — slower for attackers using GPUs/ASI
 | Argon2id | iterations, memoryKb, parallelism | high | 16 MB, 2 iter, 1 par |
 | PBKDF2 | iterations | low | 600,000+ |
 
-Calibrate so a single hash takes ~250-500 ms on your server. Slower = better against brute force; too slow = login DoS.
+Rule of thumb: ek single hash tumhare server pe ~250-500 ms le, itna calibrate karo. Jitna slow, brute force utna hard — lekin bahut zyada slow karoge toh login hi DoS ho jayega (jaise agar tumhara /login endpoint 5 second lene lage, users frustrate ho jayenge, aur attacker requests ka flood bhej ke server ko busy kar sakta hai).
 
 ## Express/TS comparison
 
@@ -180,31 +188,33 @@ const ok = await bcrypt.compare(rawPassword, storedHash);
 | --- | --- |
 | `bcrypt.hash(pw, 12)` | `encoder.encode(pw)` |
 | `bcrypt.compare(pw, h)` | `encoder.matches(pw, h)` |
-| Manual algorithm migration | `upgradeEncoding` + re-hash on login |
+| Manual algorithm migration | `upgradeEncoding` + login pe re-hash |
 | `argon2` library | `Argon2PasswordEncoder` |
+
+Basically concept wahi hai jo Node mein hai, bas Spring mein ek extra layer (`DelegatingPasswordEncoder`) hai jo algorithm-agnostic banata hai — taaki future mein bina breaking changes ke algorithm switch kar sako.
 
 ## Gotchas
 
-> [!danger] Don't roll your own
-> No SHA-256 + salt loops. Use `PasswordEncoder`. Period.
+> [!danger] Apna khud ka encoder mat banao
+> SHA-256 + salt loops likh ke "apna crypto" banane ki koshish mat karo. `PasswordEncoder` use karo. Full stop. Ye waisa hi hai jaise koi apna khud ka payment gateway banane ki koshish kare instead of Razorpay/Stripe use karne ke — technically possible, practically ek disaster.
 
-> [!danger] `NoOpPasswordEncoder` in production
-> Stores plaintext. There's no scenario where this is acceptable outside tests.
+> [!danger] Production mein `NoOpPasswordEncoder`
+> Ye plaintext store karta hai. Koi bhi scenario nahi hai jahan ye production mein acceptable ho — sirf tests ke liye hai.
 
-> [!warning] Same password yields different hashes
-> Each `encode` generates a new salt. Comparing two hashes string-equality means nothing — always use `matches`.
+> [!warning] Same password se alag-alag hash aata hai
+> Har `encode` call ek naya random salt generate karta hai. Isliye do hashes ko string se compare karna (`hash1.equals(hash2)`) bilkul bekaar hai — hamesha `matches` use karo.
 
-> [!warning] Storing encoded hash length
-> BCrypt is 60 chars. With the `{bcrypt}` prefix, 68. Argon2 is much longer — make your `password_hash` column `VARCHAR(255)`.
+> [!warning] Encoded hash ki length store karte waqt dhyan rakho
+> BCrypt hash 60 characters ka hota hai. `{bcrypt}` prefix ke saath 68. Argon2 usse bhi lamba hota hai — apna `password_hash` column `VARCHAR(255)` rakho, warna truncation ka bug aayega jo debug karna nightmare hoga.
 
-> [!warning] Don't `.trim()` the input
-> Trimming silently changes the password. Either reject leading/trailing whitespace at the API boundary or accept it as part of the password.
+> [!warning] Input ko `.trim()` mat karo
+> Trimming silently password change kar deta hai (agar user ne intentionally leading/trailing space rakha ho). Ya toh API boundary pe hi leading/trailing whitespace reject kar do, ya use password ka legitimate part maan lo.
 
-> [!warning] Constant-time compare matters at the bytes level
-> `PasswordEncoder.matches` does this internally. If you write your own comparison, use `MessageDigest.isEqual` to prevent timing attacks.
+> [!warning] Constant-time compare bytes level pe matter karta hai
+> `PasswordEncoder.matches` internally ye handle karta hai. Agar kabhi khud comparison likhne ki naubat aaye, `MessageDigest.isEqual` use karo — normal `==` ya `.equals()` timing attack ke liye vulnerable ho sakte hain (jahan attacker response time measure karke character-by-character password guess kar sakta hai).
 
-> [!tip] Pre-hash long passwords?
-> Pre-hashing with SHA-256 to allow arbitrarily long inputs ("passphrase") is fine. Some libraries do it; BCrypt itself caps at 72 bytes silently — long passphrases beyond that are NOT actually checked. `BCryptPasswordEncoder` in Spring 6.4+ throws on >72 bytes; verify your version.
+> [!tip] Lambe passwords ko pre-hash karna?
+> Bahut lambi passphrase allow karne ke liye pehle SHA-256 se pre-hash karna theek hai, kuch libraries ye karti bhi hain. Ek cheez yaad rakho: BCrypt khud 72 bytes pe silently cap kar deta hai — usse lambi passphrase ka extra part actually check hi nahi hota (matlab agar tumhara password 100 characters ka hai, toh sirf pehle 72 hi matter karte hain). Spring 6.4+ mein `BCryptPasswordEncoder` 72 bytes se zyada pe exception throw karta hai — apna version verify kar lena.
 
 ## Related
 

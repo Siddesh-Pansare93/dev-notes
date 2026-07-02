@@ -4,33 +4,33 @@
 
 ---
 
-## 🎯 What You Will Learn
+## 🎯 Kya Seekhoge Is Chapter Mein
 
-By the end of this chapter, you will understand how Ethereum's fee market works, why gas exists, how EIP-1559 changed everything, and why gas optimization matters when you write smart contracts.
-
----
-
-## ⚙️ What Is Gas?
-
-Think of Ethereum as a massive, distributed computer. Every time you ask that computer to do something — send tokens, deploy a contract, call a function — it has to perform actual computational work. **Gas is the unit that measures that work.**
-
-A helpful analogy: imagine Ethereum is a car and every operation is a road you need to drive down. Gas is the fuel. A short drive (simple ETH transfer) costs a small amount of fuel. A long highway trip through a complex contract with loops and storage writes burns much more.
-
-Every single operation the Ethereum Virtual Machine (EVM) executes has a fixed gas cost defined in the Ethereum Yellow Paper. Adding two numbers costs 3 gas. Reading from storage costs 2100 gas. Writing to storage costs 20,000 gas.
-
-### Why Is Everything So Precise?
-
-Because every full node on the Ethereum network re-executes every transaction to verify it. The gas cost must be deterministic — the same operation must always cost the same gas — so all nodes agree on the outcome without trusting each other.
+Is chapter ke end tak tumhe samajh aa jayega ki Ethereum ka fee market kaise kaam karta hai, gas kyun exist karta hai, EIP-1559 ne game kaise badla, aur smart contracts likhte waqt gas optimization kyun itna zaruri hai.
 
 ---
 
-## 🛡️ Why Does Gas Exist?
+## ⚙️ Gas Hai Kya?
 
-Gas solves two critical problems:
+Socho Ethereum ek bahut bada, distributed computer hai. Jab bhi tum us computer se kuch karwate ho — tokens bhejna, contract deploy karna, function call karna — usse actual computational kaam karna padta hai. **Gas woh unit hai jo us kaam ko measure karta hai.**
 
-### 1. Preventing Infinite Loops (the Halting Problem)
+Ek achha analogy: Ethereum ko ek car samjho aur har operation ek road hai jispe tumhe drive karna hai. Gas fuel hai. Chhoti drive (simple ETH transfer) mein thoda fuel lagta hai. Lambi highway trip — jisme loops aur storage writes wale complex contract hain — bahut zyada fuel jalati hai.
 
-Without a cost mechanism, a malicious actor could deploy a contract with an infinite loop:
+EVM (Ethereum Virtual Machine) jo bhi operation execute karta hai, uska ek fixed gas cost hota hai jo Ethereum Yellow Paper mein defined hai. Do numbers add karna 3 gas leta hai. Storage se padhna 2100 gas leta hai. Storage mein likhna 20,000 gas leta hai.
+
+### Sab Kuch Itna Precise Kyun Hai?
+
+Kyunki Ethereum network ka har full node har transaction ko verify karne ke liye phir se execute (re-execute) karta hai. Gas cost deterministic hona chahiye — same operation ka cost hamesha same hona chahiye — taaki saare nodes bina ek dusre pe trust kiye result pe agree kar sakein.
+
+---
+
+## 🛡️ Gas Exist Kyun Karta Hai?
+
+Gas do bade problems solve karta hai:
+
+### 1. Infinite Loops Rokna (Halting Problem)
+
+Agar cost mechanism na ho, toh koi bhi malicious actor infinite loop wala contract deploy kar sakta hai:
 
 ```solidity
 // This would hang every node forever without gas limits
@@ -39,79 +39,79 @@ while (true) {
 }
 ```
 
-Because every operation costs gas, and every transaction has a **gas limit**, infinite loops simply run out of gas and revert. The attacker loses their fee. The network is protected.
+Kyunki har operation gas leta hai, aur har transaction ki ek **gas limit** hoti hai, infinite loops ka gas simply khatam ho jata hai aur transaction revert ho jata hai. Attacker apni fee kho deta hai. Network safe rehta hai.
 
-### 2. Compensating Validators
+### 2. Validators Ko Compensate Karna
 
-Validators (formerly miners under Proof of Work) spend real-world resources — hardware, electricity, capital — to process transactions and secure the network. Gas fees are the economic incentive that makes it worthwhile for them to do this work honestly.
+Validators (pehle Proof of Work mein miners kehte the) real-world resources — hardware, electricity, capital — kharch karte hain transactions process karne aur network secure rakhne mein. Gas fees hi woh economic incentive hai jo unke liye honestly ye kaam karna worthwhile banata hai.
 
 ---
 
 ## 📐 Gas Price vs Gas Limit vs Gas Used
 
-These three terms confuse nearly every beginner. Here is a clear breakdown:
+Ye teen terms almost har beginner ko confuse karte hain. Yahan clear breakdown hai:
 
-| Term | What It Is | Who Sets It |
+| Term | Kya Hai | Kaun Set Karta Hai |
 |---|---|---|
-| **Gas Limit** | The maximum amount of gas you authorize the transaction to consume | You (the sender) |
-| **Gas Price** | How much ETH you pay per unit of gas (pre-EIP-1559 concept) | You (the sender) |
-| **Gas Used** | The actual gas consumed when the transaction executes | The EVM |
+| **Gas Limit** | Maximum gas jo tum transaction ko consume karne ki permission dete ho | Tum (sender) |
+| **Gas Price** | Ek unit gas ke liye tum kitna ETH pay karte ho (pre-EIP-1559 concept) | Tum (sender) |
+| **Gas Used** | Actual gas jo transaction execute hone pe consume hua | EVM |
 
-### The Key Rule
+### Sabse Zaruri Rule
 
-If `gas used` exceeds `gas limit`, the transaction **reverts** — all state changes are rolled back — but you still pay for the gas used up to that point. You cannot get a refund for failed computation.
+Agar `gas used`, `gas limit` se zyada ho jaye, toh transaction **revert** ho jata hai — saare state changes wapis roll back ho jate hain — lekin tumhe us point tak use hue gas ka payment karna hi padta hai. Failed computation ka refund nahi milta.
 
-If `gas used` is less than `gas limit`, you are only charged for what was actually used. The unused gas is refunded to you.
+Agar `gas used`, `gas limit` se kam ho, toh sirf utna hi charge hota hai jitna actually use hua. Bacha hua gas refund ho jata hai.
 
 ---
 
-## 🔄 EIP-1559: The Fee Market Revolution
+## 🔄 EIP-1559: Fee Market Ki Revolution
 
-Before August 2021, Ethereum used a simple first-price auction. You broadcast a gas price, miners picked the highest bids, and fees were wildly unpredictable. During network congestion, fees could spike 10x in minutes.
+August 2021 se pehle, Ethereum ek simple first-price auction use karta tha. Tum ek gas price broadcast karte the, miners sabse highest bids pick karte the, aur fees bilkul unpredictable hoti thi. Network congestion ke time, fees minutes mein 10x tak spike ho jati thi.
 
-**EIP-1559** (activated in the London hard fork) introduced a fundamentally different model with three components.
+**EIP-1559** (London hard fork mein activate hua) ek bilkul different model laya — teen components ke saath.
 
 ### 1. Base Fee
 
-The base fee is an algorithmically determined minimum price to get your transaction included in a block.
+Base fee ek algorithmically decide hui minimum price hai jo tumhara transaction block mein include karwane ke liye chahiye.
 
-- **Set by the protocol**, not by users
-- **Burned (destroyed)** — it does not go to validators
-- **Adjusts automatically** based on network demand:
-  - If the previous block was more than 50% full, the base fee increases by up to 12.5%
-  - If the previous block was less than 50% full, the base fee decreases by up to 12.5%
+- **Protocol set karta hai**, users nahi
+- **Burn (destroy) ho jata hai** — validators ko nahi jata
+- Network demand ke hisab se **automatically adjust** hota hai:
+  - Agar pichla block 50% se zyada full tha, base fee 12.5% tak increase hoga
+  - Agar pichla block 50% se kam full tha, base fee 12.5% tak decrease hoga
 
-This makes the base fee predictable over short time horizons. Wallets can accurately estimate it, and users are not forced into guessing games.
+Isse base fee short time horizons mein predictable ban jata hai. Wallets isse accurately estimate kar sakte hain, aur users ko guessing games nahi khelni padti.
 
-> **Why burn it?** Burning the base fee reduces ETH supply over time, making ETH deflationary during high-activity periods. It also prevents validators from gaming the fee by including their own zero-fee transactions to artificially inflate block fullness.
+> **Isse burn kyun karte hain?** Base fee burn karne se ETH ka supply time ke saath kam hota hai, jisse high-activity periods mein ETH deflationary ban jata hai. Ye validators ko apne khud ke zero-fee transactions include karke block fullness artificially inflate karne se bhi rokta hai.
 
 ### 2. Priority Fee (Tip)
 
-The priority fee is an optional tip paid directly to the validator who includes your transaction.
+Priority fee ek optional tip hai jo directly us validator ko jaata hai jo tumhara transaction include karta hai.
 
-- **Set by you**, the sender
-- **Goes to the validator** in full
-- Incentivizes validators to prioritize your transaction over others during congestion
+- **Tum set karte ho**, sender
+- **Poora validator ko jaata hai**
+- Congestion ke time validators ko incentivize karta hai ki woh tumhara transaction dusron se pehle prioritize karein
 
-During low congestion, a 1 gwei tip is often sufficient. During a hot NFT mint, you might tip 100+ gwei to jump the queue.
+Kam congestion mein, 1 gwei tip aksar kaafi hota hai. Kisi hot NFT mint ke time, queue jump karne ke liye tumhe 100+ gwei tip dena pad sakta hai.
 
 ### 3. Max Fee
 
-Because the base fee can change between the time you sign a transaction and when it gets included, you set a **max fee** — the absolute ceiling of what you are willing to pay per unit of gas.
+Kyunki tumhare transaction sign karne aur usko block mein include hone ke beech base fee change ho sakta hai, tum ek **max fee** set karte ho — ye absolute ceiling hai jo tum per unit gas dene ko ready ho.
 
-The actual amount paid per unit of gas is always:
+Actual amount jo per unit gas pay hota hai, hamesha ye hota hai:
 
 ```
 actual fee per gas = base fee + priority fee
 ```
 
-But it will never exceed your max fee. Any difference between `max fee` and `base fee + priority fee` is refunded to you.
+Lekin ye kabhi bhi tumhari max fee se zyada nahi hoga. `Max fee` aur `base fee + priority fee` ke beech ka difference tumhe refund ho jata hai.
 
 ---
 
-## 🧮 Calculating Transaction Cost
+## 🧮 Transaction Cost Calculate Karna
 
-Here is the complete formula:
+Yahan complete formula hai:
 
 ```
 Total Cost (ETH) = Gas Used × (Base Fee + Priority Fee)
@@ -119,9 +119,9 @@ Total Cost (ETH) = Gas Used × (Base Fee + Priority Fee)
 
 ### Worked Example
 
-Suppose you send an ETH transfer:
+Maan lo tum ek ETH transfer bhej rahe ho:
 
-- Gas used: 21,000 (standard cost for a simple ETH transfer)
+- Gas used: 21,000 (simple ETH transfer ka standard cost)
 - Base fee: 15 gwei
 - Priority fee: 2 gwei
 
@@ -132,7 +132,7 @@ Total = 21,000 × (15 + 2) gwei
       = 0.000357 ETH
 ```
 
-At an ETH price of $3,000, this costs about $1.07.
+ETH price $3,000 hone par, ye lagbhag $1.07 ka padega.
 
 ### Gas Fee Calculation Flow
 
@@ -162,22 +162,22 @@ flowchart TD
 
 ---
 
-## 💥 Why Transactions Fail: "Out of Gas"
+## 💥 Transactions Kyun Fail Hote Hain: "Out of Gas"
 
-When a transaction runs out of gas before completing, the EVM throws an out-of-gas exception. Everything reverts — storage changes, token transfers, event emissions — as if the call never happened. But the gas consumed up to that point is not refunded.
+Jab kisi transaction ka gas complete hone se pehle hi khatam ho jaye, toh EVM ek out-of-gas exception throw karta hai. Sab kuch revert ho jata hai — storage changes, token transfers, event emissions — jaise call kabhi hua hi nahi. Lekin us point tak consume hua gas refund nahi hota.
 
 Common causes:
 
-1. **Gas limit set too low** — the estimate was wrong or the contract logic is more expensive than anticipated
-2. **Unexpected code paths** — the transaction hit a branch that costs significantly more gas than the estimated path
-3. **Dynamic loops** — a loop that iterates over an array that grew since the gas estimate was made
-4. **Reentrancy guards and checks** — additional logic added after the estimate
+1. **Gas limit bahut kam set kiya gaya** — estimate galat tha ya contract logic anticipate se zyada expensive nikla
+2. **Unexpected code paths** — transaction ne aisa branch hit kiya jo estimated path se kaafi zyada gas leta hai
+3. **Dynamic loops** — ek loop jo kisi array par iterate karta hai jo gas estimate ke baad grow ho gaya
+4. **Reentrancy guards aur checks** — estimate ke baad add ki gayi extra logic
 
-The fix is straightforward: use `eth_estimateGas` to get an accurate estimate, then add a small buffer (10–20%).
+Fix simple hai: `eth_estimateGas` use karo accurate estimate ke liye, aur ek chhota buffer (10–20%) add karo.
 
 ---
 
-## 📊 Gas Costs for Common EVM Operations
+## 📊 Common EVM Operations Ke Gas Costs
 
 | Opcode | Operation | Gas Cost |
 |---|---|---|
@@ -185,29 +185,29 @@ The fix is straightforward: use `eth_estimateGas` to get an accurate estimate, t
 | `MUL` | Integer multiplication | 5 |
 | `DIV` | Integer division | 5 |
 | `SHA3` | Keccak-256 hash | 30 + 6/word |
-| `SLOAD` | Read from contract storage (cold) | 2,100 |
-| `SLOAD` | Read from contract storage (warm) | 100 |
-| `SSTORE` | Write to storage (new value) | 20,000 |
-| `SSTORE` | Update existing storage slot | 2,900 |
-| `SSTORE` | Clear a storage slot (refund eligible) | 2,900 |
+| `SLOAD` | Contract storage se padhna (cold) | 2,100 |
+| `SLOAD` | Contract storage se padhna (warm) | 100 |
+| `SSTORE` | Storage mein likhna (new value) | 20,000 |
+| `SSTORE` | Existing storage slot update karna | 2,900 |
+| `SSTORE` | Storage slot clear karna (refund eligible) | 2,900 |
 | `CALL` | External contract call (cold address) | 2,600 |
-| `LOG0` | Emit event (no topics) | 375 + 8/byte |
-| `LOG3` | Emit event (3 topics) | 1,500 + 8/byte |
-| `CREATE` | Deploy a new contract | 32,000 |
-| `CODECOPY` | Copy code to memory | 3 + 3/word |
+| `LOG0` | Event emit karna (no topics) | 375 + 8/byte |
+| `LOG3` | Event emit karna (3 topics) | 1,500 + 8/byte |
+| `CREATE` | Naya contract deploy karna | 32,000 |
+| `CODECOPY` | Code ko memory mein copy karna | 3 + 3/word |
 | ETH Transfer | Simple ETH send (no data) | 21,000 (fixed) |
 
-> **Cold vs Warm:** Since EIP-2929, accessing a storage slot or address for the first time in a transaction costs more (cold access). Subsequent accesses in the same transaction are cheaper (warm access) because the data is already in a local cache.
+> **Cold vs Warm:** EIP-2929 ke baad se, kisi transaction mein pehli baar storage slot ya address access karna zyada costly hai (cold access). Same transaction mein baad ke accesses cheaper hote hain (warm access) kyunki data pehle se local cache mein hota hai.
 
-The most expensive operations are almost always **storage writes (`SSTORE`)**. This is the single most important fact for smart contract gas optimization.
+Sabse expensive operations almost hamesha **storage writes (`SSTORE`)** hote hain. Ye smart contract gas optimization ke liye sabse important fact hai.
 
 ---
 
-## 🔍 How to Estimate Gas
+## 🔍 Gas Kaise Estimate Karein
 
 ### eth_estimateGas
 
-The standard JSON-RPC method for gas estimation simulates a transaction against the current chain state and returns the gas that would be consumed.
+Gas estimation ka standard JSON-RPC method hai jo current chain state ke against ek transaction simulate karta hai aur batata hai kitna gas consume hoga.
 
 ```javascript
 const { ethers } = require("ethers");
@@ -230,19 +230,19 @@ const gasEstimate = await contract.someFunction.estimateGas(arg1, arg2);
 console.log(`Contract call gas: ${gasEstimate.toString()}`);
 ```
 
-### Practical Tips for Gas Estimation
+### Gas Estimation Ke Practical Tips
 
-- Always add a **10–20% buffer** above the estimate for production transactions
-- For contracts with dynamic loops over user-supplied data, the estimate can be wildly off if the on-chain state changes between estimate time and inclusion time
-- Use tools like **Hardhat's gas reporter** (`hardhat-gas-reporter`) to see gas costs for every function during testing
+- Production transactions ke liye estimate ke upar hamesha **10–20% ka buffer** add karo
+- Dynamic loops wale contracts mein jo user-supplied data pe chalte hain, estimate wildly off ho sakta hai agar estimate time aur inclusion time ke beech on-chain state change ho jaye
+- Testing ke time har function ka gas cost dekhne ke liye **Hardhat's gas reporter** (`hardhat-gas-reporter`) jaise tools use karo
 
 ---
 
-## 🛠️ Gas Optimization for Smart Contract Developers
+## 🛠️ Smart Contract Developers Ke Liye Gas Optimization
 
-Gas optimization is not premature optimization in Solidity — it is a core responsibility. High gas costs make your contract unusable. Here are the most impactful techniques:
+Solidity mein gas optimization premature optimization nahi hai — ye ek core responsibility hai. High gas costs tumhare contract ko unusable bana dete hain. Yahan sabse impactful techniques hain:
 
-### Use `calldata` Instead of `memory` for External Function Parameters
+### External Function Parameters Ke Liye `memory` Ki Jagah `calldata` Use Karo
 
 ```solidity
 // Expensive: copies data to memory
@@ -252,9 +252,9 @@ function process(string memory data) external { ... }
 function process(string calldata data) external { ... }
 ```
 
-### Pack Storage Variables
+### Storage Variables Ko Pack Karo
 
-The EVM reads and writes 32-byte storage slots. If you store a `uint128` and a `uint128` in separate slots, you pay 40,000 gas. Pack them together, and you pay 20,000 gas for one slot write.
+EVM 32-byte storage slots padhta aur likhta hai. Agar tum ek `uint128` aur ek `uint128` alag-alag slots mein store karo, toh 40,000 gas dena padega. Unhe saath pack karo, toh ek slot write ke liye sirf 20,000 gas lagega.
 
 ```solidity
 // Bad: two storage slots
@@ -266,9 +266,9 @@ uint128 public a;
 uint128 public b;
 ```
 
-### Cache Storage Reads in Memory
+### Storage Reads Ko Memory Mein Cache Karo
 
-Every `SLOAD` costs 100–2,100 gas. If you read the same variable multiple times in a function, cache it.
+Har `SLOAD` ka cost 100–2,100 gas hota hai. Agar tum ek function mein same variable multiple baar read kar rahe ho, toh use cache kar lo.
 
 ```solidity
 // Bad: three SLOADs
@@ -287,13 +287,13 @@ function good() external {
 }
 ```
 
-### Use `uint256` Over Smaller Integers (Mostly)
+### `uint256` Ko Smaller Integers Se Zyada Use Karo (Mostly)
 
-The EVM operates natively on 256-bit words. Using `uint8` inside a function (not a struct) often costs *more* gas because the EVM must mask bits to simulate smaller types.
+EVM natively 256-bit words par operate karta hai. Kisi function ke andar (struct ke andar nahi) `uint8` use karna aksar *zyada* gas leta hai, kyunki EVM ko chhote types simulate karne ke liye bits mask karne padte hain.
 
-### Short-Circuit Expensive Operations
+### Expensive Operations Ko Short-Circuit Karo
 
-Revert early with cheap checks before running expensive operations.
+Cheap checks pehle laga ke jaldi revert kar do, expensive operations run karne se pehle.
 
 ```solidity
 function withdraw(uint256 amount) external {
@@ -305,75 +305,77 @@ function withdraw(uint256 amount) external {
 
 ---
 
-## 🚀 Layer 2 Solutions and Cheaper Gas
+## 🚀 Layer 2 Solutions Aur Sasta Gas
 
-Ethereum mainnet processes roughly 15–30 transactions per second, creating consistent demand for block space and keeping gas prices elevated. **Layer 2 (L2) networks** solve this by processing transactions off mainnet and periodically posting compressed proofs or data back to mainnet.
+Ethereum mainnet roughly 15–30 transactions per second process karta hai, jisse block space ki demand consistently high rehti hai aur gas prices elevated rehte hain. **Layer 2 (L2) networks** ye problem solve karte hain — transactions mainnet ke bahar process karke, periodically compressed proofs ya data wapas mainnet pe post karke.
 
-### Why L2 Gas Is Cheaper
+Isse aise samjho jaise Zomato ka main server (L1) sabhi orders directly handle karta hai, aur peak time mein slow ho jata hai. Agar tum kuch regional mini-servers (L2) laga do jo local orders handle karke sirf summary main server ko bhejein, toh main server ka load kam ho jata hai aur cheezein fast ho jati hain.
+
+### L2 Gas Sasta Kyun Hai
 
 | Factor | Mainnet (L1) | Layer 2 |
 |---|---|---|
 | Transactions per second | ~15–30 | 1,000–10,000+ |
 | Block space competition | High | Low |
-| Data posted to L1 | Full transactions | Compressed batches |
+| L1 pe post hone wala data | Full transactions | Compressed batches |
 | Typical gas cost | $1–$50+ | $0.001–$0.10 |
 
 ### Major L2 Categories
 
-**Optimistic Rollups** (Optimism, Arbitrum): Execute transactions off-chain, post compressed transaction data to L1, assume transactions are valid unless challenged in a 7-day dispute window.
+**Optimistic Rollups** (Optimism, Arbitrum): Transactions off-chain execute karte hain, compressed transaction data L1 pe post karte hain, aur assume karte hain ki transactions valid hain jab tak 7-day dispute window mein challenge na ho.
 
-**ZK Rollups** (zkSync Era, Starknet, Polygon zkEVM): Execute transactions off-chain, generate a cryptographic validity proof (ZK-SNARK or ZK-STARK), post the proof to L1. No challenge period needed — math proves correctness instantly.
+**ZK Rollups** (zkSync Era, Starknet, Polygon zkEVM): Transactions off-chain execute karte hain, ek cryptographic validity proof (ZK-SNARK ya ZK-STARK) generate karte hain, aur proof ko L1 pe post karte hain. Koi challenge period nahi chahiye — math instantly correctness prove kar deta hai.
 
-**Why They Still Use Some Gas**
+**Ye Phir Bhi Kuch Gas Kyun Use Karte Hain**
 
-Even on L2, you pay gas — but it is denominated in the L2 network's own fee mechanism and is a fraction of mainnet costs because competition for block space is much lower and data compression is aggressive.
+L2 par bhi, tumhe gas dena padta hai — lekin ye L2 network ke apne fee mechanism mein hota hai aur mainnet costs ka ek fraction hota hai, kyunki block space ke liye competition bahut kam hoti hai aur data compression bahut aggressive hoti hai.
 
 ---
 
 ## 🔑 Key Takeaways
 
-- **Gas** is the unit of computational work on the EVM. Every opcode has a fixed gas cost.
-- Gas exists to **prevent infinite loops** and to **compensate validators** for their work.
-- Under **EIP-1559**: the base fee is burned and adjusts algorithmically; the priority fee (tip) goes to the validator; the max fee is your ceiling.
+- **Gas** EVM par computational work ki unit hai. Har opcode ka ek fixed gas cost hota hai.
+- Gas exist karta hai **infinite loops rokne** aur **validators ko unke kaam ke liye compensate karne** ke liye.
+- **EIP-1559** ke under: base fee burn hoti hai aur algorithmically adjust hoti hai; priority fee (tip) validator ko jaati hai; max fee tumhari ceiling hai.
 - **Transaction cost = Gas Used x (Base Fee + Priority Fee).**
-- Transactions that exceed the gas limit **revert and still charge gas** — set limits carefully.
-- **Storage writes (`SSTORE`) are the most expensive common operation** — this is the most important gas fact for Solidity developers.
-- Use `eth_estimateGas` to estimate gas and add a 10–20% buffer.
-- **Layer 2 networks** reduce gas costs by batching transactions and reducing block space competition.
+- Jo transactions gas limit se zyada consume karte hain woh **revert ho jate hain aur gas phir bhi charge hota hai** — limits carefully set karo.
+- **Storage writes (`SSTORE`) sabse expensive common operation hain** — ye Solidity developers ke liye sabse important gas fact hai.
+- `eth_estimateGas` use karke gas estimate karo aur 10–20% ka buffer add karo.
+- **Layer 2 networks** transactions batch karke aur block space competition kam karke gas costs reduce karte hain.
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding:
+Apni samajh test karo:
 
-**Question 1.** You set a gas limit of 50,000 for a transaction. The EVM uses 60,000 gas before finishing. What happens?
+**Question 1.** Tumne ek transaction ke liye 50,000 gas limit set kiya. EVM finish hone se pehle 60,000 gas use kar leta hai. Kya hoga?
 
-- A) The transaction completes and you are refunded 10,000 gas worth of ETH
-- B) The transaction reverts; all state changes are undone; you are charged for 60,000 gas
-- C) The transaction reverts; all state changes are undone; you are charged for 50,000 gas
-- D) The transaction pauses and waits for you to increase the gas limit
+- A) Transaction complete ho jayega aur tumhe 10,000 gas worth ETH refund milega
+- B) Transaction revert ho jayega; saare state changes undo ho jayenge; tumse 60,000 gas charge hoga
+- C) Transaction revert ho jayega; saare state changes undo ho jayenge; tumse 50,000 gas charge hoga
+- D) Transaction pause ho jayega aur tumhare gas limit badhane ka wait karega
 
-**Question 2.** Under EIP-1559, where does the base fee go?
+**Question 2.** EIP-1559 ke under, base fee kahan jaata hai?
 
-- A) To the validator who includes the transaction
-- B) To the Ethereum Foundation treasury
-- C) It is burned (destroyed, reducing ETH supply)
-- D) It is split equally between the validator and the next block's proposer
+- A) Validator ko jo transaction include karta hai
+- B) Ethereum Foundation treasury ko
+- C) Woh burn (destroy) ho jaata hai, ETH supply kam karte hue
+- D) Validator aur next block ke proposer ke beech equally split ho jaata hai
 
-**Question 3.** Which of the following is the most expensive common EVM operation?
+**Question 3.** In mein se sabse expensive common EVM operation kaunsa hai?
 
 - A) `ADD` — integer addition
 - B) `SHA3` — keccak-256 hash
-- C) `SSTORE` — writing a new value to contract storage
-- D) `CALL` — making an external contract call
+- C) `SSTORE` — contract storage mein naya value likhna
+- D) `CALL` — external contract call karna
 
 <details>
 <summary>Answers</summary>
 
-1. **C** — The transaction reverts at the gas limit (50,000), undoing all state changes. You are charged for the gas consumed up to the point of failure (50,000), not 60,000, because execution stopped at the limit.
-2. **C** — The base fee is burned. This is a core design choice of EIP-1559 to make ETH deflationary during high-activity periods and to prevent validator manipulation of the fee.
-3. **C** — `SSTORE` for a new storage value costs 20,000 gas. This dwarfs arithmetic (3–5 gas) and hashing (30+ gas). Minimizing storage writes is the single highest-impact gas optimization in Solidity.
+1. **C** — Transaction gas limit (50,000) par hi revert ho jaata hai, saare state changes undo karte hue. Tumse consume hue gas ka charge hota hai us point tak jahan execution rukta hai (50,000), 60,000 ka nahi, kyunki execution limit par hi ruk jata hai.
+2. **C** — Base fee burn ho jaata hai. Ye EIP-1559 ka ek core design choice hai jisse high-activity periods mein ETH deflationary banta hai aur validators fee manipulate nahi kar paate.
+3. **C** — Naye storage value ke liye `SSTORE` ka cost 20,000 gas hai. Ye arithmetic (3–5 gas) aur hashing (30+ gas) se kahin zyada hai. Storage writes minimize karna Solidity mein sabse high-impact gas optimization hai.
 
 </details>
 

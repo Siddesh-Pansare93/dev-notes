@@ -30,11 +30,11 @@
 
 ## 🔍 What Is Sharding?
 
-**Real-world analogy:** Imagine a city library with 10 million books. One librarian cannot manage all of them, one room cannot hold them all, and finding a single book takes forever. So the library splits books across 10 branches — fiction in Branch A, science in Branch B, history in Branch C. Each branch is independent. You go to the right branch, get your book fast.
+**Real-world analogy:** Socho ek city library hai jisme 1 crore books hain. Ek akela librarian sab kuch manage nahi kar sakta, ek room mein sab books fit nahi hoti, aur ek book dhoondhne mein hi ghanta lag jaata hai. Toh library kya karti hai? Books ko 10 branches mein baant deti hai — fiction Branch A mein, science Branch B mein, history Branch C mein. Har branch independent hai. Tumhe pata hai kis branch jaana hai, book turant mil jaati hai.
 
-**Sharding = doing exactly that for your database.**
+**Sharding bilkul yehi karta hai tumhare database ke saath.**
 
-Sharding is **horizontal partitioning** — splitting rows of a table across multiple independent database **instances** (called shards). Each shard holds a subset of the data. Unlike vertical partitioning (splitting columns), sharding splits rows.
+Sharding hai **horizontal partitioning** — matlab ek table ki rows ko multiple independent database **instances** (jinhe shards kehte hain) mein baant dena. Har shard data ka ek subset hold karta hai. Vertical partitioning (jisme columns baante jaate hain) se alag — sharding rows ko split karta hai.
 
 ```
 Without Sharding:               With Sharding:
@@ -47,27 +47,29 @@ Without Sharding:               With Sharding:
 └──────────────┘               (different machines, different disks)
 ```
 
-Each shard is a complete, standalone database with its own CPU, RAM, disk, and connections. They do NOT share storage.
+Har shard apne aap mein ek complete, standalone database hai — apna CPU, apna RAM, apna disk, apne connections. Woh storage share nahi karte.
 
-### Sharding vs. Replication — The Key Difference
+### Sharding vs. Replication — Asli Farak Kya Hai?
+
+**Kya hota hai?** Log aksar sharding aur replication mein confuse ho jaate hain. Dono scaling ke liye use hote hain, lekin bilkul different problems solve karte hain.
 
 | Feature | Replication | Sharding |
 |---|---|---|
 | Purpose | Fault tolerance, read scaling | Write scaling, storage scaling |
-| Data | Full copy on each node | Subset on each node |
+| Data | Har node pe full copy | Har node pe subset |
 | Total data stored | N × original | ~1× original (split) |
 | Handles | High read QPS | High write QPS, huge data volume |
 | Complexity | Low-Medium | High |
 
-> **In practice:** Production systems use BOTH — each shard is replicated for fault tolerance.
+> **In practice:** Production systems dono use karte hain — har shard ko fault tolerance ke liye replicate bhi kiya jaata hai.
 
 ---
 
 ## 🚨 Why Do You Need Sharding?
 
-**Real-world analogy:** A restaurant with one chef can serve 50 people. When 500 people show up, adding a bigger oven (vertical scaling) helps — but only to a point. Eventually, you open more restaurant locations (horizontal scaling = sharding).
+**Real-world analogy:** Ek restaurant jaha ek chef 50 logo ko serve kar sakta hai. Jab 500 log aa jaayein, toh bada oven laga dena (vertical scaling) kaam aata hai — but sirf ek limit tak. Eventually tumhe naye restaurant locations kholne padte hain (horizontal scaling = sharding).
 
-A single database server hits physical limits:
+Ek single database server ki bhi physical limits hoti hain:
 
 | Limit | Typical ceiling |
 |---|---|
@@ -76,14 +78,14 @@ A single database server hits physical limits:
 | Connections | ~5,000–10,000 concurrent |
 | RAM for working set | 1–4 TB |
 
-When your dataset is 100 TB, or you receive 1 million queries per second (QPS), **no single machine can handle it**. You shard.
+Jab tumhara dataset 100 TB ho jaaye, ya tumhe 1 million queries per second (QPS) milne lagein, **koi bhi single machine yeh handle nahi kar sakti**. Tab sharding karni padti hai.
 
-### Real numbers from big systems
+### Big Systems Ke Real Numbers
 
-- **Facebook (2008):** Sharded MySQL into thousands of shards to serve 100M+ users
-- **YouTube:** Built Vitess to shard MySQL at planet scale
-- **Pinterest:** Moved to sharded MySQL when they hit 10TB of data in 2012
-- **Discord:** Sharded PostgreSQL to handle billions of messages
+- **Facebook (2008):** MySQL ko hazaaron shards mein baanta, 10 crore+ users serve karne ke liye
+- **YouTube:** Vitess banaya taaki MySQL ko planet scale pe shard kar sakein
+- **Pinterest:** 2012 mein 10TB data pe pahuchte hi sharded MySQL pe shift ho gaye
+- **Discord:** Arabon messages handle karne ke liye PostgreSQL ko shard kiya
 
 ```mermaid
 graph TB
@@ -106,9 +108,9 @@ graph TB
 
 ### 1. Range-Based Sharding
 
-**Real-world analogy:** An encyclopedia — Volume A-F on shelf 1, G-M on shelf 2, N-Z on shelf 3. Books are split by the starting letter range.
+**Real-world analogy:** Ek encyclopedia socho — Volume A-F shelf 1 pe, G-M shelf 2 pe, N-Z shelf 3 pe. Books ko unke starting letter ke range se split kiya gaya hai.
 
-You pick a column (e.g., `user_id` or `created_at`) and assign ranges to shards.
+Tum ek column pick karte ho (jaise `user_id` ya `created_at`) aur shards ko ranges assign kar dete ho.
 
 ```
 user_id 1       – 10,000,000  → Shard 0
@@ -151,22 +153,22 @@ host = get_shard(15_000_000)  # → "shard_1_host"
 ```
 
 **Pros:**
-- Range queries are fast — all data for `id 1–1000` lives in one shard, no scatter-gather
-- Easy to understand and debug
-- Good for time-series data (logs, events by date)
+- Range queries fast hoti hain — `id 1–1000` ka saara data ek hi shard mein rehta hai, scatter-gather ki zaroorat nahi
+- Samajhna aur debug karna easy hai
+- Time-series data (logs, events by date) ke liye badhiya
 
 **Cons:**
-- **Hot spot problem** — new users always go to the last shard. Shard 3 gets hammered, Shard 0 sits idle
-- Uneven data distribution if data is not uniformly distributed
-- Adding a new shard requires config changes
+- **Hot spot problem** — naye users hamesha last shard mein jaate hain. Shard 3 hamesha overload, Shard 0 khali baitha rehta hai
+- Agar data uniformly distributed nahi hai, toh distribution uneven ho jaata hai
+- Naya shard add karne ke liye config changes karne padte hain
 
 ---
 
 ### 2. Hash-Based Sharding
 
-**Real-world analogy:** A post office sorts letters by the last digit of the zip code. Zip ends in 0 → counter 0, ends in 1 → counter 1. Every counter gets roughly equal traffic.
+**Real-world analogy:** Ek post office letters ko zip code ke last digit se sort karta hai. Zip 0 pe end hoti hai → counter 0, 1 pe end hoti hai → counter 1. Har counter ko roughly equal traffic milta hai.
 
-You hash the shard key and take a modulo:
+Tum shard key ko hash karte ho aur modulo lete ho:
 
 ```
 shard_number = hash(user_id) % number_of_shards
@@ -205,22 +207,22 @@ host = get_shard(42)  # Deterministic — always same shard for same id
 ```
 
 **Pros:**
-- Even data distribution — no hot spots
-- Simple to implement
-- Deterministic routing — no lookup needed
+- Even data distribution — koi hot spots nahi
+- Implement karna simple hai
+- Deterministic routing — koi lookup ki zaroorat nahi
 
 **Cons:**
-- **Rebalancing pain** — if you change `N` (add/remove a shard), nearly all data needs to move. With 4 shards → 5 shards, ~80% of data is now on the wrong shard
-- Range queries are terrible — `user_id BETWEEN 1 AND 1000` hits all shards
-- Fixed number of shards must be planned upfront
+- **Rebalancing pain** — agar `N` change karo (shard add/remove karo), toh almost saara data move karna padta hai. 4 shards se 5 shards karne pe, ~80% data galat shard pe pahuch jaata hai
+- Range queries bekaar hain — `user_id BETWEEN 1 AND 1000` sab shards ko hit karta hai
+- Shards ki fixed number pehle se plan karni padti hai
 
 ---
 
 ### 3. Directory-Based Sharding
 
-**Real-world analogy:** A hotel concierge keeps a notebook: "Room 101 → Building A, Room 200 → Building B." Every new guest is assigned a room by the concierge who updates the notebook.
+**Real-world analogy:** Ek hotel ka concierge ek notebook maintain karta hai: "Room 101 → Building A, Room 200 → Building B." Har naye guest ko concierge room assign karta hai aur notebook update karta rehta hai.
 
-A separate **lookup service** (directory) maps each key to a shard. The router asks the directory: "Where does user_id 42 live?" — and the directory responds.
+Ek separate **lookup service** (directory) har key ko ek shard se map karti hai. Router directory se poochta hai: "user_id 42 kaha rehta hai?" — aur directory jawab deti hai.
 
 ```mermaid
 graph TB
@@ -264,22 +266,22 @@ class DirectoryShardRouter:
 ```
 
 **Pros:**
-- Maximum flexibility — move individual keys between shards anytime
-- No rebalancing problem — just update the directory
-- Can handle uneven data naturally
+- Maximum flexibility — kabhi bhi individual keys ko ek shard se doosre shard mein move kar sakte ho
+- Rebalancing ka koi jhanjhat nahi — bas directory update karo
+- Uneven data ko naturally handle kar leta hai
 
 **Cons:**
-- **Single point of failure** — if the directory goes down, nothing works
-- Extra network hop for every query (latency)
-- Directory can become a bottleneck at scale (cache it aggressively)
+- **Single point of failure** — agar directory down ho gayi, toh kuch bhi kaam nahi karega
+- Har query ke liye extra network hop (latency badhti hai)
+- Directory scale pe bottleneck ban sakti hai (isliye ise aggressively cache karo)
 
 ---
 
 ### 4. Consistent Hashing
 
-**Real-world analogy:** Imagine a clock face (0 to 360 degrees). Each database server is placed at a position on the clock. Each data key is also hashed to a position on the clock. The data goes to the first server clockwise from its position. When you add a new server, only the data between the new server and its predecessor moves — everything else stays put.
+**Real-world analogy:** Ek clock face socho (0 se 360 degrees tak). Har database server clock pe ek position pe rakha hai. Har data key bhi hash ho ke clock pe ek position pe aati hai. Data us position se clockwise pehle jo bhi server milta hai, usme jaata hai. Jab tum naya server add karte ho, sirf naye server aur uske predecessor ke beech ka data move hota hai — baaki sab jaisa tha waisa hi rehta hai.
 
-This elegantly solves the rebalancing problem of simple hash-based sharding.
+Yeh simple hash-based sharding ki rebalancing problem ko elegantly solve karta hai.
 
 ```mermaid
 graph TB
@@ -357,7 +359,7 @@ shard = ring.get_shard("user:9999") # → consistent answer
 ring.add_shard("db-host-3")
 ```
 
-**Why virtual nodes?** Without them, servers may land unevenly on the ring. With 150 virtual nodes per shard, each shard handles roughly equal load regardless of where physical nodes land.
+**Virtual nodes kyun zaruri hain?** Inke bina, servers ring pe unevenly land ho sakte hain. 150 virtual nodes per shard ke saath, har shard ko roughly equal load milta hai — chahe physical nodes kahin bhi land hon.
 
 | Property | Simple Hash | Consistent Hash |
 |---|---|---|
@@ -371,27 +373,27 @@ ring.add_shard("db-host-3")
 
 ## 🔑 Choosing the Shard Key
 
-**This is the single most important decision in sharding. Get it wrong, and you live with the consequences forever.**
+**Yeh sharding ka sabse important decision hai. Isme galti ki, toh uska result poori zindagi bhugatna padega.**
 
-**Real-world analogy:** A filing cabinet sharded by first letter of surname. If 30% of your customers are named Smith, Shah, or Singh — the "S" drawer overflows while "Q" is nearly empty. A bad shard key creates hot shards.
+**Real-world analogy:** Ek filing cabinet jo surname ke first letter se shard kiya gaya hai. Agar tumhare 30% customers ka naam Smith, Shah, ya Singh hai — toh "S" drawer overflow ho jaata hai jabki "Q" almost khaali rehta hai. Ek bad shard key hot shards create karti hai.
 
-### Rules for a Good Shard Key
+### Ek Achhi Shard Key Ke Rules
 
-**1. High Cardinality** — enough distinct values to spread data across shards.
-- BAD: `country` (only 195 countries, US has 40% of traffic)
-- GOOD: `user_id` (millions of distinct values)
+**1. High Cardinality** — itni distinct values honi chahiye ki data shards mein achhe se spread ho sake.
+- BAD: `country` (sirf 195 countries, US ka hi 40% traffic hai)
+- GOOD: `user_id` (millions distinct values)
 
-**2. Even Distribution** — no one shard should get most of the data or traffic.
-- BAD: `created_at` for a social network (today's date gets all writes)
-- GOOD: `user_id` hash distributes writes evenly
+**2. Even Distribution** — kisi bhi ek shard ko sabse zyada data ya traffic nahi milna chahiye.
+- BAD: `created_at` ek social network ke liye (aaj ki date pe saare writes chale jaate hain)
+- GOOD: `user_id` ka hash writes ko evenly distribute karta hai
 
-**3. Query Alignment** — most of your queries should filter BY the shard key to avoid cross-shard queries.
-- If 90% of queries are `WHERE user_id = X`, shard by `user_id`
-- If 90% of queries are `WHERE tenant_id = X`, shard by `tenant_id`
+**3. Query Alignment** — tumhari zyadatar queries shard key se filter honi chahiye, taaki cross-shard queries avoid ho sakein.
+- Agar 90% queries `WHERE user_id = X` hain, toh `user_id` se shard karo
+- Agar 90% queries `WHERE tenant_id = X` hain, toh `tenant_id` se shard karo
 
-**4. Co-locate Related Data** — data you JOIN together should live in the same shard.
-- Shard users AND their orders by `user_id` → `SELECT * FROM orders WHERE user_id = 42` hits one shard
-- If users are sharded by `user_id` but orders by `order_id` → every user's orders are scattered
+**4. Co-locate Related Data** — jo data tum JOIN karte ho, wo ek hi shard mein rehna chahiye.
+- Users aur unke orders dono ko `user_id` se shard karo → `SELECT * FROM orders WHERE user_id = 42` sirf ek shard hit karta hai
+- Agar users `user_id` se shard hain lekin orders `order_id` se, toh har user ke orders scattered ho jaayenge
 
 ```mermaid
 graph TB
@@ -413,31 +415,31 @@ graph TB
 
 ```
 ❌ Auto-increment integer as shard key with range sharding
-   → All new writes go to the last shard (hot shard)
+   → Saare naye writes last shard mein jaate hain (hot shard)
 
 ❌ Timestamp as shard key  
-   → "Today" shard is on fire; old shards are cold
+   → "Aaj" wala shard aag mein jal raha hai; purane shards thande baithe hain
 
 ❌ Low-cardinality column (status, country, gender)
-   → Too few shards possible; hot spots guaranteed
+   → Bahut kam shards possible; hot spots guaranteed
 
-❌ Shard key that changes
-   → User changes their username → has to move to different shard → complex migration
+❌ Shard key jo change ho jaaye
+   → User apna username change kare → dusre shard mein move karna pade → complex migration
 
-✅ UUID or hashed user_id
+✅ UUID ya hashed user_id
 ✅ Composite key: (tenant_id, entity_id)
-✅ A column you always filter by and that has high cardinality
+✅ Woh column jise tum hamesha filter karte ho aur jiski cardinality high hai
 ```
 
 ---
 
 ## 🔗 Cross-Shard Queries
 
-**Real-world analogy:** You work in a company where personnel files are split across 10 offices by last name. Your boss asks: "List every employee who joined after 2020 sorted by salary." You have to call all 10 offices, get their lists, combine them, then sort. This is cross-shard scatter-gather.
+**Real-world analogy:** Tum ek company mein kaam karte ho jaha personnel files 10 offices mein last name ke hisaab se baati hui hain. Boss poochta hai: "2020 ke baad join karne wale sab employees ki list salary ke hisaab se sorted chahiye." Tumhe 10 offices ko call karna padega, unki lists lena padega, combine karna padega, phir sort karna padega. Yehi hai cross-shard scatter-gather.
 
-Cross-shard queries are the **biggest operational pain** of sharding.
+Cross-shard queries sharding ka **sabse bada operational dard** hain.
 
-### The Problem: JOINs Across Shards
+### Problem: Shards Ke Across JOINs
 
 ```sql
 -- Simple query — shard key present — hits ONE shard ✅
@@ -454,11 +456,11 @@ JOIN products p ON o.product_id = p.id
 WHERE u.country = 'IN';
 ```
 
-### How Applications Handle Cross-Shard Queries
+### Applications Cross-Shard Queries Kaise Handle Karte Hain
 
 **Pattern 1: Scatter-Gather**
 
-The router sends the query to ALL shards in parallel, collects results, merges and sorts them in application memory.
+Router same query ko saare shards mein parallel bhej deta hai, results collect karta hai, aur application memory mein merge/sort karta hai.
 
 ```python
 import asyncio
@@ -488,9 +490,9 @@ rows = await scatter_gather_query(
 )
 ```
 
-**Pattern 2: Denormalization — Avoid the JOIN**
+**Pattern 2: Denormalization — JOIN Ko Avoid Karo**
 
-Instead of joining across shards, store the data you need together.
+Cross-shard JOIN karne ke bajaye, jo data chahiye usse saath mein hi store kar do.
 
 ```sql
 -- Instead of:
@@ -511,7 +513,7 @@ CREATE TABLE orders (
 
 **Pattern 3: Global Aggregation Table**
 
-For analytics, write aggregated data to a separate non-sharded reporting database.
+Analytics ke liye, aggregated data ko ek separate non-sharded reporting database mein likho.
 
 ```mermaid
 graph LR
@@ -527,9 +529,9 @@ graph LR
 
 ## 🔄 Cross-Shard Transactions
 
-**Real-world analogy:** Transferring money between two banks — Bank A must debit, Bank B must credit. If Bank A debits but the network goes down before Bank B credits, money disappears. Both steps must succeed or both must fail.
+**Real-world analogy:** Do banks ke beech paise transfer karna — Bank A ko debit karna hai, Bank B ko credit. Agar Bank A debit kar de lekin Bank B credit karne se pehle network down ho jaaye, toh paise gayab ho jaate hain. Dono steps ya toh success hone chahiye, ya dono fail.
 
-Cross-shard transactions need distributed coordination. Two main approaches:
+Cross-shard transactions ko distributed coordination chahiye hoti hai. Do main approaches hain:
 
 ### Two-Phase Commit (2PC)
 
@@ -552,14 +554,14 @@ sequenceDiagram
     S1-->>C: ACK
 ```
 
-**Problems with 2PC:**
-- If coordinator crashes after PREPARE but before COMMIT → shards are locked forever (blocking protocol)
-- High latency — 2 round trips minimum
-- Not suitable for high-throughput systems
+**2PC ke problems:**
+- Agar coordinator PREPARE ke baad, COMMIT se pehle crash ho jaaye → shards hamesha ke liye lock ho jaate hain (blocking protocol)
+- High latency — minimum 2 round trips lagti hain
+- High-throughput systems ke liye suitable nahi
 
 ### Saga Pattern
 
-Break the transaction into a sequence of local transactions. Each step publishes an event. If a step fails, compensating transactions undo previous steps.
+Transaction ko chhoti-chhoti local transactions ki sequence mein todo. Har step ek event publish karta hai. Agar koi step fail ho jaaye, toh compensating transactions pichhle steps ko undo kar dete hain.
 
 ```mermaid
 graph LR
@@ -603,17 +605,17 @@ class TransferSaga:
 | Saga | Eventual | High | Low | High |
 | Avoid cross-shard txns | N/A | N/A | N/A | Best design choice |
 
-> **Best practice:** Design your shard key so that transactions happen within one shard. Cross-shard transactions are an emergency measure, not a design goal.
+> **Best practice:** Apni shard key aise design karo ki transactions ek hi shard ke andar ho jaayein. Cross-shard transactions ek emergency measure honi chahiye, design goal nahi.
 
 ---
 
 ## 📈 Resharding
 
-**Real-world analogy:** Your startup begins with 4 pizza shops. Five years later, demand triples. You need to open 8 shops and redistribute deliveries so no shop is overwhelmed. Moving all operations while shops are still serving customers — without closing — is the challenge.
+**Real-world analogy:** Tumhara startup 4 pizza shops se shuru hota hai. Paanch saal baad demand triple ho jaati hai. Tumhe 8 shops kholni padti hain aur deliveries redistribute karni padti hain taaki koi bhi shop overwhelm na ho. Poori operation ko chalu rakhte hue — bina band kiye — move karna hi asli challenge hai.
 
-**Resharding** = splitting a shard that has grown too large into two (or more) smaller shards. Done live, without downtime, this is called **online resharding**.
+**Resharding** matlab — ek shard jo bahut bada ho gaya hai, usse do (ya zyada) chhote shards mein split karna. Yeh live, bina downtime ke kiya jaaye, toh isse **online resharding** kehte hain.
 
-### The Dual-Write Approach (Online Resharding)
+### Dual-Write Approach (Online Resharding)
 
 ```mermaid
 sequenceDiagram
@@ -642,22 +644,22 @@ sequenceDiagram
 **Step-by-step process:**
 
 ```
-1. Start backfill: Copy data from Shard 1 to new Shard 1a (id 0-5M) and Shard 1b (id 5M-10M)
-2. Enable dual-write: New writes go to BOTH old and new shards
-3. Monitor replication lag: Wait until new shards are caught up
-4. Verify checksums: New shards have the same data as old shard
-5. Switch reads: Route reads to new shards (can do gradually, e.g., 1% → 10% → 100%)
-6. Switch writes: Route all writes to new shards
-7. Decommission old shard
+1. Backfill shuru karo: Shard 1 se new Shard 1a (id 0-5M) aur Shard 1b (id 5M-10M) mein data copy karo
+2. Dual-write enable karo: Naye writes OLD aur NEW dono shards mein jaayein
+3. Replication lag monitor karo: Wait karo jab tak naye shards catch up na ho jaayein
+4. Checksums verify karo: Naye shards mein bhi wohi data hai jo old shard mein tha
+5. Reads switch karo: Reads ko naye shards pe route karo (gradually kar sakte ho, jaise 1% → 10% → 100%)
+6. Writes switch karo: Saare writes naye shards pe route karo
+7. Old shard decommission karo
 ```
 
 ---
 
 ## 🛠️ Production Tools — Vitess & Citus
 
-### Vitess (MySQL Sharding — YouTube's Solution)
+### Vitess (MySQL Sharding — YouTube Ka Solution)
 
-YouTube built Vitess in 2010 because they needed to shard MySQL without rewriting their entire application. Vitess sits between your app and MySQL, making a sharded cluster look like a single MySQL server.
+YouTube ne 2010 mein Vitess banaya kyunki unhe MySQL ko shard karna tha bina poori application rewrite kiye. Vitess tumhari app aur MySQL ke beech baith jaata hai, aur poore sharded cluster ko ek single MySQL server jaisa dikhata hai.
 
 ```mermaid
 graph TB
@@ -669,12 +671,12 @@ graph TB
     TOPO[(Topology\nZookeeper/etcd\nShard map)] --> VTGate
 ```
 
-**Key Vitess features:**
-- **VTGate:** Smart proxy — parses SQL, routes to correct shard, scatter-gathers when needed
-- **VSchema:** You define which column is the shard key; Vitess handles routing
-- **Online schema changes:** Alter tables across all shards without locking
-- **Connection pooling:** Thousands of app connections → dozens of MySQL connections per shard
-- **Resharding built-in:** `MoveTables` and `Reshard` commands handle online resharding
+**Vitess ke key features:**
+- **VTGate:** Smart proxy — SQL parse karta hai, sahi shard pe route karta hai, zaroorat pe scatter-gather karta hai
+- **VSchema:** Tum define karte ho ki kaunsa column shard key hai; routing Vitess sambhal leta hai
+- **Online schema changes:** Saare shards pe `ALTER TABLE` bina locking ke chala do
+- **Connection pooling:** Hazaaron app connections → per shard sirf dus-bees MySQL connections
+- **Built-in resharding:** `MoveTables` aur `Reshard` commands online resharding sambhal lete hain
 
 ```yaml
 # VSchema — tell Vitess how to shard the 'orders' table
@@ -700,7 +702,7 @@ graph TB
 
 ### Citus (PostgreSQL Sharding)
 
-Citus is a PostgreSQL extension that turns a single Postgres node into a distributed database. It feels like normal Postgres — you write standard SQL.
+Citus ek PostgreSQL extension hai jo ek single Postgres node ko distributed database mein badal deta hai. Yeh normal Postgres jaisa hi feel hota hai — tum standard SQL hi likhte ho.
 
 ```mermaid
 graph TB
@@ -744,11 +746,11 @@ SELECT SUM(amount) FROM orders WHERE created_at > '2024-01-01';
 
 ## 🌍 Global Tables and Reference Tables
 
-**Real-world analogy:** Every restaurant branch has its own kitchen (shards), but the main menu (reference data) is printed once and given to all branches. You do not shard the menu.
+**Real-world analogy:** Har restaurant branch ki apni kitchen hoti hai (shards), lekin main menu (reference data) ek hi baar print hota hai aur sab branches ko diya jaata hai. Tum menu ko shard nahi karte.
 
-Some tables are small, read-heavy, and needed by all shards — like `countries`, `currencies`, `product_categories`. Sharding these creates cross-shard JOIN hell.
+Kuch tables chhoti hoti hain, read-heavy hoti hain, aur saare shards ko chahiye hoti hain — jaise `countries`, `currencies`, `product_categories`. Inhe shard karna cross-shard JOIN ka narak bana deta hai.
 
-**Reference Tables** = replicated in full to EVERY shard.
+**Reference Tables** — inhe HAR shard mein pura replicate kar diya jaata hai.
 
 ```sql
 -- In Citus: mark small, read-mostly tables as reference tables
@@ -768,17 +770,17 @@ WHERE o.user_id = 42;
 -- This JOIN is entirely local — no cross-shard communication needed!
 ```
 
-**When to use reference tables:**
-- Table has < 1 million rows
-- Table is read far more than it is written
-- Table is joined frequently with sharded tables
+**Reference tables kab use karein:**
+- Table mein < 10 lakh rows hon
+- Table likhne se zyada padhi jaati ho
+- Table ka JOIN sharded tables ke saath frequently hota ho
 - Examples: `currencies`, `countries`, `product_categories`, `config`, `feature_flags`
 
 ---
 
 ## 🔢 Shard Enumeration
 
-Shard enumeration means **having a fixed, known list of shards** that can be iterated for operations that must touch all shards.
+Shard enumeration matlab — shards ki ek **fixed, known list** rakhna, jise un operations ke liye iterate kiya ja sake jinhe saare shards touch karne padte hain.
 
 ```python
 # Shard registry — maintained in config or service discovery
@@ -809,45 +811,45 @@ def cleanup_expired_sessions():
         conn.execute("DELETE FROM sessions WHERE expires_at < NOW()")
 ```
 
-**Shard enumeration is used for:**
-- Background jobs that process all data (cleanup, migration, backfill)
+**Shard enumeration kaha use hoti hai:**
+- Background jobs jo saara data process karte hain (cleanup, migration, backfill)
 - Global aggregations (total user count, total revenue)
-- Schema migrations (run `ALTER TABLE` on each shard in sequence)
-- Health checks and monitoring
+- Schema migrations (har shard pe sequence mein `ALTER TABLE` chalana)
+- Health checks aur monitoring
 
 ---
 
 ## ✅ When to Use / When NOT to Use
 
-### When to Use Sharding
+### Sharding Kab Use Karein
 
 | Situation | Reasoning |
 |---|---|
-| Dataset exceeds ~5 TB on a single server | Storage limit reached |
-| Write QPS > 50,000 and growing | Single writer bottleneck |
-| You have a natural, high-cardinality shard key | Easy partitioning |
-| Queries consistently filter by the same column | Good shard key candidate |
-| You need geographic data isolation (GDPR, latency) | Shard by region |
-| Multi-tenant SaaS (each tenant = isolated shard) | Clean isolation |
+| Dataset ek single server pe ~5 TB se zyada ho gaya | Storage limit reach ho gayi |
+| Write QPS > 50,000 aur badhta ja raha hai | Single writer bottleneck |
+| Tumhare paas natural, high-cardinality shard key hai | Partitioning easy ho jaati hai |
+| Queries consistently same column se filter hoti hain | Achhi shard key candidate |
+| Geographic data isolation chahiye (GDPR, latency) | Region se shard karo |
+| Multi-tenant SaaS (har tenant = isolated shard) | Clean isolation |
 
-### When NOT to Use Sharding
+### Sharding Kab NAHI Use Karein
 
 | Situation | Better Alternative |
 |---|---|
-| Data fits in < 1 TB | Vertical scaling + read replicas |
-| Mostly read-heavy workload | Read replicas + caching (Redis) |
-| Many cross-entity JOINs that cannot be eliminated | OLAP database (Snowflake, BigQuery) |
-| You are a startup with < 1M users | Premature optimization — do not shard yet |
-| Team lacks distributed systems expertise | Managed DB (Aurora, Cloud Spanner) |
-| Ad-hoc analytics queries on all data | Separate analytics DB (ClickHouse) |
+| Data < 1 TB mein fit ho jaata hai | Vertical scaling + read replicas |
+| Zyadatar read-heavy workload | Read replicas + caching (Redis) |
+| Bahut saare cross-entity JOINs jo eliminate nahi ho sakte | OLAP database (Snowflake, BigQuery) |
+| Tum ek startup ho with < 10 lakh users | Premature optimization — abhi mat shard karo |
+| Team ke paas distributed systems expertise nahi hai | Managed DB (Aurora, Cloud Spanner) |
+| Ad-hoc analytics queries saare data pe | Separate analytics DB (ClickHouse) |
 
-> **Rule of thumb:** Do not shard until you have exhausted — in order:
-> 1. Query optimization and indexes
+> **Rule of thumb:** Sharding tab tak mat karo jab tak yeh sab order mein khatam na kar liye ho:
+> 1. Query optimization aur indexes
 > 2. Connection pooling (PgBouncer, ProxySQL)
 > 3. Read replicas
 > 4. Caching layer (Redis, Memcached)
-> 5. Vertical scaling (bigger machine)
-> 6. **Then** consider sharding
+> 5. Vertical scaling (bada machine)
+> 6. **Tab jaake** sharding consider karo
 
 ---
 
@@ -864,25 +866,25 @@ def cleanup_expired_sessions():
 
 ## 🧠 Key Takeaways
 
-1. **Sharding = horizontal partitioning across multiple independent DB instances.** Each shard owns a subset of rows. Unlike replication, total data stored is ~1× (not N×).
+1. **Sharding = horizontal partitioning across multiple independent DB instances.** Har shard rows ka ek subset own karta hai. Replication ke ulat, total data stored ~1× hota hai (N× nahi).
 
-2. **You probably do not need sharding yet.** Exhaust indexes, caching, read replicas, and vertical scaling first. Sharding adds enormous operational complexity.
+2. **Tumhe shayad abhi sharding ki zaroorat nahi hai.** Pehle indexes, caching, read replicas, aur vertical scaling exhaust karo. Sharding operational complexity bahut badha deta hai.
 
-3. **The shard key decision is irreversible (or extremely painful to reverse).** Choose a key with high cardinality, even distribution, and alignment with your most frequent queries.
+3. **Shard key ka decision irreversible hai (ya reverse karna extremely painful hai).** High cardinality, even distribution, aur apni most frequent queries se alignment wali key choose karo.
 
-4. **Hot shards are the silent killer.** Range-based sharding on auto-increment IDs or timestamps concentrates all new writes on one shard. Use hash-based or consistent hashing when write distribution matters.
+4. **Hot shards silent killer hain.** Auto-increment IDs ya timestamps pe range-based sharding saare naye writes ek shard pe concentrate kar deta hai. Jab write distribution matter karta hai, tab hash-based ya consistent hashing use karo.
 
-5. **Consistent hashing solves the rebalancing problem.** When adding/removing shards, only ~1/N keys move instead of ~(N-1)/N.
+5. **Consistent hashing rebalancing problem solve karta hai.** Shards add/remove karne pe, ~(N-1)/N ke bajaye sirf ~1/N keys move hoti hain.
 
-6. **Cross-shard JOINs and transactions are painful.** Design your schema so that 90%+ of operations are single-shard. Use denormalization, co-location, and reference tables to avoid scatter-gather.
+6. **Cross-shard JOINs aur transactions painful hote hain.** Apna schema aise design karo ki 90%+ operations single-shard hon. Scatter-gather avoid karne ke liye denormalization, co-location, aur reference tables use karo.
 
-7. **Two-Phase Commit gives strong consistency but poor availability.** Sagas give high availability with eventual consistency. The best option is designing to avoid cross-shard transactions entirely.
+7. **Two-Phase Commit strong consistency deta hai lekin poor availability.** Sagas high availability dete hain eventual consistency ke saath. Best option hai cross-shard transactions ko design se hi avoid karna.
 
-8. **Resharding online requires dual-write + backfill + gradual cutover.** Plan for it from day one — leaving room in your shard key space helps (start with more logical shards than physical).
+8. **Online resharding ke liye dual-write + backfill + gradual cutover chahiye.** Day one se hi iske liye plan karo — shard key space mein zyada room rakhna madad karta hai (physical shards se zyada logical shards se shuru karo).
 
-9. **Vitess (MySQL) and Citus (PostgreSQL) solve most problems for you.** They handle routing, resharding, connection pooling, and cross-shard queries at the infrastructure level so your application sees one database.
+9. **Vitess (MySQL) aur Citus (PostgreSQL) zyadatar problems tumhare liye solve kar dete hain.** Routing, resharding, connection pooling, aur cross-shard queries infrastructure level pe handle kar dete hain, taaki tumhari application ko sirf ek database dikhe.
 
-10. **Reference tables prevent cross-shard JOIN pain for small, static datasets.** Replicate lookup tables to every shard so JOINs are always local.
+10. **Reference tables chhote, static datasets ke liye cross-shard JOIN ka dard bachate hain.** Lookup tables ko har shard mein replicate karo taaki JOINs hamesha local rahein.
 
 ---
 

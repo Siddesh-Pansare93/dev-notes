@@ -1,32 +1,33 @@
----
-tags: [security, production, saml, sso, spring-security, okta, azure-ad, adfs]
-aliases: [SAML, SAML2, Spring SAML, SAML Service Provider]
-stage: advanced
----
-
 # SAML with Spring Security
 
-> [!info] For the Express/TS dev
-> This is the Spring equivalent of `@node-saml/passport-saml`. SAML is XML-heavy and the config is verbose, but the concepts translate directly: you register your app as a Service Provider (SP), download the IdP's metadata, and handle the `SAMLResponse` POST at your Assertion Consumer Service URL.
+> [!info] Express/TS wale dev ke liye
+> Yeh Spring ka `@node-saml/passport-saml` wala equivalent hai. SAML thoda XML-heavy hai aur config verbose lagega, lekin concept wahi hai jo tumne passport-saml mein dekha hoga: apni app ko Service Provider (SP) bana ke register karo, IdP (Identity Provider — jaise Okta, Azure AD) ka metadata download karo, aur `SAMLResponse` POST request handle karo apne Assertion Consumer Service (ACS) URL pe.
 
 ## Concept / mental model
 
-The SAML web SSO flow (SP-initiated):
+Socho tumhari company ke paas ek "master gate" hai — Okta ya Azure AD — jahan employee apna ek hi password daalta hai aur phir company ki saari internal apps (HR portal, expense tool, Jira, tumhari Spring Boot app) mein bina dobara login kiye ghus jaata hai. Yeh hi SSO (Single Sign-On) hai, aur SAML uska ek purana lekin abhi bhi enterprise mein sabse zyada use hone wala protocol hai.
+
+**Kya ho raha hai actually?** Tumhari app khud kisi ka password check nahi karti — woh sirf IdP (Identity Provider) pe bharosa karti hai. IdP bolta hai "haan bhai, yeh user genuine hai, iska email yeh hai, iske groups yeh hain" — aur yeh sab ek signed XML document (SAML Assertion) ke through bheja jaata hai. Tumhari app (Service Provider / SP) sirf us signature ko verify karti hai aur user ko andar le leti hai.
+
+SAML web SSO flow (SP-initiated — matlab user pehle tumhari app pe aata hai):
 
 ```
 1. User → GET /saml2/authenticate/{registrationId}
-   Spring Security detects no session → redirects to IdP SSO URL
+   Spring Security dekhta hai ki koi session nahi hai → IdP ke SSO URL pe redirect kar deta hai
 
-2. IdP authenticates user (password, MFA, smart card...)
+2. IdP user ko authenticate karta hai (password, MFA, smart card...)
 
 3. IdP → POST {your-app}/login/saml2/sso/{registrationId}
-   Body: SAMLResponse (Base64-encoded signed XML)
+   Body mein: SAMLResponse (Base64-encoded signed XML)
 
-4. Spring verifies: signature, conditions (audience, timing), attributes
+4. Spring verify karta hai: signature, conditions (audience, timing), attributes
 
-5. Spring creates Authentication → your CustomSamlUserDetailsService runs
-   → session created → user redirected to original URL
+5. Spring Authentication banata hai → tumhara CustomSamlUserDetailsService chalta hai
+   → session create hota hai → user wapas original URL pe redirect ho jaata hai
 ```
+
+> [!tip] Kyun zaruri hai?
+> Enterprise customers (banks, healthcare, government) almost hamesha SAML SSO maangte hain — unka IT department apne employees ke access ko central IdP se control karna chahta hai. Agar tumhari SaaS app enterprise customers bechna chahti hai, SAML support ek "must-have" checkbox ban jaata hai, chahe tumhe personally OIDC zyada modern lage.
 
 ---
 
@@ -38,22 +39,22 @@ The SAML web SSO flow (SP-initiated):
     <groupId>org.springframework.security</groupId>
     <artifactId>spring-security-saml2-service-provider</artifactId>
 </dependency>
-<!-- OpenSAML is included transitively; you may need to pin the version -->
+<!-- OpenSAML transitively aa jaata hai; version pin karna pad sakta hai -->
 ```
 
 > [!warning]
-> `spring-security-saml2-service-provider` is in `spring-security-*` not `spring-boot-starter-*`. It does not have auto-configuration — you must write the `SecurityFilterChain` bean manually.
+> `spring-security-saml2-service-provider` `spring-security-*` package mein hai, `spring-boot-starter-*` mein nahi. Iska matlab auto-configuration nahi milega — tumhe `SecurityFilterChain` bean manually likhna padega. Jaise Express mein tum khud middleware wire karte ho, waise hi yahan bhi manual setup hai.
 
 ---
 
 ## Code examples
 
-### Generating SP metadata and keys
+### SP metadata aur keys generate karna
 
-You need an RSA key pair for your SP: the private key signs outgoing requests (AuthnRequest); the certificate is shared with the IdP (in your metadata).
+Tumhari SP ko ek RSA key pair chahiye: private key outgoing requests (AuthnRequest) ko sign karti hai, aur certificate IdP ke saath share hota hai (tumhare metadata mein). Isko socho jaise tumhare paas ek "signature stamp" hai — jab bhi tum IdP ko koi request bhejte ho, us stamp se sign karte ho taaki IdP pehchan sake ki request genuinely tumhari app se aayi hai, kisi imposter se nahi.
 
 ```bash
-# Generate a self-signed certificate for SP signing
+# SP signing ke liye self-signed certificate generate karo
 openssl req -newkey rsa:2048 -nodes \
   -keyout sp-signing.key \
   -x509 -days 3650 \
@@ -61,7 +62,7 @@ openssl req -newkey rsa:2048 -nodes \
   -subj "/CN=my-app-sp"
 ```
 
-Store the private key in Vault/Secrets Manager. See [[17-Secrets-Management]].
+Private key ko Vault/Secrets Manager mein rakho, kabhi bhi classpath jar mein commit mat karo. Dekho [[17-Secrets-Management]].
 
 ```yaml
 # application.yml
@@ -96,9 +97,11 @@ spring:
 ```
 
 > [!tip]
-> Use `asserting-party.metadata-uri` whenever possible — Spring fetches and refreshes the IdP metadata automatically, including certificate rotation. Hard-coding IdP certificates leads to outages when IdPs rotate their signing certs.
+> Jahan bhi ho sake, `asserting-party.metadata-uri` use karo, hardcoded certificate nahi. Isse Spring khud IdP ka metadata fetch aur refresh karta rehta hai — certificate rotation bhi automatically handle ho jaata hai. Agar tum IdP ka certificate hardcode karoge, jab IdP apna cert rotate karega (aksar bina zyada warning ke), tumhara login raat 2 baje production mein fail ho jaayega.
 
 ### `SecurityFilterChain` — SAML SP config
+
+Kya ho raha hai yahan? Yeh Spring ko batata hai ki kaunse routes public hain, aur SAML login/logout kaise handle karna hai.
 
 ```java
 @Configuration
@@ -135,7 +138,9 @@ public class SamlSecurityConfig {
 }
 ```
 
-### `Saml2AuthenticatedPrincipal` to Spring authorities
+### `Saml2AuthenticatedPrincipal` ko Spring authorities mein convert karna
+
+Yahan asli maza hai. IdP tumhe user ka NameID aur kuch attributes (email, naam, groups) bhejta hai — lekin tumhari app ke andar us user ka apna local record (roles, permissions, preferences) hona chahiye. Yeh method exactly Zomato ke "Login with Google" jaisa hai: pehli baar jab user Google se login karta hai, Zomato apne DB mein ek naya user record bana leta hai (JIT provisioning), aur agli baar sirf existing record match kar leta hai.
 
 ```java
 @Service
@@ -160,11 +165,11 @@ public class CustomSamlUserDetailsService
                                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname");
         List<String> groups = principal.getAttribute("groups");
 
-        // JIT provisioning
+        // JIT provisioning — pehli baar login pe local user bana do
         User user = userRepo.findBySamlNameId(nameId)
             .orElseGet(() -> createUserFromSaml(nameId, email, firstName, groups));
 
-        // Update attributes from IdP on each login
+        // Har login pe IdP se attributes sync kar lo (naam/email change ho sakta hai)
         syncUserAttributes(user, email, firstName, groups);
 
         List<GrantedAuthority> authorities = mapGroupsToAuthorities(user, groups);
@@ -188,7 +193,7 @@ public class CustomSamlUserDetailsService
 
     private User createUserFromSaml(String nameId, String email,
                                      String firstName, List<String> groups) {
-        // JIT provisioning — create local user on first SSO login
+        // JIT provisioning — SSO se pehli baar aane pe local user create karo
         User user = new User();
         user.setSamlNameId(nameId);
         user.setEmail(email);
@@ -199,7 +204,7 @@ public class CustomSamlUserDetailsService
 
     private List<GrantedAuthority> mapGroupsToAuthorities(User user, List<String> idpGroups) {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        // Local DB roles always win
+        // Local DB roles hamesha priority pe rahenge
         user.getRoles().stream()
             .map(r -> new SimpleGrantedAuthority(r.getName()))
             .forEach(authorities::add);
@@ -216,46 +221,49 @@ public class CustomSamlUserDetailsService
 }
 ```
 
+> [!info] Kyun dono jagah roles maintain karte hain?
+> IdP ke groups (jaise `myapp-admin`) generic hote hain, lekin tumhari app ke andar fine-grained permissions ho sakti hain jo sirf tumhare DB mein banti hain. Isliye best practice hai: IdP se coarse-grained group aao, aur local DB mein us par apni detailed role mapping karo — bilkul CRED jaise apni internal "credit score" IdP se mile bank data par calculate karta hai, IdP ka data seedha use nahi karta.
+
 ### SP metadata endpoint
 
-Spring auto-generates the SP metadata XML:
+Spring khud SP metadata XML generate kar deta hai, tumhe kuch likhna nahi padta:
 
 ```
 GET /saml2/service-provider-metadata/{registrationId}
 ```
 
-Give this URL to your IdP admin (Okta: App settings > SAML Setup > "View Setup Instructions"; Azure AD: Enterprise App > Single sign-on > Upload metadata file).
+Yeh URL apne IdP admin ko de do (Okta: App settings > SAML Setup > "View Setup Instructions"; Azure AD: Enterprise App > Single sign-on > Upload metadata file). Woh is XML ko import karke IdP side pe tumhari app ko trust karna shuru kar dega.
 
 ---
 
 ## Certificate rotation playbook
 
 > [!danger]
-> Certificate rotation in SAML is the #1 outage cause. Always do this in two phases with an overlap window.
+> SAML mein certificate rotation sabse bada outage cause hai. Ise hamesha do phase mein karo, beech mein ek overlap window rakh ke — jaise bank ka debit card renew karte waqt purana card kuch din tak chalta rehta hai jab tak naya activate na ho jaaye.
 
-**Phase 1 — Add the new certificate (both sides)**
-1. Generate new key pair (`openssl req -newkey rsa:2048 ...`)
-2. Add the new credential to your SP config (keep the old one too — Spring supports multiple):
+**Phase 1 — Naya certificate add karo (dono side)**
+1. Naya key pair generate karo (`openssl req -newkey rsa:2048 ...`)
+2. Naya credential apni SP config mein add karo, purana bhi rakhe rehne do — Spring multiple credentials support karta hai:
    ```yaml
    signing:
      credentials:
-       - private-key-location: classpath:saml/sp-signing-old.key   # old
+       - private-key-location: classpath:saml/sp-signing-old.key   # purana
          certificate-location:  classpath:saml/sp-signing-old.crt
-       - private-key-location: classpath:saml/sp-signing-new.key   # new
+       - private-key-location: classpath:saml/sp-signing-new.key   # naya
          certificate-location:  classpath:saml/sp-signing-new.crt
    ```
-3. Re-deploy. Your updated SP metadata XML now contains *both* certificates.
-4. Give the IdP admin the updated metadata URL — they refresh it and now trust both certs.
-5. **Wait at least 24 hours.** All sessions using the old cert must expire.
+3. Re-deploy karo. Ab tumhari updated SP metadata XML mein *dono* certificates honge.
+4. IdP admin ko updated metadata URL do — woh refresh karke dono certs ko trust karna shuru kar dega.
+5. **Kam se kam 24 ghante wait karo.** Purane cert waale saare sessions expire ho jaane chahiye.
 
-**Phase 2 — Remove the old certificate**
-1. Remove the old credential from `application.yml`
-2. Re-deploy.
-3. Verify logins still work.
-4. Revoke/archive the old private key.
+**Phase 2 — Purana certificate hatao**
+1. `application.yml` se purana credential remove karo
+2. Re-deploy karo.
+3. Verify karo ki logins abhi bhi kaam kar rahe hain.
+4. Purani private key ko revoke/archive kar do.
 
 > [!tip]
-> Schedule certificate rotation with 6-month notice. TLS and SAML certs have a way of expiring at 3 AM on a Saturday.
+> Certificate rotation ko 6 mahine pehle se schedule karo. TLS aur SAML certs ka ek ajeeb tarika hota hai — hamesha Saturday raat 3 baje expire hote hain.
 
 ---
 
@@ -263,21 +271,21 @@ Give this URL to your IdP admin (Okta: App settings > SAML Setup > "View Setup I
 
 ### Clock skew
 
-SAML assertions have `NotBefore` and `NotOnOrAfter` attributes. Default tolerance in Spring Security is 60 seconds.
+SAML assertions mein `NotBefore` aur `NotOnOrAfter` attributes hote hain. Spring Security ka default tolerance sirf 60 seconds hai — matlab agar tumhare server ka clock IdP se 61 second bhi off hai, login fail ho jaayega. Yeh production mein bade enterprise setups (jahan NTP thoda drift ho jaata hai) ek common headache hai.
 
 ```java
-// Increase clock skew tolerance if your IdP or server has clock drift
+// IdP ya server ke clock drift ke liye clock skew tolerance badhao
 @Bean
 public OpenSaml4AuthenticationProvider authProvider(
         CustomSamlUserDetailsService userDetailsService) {
 
     var provider = new OpenSaml4AuthenticationProvider();
 
-    // Custom response validator with 5-minute skew allowance
+    // 5-minute skew allowance ke saath custom response validator
     provider.setResponseValidator(
         OpenSaml4AuthenticationProvider.createDefaultResponseValidator()
     );
-    // Override the assertion validator:
+    // Assertion validator override karo:
     provider.setAssertionValidator(assertion ->
         OpenSaml4AuthenticationProvider.createDefaultAssertionValidatorWithParameters(
             params -> params.add(SAML2AssertionValidationParameters.CLOCK_SKEW,
@@ -290,7 +298,7 @@ public OpenSaml4AuthenticationProvider authProvider(
             Saml2Authentication auth = OpenSaml4AuthenticationProvider
                 .createDefaultResponseAuthenticationConverter()
                 .convert(responseToken);
-            // Load user details and set authorities
+            // User details load karo aur authorities set karo
             return auth;
         }
     );
@@ -301,41 +309,41 @@ public OpenSaml4AuthenticationProvider authProvider(
 
 ### NameID format mismatch
 
-Different IdPs use different NameID formats. Azure AD defaults to `urn:oasis:names:tc:SAML:2.0:nameid-format:persistent`; many apps expect email format.
+Alag-alag IdP alag NameID format use karte hain. Azure AD default mein `urn:oasis:names:tc:SAML:2.0:nameid-format:persistent` bhejta hai; bahut si apps email format expect karti hain. Yeh bilkul aisa hai jaise ek delivery app expect kare pincode format `NNNNNN` mein aaye, lekin koi supplier `NNN NNN` bhej de — mismatch ki wajah se pura flow fail ho jaata hai.
 
 ```yaml
-# Force a specific NameID format in the AuthnRequest
+# AuthnRequest mein specific NameID format force karo
 spring.security.saml2.relyingparty.registration.azure-ad:
   asserting-party:
     single-sign-on:
       sign-request: true
 ```
 
-Configure the IdP to send the format your app expects, or — better — accept whatever format the IdP sends and store the `nameID` value as an opaque identifier (which it is).
+IdP ko configure karo ki woh woh format bheje jo tumhari app expect karti hai, ya — behtar approach — jo bhi format IdP bheje usko accept karo aur `nameID` ko ek opaque identifier ki tarah store karo (jo woh actually hai bhi).
 
 ### Audience restriction
 
-The SAML assertion's `<AudienceRestriction>` must contain your SP's entity ID exactly. A single trailing slash mismatch (`https://app.example.com` vs `https://app.example.com/`) causes validation failure.
+SAML assertion ka `<AudienceRestriction>` bilkul exactly tumhari SP ki entity ID contain karna chahiye. Ek trailing slash ka farak bhi (`https://app.example.com` vs `https://app.example.com/`) validation fail kar dega — chhoti si cheez, lekin production mein ghanton debug karwa deti hai.
 
 ```
 Caused by: org.opensaml.saml.saml2.assertion.SAML20AssertionValidationException:
   Audience restriction is not met
 ```
 
-Verify your `entity-id` in `application.yml` matches exactly what you registered with the IdP.
+Apni `entity-id` `application.yml` mein check karo — woh bilkul waisi hi honi chahiye jaisi IdP ke saath register ki thi.
 
-### ADFS — the ancient IdP
+### ADFS — purana zamana wala IdP
 
-Active Directory Federation Services (ADFS) is still widely deployed in enterprise on-premises environments. Key differences from modern IdPs:
+Active Directory Federation Services (ADFS) aaj bhi bahut si enterprise on-premises companies mein chal raha hai — socho isko IRCTC ki purani website jaisa, kaam karta hai lekin modern standards follow nahi karta. Modern IdPs se key differences:
 
-- Claims use long URIs: `http://schemas.microsoft.com/ws/2008/06/identity/claims/role`
-- `NameID` format is often `windows account name` — not email
-- Attribute names need explicit mapping rules configured in ADFS (Claim Rules)
-- No OIDC discovery — everything is hardcoded via metadata XML
-- Signing algorithms may default to SHA-1 (insecure) — configure ADFS to use SHA-256
+- Claims lambe URIs use karte hain: `http://schemas.microsoft.com/ws/2008/06/identity/claims/role`
+- `NameID` format aksar `windows account name` hota hai — email nahi
+- Attribute names ke liye ADFS mein explicit mapping rules (Claim Rules) configure karni padti hain
+- Koi OIDC discovery nahi hai — sab kuch metadata XML se hardcoded hota hai
+- Signing algorithms default mein SHA-1 (insecure) ho sakte hain — ADFS ko SHA-256 use karne ke liye configure karo
 
 ```java
-// Map the ugly ADFS attribute URIs to readable names
+// ADFS ke ugly attribute URIs ko readable naam mein map karo
 private static final Map<String, String> ADFS_ATTR_MAP = Map.of(
     "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", "email",
     "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",       "role",
@@ -378,37 +386,37 @@ router.get('/auth/saml/metadata', (req, res) => {
 });
 ```
 
-Spring's equivalent: less code in routes, more in `application.yml`. The metadata endpoint is automatic. The JIT provisioning lives in `Saml2UserDetailsService`. Same concepts, different homes.
+Spring ka equivalent: routes mein kam code, `application.yml` mein zyada. Metadata endpoint automatic hai. JIT provisioning `Saml2UserDetailsService` mein rehta hai. Concept same hai, bas ghar alag hai.
 
 ---
 
 ## Gotchas
 
 > [!danger]
-> **Never disable signature verification in production.** `OpenSaml4AuthenticationProvider` validates signatures by default. You may be tempted to disable it to make a test environment work — don't. A SAML injection attack via unsigned assertions would give an attacker arbitrary identity.
+> **Production mein signature verification kabhi disable mat karo.** `OpenSaml4AuthenticationProvider` default mein signatures validate karta hai. Test environment ko jaldi chalane ke liye disable karne ka mann karega — mat karo. Unsigned assertions ke through SAML injection attack se attacker ko koi bhi arbitrary identity mil sakti hai — matlab woh khud ko CEO bata ke login kar sakta hai.
 
 > [!warning]
-> **The SAMLResponse is Base64-encoded, then URL-encoded when delivered via HTTP-Redirect binding.** When debugging, decode in order: URL-decode → Base64-decode → inflate (if compressed) → read XML. Tools: SAML-tracer browser extension, or the IdP's built-in debug view.
+> **SAMLResponse pehle Base64-encoded hota hai, phir HTTP-Redirect binding ke through bhejte waqt URL-encoded bhi ho jaata hai.** Debug karte waqt is order mein decode karo: URL-decode → Base64-decode → inflate (agar compressed hai) → XML padho. Tools: SAML-tracer browser extension, ya IdP ka built-in debug view.
 
 > [!warning]
-> **Session fixation after SAML login.** Spring Security handles this for standard form login but SAML login also needs `SessionFixationProtectionStrategy`. Verify `session-management.session-fixation.migrate-session` is active (default in Spring Security 6).
+> **SAML login ke baad session fixation ka risk.** Spring Security standard form login ke liye ise handle kar deta hai, lekin SAML login ke liye bhi `SessionFixationProtectionStrategy` chahiye hoti hai. Verify karo ki `session-management.session-fixation.migrate-session` active hai (Spring Security 6 mein default hai).
 
 ---
 
 ## Production checklist
 
-- [ ] SP key pair generated with RSA 2048+ / EC 256+
-- [ ] Private key stored in Vault/Secrets Manager (not in classpath jar)
-- [ ] `metadata-uri` used for IdP metadata (not hardcoded cert)
-- [ ] Certificate rotation playbook documented and tested
-- [ ] Clock synchronization (NTP) verified on all app instances
-- [ ] NameID format agreed with IdP and tested
-- [ ] Audience restriction entity ID matches exactly what's registered with IdP
-- [ ] Clock skew tolerance configured (≥ 5 minutes for enterprise ADFS)
-- [ ] JIT provisioning tested: new user in IdP → automatic local user creation
-- [ ] SLO scope documented (front-channel SLO is optional and often skipped)
-- [ ] Integration tested with SAML-tracer or IdP's built-in debug
-- [ ] `enabled` flag in Spring profile to switch SAML on/off without redeploy
+- [ ] SP key pair RSA 2048+ / EC 256+ ke saath generate kiya hua hai
+- [ ] Private key Vault/Secrets Manager mein stored hai (classpath jar mein nahi)
+- [ ] IdP metadata ke liye `metadata-uri` use kiya (hardcoded cert nahi)
+- [ ] Certificate rotation playbook documented aur tested hai
+- [ ] Saari app instances pe clock synchronization (NTP) verify kiya hai
+- [ ] NameID format IdP ke saath agree aur test kiya hua hai
+- [ ] Audience restriction entity ID exactly IdP ke saath registered value se match karti hai
+- [ ] Clock skew tolerance configured hai (enterprise ADFS ke liye ≥ 5 minutes)
+- [ ] JIT provisioning test kiya hua hai: IdP mein naya user → automatic local user creation
+- [ ] SLO scope documented hai (front-channel SLO optional hai aur aksar skip kiya jaata hai)
+- [ ] SAML-tracer ya IdP ke built-in debug ke saath integration tested hai
+- [ ] Spring profile mein `enabled` flag hai taaki bina redeploy ke SAML on/off kiya ja sake
 
 ---
 

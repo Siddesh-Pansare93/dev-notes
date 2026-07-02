@@ -1,100 +1,102 @@
 # ⛽ Gas Optimization in Solidity
 
-> **Chapter 14 — Essential knowledge for writing professional, production-ready smart contracts.**
+> **Chapter 14 — Professional, production-ready smart contracts likhne ke liye zaruri knowledge.**
 
 ---
 
-## 🧭 What You'll Learn
+## 🧭 Kya Seekhoge Is Chapter Mein
 
-- Why gas costs are a first-class engineering concern on Ethereum
-- How the EVM charges gas for different operations
-- Twelve practical optimization techniques with before/after examples
-- How storage slot packing works (with diagrams)
-- How to measure gas usage with real tooling
+- Ethereum pe gas costs ek first-class engineering concern kyun hain
+- EVM different operations ke liye gas kaise charge karta hai
+- Barah (12) practical optimization techniques, before/after examples ke saath
+- Storage slot packing kaise kaam karta hai (diagrams ke saath)
+- Real tooling se gas usage kaise measure karein
 
 ---
 
-## 💸 Why Gas Optimization Matters
+## 💸 Gas Optimization Kyun Zaruri Hai?
 
-Every instruction your smart contract executes costs **gas**. Gas is paid in ETH by whoever calls the function. When you write inefficient code on Ethereum, you are literally **making your users spend more money**.
+Tumhara smart contract jo bhi instruction execute karta hai, uska **gas** lagta hai. Ye gas ETH mein pay karta hai jo function call kar raha hai. Matlab agar tumne inefficient code likha, to seedha seedha tum apne users ka **paisa** kharch karwa rahe ho.
 
-This is not like optimizing a web server where a slow endpoint just annoys the user. On-chain inefficiency has a direct, real-money cost attached to every transaction.
+Ye web server ki tarah nahi hai jaha ek slow endpoint sirf user ko irritate karta hai. On-chain inefficiency ka matlab hai — har transaction pe direct, real-money cost.
 
-Here is why optimization should be on your mind from day one:
+Socho Zomato ka checkout page slow chale — bura lagega, lekin paisa extra nahi kategaa. Lekin blockchain pe agar tumhara function inefficient hai, to har user literally zyada ETH kharch karega. Isliye din 1 se hi optimization tumhare dimaag mein hona chahiye:
 
 | Concern | Explanation |
 |---|---|
-| **User cost** | Every SSTORE (storage write) can cost thousands of gas. At high ETH prices, a poorly written function can cost $20–$50 per call. |
-| **Contract competitiveness** | DeFi protocols compete on fees. If your DEX costs more gas per swap than Uniswap, users will go to Uniswap. |
-| **Block gas limit** | Blocks have a gas cap. Bloated functions may fail in high-activity scenarios or make batch operations impossible. |
-| **Deployment cost** | Larger bytecode = more gas to deploy. This is paid once, but matters for factory patterns. |
+| **User cost** | Har SSTORE (storage write) hazaron gas kharch kar sakta hai. High ETH prices pe, ek badly likha function ek call mein $20–$50 tak kharch karwa sakta hai. |
+| **Contract competitiveness** | DeFi protocols fees pe compete karte hain. Agar tumhara DEX Uniswap se zyada gas leta hai per swap, users Uniswap chale jayenge. |
+| **Block gas limit** | Blocks ki gas cap hoti hai. Bloated functions high-activity scenarios mein fail ho sakte hain ya batch operations impossible ban sakte hain. |
+| **Deployment cost** | Bada bytecode = deploy karne mein zyada gas. Ye ek baar hi pay hota hai, lekin factory patterns mein important hai. |
 
 ---
 
-## 🔬 Understanding EVM Gas Costs
+## 🔬 EVM Gas Costs Samjho
 
-The Ethereum Virtual Machine (EVM) assigns a gas cost to every opcode. The key insight is that **not all operations are equal**. Here is a rough hierarchy from most to least expensive:
+Ethereum Virtual Machine (EVM) har opcode ko ek gas cost assign karta hai. Key insight ye hai ki **saare operations equal nahi hain**. Neeche most se least expensive tak ek rough hierarchy hai:
 
 ```
-SSTORE (storage write)   ~20,000 gas  ← VERY expensive
+SSTORE (storage write)   ~20,000 gas  ← BAHUT expensive
 SLOAD  (storage read)    ~2,100 gas   ← Expensive
-Memory operations        ~3 gas/word  ← Cheap
-Arithmetic / logic       ~3–5 gas     ← Very cheap
+Memory operations        ~3 gas/word  ← Sasta
+Arithmetic / logic       ~3–5 gas     ← Bahut sasta
 ```
 
-### Storage is the Bottleneck
+### Storage Hi Bottleneck Hai
 
-Ethereum's persistent storage (the key-value store behind `mapping` and state variables) is stored on every full node on the planet. Writing to it is expensive because the network must agree on the new state forever. This is why **the golden rule of gas optimization is: minimize storage reads and writes**.
+Ethereum ka persistent storage (wo key-value store jo `mapping` aur state variables ke peeche hota hai) duniya ke har full node pe store hota hai. Isme likhna expensive hai kyunki poore network ko naye state pe forever agree karna padta hai. Isi liye **gas optimization ka golden rule hai: storage reads aur writes ko minimize karo**.
 
-Memory, on the other hand, exists only for the duration of a single transaction and is wiped afterward. Reading and writing to memory is orders of magnitude cheaper than touching storage.
+Dusri taraf, memory sirf ek transaction ki duration ke liye exist karta hai aur baad mein wipe ho jaata hai. Memory pe read/write karna storage se kahin zyada sasta hai — jaise apne phone ki RAM vs cloud storage. RAM fast aur temporary, cloud storage slow lekin permanent.
 
 ---
 
-## 🛠️ Twelve Optimization Techniques
+## 🛠️ Barah (12) Optimization Techniques
 
-### 1. Use `uint256` Over Smaller Integer Types
+### 1. Standalone Variables Ke Liye `uint256` Use Karo, Chote Types Nahi
 
-This surprises most beginners. The EVM operates on 256-bit (32-byte) slots natively. When you use a `uint8` or `uint16` in a standalone variable, the EVM must mask bits to simulate the smaller type — which costs slightly more gas for arithmetic.
+Ye zyada beginners ko surprise karta hai. EVM native tarike se 256-bit (32-byte) slots pe operate karta hai. Jab tum ek standalone variable mein `uint8` ya `uint16` use karte ho, EVM ko bits mask karne padte hain us chote type ko simulate karne ke liye — jisse arithmetic ka gas thoda zyada lagta hai.
 
-**Exception:** Smaller types are still valuable inside structs for slot packing (covered below).
+**Exception:** Chote types abhi bhi structs ke andar slot packing ke liye valuable hain (neeche cover kiya hai).
 
 ```solidity
-// Slightly less efficient for standalone variables
-uint8 public counter;   // EVM pads this to 256 bits anyway
+// Standalone variables ke liye thoda less efficient
+uint8 public counter;   // EVM ise 256 bits tak pad kar deta hai anyway
 
-// Preferred for standalone variables
-uint256 public counter; // No masking overhead
+// Standalone variables ke liye preferred
+uint256 public counter; // Koi masking overhead nahi
 ```
 
-### 2. Pack Struct Variables (Slot Packing)
+### 2. Struct Variables Ko Pack Karo (Slot Packing)
 
-Each storage slot is exactly **32 bytes**. If you declare variables in a struct or at contract level, Solidity packs them sequentially into slots. A `uint256` fills an entire slot. But a `uint128` only fills half — meaning two `uint128`s can share one slot, cutting your storage cost in half.
+Har storage slot exactly **32 bytes** ka hota hai. Agar tum struct ya contract level pe variables declare karte ho, Solidity unhe sequentially slots mein pack karta hai. Ek `uint256` poora slot bhar deta hai. Lekin ek `uint128` sirf aadha bharta hai — matlab do `uint128` ek hi slot share kar sakte hain, jisse tumhara storage cost aadha ho jaata hai.
+
+Socho slot ek Swiggy delivery bag jaisa hai jisme sirf 32kg saaman aa sakta hai. Agar tum har item ke liye alag bag bhejte ho (chahe wo 1kg ka ho), to bahut sare bags waste honge. Better hai ki chote items ek bag mein combine kar do.
 
 ```solidity
-// BAD: 4 storage slots used
+// BAD: 4 storage slots use ho rahe hain
 struct UnpackedUser {
-    uint8 age;          // slot 0 (31 bytes wasted)
-    bool active;        // slot 1 (31 bytes wasted)
-    uint128 balance;    // slot 2 (16 bytes wasted)
-    address wallet;     // slot 3 (12 bytes wasted)
+    uint8 age;          // slot 0 (31 bytes waste)
+    bool active;        // slot 1 (31 bytes waste)
+    uint128 balance;    // slot 2 (16 bytes waste)
+    address wallet;     // slot 3 (12 bytes waste)
 }
 
-// GOOD: 2 storage slots used
+// GOOD: 2 storage slots use ho rahe hain
 struct PackedUser {
     address wallet;     // slot 0: 20 bytes
-    uint128 balance;    // slot 0: 16 bytes remaining → fits perfectly!
+    uint128 balance;    // slot 0: 16 bytes remaining → perfectly fit!
 
     uint8 age;          // slot 1: 1 byte
-    bool active;        // slot 1: 1 byte (30 bytes remaining for future fields)
+    bool active;        // slot 1: 1 byte (30 bytes remaining future fields ke liye)
 }
 ```
 
-**Key rule:** Order matters. Solidity packs from left to right (top to bottom in a struct). Always group small types together and place larger types (`uint256`, `address`) at boundaries.
+**Key rule:** Order matter karta hai. Solidity left se right (struct mein top se bottom) pack karta hai. Hamesha chote types ko group karo aur bade types (`uint256`, `address`) ko boundaries pe rakho.
 
 #### Visual: Storage Slot Packing
 
 ```
-UnpackedUser (4 slots = 128 bytes of storage):
+UnpackedUser (4 slots = 128 bytes storage):
 ┌──────────────────────────────────────────────────────────────────┐
 │ Slot 0 │ age (1B) │░░░░░░░░░░░░░░░░░░░░░░ WASTED 31B ░░░░░░░░░│
 ├──────────────────────────────────────────────────────────────────┤
@@ -105,7 +107,7 @@ UnpackedUser (4 slots = 128 bytes of storage):
 │ Slot 3 │ wallet (20B) │░░░░░░ WASTED 12B ░░░░░░│
 └──────────────────────────────────────────────────────────────────┘
 
-PackedUser (2 slots = 64 bytes of storage):
+PackedUser (2 slots = 64 bytes storage):
 ┌──────────────────────────────────────────────────────────────────┐
 │ Slot 0 │ wallet (20B) │ balance (16B)                  │← FULL! │
 ├──────────────────────────────────────────────────────────────────┤
@@ -113,174 +115,185 @@ PackedUser (2 slots = 64 bytes of storage):
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-This is one of the highest-impact optimizations available. Reading a packed slot is one SLOAD. Without packing, that is four SLOADs.
+Ye sabse high-impact optimization hai jo available hai. Ek packed slot read karna sirf ek SLOAD hai. Packing ke bina, wahi cheez 4 SLOADs lagegi.
 
-### 3. Use `calldata` Instead of `memory` for External Function Parameters
+> [!tip]
+> Struct define karte waqt hamesha socho: "kaunse fields ek saath fit ho sakte hain 32 bytes ke andar?"
 
-When an external function receives an array or bytes parameter, you have a choice: `memory` or `calldata`.
+### 3. External Function Parameters Ke Liye `memory` Ki Jagah `calldata` Use Karo
 
-- `memory`: The EVM copies the entire input into memory. You pay for the copy.
-- `calldata`: The data is read directly from the transaction input. No copy, no extra cost.
+Jab ek external function array ya bytes parameter leta hai, tumhare paas choice hoti hai: `memory` ya `calldata`.
+
+- `memory`: EVM poora input memory mein copy karta hai. Us copy ka paisa tum bharte ho.
+- `calldata`: Data seedha transaction input se read hota hai. Koi copy nahi, koi extra cost nahi.
 
 ```solidity
-// BAD: copies the array into memory
+// BAD: array ko memory mein copy karta hai
 function sumValues(uint256[] memory values) external pure returns (uint256 total) { }
 
-// GOOD: reads directly from calldata, no copy
+// GOOD: seedha calldata se read karta hai, koi copy nahi
 function sumValues(uint256[] calldata values) external pure returns (uint256 total) { }
 ```
 
-Use `calldata` any time you do not need to modify the parameter inside the function. It is a free optimization.
+Jab bhi tumhe function ke andar parameter modify nahi karna, `calldata` use karo. Ye ek free optimization hai.
 
-### 4. Cache Storage Variables in Local Variables Inside Loops
+### 4. Loops Ke Andar Storage Variables Ko Local Variable Mein Cache Karo
 
-Every time you read a state variable inside a loop, you pay an SLOAD. If the loop runs 100 times, you pay 100 SLOADs. Cache it once in a local variable first.
+Jab bhi tum loop ke andar ek state variable read karte ho, ek SLOAD ka paisa lagta hai. Agar loop 100 baar chalta hai, to 100 SLOADs ka bill aata hai. Isliye pehle ek local variable mein cache kar lo.
 
 ```solidity
-// BAD: arr.length is read from storage on every iteration
+// BAD: arr.length har iteration mein storage se read hota hai
 function badLoop(uint256[] storage arr) internal {
     for (uint256 i = 0; i < arr.length; i++) {
-        // SLOAD every single iteration
+        // Har single iteration mein SLOAD
     }
 }
 
-// GOOD: one SLOAD, then reads from the stack
+// GOOD: ek SLOAD, phir stack se reads
 function goodLoop(uint256[] storage arr) internal {
-    uint256 length = arr.length;  // one SLOAD here
+    uint256 length = arr.length;  // yahan ek SLOAD
     for (uint256 i = 0; i < length; i++) {
-        // reads 'length' from the stack — essentially free
+        // 'length' ko stack se read karta hai — basically free
     }
 }
 ```
 
-This also applies to any state variable you access multiple times in a single function.
+Ye rule kisi bhi state variable pe apply hota hai jise tum ek function ke andar multiple baar access karte ho.
 
-### 5. Use `immutable` and `constant`
+### 5. `immutable` Aur `constant` Use Karo
 
-Variables that never change after deployment should not use storage at all.
+Jo variables deployment ke baad kabhi change nahi hote, unhe storage bilkul use nahi karna chahiye.
 
-- `constant`: Value is known at compile time. Inlined directly into bytecode. Zero SLOAD cost.
-- `immutable`: Value is set in the constructor and never changes. Also stored in bytecode. Zero SLOAD cost.
+- `constant`: Value compile time pe pata hoti hai. Seedha bytecode mein inline ho jaati hai. Zero SLOAD cost.
+- `immutable`: Value constructor mein set hoti hai aur kabhi change nahi hoti. Ye bhi bytecode mein store hoti hai. Zero SLOAD cost.
 
 ```solidity
-// Uses a storage slot — wasteful for values that never change
+// Ek storage slot use karta hai — un values ke liye wasteful jo kabhi change nahi hoti
 address public owner;
 
-// Set once in constructor, zero storage cost thereafter
+// Constructor mein ek baar set, uske baad zero storage cost
 address public immutable owner;
 
-// Known at compile time, zero storage cost
+// Compile time pe known, zero storage cost
 uint256 public constant MAX_SUPPLY = 1_000_000 * 1e18;
 ```
 
-### 6. Short-Circuit Logic (Put Cheap Checks First)
+> [!tip]
+> Agar koi variable "set once, never touched again" type ka hai — jaise owner address ya max supply — to turant `immutable` ya `constant` ka use socho.
 
-In Solidity (and most languages), `&&` and `||` short-circuit: if the first condition determines the result, the second is never evaluated. Place your cheapest and most likely to fail checks first.
+### 6. Short-Circuit Logic (Pehle Sasta Check Lagao)
+
+Solidity mein (aur zyada languages mein) `&&` aur `||` short-circuit karte hain: agar pehla condition result decide kar deta hai, to doosra evaluate hi nahi hota. Isliye apna sabse sasta aur most-likely-to-fail check pehle rakho.
 
 ```solidity
-// BAD: expensive storage read happens even if msg.value is 0
+// BAD: msg.value 0 ho tab bhi expensive storage read pehle hota hai
 function deposit() external payable {
     require(whitelist[msg.sender] && msg.value > 0);
-    //      ^^^^^^^^^^^^^^^^^^^^ SLOAD happens first
+    //      ^^^^^^^^^^^^^^^^^^^^ SLOAD pehle hota hai
 }
 
-// GOOD: cheap check (msg.value) runs first, SLOAD avoided if it fails
+// GOOD: sasta check (msg.value) pehle chalta hai, fail hone pe SLOAD avoid ho jaata hai
 function deposit() external payable {
     require(msg.value > 0 && whitelist[msg.sender]);
-    //      ^^^^^^^^^^^^ free stack check — SLOAD only if this passes
+    //      ^^^^^^^^^^^^ free stack check — SLOAD sirf tab jab ye pass ho
 }
 ```
 
-### 7. Avoid On-Chain String Operations
+### 7. On-Chain String Operations Se Bacho
 
-Strings in Solidity are expensive. They are dynamically-sized, stored as bytes, and any manipulation (concatenation, comparison) is costly. Where possible:
+Solidity mein strings expensive hain. Ye dynamically-sized hote hain, bytes mein store hote hain, aur koi bhi manipulation (concatenation, comparison) costly hota hai. Jaha possible ho:
 
-- Use `bytes32` instead of `string` for short fixed strings
-- Do string formatting off-chain and only store the result
-- Use event logs rather than storing strings in state
+- Chote fixed strings ke liye `string` ki jagah `bytes32` use karo
+- String formatting off-chain karo aur sirf result store karo
+- State mein strings store karne ki jagah event logs use karo
 
 ```solidity
-// BAD: stores a variable-length string on-chain
+// BAD: on-chain ek variable-length string store karta hai
 string public tokenName = "MyGovernanceToken";
 
-// GOOD: bytes32 is a fixed 32-byte slot, no dynamic allocation
+// GOOD: bytes32 ek fixed 32-byte slot hai, koi dynamic allocation nahi
 bytes32 public constant TOKEN_NAME = "MyGovernanceToken";
 ```
 
-### 8. Use Events Instead of Storage for Historical Data
+### 8. Historical Data Ke Liye Storage Ki Jagah Events Use Karo
 
-Storage is for data your contract needs to read on-chain. If you only need data for off-chain indexing (transaction history, audit trails), emit an event instead. Events are stored in the transaction receipt log — they cost a fraction of storage writes and cannot be read by contracts, which is usually fine.
+Storage un data ke liye hai jo tumhara contract on-chain read karna chahta hai. Agar data sirf off-chain indexing ke liye chahiye (transaction history, audit trails), to event emit karo. Events transaction receipt log mein store hote hain — inka cost storage writes ka ek fraction hota hai, aur contracts inhe read nahi kar sakte, jo zyada situations mein theek hi hai.
+
+Ye bilkul aisa hai jaise Zomato apne order history ko ek fast lookup database mein na rakh ke sirf analytics logs mein rakhe — jab zaruri ho, off-chain query kar lo.
 
 ```solidity
-// BAD: storing history on-chain is extremely expensive
+// BAD: history on-chain store karna extremely expensive hai
 struct Transfer { address from; address to; uint256 amount; }
 Transfer[] public transferHistory;
 
-// GOOD: emit an event instead — cheap, indexable off-chain
+// GOOD: iski jagah ek event emit karo — sasta, off-chain indexable
 event Transfer(address indexed from, address indexed to, uint256 amount);
 ```
 
 ### 9. Custom Errors vs. String Revert Messages
 
-Before Solidity 0.8.4, `require` took a string message. That string is stored in the bytecode and costs deployment gas. Custom errors, introduced in 0.8.4, use a 4-byte selector — far smaller and cheaper.
+Solidity 0.8.4 se pehle, `require` ek string message leta tha. Wo string bytecode mein store hoti thi aur deployment gas kharch karti thi. Custom errors, jo 0.8.4 mein introduce hue, ek 4-byte selector use karte hain — jo bahut chota aur sasta hai.
 
 ```solidity
-// BAD: string is baked into bytecode, costs gas to deploy and revert
+// BAD: string bytecode mein baked hai, deploy aur revert dono mein gas kharch karti hai
 require(msg.sender == owner, "Ownable: caller is not the owner");
 
-// GOOD: 4-byte selector, minimal bytecode, cheaper revert
+// GOOD: 4-byte selector, minimal bytecode, sasta revert
 error NotOwner();
 if (msg.sender != owner) revert NotOwner();
 ```
 
-Custom errors can also carry parameters (for richer debugging) at no extra deployment cost:
+Custom errors parameters bhi carry kar sakte hain (richer debugging ke liye), bina extra deployment cost ke:
 
 ```solidity
 error InsufficientBalance(uint256 requested, uint256 available);
 if (amount > balance) revert InsufficientBalance(amount, balance);
 ```
 
-### 10. Use `unchecked {}` for Safe Arithmetic (Solidity 0.8+)
+### 10. Safe Arithmetic Ke Liye `unchecked {}` Use Karo (Solidity 0.8+)
 
-Solidity 0.8 added automatic overflow/underflow protection. Every arithmetic operation now has an implicit bounds check. This is great for safety but costs a small amount of extra gas. When you can mathematically prove overflow is impossible, you can skip the check with `unchecked`.
+Solidity 0.8 ne automatic overflow/underflow protection add kiya. Ab har arithmetic operation ka ek implicit bounds check hota hai. Ye safety ke liye great hai, lekin thoda extra gas kharch karta hai. Jab tum mathematically prove kar sakte ho ki overflow impossible hai, to `unchecked` se ye check skip kar sakte ho.
 
 ```solidity
-// Standard loop: i++ has an overflow check each iteration
+// Standard loop: i++ har iteration mein overflow check karta hai
 for (uint256 i = 0; i < length; i++) { }
 
-// Unchecked loop: overflow on i is impossible since i < length
+// Unchecked loop: i pe overflow impossible hai kyunki i < length hamesha
 for (uint256 i = 0; i < length; ) {
     // ... loop body ...
-    unchecked { ++i; }  // ++i is also slightly cheaper than i++
+    unchecked { ++i; }  // ++i, i++ se thoda sasta bhi hota hai
 }
 ```
 
-Only use `unchecked` when you are certain the operation cannot overflow. Never use it on user-supplied values without validation.
+`unchecked` sirf tab use karo jab tumhe pakka pata ho ki operation overflow nahi kar sakta. Kabhi bhi user-supplied values pe bina validation ke use mat karo.
 
-### 11. Avoid Redundant SSTOREs
+> [!warning]
+> `unchecked` ek scalpel hai, hathoda nahi. Galat jagah use kiya to silent overflow bugs aa sakte hain — jo debug karna nightmare hota hai.
 
-Writing to storage is the most expensive operation. Never write to storage if the value has not changed.
+### 11. Redundant SSTOREs Se Bacho
+
+Storage mein likhna sabse expensive operation hai. Agar value already same hai, to kabhi bhi storage mein dubara mat likho.
 
 ```solidity
-// BAD: writes to storage even if the value is already 'true'
+// BAD: value already 'true' ho tab bhi storage mein likhta hai
 function pause() external onlyOwner {
-    paused = true;  // costs ~20,000 gas even if already paused
+    paused = true;  // already paused ho tab bhi ~20,000 gas lagta hai
 }
 
-// GOOD: check first, skip the write if unnecessary
+// GOOD: pehle check karo, agar zarurat nahi to write skip karo
 function pause() external onlyOwner {
     if (!paused) paused = true;  // SLOAD (2,100) + conditional SSTORE
 }
 ```
 
-Also avoid patterns that write a temporary value and then overwrite it in the same transaction.
+Wo patterns bhi avoid karo jaha ek temporary value likhi jaati hai aur phir same transaction mein overwrite ho jaati hai.
 
-### 12. Use Mappings Over Arrays for Lookups
+### 12. Lookups Ke Liye Arrays Ki Jagah Mappings Use Karo
 
-If you need to check "does this value exist?" or "what is the value for this key?", a mapping is almost always cheaper than iterating over an array.
+Agar tumhe check karna hai "ye value exist karti hai kya?" ya "is key ki value kya hai?", to mapping almost hamesha array se sasta padta hai.
 
 ```solidity
-// BAD: O(n) scan of storage — extremely expensive for large arrays
+// BAD: O(n) scan of storage — large arrays ke liye extremely expensive
 address[] public admins;
 function isAdmin(address user) public view returns (bool) {
     for (uint256 i = 0; i < admins.length; i++) {
@@ -289,11 +302,11 @@ function isAdmin(address user) public view returns (bool) {
     return false;
 }
 
-// GOOD: O(1) lookup — one SLOAD
+// GOOD: O(1) lookup — sirf ek SLOAD
 mapping(address => bool) public isAdmin;
 ```
 
-Arrays are still appropriate when you need ordered, iterable data. But never use them as a lookup table.
+Arrays tab bhi appropriate hain jab tumhe ordered, iterable data chahiye. Lekin unhe kabhi lookup table ki tarah use mat karo.
 
 ---
 
@@ -307,15 +320,15 @@ pragma solidity ^0.8.0;
 // BAD — unoptimized
 // ============================================================
 contract UnoptimizedToken {
-    // These each take a full 32-byte slot - wasteful!
-    uint8 public decimals = 18;      // slot 0 (wastes 31 bytes)
-    bool public paused = false;       // slot 1 (wastes 31 bytes)
-    uint128 public maxSupply;         // slot 2 (wastes 16 bytes)
-    address public owner;             // slot 3 (wastes 12 bytes)
+    // Ye har ek pura 32-byte slot le raha hai - wasteful!
+    uint8 public decimals = 18;      // slot 0 (31 bytes waste)
+    bool public paused = false;       // slot 1 (31 bytes waste)
+    uint128 public maxSupply;         // slot 2 (16 bytes waste)
+    address public owner;             // slot 3 (12 bytes waste)
 
     function addToArray(uint256[] storage arr, uint256 value) internal {
         for (uint256 i = 0; i < arr.length; i++) {
-            // BAD: reads arr.length from storage on every iteration!
+            // BAD: arr.length har iteration mein storage se read hota hai!
             if (arr[i] == value) {
                 return;
             }
@@ -328,27 +341,27 @@ contract UnoptimizedToken {
 // GOOD — optimized
 // ============================================================
 contract OptimizedToken {
-    // Packed into 2 slots instead of 4!
+    // 4 ki jagah 2 slots mein packed!
     address public owner;             // slot 0: 20 bytes
-    uint128 public maxSupply;         // slot 0: 16 bytes remaining → fits!
+    uint128 public maxSupply;         // slot 0: 16 bytes remaining → fit!
 
     uint8 public decimals = 18;       // slot 1: 1 byte
     bool public paused = false;       // slot 1: 1 byte
-    // (30 bytes remaining in slot 1 for future vars)
+    // (slot 1 mein future vars ke liye 30 bytes remaining)
 
-    // Custom error instead of string message
+    // String message ki jagah custom error
     error AlreadyExists();
 
     function addToArrayOptimized(uint256[] storage arr, uint256 value) internal {
-        uint256 length = arr.length;  // GOOD: cache length — one SLOAD
+        uint256 length = arr.length;  // GOOD: length cache karo — ek SLOAD
         for (uint256 i = 0; i < length;) {
             if (arr[i] == value) revert AlreadyExists();
-            unchecked { ++i; }        // GOOD: skip overflow check (safe here)
+            unchecked { ++i; }        // GOOD: overflow check skip karo (yaha safe hai)
         }
         arr.push(value);
     }
 
-    // calldata instead of memory — no copy cost
+    // memory ki jagah calldata — koi copy cost nahi
     function sumValues(uint256[] calldata values) external pure returns (uint256 total) {
         uint256 len = values.length;
         for (uint256 i; i < len;) {
@@ -375,13 +388,14 @@ contract OptimizedToken {
 | `constant` vs state variable read | 2,100 gas (SLOAD) | 3 gas (stack) | ~99% |
 | Mapping lookup vs array scan (1000 items) | ~2,100,000 gas | ~2,100 gas | ~99.9% |
 
-> Note: Gas costs vary by EVM version and optimizer settings. These figures are illustrative approximations based on Berlin/London EVM opcodes.
+> [!info]
+> Gas costs EVM version aur optimizer settings ke hisaab se vary karte hain. Ye figures illustrative approximations hain, Berlin/London EVM opcodes ke hisaab se.
 
 ---
 
 ## ⚙️ Compiler Optimizer Settings
 
-The Solidity compiler has a built-in optimizer that can significantly reduce gas costs. Configure it in your `hardhat.config.js` or `foundry.toml`.
+Solidity compiler ka ek built-in optimizer hota hai jo gas costs significantly reduce kar sakta hai. Ise apne `hardhat.config.js` ya `foundry.toml` mein configure karo.
 
 ### Hardhat
 
@@ -393,17 +407,17 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200   // optimize for this many calls to each function
+        runs: 200   // is number of calls ke liye optimize karo har function ka
       }
     }
   }
 };
 ```
 
-The `runs` parameter is a tradeoff:
-- **Low `runs` (e.g., 1):** Optimize for small bytecode size. Good if you deploy many instances and each is called rarely.
-- **High `runs` (e.g., 1000000):** Optimize for execution gas. Good for frequently called contracts (like a DEX).
-- **200** is the conventional default, balancing both.
+`runs` parameter ek tradeoff hai:
+- **Low `runs` (jaise 1):** Chote bytecode size ke liye optimize karta hai. Achha hai agar tum bahut instances deploy karte ho aur har ek rarely call hota hai.
+- **High `runs` (jaise 1000000):** Execution gas ke liye optimize karta hai. Frequently called contracts (jaise ek DEX) ke liye achha hai.
+- **200** conventional default hai, dono ko balance karta hai.
 
 ### Foundry
 
@@ -416,19 +430,19 @@ optimizer_runs = 200
 
 ---
 
-## 📏 Measuring Gas: Tooling
+## 📏 Gas Measure Karna: Tooling
 
-Writing optimizations without measuring is guesswork. Use these tools to get real numbers.
+Bina measure kiye optimizations likhna sirf guesswork hai. In tools se real numbers nikalo.
 
 ### Hardhat Gas Reporter
 
-Install the plugin:
+Plugin install karo:
 
 ```bash
 npm install --save-dev hardhat-gas-reporter
 ```
 
-Add to your config:
+Apne config mein add karo:
 
 ```javascript
 require("hardhat-gas-reporter");
@@ -437,12 +451,12 @@ module.exports = {
   gasReporter: {
     enabled: true,
     currency: "USD",
-    coinmarketcap: "YOUR_API_KEY"  // optional: shows USD cost
+    coinmarketcap: "YOUR_API_KEY"  // optional: USD cost dikhata hai
   }
 };
 ```
 
-Run your tests and get a table like:
+Apne tests run karo aur ek table milega:
 
 ```
 ·-----------------------------|---------------------------|-------------|-----------------------------·
@@ -455,13 +469,13 @@ Run your tests and get a table like:
 
 ### Foundry Gas Snapshots
 
-Foundry has built-in gas tracking. Run:
+Foundry mein built-in gas tracking hoti hai. Run karo:
 
 ```bash
 forge snapshot
 ```
 
-This creates a `.gas-snapshot` file. Run it again after changes and compare:
+Ye ek `.gas-snapshot` file banata hai. Changes ke baad dubara run karo aur compare karo:
 
 ```bash
 forge snapshot --diff
@@ -474,30 +488,30 @@ test_addToArray()           gas: 213400 (-167800) [-44%]
 test_sumValues()            gas:  12300  (-8100)  [-40%]
 ```
 
-This workflow — write code, snapshot, optimize, diff — is the professional way to track gas regressions.
+Ye workflow — code likho, snapshot lo, optimize karo, diff dekho — gas regressions track karne ka professional tarika hai.
 
 ---
 
 ## 💡 Key Takeaways
 
-- **Storage is the enemy.** Every SLOAD costs ~2,100 gas. Every SSTORE costs ~20,000. Minimize both.
-- **Pack your structs.** Reordering fields to fill 32-byte slots can cut storage costs by 50–75%.
-- **Cache storage reads in loops.** Reading `arr.length` from storage inside a loop is one of the most common and costly beginner mistakes.
-- **`calldata` is free.** Use it for any external function parameter you do not modify.
-- **`constant` and `immutable` eliminate SLOADs entirely.** Use them for every variable that does not need to change.
-- **Custom errors are both cheaper and more expressive** than string revert messages.
-- **Measure with real tooling.** Never optimize blindly — use Hardhat Gas Reporter or Foundry snapshots to confirm your changes actually help.
-- **`unchecked` is a scalpel, not a hammer.** Only apply it to arithmetic you can mathematically verify is safe.
+- **Storage hi dushman hai.** Har SLOAD ka cost ~2,100 gas, har SSTORE ka ~20,000. Dono ko minimize karo.
+- **Apne structs pack karo.** Fields ko reorder karke 32-byte slots fill karna storage costs ko 50–75% tak kaat sakta hai.
+- **Loops ke andar storage reads cache karo.** Loop ke andar `arr.length` ko storage se read karna beginners ki sabse common aur costly mistake hai.
+- **`calldata` free hai.** Kisi bhi external function parameter ke liye use karo jo tum modify nahi kar rahe.
+- **`constant` aur `immutable` SLOADs poori tarah eliminate karte hain.** Har us variable ke liye use karo jo change nahi hona chahiye.
+- **Custom errors string revert messages se sasta aur zyada expressive hote hain.**
+- **Real tooling se measure karo.** Kabhi blindly optimize mat karo — Hardhat Gas Reporter ya Foundry snapshots se confirm karo ki tumhare changes actually kaam kar rahe hain.
+- **`unchecked` ek scalpel hai, hathoda nahi.** Sirf usi arithmetic pe apply karo jise tum mathematically safe prove kar sakte ho.
 
 ---
 
 ## ❓ Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni understanding test karo.
 
 **Question 1**
 
-You have the following struct. How many storage slots does it consume, and how would you optimize it?
+Tumhare paas ye struct hai. Ye kitne storage slots consume karta hai, aur tum ise kaise optimize karoge?
 
 ```solidity
 struct Config {
@@ -511,20 +525,20 @@ struct Config {
 <details>
 <summary>Answer</summary>
 
-As written: **3 slots**.
-- Slot 0: `featureEnabled` (1 byte) + 31 bytes wasted
-- Slot 1: `maxAmount` (32 bytes) — full slot
-- Slot 2: `feeRecipient` (20 bytes) + `version` (1 byte) = 21 bytes, 11 bytes wasted
+Jaisa likha hai: **3 slots**.
+- Slot 0: `featureEnabled` (1 byte) + 31 bytes waste
+- Slot 1: `maxAmount` (32 bytes) — pura slot
+- Slot 2: `feeRecipient` (20 bytes) + `version` (1 byte) = 21 bytes, 11 bytes waste
 
-Optimized to **2 slots** by grouping small types:
+Chote types ko group karke **2 slots** mein optimize kiya:
 
 ```solidity
 struct Config {
     address feeRecipient;  // slot 0: 20 bytes
     uint8 version;         // slot 0: 1 byte  } 21 bytes used
-    bool featureEnabled;   // slot 0: 1 byte  } in slot 0
-    // 10 bytes free in slot 0
-    uint256 maxAmount;     // slot 1: 32 bytes — full slot
+    bool featureEnabled;   // slot 0: 1 byte  } slot 0 mein
+    // slot 0 mein 10 bytes free
+    uint256 maxAmount;     // slot 1: 32 bytes — pura slot
 }
 ```
 
@@ -534,7 +548,7 @@ struct Config {
 
 **Question 2**
 
-What is wrong with this function, and how would you fix it?
+Is function mein kya galat hai, aur tum ise kaise fix karoge?
 
 ```solidity
 function processAll(uint256[] storage items) internal {
@@ -547,19 +561,19 @@ function processAll(uint256[] storage items) internal {
 <details>
 <summary>Answer</summary>
 
-Two issues:
+Do issues hain:
 
-1. `items.length` is read from storage on every loop iteration — costs an SLOAD each time.
-2. `i++` has an overflow check (implicit in Solidity 0.8+) — unnecessary for a loop counter bounded by `items.length`.
+1. `items.length` har loop iteration mein storage se read hota hai — har baar ek SLOAD ka cost lagta hai.
+2. `i++` mein overflow check hota hai (Solidity 0.8+ mein implicit) — jo `items.length` se bounded loop counter ke liye unnecessary hai.
 
 Fixed:
 
 ```solidity
 function processAll(uint256[] storage items) internal {
-    uint256 len = items.length;  // one SLOAD, then cached on the stack
+    uint256 len = items.length;  // ek SLOAD, phir stack pe cached
     for (uint256 i = 0; i < len;) {
         process(items[i]);
-        unchecked { ++i; }  // safe: i < len ensures no overflow
+        unchecked { ++i; }  // safe: i < len overflow nahi hone deta
     }
 }
 ```
@@ -570,25 +584,25 @@ function processAll(uint256[] storage items) internal {
 
 **Question 3**
 
-Your contract stores the protocol version, which is set at deployment and never changes. You currently have `uint256 public version;` set in the constructor. What should you change it to, and why?
+Tumhara contract protocol version store karta hai, jo deployment ke time set hota hai aur kabhi change nahi hota. Abhi tumhare paas `uint256 public version;` hai jo constructor mein set hota hai. Ise kya change karoge, aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-Change it to `uint256 public immutable version;`.
+Ise `uint256 public immutable version;` mein change karo.
 
-Because `immutable` variables are inlined into the contract bytecode at deployment time. Reading them costs ~3 gas (a stack read) instead of ~2,100 gas (an SLOAD). Since the value never changes after the constructor runs, there is no reason to occupy a storage slot.
+Kyunki `immutable` variables deployment time pe contract bytecode mein inline ho jaate hain. Inhe read karna ~3 gas (ek stack read) lagta hai, ~2,100 gas (ek SLOAD) ki jagah. Chunki value constructor chalne ke baad kabhi change nahi hoti, isliye storage slot occupy karne ki koi zarurat nahi.
 
-If the version were known at compile time (e.g., always `1`), you could also use `constant`:
+Agar version compile time pe pata hota (jaise hamesha `1`), to tum `constant` bhi use kar sakte the:
 
 ```solidity
 uint256 public constant VERSION = 1;
 ```
 
-`constant` is even cheaper: it is literally substituted at compile time, so there is zero runtime cost.
+`constant` aur bhi sasta hai: ye literally compile time pe substitute ho jaata hai, isliye runtime cost zero hai.
 
 </details>
 
 ---
 
-*Next Chapter: Security Patterns and Common Vulnerabilities →*
+*Agla Chapter: Security Patterns and Common Vulnerabilities →*

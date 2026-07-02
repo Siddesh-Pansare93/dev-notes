@@ -1,57 +1,57 @@
 # 🔐 Transactions Deep Dive
 
-> **Audience:** Complete beginners to databases. No prior knowledge of concurrency or locking assumed.
-> **Goal:** Understand what transactions are, why they matter, and how databases keep your data safe when multiple users hit the system at once.
+> **Audience:** Database mein bilkul naye log. Concurrency ya locking ka koi prior knowledge assume nahi kiya gaya.
+> **Goal:** Samjho transactions kya hote hain, kyun zaruri hain, aur jab bahut saare users ek saath system hit karte hain tab database tumhara data safe kaise rakhta hai.
 
 ---
 
-## 🔁 What Is a Transaction (Recap)?
+## 🔁 Transaction Hota Kya Hai (Recap)?
 
-Imagine you are transferring $500 from your savings account to your checking account. This involves two steps:
+Socho tum apne savings account se checking account mein $500 transfer kar rahe ho. Isme do steps hain:
 
-1. Deduct $500 from savings.
-2. Add $500 to checking.
+1. Savings se $500 minus karo.
+2. Checking mein $500 add karo.
 
-What happens if the database crashes after step 1 but before step 2? You lose $500. This is exactly the problem transactions solve.
+Ab agar step 1 ke baad database crash ho jaaye, step 2 se pehle? Tumhare $500 gayab! Exactly yahi problem transactions solve karte hain.
 
-A **transaction** is a group of one or more SQL statements that the database treats as a single, indivisible unit of work. Either all statements succeed together, or none of them take effect. This guarantee is captured by the **ACID** properties:
+Ek **transaction** matlab ek ya zyada SQL statements ka group jise database ek single, indivisible unit of work ki tarah treat karta hai. Ya to saare statements succeed karenge, ya koi bhi effect mein nahi aayega. Yeh guarantee **ACID** properties se aati hai:
 
-| Property | Meaning |
+| Property | Matlab |
 |---|---|
-| **A**tomicity | All-or-nothing. Either every statement commits or none do. |
-| **C**onsistency | The database moves from one valid state to another. Rules (constraints) are never broken. |
-| **I**solation | Concurrent transactions do not interfere with each other. |
-| **D**urability | Once committed, data survives crashes (it is written to disk). |
+| **A**tomicity | All-or-nothing. Ya to har statement commit hoga ya koi nahi. |
+| **C**onsistency | Database ek valid state se doosri valid state mein jaata hai. Rules (constraints) kabhi break nahi hote. |
+| **I**solation | Ek saath chal rahe transactions ek doosre ko disturb nahi karte. |
+| **D**urability | Ek baar commit ho gaya, toh data crash mein bhi survive karta hai (disk pe likha ja chuka hota hai). |
 
 ---
 
-## 🚀 Starting a Transaction: BEGIN / START TRANSACTION
+## 🚀 Transaction Start Karna: BEGIN / START TRANSACTION
 
-You tell the database "everything I do next belongs to one transaction" by explicitly opening one.
+Database ko batana padta hai "ab jo bhi main karunga woh ek transaction ka hissa hai" — iske liye explicitly ek transaction open karna padta hai.
 
 ```sql
 -- PostgreSQL / MySQL
 BEGIN;
--- or equivalently:
+-- ya equivalently:
 START TRANSACTION;
 
 -- SQL Server
 BEGIN TRANSACTION;
 
 -- Oracle
--- No BEGIN needed. Oracle is ALWAYS inside a transaction implicitly.
--- Every session starts a transaction automatically.
+-- BEGIN ki zarurat nahi. Oracle HAMESHA implicitly ek transaction ke andar hota hai.
+-- Har session automatically ek transaction start kar deta hai.
 ```
 
-> **Cross-DB note:** PostgreSQL and MySQL both accept `BEGIN` or `START TRANSACTION`. SQL Server requires the `TRANSACTION` keyword. Oracle never needs you to open a transaction; it is already open.
+> **Cross-DB note:** PostgreSQL aur MySQL dono `BEGIN` ya `START TRANSACTION` accept karte hain. SQL Server ko `TRANSACTION` keyword chahiye hi. Oracle mein tumhe transaction open karne ki zarurat kabhi nahi padti — woh pehle se open hi hota hai.
 
-Until you close the transaction (with `COMMIT` or `ROLLBACK`), every change you make is tentative — visible to you, but not yet permanent.
+Jab tak transaction close nahi karte (`COMMIT` ya `ROLLBACK` se), tab tak jo bhi changes tum kar rahe ho woh tentative hain — sirf tumhe dikhte hain, permanent nahi hote.
 
 ---
 
-## ✅ COMMIT — Making Changes Permanent
+## ✅ COMMIT — Changes Ko Permanent Banana
 
-`COMMIT` finalises the transaction. The database writes all changes durably to disk and makes them visible to other sessions.
+`COMMIT` transaction ko finalise karta hai. Database saare changes ko durably disk pe likh deta hai aur unhe doosre sessions ke liye bhi visible bana deta hai.
 
 ```sql
 BEGIN;
@@ -59,165 +59,168 @@ BEGIN;
 UPDATE accounts SET balance = balance - 500 WHERE id = 1;
 UPDATE accounts SET balance = balance + 500 WHERE id = 2;
 
-COMMIT; -- Both updates are now permanent and visible to everyone
+COMMIT; -- Dono updates ab permanent hain aur sabko dikhenge
 ```
 
-After `COMMIT`, there is no going back. The data is saved.
+`COMMIT` ke baad wapis jaane ka koi rasta nahi. Data save ho chuka hai — jaise UPI payment ka "success" screen aa jaaye, ab undo nahi hota.
 
 ---
 
-## ↩️ ROLLBACK — Undoing Everything
+## ↩️ ROLLBACK — Sab Kuch Undo Karna
 
-`ROLLBACK` cancels the entire transaction. The database discards every change made since `BEGIN`, as if none of it happened.
+`ROLLBACK` poore transaction ko cancel kar deta hai. Database `BEGIN` ke baad kiya gaya har change discard kar deta hai, jaise kuch hua hi nahi.
 
 ```sql
 BEGIN;
 
 UPDATE accounts SET balance = balance - 500 WHERE id = 1;
 
--- Oops! We realise id = 2 does not exist.
-ROLLBACK; -- The deduction is reversed. Account 1 is untouched.
+-- Oops! Pata chala id = 2 exist hi nahi karta.
+ROLLBACK; -- Deduction reverse ho gaya. Account 1 untouched.
 ```
 
-This is the safety net. If anything goes wrong — an error, a constraint violation, or application logic deciding to abort — `ROLLBACK` returns the database to the state it was in before the transaction started.
+Yeh tumhara safety net hai. Kuch bhi galat ho jaaye — error, constraint violation, ya application logic khud decide kare abort karna — `ROLLBACK` database ko wapis usi state mein le aata hai jaisa transaction shuru hone se pehle tha.
 
 ---
 
-## 🔖 SAVEPOINT and ROLLBACK TO SAVEPOINT
+## 🔖 SAVEPOINT aur ROLLBACK TO SAVEPOINT
 
-Sometimes you want a partial undo — rolling back only part of a transaction without losing everything. `SAVEPOINT` creates a named checkpoint inside a transaction.
+Kabhi kabhi tumhe partial undo chahiye hota hai — poora transaction cancel kiye bina sirf ek hissa undo karna. `SAVEPOINT` transaction ke andar ek named checkpoint create karta hai.
 
 ```sql
 BEGIN;
 
 INSERT INTO orders (id, product) VALUES (101, 'Laptop');
 
-SAVEPOINT after_order; -- Mark this point
+SAVEPOINT after_order; -- Yahan ek checkpoint mark kar do
 
 INSERT INTO order_items (order_id, qty) VALUES (101, 2);
 
--- Something went wrong with order items only
-ROLLBACK TO SAVEPOINT after_order; -- Undo only the order_items insert
+-- Order items mein kuch gadbad ho gayi
+ROLLBACK TO SAVEPOINT after_order; -- Sirf order_items wala insert undo
 
--- The orders insert is still in effect
-COMMIT; -- Commits just the orders row
+-- Orders wala insert abhi bhi effect mein hai
+COMMIT; -- Sirf orders row commit hoga
 ```
 
-Think of savepoints like save slots in a video game — you can reload a mid-point without restarting from the beginning.
+Savepoints ko video game ke save slots jaisa socho — beech ke point se reload kar sakte ho, poore se restart karne ki zarurat nahi.
 
-> **Note:** `RELEASE SAVEPOINT name` removes the savepoint without rolling back. Oracle calls them `SAVEPOINT` too. SQL Server uses `SAVE TRANSACTION name` and `ROLLBACK TRANSACTION name`.
+> **Note:** `RELEASE SAVEPOINT name` savepoint ko hata deta hai bina rollback kiye. Oracle mein bhi `SAVEPOINT` hi kehte hain. SQL Server mein `SAVE TRANSACTION name` aur `ROLLBACK TRANSACTION name` use hota hai.
 
 ---
 
-## ⚠️ Concurrency Problems Without Proper Isolation
+## ⚠️ Bina Proper Isolation Ke Concurrency Problems
 
-When multiple transactions run at the same time without isolation controls, strange and dangerous things can happen.
+Jab multiple transactions ek saath bina isolation controls ke chalte hain, toh strange aur dangerous cheezein ho sakti hain.
 
 ### 1. Dirty Read
 
-Transaction A reads data that Transaction B has written but not yet committed. If B rolls back, A has read data that never officially existed.
+Transaction A woh data padh leta hai jo Transaction B ne likha hai lekin abhi commit nahi kiya. Agar B rollback ho jaaye, toh A ne aisa data padh liya jo officially kabhi exist hi nahi kiya.
 
 ```
 T1: BEGIN; UPDATE accounts SET balance = 0 WHERE id = 1;
-T2:   -- Reads balance = 0 (dirty!)
-T1: ROLLBACK; -- balance reverts to original
-T2:   -- T2 made a decision based on a lie
+T2:   -- Balance = 0 padh liya (dirty!)
+T1: ROLLBACK; -- Balance wapis original ho gaya
+T2:   -- T2 ne ek jhooth ke basis pe decision le liya
 ```
 
 ### 2. Non-Repeatable Read
 
-Transaction A reads a row. Transaction B updates and commits that row. Transaction A reads the same row again and gets a different value — within the same transaction.
+Transaction A ek row padhta hai. Transaction B usi row ko update karke commit kar deta hai. Transaction A wahi row dobara padhta hai aur — same transaction ke andar — different value milta hai.
 
 ```
-T1: SELECT balance FROM accounts WHERE id = 1; -- Returns 1000
+T1: SELECT balance FROM accounts WHERE id = 1; -- 1000 return hua
 T2:   UPDATE accounts SET balance = 500 WHERE id = 1; COMMIT;
-T1: SELECT balance FROM accounts WHERE id = 1; -- Returns 500 !!
+T1: SELECT balance FROM accounts WHERE id = 1; -- 500 return hua !!
 ```
 
-The same query returns different results within one transaction. This breaks the assumption that a single transaction sees a consistent world.
+Same query se ek hi transaction ke andar alag-alag results aa gaye. Yeh us assumption ko todta hai ki ek transaction ek consistent duniya dekhta hai.
 
 ### 3. Phantom Read
 
-Transaction A queries a set of rows matching a condition. Transaction B inserts new rows matching that condition and commits. Transaction A re-runs the query and sees new "phantom" rows that were not there before.
+Transaction A ek condition match karne wale rows query karta hai. Transaction B us condition ko match karne wale naye rows insert karke commit kar deta hai. Transaction A dobara query chalata hai aur naye "phantom" rows dikhte hain jo pehle nahi the.
 
 ```
-T1: SELECT * FROM orders WHERE amount > 100; -- Returns 5 rows
+T1: SELECT * FROM orders WHERE amount > 100; -- 5 rows aaye
 T2:   INSERT INTO orders (amount) VALUES (200); COMMIT;
-T1: SELECT * FROM orders WHERE amount > 100; -- Returns 6 rows !!
+T1: SELECT * FROM orders WHERE amount > 100; -- 6 rows aaye !!
 ```
 
 ### 4. Lost Update
 
-Two transactions both read the same value, both modify it based on what they read, and both write back — the second write silently overwrites the first.
+Do transactions dono same value padhte hain, dono usi ke basis pe modify karte hain, aur dono write back karte hain — doosra write chupke se pehle wale ko overwrite kar deta hai.
 
 ```
-T1: reads stock = 10, then writes stock = 9
-T2: reads stock = 10 (same read!), then writes stock = 9
--- One sale is lost. Stock should be 8, but it is 9.
+T1: stock = 10 padha, phir stock = 9 likha
+T2: stock = 10 padha (same read!), phir stock = 9 likha
+-- Ek sale gayab ho gaya. Stock 8 hona chahiye tha, lekin 9 hai.
 ```
+
+> [!warning]
+> Yeh sab problems tab hoti hain jab do orders ek saath Zomato pe same last plate biryani book karne ki koshish karein — dono ko "available" dikhta hai, dono order confirm kar dete hain, aur restaurant ke paas ek hi plate hai!
 
 ---
 
 ## 🔒 Locking: Pessimistic vs Optimistic
 
-There are two philosophies for preventing the concurrency problems above.
+Upar wali concurrency problems ko rokne ke liye do philosophies hain.
 
 ### Pessimistic Locking
 
-"Assume conflict will happen. Lock the data before anyone else can touch it."
+"Maan lo conflict hoga hi. Data ko lock kar do isse pehle koi aur usse touch kare."
 
-**`SELECT FOR UPDATE`** — locks the selected rows. Other transactions that try to modify or also lock these rows must wait.
+**`SELECT FOR UPDATE`** — select kiye gaye rows ko lock kar deta hai. Doosre transactions jo in rows ko modify ya lock karna chahte hain, unhe wait karna padega.
 
 ```sql
 BEGIN;
 SELECT balance FROM accounts WHERE id = 1 FOR UPDATE;
--- Row is now locked. No other transaction can UPDATE it until we COMMIT or ROLLBACK.
+-- Row ab lock ho gaya. Koi doosra transaction ise UPDATE nahi kar sakta jab tak hum COMMIT ya ROLLBACK na karein.
 UPDATE accounts SET balance = balance - 500 WHERE id = 1;
 COMMIT;
 ```
 
-**`SELECT FOR SHARE`** (PostgreSQL) / `LOCK IN SHARE MODE` (MySQL) — allows other transactions to also read with a share lock, but prevents any exclusive write lock. Useful when you want to read and assert the row has not changed, without blocking other readers.
+**`SELECT FOR SHARE`** (PostgreSQL) / `LOCK IN SHARE MODE` (MySQL) — doosre transactions ko bhi share lock ke saath padhne deta hai, lekin koi exclusive write lock nahi lagne deta. Useful hai jab tumhe padhna hai aur confirm karna hai ki row change nahi hua, bina doosre readers ko block kiye.
 
 ```sql
 SELECT * FROM products WHERE id = 42 FOR SHARE;
 ```
 
-**When to use pessimistic:** High-contention scenarios where conflicts are frequent and the cost of retrying is high (e.g., bank transfers, inventory deduction).
+**Kab use karein pessimistic:** High-contention scenarios jahan conflicts frequent hote hain aur retry karne ka cost bahut zyada hai (jaise bank transfers, inventory deduction — socho IRCTC tatkal booking, jahan sabko wahi seat chahiye).
 
 ### Optimistic Locking
 
-"Assume conflicts are rare. Do not lock upfront. Check at commit time whether anyone else changed the data."
+"Maan lo conflicts rare hain. Pehle se lock mat lagao. Commit ke time check karo ki kisi aur ne data change toh nahi kiya."
 
-The most common technique is a **version column** (or timestamp):
+Sabse common technique hai ek **version column** (ya timestamp):
 
 ```sql
--- Table has a `version` column
--- Step 1: Read the row and note the version
+-- Table mein ek `version` column hai
+-- Step 1: Row padho aur version note kar lo
 SELECT id, balance, version FROM accounts WHERE id = 1;
 -- Returns: id=1, balance=1000, version=5
 
--- Step 2: Update only if version has not changed
+-- Step 2: Sirf tab update karo agar version change nahi hua
 UPDATE accounts
 SET balance = 500, version = version + 1
 WHERE id = 1 AND version = 5;
 
--- If 0 rows updated, someone else changed it first. Retry.
+-- Agar 0 rows update hue, matlab kisi aur ne pehle change kar diya. Retry karo.
 ```
 
-If another transaction updated the row and bumped the version to 6, your `WHERE version = 5` matches nothing. The application detects this (rows affected = 0) and retries.
+Agar doosre transaction ne row update karke version 6 kar diya, toh tumhara `WHERE version = 5` kuch match nahi karega. Application isse detect karti hai (rows affected = 0) aur retry karti hai.
 
-**When to use optimistic:** Low-contention scenarios where conflicts are rare (e.g., user profile updates, content editing). It avoids the overhead of holding locks.
+**Kab use karein optimistic:** Low-contention scenarios jahan conflicts rare hote hain (jaise user profile updates, content editing). Isse locks hold karne ka overhead bach jaata hai.
 
 ---
 
 ## 💀 Deadlocks
 
-A **deadlock** occurs when two (or more) transactions each hold a lock the other needs, and neither can proceed.
+Ek **deadlock** tab hota hai jab do (ya zyada) transactions ek doosre ka lock hold karke rakhte hain jo doosre ko chahiye, aur koi bhi aage nahi badh pata.
 
 ```
-T1 holds lock on Row A, wants lock on Row B
-T2 holds lock on Row B, wants lock on Row A
--- Neither can proceed. Deadlock!
+T1 ke paas Row A ka lock hai, Row B ka lock chahiye
+T2 ke paas Row B ka lock hai, Row A ka lock chahiye
+-- Koi aage nahi badh sakta. Deadlock!
 ```
 
 ### Deadlock Sequence Diagram
@@ -252,167 +255,170 @@ sequenceDiagram
     T1->>DB: COMMIT
 ```
 
-### How Databases Detect and Resolve Deadlocks
+### Database Deadlocks Ko Detect aur Resolve Kaise Karta Hai
 
-Databases use a **wait-for graph** — a graph where each node is a transaction and each directed edge means "this transaction is waiting for that transaction's lock." When a cycle is detected in this graph, a deadlock exists.
+Databases ek **wait-for graph** use karte hain — ek graph jisme har node ek transaction hai aur har directed edge ka matlab hai "yeh transaction us transaction ke lock ka wait kar raha hai." Jab is graph mein cycle detect hoti hai, matlab deadlock exist karta hai.
 
-The database picks one transaction as the **victim** (usually the one that has done the least work or holds the fewest locks), aborts it, and releases its locks. The other transaction(s) can then proceed.
+Database ek transaction ko **victim** chunta hai (usually woh jisne sabse kam kaam kiya ho ya sabse kam locks hold kiye ho), use abort kar deta hai, aur uske locks release kar deta hai. Baaki transaction(s) fir aage badh sakte hain.
 
-**Your application must handle deadlock errors** — catch the error and retry the transaction.
+**Tumhari application ko deadlock errors handle karne hi padenge** — error catch karo aur transaction retry karo.
 
-### How to Avoid Deadlocks
+### Deadlocks Kaise Avoid Karein
 
-1. **Always acquire locks in the same order.** If T1 and T2 both always lock Row 1 before Row 2, no cycle can form.
-2. **Keep transactions short.** Fewer locks held for less time means fewer chances for circular waits.
-3. **Use `SELECT FOR UPDATE SKIP LOCKED`** (PostgreSQL/MySQL) in queue-style workloads to skip already-locked rows rather than waiting.
-4. **Avoid user input inside a transaction.** Never open a transaction, prompt the user, and wait for a response before committing.
+1. **Hamesha locks ko same order mein acquire karo.** Agar T1 aur T2 dono hamesha Row 1 ko Row 2 se pehle lock karein, toh cycle ban hi nahi sakta.
+2. **Transactions ko short rakho.** Kam locks, kam time ke liye hold — matlab circular wait ke chances bhi kam.
+3. **`SELECT FOR UPDATE SKIP LOCKED`** use karo (PostgreSQL/MySQL) queue-style workloads mein — pehle se locked rows ko wait karne ke bajaye skip kar do.
+4. **Transaction ke andar user input ka wait mat karo.** Kabhi bhi transaction open karke user se response ka wait mat karo commit karne se pehle.
 
 ---
 
 ## 🔑 Two-Phase Locking (2PL)
 
-Two-Phase Locking is a theoretical protocol that guarantees serializability (the strongest isolation level). It has two phases:
+Two-Phase Locking ek theoretical protocol hai jo serializability guarantee karta hai (sabse strong isolation level). Iske do phases hain:
 
-1. **Growing phase:** A transaction acquires all the locks it needs. It can request new locks but cannot release any.
-2. **Shrinking phase:** A transaction releases its locks. It cannot acquire any new locks.
+1. **Growing phase:** Transaction apne zarurat ke saare locks acquire karta hai. Naye locks request kar sakta hai lekin koi bhi release nahi kar sakta.
+2. **Shrinking phase:** Transaction apne locks release karta hai. Ab koi naya lock acquire nahi kar sakta.
 
-The key insight is the **lock point** — the moment the transaction holds its maximum set of locks. No new locks can be acquired after that point.
+Key insight hai **lock point** — woh moment jab transaction apna maximum set of locks hold kar raha hota hai. Uske baad koi naya lock acquire nahi ho sakta.
 
-Most databases implement **Strict 2PL**: all locks are held until the transaction commits or rolls back (the shrinking phase happens all at once at the end). This prevents cascading rollbacks (where aborting one transaction forces others to abort because they read its dirty data).
+Zyadatar databases **Strict 2PL** implement karte hain: saare locks tab tak hold hote hain jab tak transaction commit ya rollback nahi ho jaata (shrinking phase ek saath, end mein hoti hai). Isse **cascading rollbacks** rukte hain (jahan ek transaction abort hone se doosron ko bhi abort hona padta hai kyunki unhone uska dirty data padh liya tha).
 
-You do not configure 2PL directly — it is an internal guarantee the database engine provides. Understanding it helps you reason about why long transactions are so costly: they hold all their locks through their entire lifetime.
+Tumhe 2PL directly configure karne ki zarurat nahi — yeh ek internal guarantee hai jo database engine deta hai. Isse samajhna helpful hai yeh samajhne ke liye ki long transactions itne costly kyun hote hain: woh apni poori lifetime tak apne saare locks hold karke rakhte hain.
 
 ---
 
 ## 📸 MVCC — Multi-Version Concurrency Control
 
-Traditional locking means readers block writers and writers block readers. **MVCC** solves this by keeping multiple versions of each row and giving each transaction a consistent snapshot of the database as it existed when the transaction started.
+Traditional locking mein readers writers ko block karte hain aur writers readers ko. **MVCC** isse solve karta hai — har row ke multiple versions rakh kar, aur har transaction ko ek consistent snapshot dekar jaisa database transaction start hone ke waqt tha.
 
-**Analogy:** Imagine the database is a Git repository. When your transaction starts, you get your own branch — a snapshot of the main branch at that moment. Other transactions committing new changes to main do not affect your branch. You always see a consistent, frozen view of the data.
+**Analogy:** Database ko ek Git repository socho. Jab tumhara transaction start hota hai, tumhe apni khud ki branch mil jaati hai — main branch ka ek snapshot us moment ka. Doosre transactions jo main mein naye changes commit karte hain, woh tumhari branch ko affect nahi karte. Tum hamesha ek consistent, frozen view dekhte ho.
 
-### How PostgreSQL Implements MVCC
+### PostgreSQL MVCC Kaise Implement Karta Hai
 
-Every row in PostgreSQL has two hidden system columns:
-- `xmin` — the transaction ID that created this row version.
-- `xmax` — the transaction ID that deleted (or updated) this row version.
+PostgreSQL mein har row ke do hidden system columns hote hain:
+- `xmin` — jis transaction ID ne yeh row version create kiya.
+- `xmax` — jis transaction ID ne yeh row version delete (ya update) kiya.
 
-When you run `SELECT`, PostgreSQL does not lock rows. Instead, it finds all row versions where `xmin <= your_snapshot_txid` and `xmax` is either null (not deleted) or a transaction ID that had not yet committed when your snapshot was taken.
+Jab tum `SELECT` chalate ho, PostgreSQL rows lock nahi karta. Iske bajaye, woh saare row versions dhoondta hai jahan `xmin <= your_snapshot_txid` ho aur `xmax` ya toh null ho (delete nahi hua) ya ek aisa transaction ID ho jo tumhara snapshot lene tak commit nahi hua tha.
 
-This means **readers never block writers, and writers never block readers** in PostgreSQL. Each reader sees a consistent past snapshot; writers create new row versions alongside old ones.
+Iska matlab **readers kabhi writers ko block nahi karte, aur writers kabhi readers ko block nahi karte** PostgreSQL mein. Har reader ek consistent past snapshot dekhta hai; writers purane versions ke saath naye row versions create karte hain.
 
-### How MySQL InnoDB Implements MVCC
+### MySQL InnoDB MVCC Kaise Implement Karta Hai
 
-InnoDB uses an **undo log** — a log of old row images. When a row is updated, the old version is written to the undo log. A reader who needs to see an older consistent version reconstructs it by applying undo log entries backwards.
+InnoDB ek **undo log** use karta hai — purane row images ka ek log. Jab koi row update hota hai, purana version undo log mein likh diya jaata hai. Jis reader ko purana consistent version chahiye, woh undo log entries ko backwards apply karke usse reconstruct karta hai.
 
-InnoDB also maintains a **read view** per transaction (at the start of the transaction under `REPEATABLE READ`, or at the start of each statement under `READ COMMITTED`).
+InnoDB har transaction ke liye ek **read view** bhi maintain karta hai (transaction start hone pe `REPEATABLE READ` ke under, ya har statement ke start pe `READ COMMITTED` ke under).
 
-### The Cost of MVCC
+### MVCC Ka Cost
 
-Old row versions must be kept as long as any active transaction might need them. In PostgreSQL, this is called **dead tuples** — rows that are logically deleted but physically still on disk. The `VACUUM` process periodically cleans these up. If a long-running transaction holds a snapshot open, old versions cannot be vacuumed, causing **MVCC bloat** and table bloat on disk.
+Purane row versions ko tab tak rakhna padta hai jab tak koi active transaction unhe zarurat rakh sakta hai. PostgreSQL mein isse **dead tuples** kehte hain — rows jo logically delete ho chuke hain lekin physically disk pe abhi bhi hain. `VACUUM` process periodically inhe clean karta hai. Agar koi long-running transaction snapshot open rakhe, purane versions vacuum nahi ho paate, jisse **MVCC bloat** aur table bloat disk pe ho jaata hai.
 
 ---
 
-## ⏳ Long-Running Transactions: Why They Are Dangerous
+## ⏳ Long-Running Transactions: Yeh Dangerous Kyun Hain
 
-A transaction that runs for minutes or hours is one of the most damaging things you can do to a database under load.
+Ek transaction jo minutes ya hours tak chalta hai, load ke under database ke liye sabse zyada damaging cheezon mein se ek hai.
 
-### Problems Caused by Long Transactions
+### Long Transactions Se Hone Wali Problems
 
 | Problem | Explanation |
 |---|---|
-| **Locks held for too long** | Pessimistic locks acquired early in the transaction block other transactions from proceeding until the long transaction finishes. |
-| **MVCC bloat (PostgreSQL)** | Old row versions cannot be vacuumed while any transaction holds a snapshot older than those versions. Tables and indexes grow on disk. |
-| **Increased deadlock risk** | More locks held for longer increases the probability of circular wait situations. |
-| **Slow crash recovery** | The database must replay or undo a long transaction during recovery after a crash, making restart times longer. |
-| **Undo log growth (MySQL)** | The InnoDB undo log grows to accommodate all old versions needed by the long-running read view. |
+| **Locks bahut der tak hold hote hain** | Pessimistic locks jo transaction ke shuru mein acquire hue the, woh doosre transactions ko block kiye rakhte hain jab tak long transaction khatam na ho. |
+| **MVCC bloat (PostgreSQL)** | Purane row versions vacuum nahi ho sakte jab tak koi transaction un versions se purana snapshot hold kare. Tables aur indexes disk pe badhte rehte hain. |
+| **Deadlock risk badh jaata hai** | Zyada locks, zyada der tak hold — matlab circular wait situations ki probability badh jaati hai. |
+| **Slow crash recovery** | Crash ke baad database ko ek long transaction replay ya undo karna padta hai, jisse restart time badh jaata hai. |
+| **Undo log growth (MySQL)** | InnoDB ka undo log badhta jaata hai taaki long-running read view ko zarurat ke saare purane versions accommodate ho sakein. |
 
 ### Best Practices
 
-- Break large batch operations into smaller transactions that commit after every N rows.
-- Never leave a transaction open while waiting for user input or an external API call.
-- Set `statement_timeout` (PostgreSQL) or `innodb_lock_wait_timeout` (MySQL) to automatically abort runaway transactions.
-- Monitor long-running transactions with `pg_stat_activity` (PostgreSQL) or `INFORMATION_SCHEMA.INNODB_TRX` (MySQL).
+- Bade batch operations ko chhote transactions mein todo jo har N rows ke baad commit ho.
+- Kabhi bhi transaction open rakh kar user input ya external API call ka wait mat karo.
+- `statement_timeout` (PostgreSQL) ya `innodb_lock_wait_timeout` (MySQL) set karo taaki runaway transactions automatically abort ho jaayein.
+- Long-running transactions ko `pg_stat_activity` (PostgreSQL) ya `INFORMATION_SCHEMA.INNODB_TRX` (MySQL) se monitor karo.
 
 ```sql
--- PostgreSQL: find transactions open for more than 5 minutes
+-- PostgreSQL: 5 minutes se zyada der se open transactions dhoondo
 SELECT pid, now() - pg_stat_activity.query_start AS duration, query, state
 FROM pg_stat_activity
 WHERE state != 'idle'
   AND (now() - pg_stat_activity.query_start) > INTERVAL '5 minutes';
 ```
 
+> [!tip]
+> Long transaction ko aise socho jaise koi Swiggy delivery partner order pick karke raaste mein ruk kar chai peene baith jaaye — jab tak woh wapis nahi aata, restaurant ka table (lock) block rehta hai aur baaki orders wait karte rehte hain.
+
 ---
 
 ## 🗂️ Isolation Levels Summary
 
-SQL defines four standard isolation levels. Each one prevents a different set of anomalies:
+SQL mein chaar standard isolation levels defined hain. Har ek alag set ki anomalies rokta hai:
 
 | Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read |
 |---|---|---|---|
 | `READ UNCOMMITTED` | Possible | Possible | Possible |
 | `READ COMMITTED` | Prevented | Possible | Possible |
-| `REPEATABLE READ` | Prevented | Prevented | Possible (Prevented in MySQL InnoDB) |
+| `REPEATABLE READ` | Prevented | Prevented | Possible (MySQL InnoDB mein Prevented) |
 | `SERIALIZABLE` | Prevented | Prevented | Prevented |
 
 ```sql
--- Set isolation level for the current transaction
+-- Current transaction ke liye isolation level set karo
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 BEGIN;
 -- ...
 ```
 
-Higher isolation = more safety, but potentially more locking overhead and lower concurrency. Most applications run fine at `READ COMMITTED` (the default in PostgreSQL and SQL Server) or `REPEATABLE READ` (default in MySQL InnoDB).
+Zyada isolation = zyada safety, lekin potentially zyada locking overhead aur kam concurrency. Zyadatar applications `READ COMMITTED` (PostgreSQL aur SQL Server ka default) ya `REPEATABLE READ` (MySQL InnoDB ka default) pe fine chalte hain.
 
 ---
 
 ## 🎯 Key Takeaways
 
-- A **transaction** groups multiple SQL statements into an atomic unit — all succeed or all fail.
-- **`BEGIN`** opens a transaction; **`COMMIT`** saves it permanently; **`ROLLBACK`** undoes everything.
-- **`SAVEPOINT`** creates a partial rollback point within a transaction.
-- Without isolation, concurrent transactions suffer from **dirty reads**, **non-repeatable reads**, **phantom reads**, and **lost updates**.
-- **Pessimistic locking** (`SELECT FOR UPDATE`) blocks competing transactions upfront; best for high-contention work.
-- **Optimistic locking** (version column) detects conflicts only at write time; best for low-contention work.
-- **Deadlocks** happen when transactions form a circular lock dependency; databases detect and resolve them by aborting a victim transaction.
-- Always acquire locks in a **consistent order** to prevent deadlocks.
-- **Two-Phase Locking (2PL)** is the theoretical protocol behind serializable isolation — grow then shrink, never mix.
-- **MVCC** lets readers and writers coexist without blocking each other by keeping multiple row versions and giving each transaction a snapshot.
-- **Long-running transactions** hold locks and old row versions longer than necessary — keep transactions short and focused.
+- Ek **transaction** multiple SQL statements ko ek atomic unit mein group karta hai — ya sab succeed karte hain ya sab fail.
+- **`BEGIN`** transaction open karta hai; **`COMMIT`** permanently save karta hai; **`ROLLBACK`** sab kuch undo kar deta hai.
+- **`SAVEPOINT`** transaction ke andar ek partial rollback point banata hai.
+- Isolation ke bina, concurrent transactions **dirty reads**, **non-repeatable reads**, **phantom reads**, aur **lost updates** jhelte hain.
+- **Pessimistic locking** (`SELECT FOR UPDATE`) competing transactions ko pehle se block kar deta hai; high-contention work ke liye best hai.
+- **Optimistic locking** (version column) conflicts ko sirf write time pe detect karta hai; low-contention work ke liye best hai.
+- **Deadlocks** tab hote hain jab transactions circular lock dependency bana lete hain; database ek victim transaction abort karke inhe detect aur resolve karta hai.
+- Locks ko hamesha ek **consistent order** mein acquire karo taaki deadlocks se bacha ja sake.
+- **Two-Phase Locking (2PL)** serializable isolation ke peeche ka theoretical protocol hai — pehle grow, phir shrink, kabhi mix mat karo.
+- **MVCC** readers aur writers ko bina block kiye saath rehne deta hai — multiple row versions rakh kar aur har transaction ko ek snapshot dekar.
+- **Long-running transactions** zarurat se zyada der tak locks aur purane row versions hold karte hain — transactions ko short aur focused rakho.
 
 ---
 
 ## 📝 Quiz
 
-**Question 1:** You run `BEGIN; UPDATE orders SET status = 'shipped' WHERE id = 99;` but then your application crashes before reaching `COMMIT`. What happens to the update?
+**Question 1:** Tumne `BEGIN; UPDATE orders SET status = 'shipped' WHERE id = 99;` chalaya lekin `COMMIT` tak pahunchne se pehle hi application crash ho gayi. Update ka kya hoga?
 
 <details>
 <summary>Answer</summary>
 
-The update is automatically rolled back. The database detects the incomplete transaction during crash recovery and applies the rollback, reverting the `orders` row to its state before the transaction started. The change never becomes visible to other users.
+Update automatically rollback ho jaayega. Database crash recovery ke dauran incomplete transaction ko detect karta hai aur rollback apply kar deta hai, `orders` row ko transaction shuru hone se pehle wali state mein wapis le aata hai. Yeh change kabhi bhi doosre users ko visible nahi hota.
 
 </details>
 
 ---
 
-**Question 2:** Transaction A reads a product's stock as 50 units. Meanwhile, Transaction B also reads 50 units, sells 1, and commits (writing 49). Transaction A then sells 1 and commits (writing 49 again). The database now shows 49 units, but two sales happened. What concurrency problem is this, and how would optimistic locking prevent it?
+**Question 2:** Transaction A ek product ka stock 50 units padhta hai. Isi beech, Transaction B bhi 50 units padhta hai, 1 bechta hai, aur commit kar deta hai (49 likh kar). Transaction A phir 1 bechta hai aur commit karta hai (49 dobara likh kar). Database ab 49 units dikhata hai, lekin do sales hui thi. Yeh kaunsi concurrency problem hai, aur optimistic locking isse kaise rokega?
 
 <details>
 <summary>Answer</summary>
 
-This is a **Lost Update**. Transaction B's update was silently overwritten by Transaction A.
+Yeh ek **Lost Update** hai. Transaction B ka update chupke se Transaction A ne overwrite kar diya.
 
-With optimistic locking, the `products` table would have a `version` column. Both transactions read `version = 7`. Transaction B updates `stock = 49, version = 8 WHERE version = 7` and succeeds. When Transaction A then tries `WHERE version = 7`, it matches 0 rows (version is now 8), detects the conflict, and retries the operation by reading the fresh stock of 49 before proceeding.
+Optimistic locking ke saath, `products` table mein ek `version` column hota. Dono transactions `version = 7` padhte. Transaction B `stock = 49, version = 8 WHERE version = 7` update karta hai aur succeed ho jaata hai. Jab Transaction A phir `WHERE version = 7` try karta hai, 0 rows match hote hain (version ab 8 hai), conflict detect hota hai, aur woh fresh stock 49 padh kar operation retry karta hai.
 
 </details>
 
 ---
 
-**Question 3:** A PostgreSQL database has a transaction that has been running for 6 hours, holding a snapshot of the data from 6 hours ago. What specific operational problem does this cause for the database, and which background process is affected?
+**Question 3:** Ek PostgreSQL database mein ek transaction 6 ghante se chal raha hai, jo 6 ghante purane data ka snapshot hold kar raha hai. Isse database ke liye kaunsi specific operational problem hoti hai, aur kaunsa background process affect hota hai?
 
 <details>
 <summary>Answer</summary>
 
-The long-running transaction holds an old **read snapshot** (transaction ID from 6 hours ago). PostgreSQL's **VACUUM** process cannot remove any dead tuples (old row versions) that were created after that snapshot point, because the old transaction might still need to read them. This causes **MVCC bloat** — the physical table files on disk grow continuously with dead tuples that cannot be cleaned up, degrading query performance and consuming disk space. `AUTOVACUUM` is also affected and may not be able to advance the `relfrozenxid` horizon, risking transaction ID wraparound over very long periods.
+Long-running transaction ek purana **read snapshot** hold kar raha hai (6 ghante purani transaction ID). PostgreSQL ka **VACUUM** process us snapshot point ke baad create hue kisi bhi dead tuples (purane row versions) ko remove nahi kar sakta, kyunki purana transaction shayad abhi bhi unhe padhna chahe. Isse **MVCC bloat** hota hai — table ki physical files disk pe continuously badhti hain dead tuples ke saath jinhe clean nahi kiya ja sakta, jisse query performance degrade hoti hai aur disk space consume hota hai. `AUTOVACUUM` bhi affect hota hai aur `relfrozenxid` horizon ko advance nahi kar paata, jisse bahut lambe time period mein transaction ID wraparound ka risk badh jaata hai.
 
 </details>
 

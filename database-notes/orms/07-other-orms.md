@@ -1,27 +1,27 @@
-# 🗄️ Chapter 7: Other ORMs — Drizzle, TypeORM, Sequelize, and Knex
+# 🗄️ Chapter 7: Other ORMs — Drizzle, TypeORM, Sequelize, aur Knex
 
-> You have learned Prisma. You can model data, run migrations, and write type-safe queries. Now the question every developer eventually asks is: *"Are there alternatives, and when would I use them?"*
+> Tumne Prisma seekh liya hai. Data model kar sakte ho, migrations run kar sakte ho, type-safe queries likh sakte ho. Ab har developer ke mann mein ek din yeh sawaal aata hi hai: *"Kya alternatives hain, aur inhe kab use karna chahiye?"*
 >
-> This chapter answers that question honestly and practically.
+> Yeh chapter iska honest aur practical jawab deta hai.
 
 ---
 
-## 🧭 Why Learn the Alternatives?
+## 🧭 Alternatives Kyun Seekhein?
 
-Prisma is excellent, but it is not always the right tool. Different projects have different constraints:
+Prisma zabardast hai, lekin har jagah sahi tool nahi hai. Alag-alag projects ki alag-alag constraints hoti hain:
 
-- A **Cloudflare Worker** cannot run Prisma's query engine binary.
-- A **NestJS** codebase built by Java developers may already use TypeORM.
-- A **legacy Node.js** project from 2016 is almost certainly on Sequelize.
-- A data-intensive app that needs **hand-crafted SQL** will benefit from Knex.
+- Ek **Cloudflare Worker** Prisma ka query engine binary run nahi kar sakta.
+- Ek **NestJS** codebase jo Java developers ne banaya ho, woh shaayad pehle se hi TypeORM use kar raha ho.
+- Ek **legacy Node.js** project jo 2016 ka ho, woh almost certainly Sequelize pe hi hoga.
+- Ek data-heavy app jisko **hand-crafted SQL** chahiye, usko Knex se fayda hoga.
 
-Understanding the landscape makes you a better engineer — not because you need to rewrite everything, but because you can make *informed* architectural decisions.
+Poore landscape ko samajhna tumhe better engineer banata hai — isliye nahi ki tumhe sab kuch rewrite karna hai, balki isliye ki tum *informed* architectural decisions le sako.
 
 ---
 
-## 🎯 The Benchmark Query
+## 🎯 Benchmark Query
 
-Every ORM in this chapter will implement the same query so you can compare them side by side:
+Is chapter mein har ORM ek hi query implement karega, taaki tum sabko side by side compare kar sako:
 
 ```
 Get users where isActive = true,
@@ -30,21 +30,23 @@ order by createdAt descending,
 page 2 (10 items per page).
 ```
 
-This is a realistic query: filtering, aggregation, ordering, and pagination. It reveals a lot about how an ORM thinks.
+Yeh ek realistic query hai — filtering, aggregation, ordering, pagination sab kuch hai. Isse pata chalta hai ki ek ORM asal mein sochta kaise hai.
 
 ---
 
 ## 🌊 1. Drizzle ORM
 
-### What Is It?
+### Yeh Hai Kya?
 
-Drizzle is a **TypeScript-first, SQL-centric ORM** built for the modern JavaScript runtime era. It was created in 2022 and has grown rapidly because it solves a specific pain point: you get full type safety *without* hiding SQL from you.
+Drizzle ek **TypeScript-first, SQL-centric ORM** hai jo modern JavaScript runtime era ke liye bana hai. Yeh 2022 mein aaya aur bahut tezi se grow hua kyunki yeh ek specific pain point solve karta hai: tumhe full type safety milti hai bina SQL ko chhupaye.
 
-Its philosophy is blunt: **"If you know SQL, you know Drizzle."** The query API is a thin, typed wrapper around SQL syntax — not a new abstraction on top of it.
+Iski philosophy seedhi si hai: **"Agar tumhe SQL aata hai, toh Drizzle bhi aata hai."** Query API ek thin, typed wrapper hai SQL syntax ke upar — yeh koi naya abstraction nahi hai, SQL ke upar direct layer hai.
 
 ### Schema Definition
 
-Unlike Prisma, there is no separate `.prisma` file. The schema lives in TypeScript:
+Prisma ki tarah alag `.prisma` file nahi hoti. Schema seedha TypeScript mein rehta hai.
+
+Socho jaise Zomato ka menu tum seedha code mein likh rahe ho, koi alag config file nahi:
 
 ```typescript
 // schema.ts
@@ -70,9 +72,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 ```
 
-Everything is just TypeScript. The columns, types, constraints, and foreign keys are all expressed in code you already understand.
+Sab kuch plain TypeScript hai. Columns, types, constraints, foreign keys — sab woh code hai jo tumne pehle bhi dekha hai.
 
-### The Benchmark Query in Drizzle
+### Benchmark Query, Drizzle Mein
 
 ```typescript
 import { db } from './db';
@@ -97,45 +99,45 @@ const result = await db
   .limit(PAGE_SIZE)
   .offset((PAGE - 1) * PAGE_SIZE);
 
-// result is fully typed: { id: number, name: string, email: string, postCount: number }[]
+// result fully typed hai: { id: number, name: string, email: string, postCount: number }[]
 ```
 
-Notice how this reads almost like SQL. `select`, `from`, `leftJoin`, `where`, `groupBy`, `orderBy`, `limit`, `offset` — these are SQL clauses, just typed.
+Dekho, yeh almost SQL jaisa hi lagta hai. `select`, `from`, `leftJoin`, `where`, `groupBy`, `orderBy`, `limit`, `offset` — yeh sab SQL clauses hain, bas typed hain.
 
-### Pros
+### Fayde (Pros)
 
-- **Zero runtime overhead** — no query engine process, no binary
-- **Excellent TypeScript inference** — return types are inferred from the select shape
-- **Edge-compatible** — runs in Cloudflare Workers, Deno, Bun, and any environment that supports `fetch`
-- **SQL-transparent** — you always know what query will run
-- **Lightweight bundle** — critical for serverless cold start times
+- **Zero runtime overhead** — koi query engine process nahi, koi binary nahi
+- **Zabardast TypeScript inference** — return types select shape se hi infer ho jaate hain
+- **Edge-compatible** — Cloudflare Workers, Deno, Bun, aur jahan bhi `fetch` support ho, wahan chalta hai
+- **SQL-transparent** — tumhe hamesha pata hota hai ki kaunsi query chalegi
+- **Lightweight bundle** — serverless cold start times ke liye critical hai
 
-### Cons
+### Nuksan (Cons)
 
-- **Younger ecosystem** — fewer third-party plugins compared to Prisma or Sequelize
-- **Verbose for simple queries** — Prisma's `findMany` with `include` is more concise for standard CRUD
-- **Manual relation handling** — Drizzle does not automatically load nested relations without explicit joins
-- **Migrations are separate** — you use `drizzle-kit` for migrations, which is a separate workflow step
+- **Chhota ecosystem** — Prisma ya Sequelize ke mukable third-party plugins kam hain
+- **Simple queries ke liye verbose** — Prisma ka `findMany` with `include` standard CRUD ke liye zyada concise hai
+- **Relations manually handle karne padte hain** — Drizzle automatically nested relations load nahi karta bina explicit joins ke
+- **Migrations alag hain** — `drizzle-kit` ek alag workflow step hai
 
-### When to Use Drizzle
+### Drizzle Kab Use Karein
 
-- Building on **Cloudflare Workers**, **Vercel Edge**, or **Deno Deploy**
-- You want **full SQL control** with type safety
-- Performance is critical and you need a **lightweight runtime**
-- Your team is comfortable with SQL and dislikes ORM magic
-- You are using **Bun** or another modern JS runtime
+- **Cloudflare Workers**, **Vercel Edge**, ya **Deno Deploy** pe build kar rahe ho
+- Tumhe **full SQL control** chahiye type safety ke saath
+- Performance critical hai aur tumhe **lightweight runtime** chahiye
+- Team SQL se comfortable hai aur ORM ka "magic" pasand nahi
+- Tum **Bun** ya kisi doosre modern JS runtime pe ho
 
 ---
 
 ## 🏛️ 2. TypeORM
 
-### What Is It?
+### Yeh Hai Kya?
 
-TypeORM is a **class-based, decorator-driven ORM** inspired by Java's Hibernate and Spring Data. It was built for TypeScript from the beginning (unlike Sequelize) and integrates deeply with the NestJS ecosystem.
+TypeORM ek **class-based, decorator-driven ORM** hai jo Java ke Hibernate aur Spring Data se inspired hai. Yeh shuru se hi TypeScript ke liye bana (Sequelize ke ulat), aur NestJS ecosystem ke saath deeply integrate hota hai.
 
-It supports two patterns:
-- **Active Record** — models know how to save themselves (`user.save()`)
-- **Data Mapper** — repositories handle persistence, models are plain data
+Yeh do patterns support karta hai:
+- **Active Record** — models khud ko save karna jaante hain (`user.save()`)
+- **Data Mapper** — repositories persistence handle karte hain, models plain data hote hain
 
 ### Entity Definition
 
@@ -190,9 +192,9 @@ export class Post {
 }
 ```
 
-Decorators define the schema. It feels familiar if you have worked with Spring Boot or NestJS.
+Decorators schema define karte hain. Agar tumne Spring Boot ya NestJS ke saath kaam kiya hai, toh yeh familiar lagega.
 
-### The Benchmark Query in TypeORM
+### Benchmark Query, TypeORM Mein
 
 ```typescript
 import { AppDataSource } from './data-source';
@@ -219,7 +221,7 @@ const result = await userRepository
   .offset((PAGE - 1) * PAGE_SIZE)
   .getRawAndEntities();
 
-// Or using raw query for count + entities:
+// Ya raw query use karke count + entities:
 const [entities, count] = await userRepository.findAndCount({
   where: { isActive: true },
   relations: { posts: true },
@@ -229,41 +231,41 @@ const [entities, count] = await userRepository.findAndCount({
 });
 ```
 
-TypeORM gives you two styles: a `QueryBuilder` for complex queries (with raw SQL-like syntax) and a simpler `find` API for standard operations.
+TypeORM tumhe do styles deta hai: complex queries ke liye `QueryBuilder` (raw SQL jaisa syntax), aur standard operations ke liye simpler `find` API.
 
-### Pros
+### Fayde (Pros)
 
-- **First-class NestJS integration** — NestJS modules wrap TypeORM out of the box
-- **Decorator-driven** — familiar to Java/Spring developers
-- **Supports both Active Record and Data Mapper** — flexible architecture
-- **Mature ecosystem** — widely used, lots of Stack Overflow answers
-- **Supports many databases** — PostgreSQL, MySQL, SQLite, MongoDB (partial), Oracle
+- **First-class NestJS integration** — NestJS modules TypeORM ko out of the box wrap karte hain
+- **Decorator-driven** — Java/Spring developers ke liye familiar
+- **Active Record aur Data Mapper dono support** — flexible architecture
+- **Mature ecosystem** — widely used, Stack Overflow pe answers ki kami nahi
+- **Bahut saare databases support** — PostgreSQL, MySQL, SQLite, MongoDB (partial), Oracle
 
-### Cons
+### Nuksan (Cons)
 
-- **Decorator performance** — metadata reflection adds overhead at startup
-- **Complex relations can be tricky** — eager loading can trigger N+1 queries unexpectedly
-- **QueryBuilder verbosity** — complex queries become long chains
-- **Slower development velocity** — more boilerplate than Prisma for simple tasks
-- **TypeScript types are not always inferred** — `getRawMany()` returns `any[]`
+- **Decorator performance** — metadata reflection startup pe overhead add karta hai
+- **Complex relations tricky ho jaate hain** — eager loading se achanak N+1 queries fir sakti hain
+- **QueryBuilder verbose hai** — complex queries lambi chains ban jaati hain
+- **Development velocity slow** — simple tasks ke liye Prisma se zyada boilerplate
+- **TypeScript types hamesha infer nahi hote** — `getRawMany()` `any[]` return karta hai
 
-### When to Use TypeORM
+### TypeORM Kab Use Karein
 
-- Building a **NestJS application** (the default ORM choice for NestJS)
-- Your team comes from a **Java or Spring background**
-- You prefer **class-based models** with decorators
-- You need **Active Record pattern** for simplicity in smaller services
-- The project already uses TypeORM and migration cost is high
+- **NestJS application** bana rahe ho (NestJS ka default ORM choice hai)
+- Team **Java ya Spring background** se aati hai
+- Tumhe **class-based models** decorators ke saath pasand hain
+- Choti services ke liye simplicity ke liye **Active Record pattern** chahiye
+- Project already TypeORM use kar raha hai aur migration cost zyada hai
 
 ---
 
 ## 🐘 3. Sequelize
 
-### What Is It?
+### Yeh Hai Kya?
 
-Sequelize is the **oldest and most established Node.js ORM**, first released in 2010. It predates TypeScript becoming popular. If you find a Node.js ORM tutorial from before 2018, it is almost certainly using Sequelize.
+Sequelize sabse **purana aur established Node.js ORM** hai, pehli baar 2010 mein release hua. Yeh TypeScript popular hone se pehle ka hai. Agar tumhe 2018 se pehle ka koi Node.js ORM tutorial mile, toh woh almost certainly Sequelize use kar raha hoga.
 
-It is a full-featured ORM: model definition, associations, migrations, hooks, validators, and more — all built in.
+Yeh ek full-featured ORM hai: model definition, associations, migrations, hooks, validators — sab kuch built-in hai.
 
 ### Model Definition
 
@@ -302,7 +304,7 @@ User.init(
 );
 ```
 
-Associations are defined separately:
+Associations alag se define hote hain:
 
 ```typescript
 // associations.ts
@@ -310,7 +312,7 @@ User.hasMany(Post, { foreignKey: 'userId', as: 'posts' });
 Post.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 ```
 
-### The Benchmark Query in Sequelize
+### Benchmark Query, Sequelize Mein
 
 ```typescript
 import { User } from './models/user';
@@ -331,7 +333,7 @@ const result = await User.findAll({
     {
       model: Post,
       as: 'posts',
-      attributes: [],    // don't include post columns in output
+      attributes: [],    // output mein post columns include mat karo
       required: false,   // LEFT JOIN
     },
   ],
@@ -340,47 +342,47 @@ const result = await User.findAll({
   order: [['createdAt', 'DESC']],
   limit: PAGE_SIZE,
   offset: (PAGE - 1) * PAGE_SIZE,
-  subQuery: false,       // required for correct LIMIT with GROUP BY
+  subQuery: false,       // GROUP BY ke saath sahi LIMIT ke liye zaruri
 });
 
-// result is User[] but postCount must be accessed via .get('postCount')
+// result User[] hai, lekin postCount access karna ho toh .get('postCount') use karo
 ```
 
-Notice `subQuery: false` — a Sequelize quirk required when combining `GROUP BY` with `LIMIT`. This is the kind of thing you learn the hard way.
+`subQuery: false` pe dhyaan do — yeh ek Sequelize ka quirk hai jo tab zaruri hota hai jab `GROUP BY` ko `LIMIT` ke saath combine karo. Yeh cheez tum hard way mein hi seekhte ho.
 
-### Pros
+### Fayde (Pros)
 
-- **Massive ecosystem** — years of community packages, guides, and battle-tested patterns
-- **All associations built in** — `hasMany`, `belongsTo`, `belongsToMany`, `hasOne`
-- **Rich hooks system** — `beforeCreate`, `afterUpdate`, `beforeDestroy`, etc.
-- **Excellent for existing projects** — if the codebase uses it, staying is usually right
-- **Flexible migration system** — `sequelize-cli` is stable and widely understood
+- **Bahut bada ecosystem** — saalon ka community packages, guides, aur battle-tested patterns
+- **Saari associations built-in hain** — `hasMany`, `belongsTo`, `belongsToMany`, `hasOne`
+- **Rich hooks system** — `beforeCreate`, `afterUpdate`, `beforeDestroy`, waghera
+- **Existing projects ke liye best** — agar codebase already isko use kar raha hai, toh usi pe rehna usually sahi hai
+- **Flexible migration system** — `sequelize-cli` stable hai aur widely samjha jaata hai
 
-### Cons
+### Nuksan (Cons)
 
-- **TypeScript support feels bolted on** — the types require a lot of boilerplate (`declare`, `Optional`, interface duplication)
-- **Complex queries are awkward** — `fn`, `col`, `literal`, and `where` become hard to read
-- **Documentation is dense** — lots of options, unclear which to use
-- **N+1 risk** — eager loading can be inefficient without careful `include` configuration
-- **Slower than alternatives** — more abstraction layers between your code and the database
+- **TypeScript support "bolted-on" feel hoti hai** — types ke liye bahut boilerplate chahiye (`declare`, `Optional`, interface duplication)
+- **Complex queries awkward hain** — `fn`, `col`, `literal`, aur `where` padhna mushkil ho jaata hai
+- **Documentation dense hai** — bahut saare options, clear nahi kaunsa use karein
+- **N+1 ka risk** — eager loading careful `include` configuration ke bina inefficient ho sakti hai
+- **Alternatives se slower** — tumhare code aur database ke beech zyada abstraction layers
 
-### When to Use Sequelize
+### Sequelize Kab Use Karein
 
-- The **project already uses Sequelize** and rewriting is not justified
-- You need a **huge ecosystem** with many pre-built plugins
-- The team is more comfortable with JavaScript than TypeScript
-- You need **complex hook pipelines** for side effects (audit logs, event emission)
-- Migrating a legacy app with no budget for rewriting data access layer
+- **Existing Node.js project maintain** kar rahe ho jo Sequelize use karta hai
+- Tumhe **sabse bada ecosystem** chahiye plugins aur guides ka
+- Team JavaScript mein zyada comfortable hai, TypeScript mein kam
+- Audit trails aur side effects ke liye **rich hook pipelines** chahiye
+- Legacy app migrate kar rahe ho aur data access layer rewrite karne ka budget nahi hai
 
 ---
 
 ## 🔧 4. Knex.js — The Query Builder
 
-### What Is It?
+### Yeh Hai Kya?
 
-Knex is **not an ORM**. It is a **SQL query builder** — a library that constructs SQL strings from a JavaScript/TypeScript API and sends them to your database. There are no models, no entities, no schema definitions. Just queries.
+Knex **ORM nahi hai**. Yeh ek **SQL query builder** hai — ek library jo JavaScript/TypeScript API se SQL strings banata hai aur unhe tumhare database ko bhejta hai. Koi models nahi, koi entities nahi, koi schema definitions nahi. Bas queries.
 
-Think of it as the layer between raw `pg.query('SELECT ...')` and a full ORM. Many ORMs (including older versions of Objection.js) use Knex under the hood.
+Isko socho raw `pg.query('SELECT ...')` aur full ORM ke beech ki layer ki tarah. Bahut saare ORMs (jaise Objection.js ke purane versions) andar se Knex hi use karte hain.
 
 ### Setup
 
@@ -394,9 +396,9 @@ export const db = knex({
 });
 ```
 
-No schema definition needed — Knex does not know about your models.
+Koi schema definition ki zarurat nahi — Knex ko tumhare models ke baare mein kuch nahi pata.
 
-### The Benchmark Query in Knex
+### Benchmark Query, Knex Mein
 
 ```typescript
 import { db } from './db';
@@ -418,15 +420,15 @@ const result = await db('users')
   .limit(PAGE_SIZE)
   .offset((PAGE - 1) * PAGE_SIZE);
 
-// result is { id: number, name: string, email: string, postCount: string }[]
-// Note: postCount is a string — PostgreSQL COUNT returns bigint as string
+// result: { id: number, name: string, email: string, postCount: string }[]
+// Note: postCount string hai — PostgreSQL COUNT bigint ko string ki tarah return karta hai
 ```
 
-This is clean and readable. You always know exactly what SQL will run. The tradeoff: you get no help with relations, no model layer, and types require manual definition.
+Yeh clean aur readable hai. Tumhe hamesha exactly pata hota hai ki kaunsa SQL chalega. Tradeoff yeh hai: relations mein koi help nahi milegi, koi model layer nahi hai, aur types manually define karne padte hain.
 
-### Migrations in Knex
+### Knex Mein Migrations
 
-Knex does have a migration system:
+Knex ka apna migration system bhi hai:
 
 ```typescript
 // migrations/20240101_create_users.ts
@@ -442,116 +444,116 @@ exports.up = (knex) =>
 exports.down = (knex) => knex.schema.dropTable('users');
 ```
 
-### Pros
+### Fayde (Pros)
 
-- **You are always in control** — no magic, no hidden queries
-- **Excellent for complex SQL** — subqueries, CTEs, window functions, raw fragments all work naturally
-- **Lightweight** — minimal abstraction, fast startup, no binary
-- **Great for data scripts and migrations** — when you just need to run SQL programmatically
-- **Works alongside any ORM** — use Knex for complex reports, your ORM for CRUD
+- **Tumhara pura control** — koi magic nahi, koi hidden query nahi
+- **Complex SQL ke liye zabardast** — subqueries, CTEs, window functions, raw fragments sab naturally kaam karte hain
+- **Lightweight** — minimal abstraction, fast startup, koi binary nahi
+- **Data scripts aur migrations ke liye badhiya** — jab tumhe bas SQL programmatically run karna ho
+- **Kisi bhi ORM ke saath kaam karta hai** — complex reports ke liye Knex, CRUD ke liye tumhara ORM
 
-### Cons
+### Nuksan (Cons)
 
-- **Not an ORM** — no model layer, no relations, no type inference on joins
-- **Manual typing** — return types are not inferred from the query shape
-- **More boilerplate for CRUD** — what Prisma does in one line requires multiple in Knex
-- **No schema awareness** — typos in column names are runtime errors, not compile-time errors
-- **Scales poorly as complexity grows** — very large Knex queries become hard to maintain
+- **ORM nahi hai** — koi model layer nahi, koi relations nahi, joins pe type inference nahi
+- **Manual typing** — return types query shape se infer nahi hote
+- **CRUD ke liye zyada boilerplate** — jo Prisma ek line mein karta hai, Knex mein multiple lines chahiye
+- **Schema awareness nahi hai** — column names mein typos runtime errors hain, compile-time errors nahi
+- **Complexity badhne pe scale nahi karta** — bahut badi Knex queries maintain karna mushkil ho jaata hai
 
-### When to Use Knex
+### Knex Kab Use Karein
 
-- You need **complex analytical queries** that ORMs mangle
-- Building a **data pipeline or migration script**
-- You want **maximum SQL control** without writing raw strings
-- Using it as a **foundation under a custom repository pattern**
-- The app needs queries with **CTEs, window functions, or LATERAL joins** that your ORM cannot express
+- Tumhe **complex analytical queries** chahiye jo ORMs mangle kar dete hain
+- **Data pipeline ya migration script** bana rahe ho
+- Tumhe **maximum SQL control** chahiye bina raw strings likhe
+- Isse ek **custom repository pattern** ke foundation ki tarah use kar rahe ho
+- App ko aisi queries chahiye jisme **CTEs, window functions, ya LATERAL joins** ho jo tumhara ORM express nahi kar sakta
 
 ---
 
-## 📊 Big Comparison Table
+## 📊 Bada Comparison Table
 
 | Feature | Prisma | Drizzle | TypeORM | Sequelize | Knex |
 |---|---|---|---|---|---|
-| **TypeScript Support** | Excellent (auto-generated types) | Excellent (inferred from schema) | Good (decorators, some gaps) | Fair (verbose, boilerplate) | Manual (you write types) |
-| **Schema Definition** | `.prisma` file (DSL) | TypeScript objects | Class decorators | `Model.init()` | None (migrations only) |
+| **TypeScript Support** | Excellent (auto-generated types) | Excellent (schema se inferred) | Good (decorators, kuch gaps) | Fair (verbose, boilerplate) | Manual (khud types likho) |
+| **Schema Definition** | `.prisma` file (DSL) | TypeScript objects | Class decorators | `Model.init()` | Kuch nahi (sirf migrations) |
 | **Migrations** | `prisma migrate` (auto-diff) | `drizzle-kit push/generate` | `typeorm migration:generate` | `sequelize-cli migrate` | `knex migrate:latest` |
-| **Learning Curve** | Low (beginner-friendly) | Medium (need SQL knowledge) | Medium-High (decorators, DI) | Medium (many options) | Low-Medium (just SQL) |
+| **Learning Curve** | Low (beginner-friendly) | Medium (SQL knowledge chahiye) | Medium-High (decorators, DI) | Medium (bahut options) | Low-Medium (bas SQL) |
 | **Performance** | Good (query engine overhead) | Excellent (no runtime) | Good | Good | Excellent (no ORM layer) |
 | **Edge Support** | Limited (binary engine) | Excellent (edge-first) | Limited | Limited | Good |
-| **Community** | Large, fast-growing | Growing rapidly | Large | Very large (oldest) | Large (stable) |
+| **Community** | Large, fast-growing | Growing rapidly | Large | Very large (sabse purana) | Large (stable) |
 | **Best For** | TypeScript teams, rapid dev | Serverless, edge, SQL lovers | NestJS, Java devs | Legacy projects | Complex queries, raw SQL |
-| **Relations** | Automatic (include/select) | Manual joins | Decorators + lazy/eager | hasMany/belongsTo | Manual joins only |
-| **Full ORM?** | Yes | Yes | Yes | Yes | No (query builder only) |
+| **Relations** | Automatic (include/select) | Manual joins | Decorators + lazy/eager | hasMany/belongsTo | Sirf manual joins |
+| **Full ORM?** | Yes | Yes | Yes | Yes | No (sirf query builder) |
 
 ---
 
-## 🤔 When to Choose Each
+## 🤔 Kab Kisko Choose Karein
 
-### Choose Prisma When...
-- You are building a **TypeScript application from scratch**
-- The team includes **junior developers** or those unfamiliar with SQL
-- You want **fast iteration** — Prisma's `include` and `select` are the most ergonomic
-- You are building a **Next.js or SvelteKit** full-stack app
-- You want **auto-generated types** without any configuration
+### Prisma Choose Karo Jab...
+- Tum **scratch se TypeScript application** bana rahe ho
+- Team mein **junior developers** hain ya jo SQL se unfamiliar hain
+- Tumhe **fast iteration** chahiye — Prisma ka `include` aur `select` sabse ergonomic hai
+- Tum **Next.js ya SvelteKit** full-stack app bana rahe ho
+- Tumhe **auto-generated types** chahiye bina kisi configuration ke
 
-### Choose Drizzle When...
-- You are deploying to **Cloudflare Workers, Vercel Edge, or Deno**
-- You want **SQL-level control** with TypeScript safety
-- **Bundle size and cold start** are critical metrics
-- Your team loves SQL and finds ORMs too abstract
-- You are building with **Bun** or any non-Node runtime
+### Drizzle Choose Karo Jab...
+- Tum **Cloudflare Workers, Vercel Edge, ya Deno** pe deploy kar rahe ho
+- Tumhe **SQL-level control** chahiye TypeScript safety ke saath
+- **Bundle size aur cold start** critical metrics hain
+- Team SQL pasand karti hai aur ORMs ko zyada abstract manti hai
+- Tum **Bun** ya kisi non-Node runtime pe build kar rahe ho
 
-### Choose TypeORM When...
-- You are building a **NestJS application** (it is the standard choice)
-- Your team comes from **Java, Spring, or Hibernate** backgrounds
-- You want the **Active Record** pattern for simpler services
-- The project already has TypeORM entities and migration history
+### TypeORM Choose Karo Jab...
+- Tum **NestJS application** bana rahe ho (yeh standard choice hai)
+- Team **Java, Spring, ya Hibernate** backgrounds se aati hai
+- Tumhe simpler services ke liye **Active Record** pattern chahiye
+- Project mein already TypeORM entities aur migration history hai
 
-### Choose Sequelize When...
-- You are **maintaining an existing Node.js project** that uses Sequelize
-- You need the **largest possible ecosystem** of plugins and guides
-- The team is more comfortable in **JavaScript than TypeScript**
-- You need **rich lifecycle hooks** for audit trails and side effects
+### Sequelize Choose Karo Jab...
+- Tum **existing Node.js project maintain** kar rahe ho jo Sequelize use karta hai
+- Tumhe plugins aur guides ka **sabse bada ecosystem** chahiye
+- Team **JavaScript mein zyada comfortable** hai, TypeScript mein kam
+- Audit trails aur side effects ke liye **rich lifecycle hooks** chahiye
 
-### Choose Knex When...
-- You need to write **complex SQL** that ORMs cannot express well
-- Building **data pipelines, ETL scripts, or reporting tools**
-- You want a **query builder with no model magic**
-- Using Knex **alongside an ORM** for the queries the ORM cannot handle
-- You are building a custom data layer and want SQL control without raw strings
+### Knex Choose Karo Jab...
+- Tumhe **complex SQL** likhna hai jo ORMs achhe se express nahi kar paate
+- **Data pipelines, ETL scripts, ya reporting tools** bana rahe ho
+- Tumhe ek **query builder** chahiye bina model magic ke
+- Knex ko **ORM ke saath** use kar rahe ho un queries ke liye jo ORM handle nahi kar sakta
+- Custom data layer bana rahe ho aur SQL control chahiye bina raw strings ke
 
 ---
 
 ## 💡 Key Takeaways
 
-1. **Prisma is the best default** for greenfield TypeScript projects. Its developer experience is unmatched for standard CRUD operations.
+1. **Prisma best default hai** greenfield TypeScript projects ke liye. Standard CRUD operations ke liye iska developer experience unmatched hai.
 
-2. **Drizzle is the Prisma of the edge**. If you cannot run Prisma (Cloudflare Workers, edge functions), Drizzle is the modern replacement — not a downgrade.
+2. **Drizzle edge ka Prisma hai**. Agar Prisma nahi chala sakte (Cloudflare Workers, edge functions), toh Drizzle modern replacement hai — downgrade nahi.
 
-3. **TypeORM is the NestJS ORM**. If you are using NestJS, TypeORM is already integrated. Fighting this default has a cost.
+3. **TypeORM NestJS ka ORM hai**. Agar NestJS use kar rahe ho, TypeORM already integrated hai. Is default ke against jaana costly padta hai.
 
-4. **Sequelize is legacy-stable**. It is not the best choice for new projects, but it is not broken either. If your project is on Sequelize, there is rarely a compelling reason to rewrite.
+4. **Sequelize legacy-stable hai**. Naye projects ke liye best choice nahi hai, lekin broken bhi nahi hai. Agar tumhara project Sequelize pe hai, toh usko rewrite karne ki compelling reason kam hi milegi.
 
-5. **Knex is not your ORM — it is your escape hatch**. Most projects using a full ORM still have one or two Knex queries for the complex SQL that the ORM cannot express cleanly.
+5. **Knex tumhara ORM nahi hai — yeh tumhara escape hatch hai**. Zyadatar projects jo full ORM use karte hain, unmein bhi ek-do Knex queries hoti hain us complex SQL ke liye jo ORM cleanly express nahi kar sakta.
 
-6. **The "best ORM" is context-dependent**. Runtime environment, team background, existing codebase, and query complexity all matter. Learn to evaluate tradeoffs, not to pick a winner.
+6. **"Best ORM" context-dependent hai**. Runtime environment, team background, existing codebase, aur query complexity — sab matter karta hai. Winner pick karna nahi, tradeoffs evaluate karna seekho.
 
-7. **SQL knowledge multiplies your ORM effectiveness**. Whether you use Drizzle (where SQL is the API) or Prisma (where SQL is hidden), understanding what query is being generated makes you a better developer.
+7. **SQL knowledge tumhare ORM ki effectiveness ko multiply karti hai**. Chahe Drizzle use karo (jahan SQL hi API hai) ya Prisma (jahan SQL chhupa hota hai), yeh samajhna ki kaunsi query generate ho rahi hai, tumhe better developer banata hai.
 
 ---
 
 ## 🧠 Quiz
 
-Test your understanding before moving to the next chapter.
+Agle chapter pe jaane se pehle apni understanding test karo.
 
 **Question 1**
 
-You are building an API route that runs on Cloudflare Workers. The route fetches user data from a PostgreSQL database. Which ORM would you choose and why?
+Tum ek API route bana rahe ho jo Cloudflare Workers pe chalta hai. Yeh route PostgreSQL database se user data fetch karta hai. Kaunsa ORM choose karoge aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-**Drizzle ORM.** Cloudflare Workers use the V8 isolate runtime — no Node.js APIs, no filesystem access, no ability to spawn processes. Prisma's query engine is a binary that cannot run in this environment. Drizzle has no runtime binary — it is pure TypeScript that generates SQL strings and uses a compatible driver (like `@cloudflare/workers-postgres`). It is specifically designed for edge environments.
+**Drizzle ORM.** Cloudflare Workers V8 isolate runtime use karte hain — koi Node.js APIs nahi, koi filesystem access nahi, processes spawn karne ki ability nahi. Prisma ka query engine ek binary hai jo is environment mein run nahi ho sakta. Drizzle ka koi runtime binary nahi hai — yeh pure TypeScript hai jo SQL strings generate karta hai aur ek compatible driver use karta hai (jaise `@cloudflare/workers-postgres`). Yeh specifically edge environments ke liye design kiya gaya hai.
 
 </details>
 
@@ -559,16 +561,16 @@ You are building an API route that runs on Cloudflare Workers. The route fetches
 
 **Question 2**
 
-Your team is building a NestJS application. A senior developer from a Java background suggests using TypeORM. A TypeScript-first developer on the team suggests Prisma. What are the strongest arguments for each side, and how would you decide?
+Tumhari team NestJS application bana rahi hai. Java background wala ek senior developer TypeORM suggest karta hai. Ek TypeScript-first developer Prisma suggest karta hai. Dono side ke sabse strong arguments kya hain, aur decide kaise karoge?
 
 <details>
 <summary>Answer</summary>
 
-**Arguments for TypeORM:** NestJS has native `@nestjs/typeorm` integration with module setup, entity injection via `@InjectRepository`, and the decorator style is familiar to developers coming from Spring/Hibernate. Less conceptual translation required.
+**TypeORM ke favour mein arguments:** NestJS ka native `@nestjs/typeorm` integration hai — module setup, `@InjectRepository` se entity injection, aur decorator style Spring/Hibernate se aane wale developers ke liye familiar hai. Kam conceptual translation chahiye.
 
-**Arguments for Prisma:** Prisma has better TypeScript inference, a cleaner schema definition, and is generally faster to prototype with. `@nestjs/prisma` community integrations exist.
+**Prisma ke favour mein arguments:** Prisma ka TypeScript inference better hai, schema definition cleaner hai, aur prototype karna generally faster hai. `@nestjs/prisma` community integrations bhi exist karte hain.
 
-**How to decide:** If the Java developer is the lead or the team is mostly OOP-oriented, TypeORM reduces friction. If TypeScript quality and developer ergonomics are the priority, Prisma is the better choice. Either works — the most important factor is team consensus and consistency.
+**Decide kaise karein:** Agar Java developer lead hai ya team mostly OOP-oriented hai, toh TypeORM friction kam karega. Agar TypeScript quality aur developer ergonomics priority hai, toh Prisma better choice hai. Dono kaam karte hain — sabse important factor team consensus aur consistency hai.
 
 </details>
 
@@ -576,16 +578,16 @@ Your team is building a NestJS application. A senior developer from a Java backg
 
 **Question 3**
 
-You have a PostgreSQL database with an `orders` table. You need to write a query that uses a `WITH RECURSIVE` CTE to traverse a category hierarchy, then join against orders. Which tool would you reach for and why?
+Tumhare paas ek PostgreSQL database hai jisme `orders` table hai. Tumhe ek query likhni hai jo `WITH RECURSIVE` CTE use karke ek category hierarchy traverse kare, phir orders ke against join kare. Kaunsa tool use karoge aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-**Knex.js** (or raw SQL via your ORM's `$queryRaw` / `query` escape hatch).
+**Knex.js** (ya tumhare ORM ke `$queryRaw` / `query` escape hatch se raw SQL).
 
-Recursive CTEs are advanced SQL that most ORMs do not support natively. Drizzle has limited CTE support. Prisma, TypeORM, and Sequelize generally require a raw query escape hatch for this.
+Recursive CTEs advanced SQL hain jo zyadatar ORMs natively support nahi karte. Drizzle mein limited CTE support hai. Prisma, TypeORM, aur Sequelize generally is case mein raw query escape hatch maangte hain.
 
-In Knex:
+Knex mein:
 ```typescript
 const result = await db.raw(`
   WITH RECURSIVE category_tree AS (
@@ -600,7 +602,7 @@ const result = await db.raw(`
 `, [rootCategoryId]);
 ```
 
-This is exactly the use case Knex excels at: complex SQL you need full control over, expressed in a structured way without raw string concatenation for the simpler parts.
+Yeh exactly wahi use case hai jisme Knex excel karta hai: complex SQL jispe tumhe full control chahiye, ek structured tarike se express kiya gaya bina simpler parts ke liye raw string concatenation kiye.
 
 </details>
 
@@ -608,12 +610,12 @@ This is exactly the use case Knex excels at: complex SQL you need full control o
 
 ## 📚 Further Reading
 
-- [Drizzle ORM Docs](https://orm.drizzle.team) — especially the "Why Drizzle?" page
+- [Drizzle ORM Docs](https://orm.drizzle.team) — especially "Why Drizzle?" page
 - [TypeORM Docs](https://typeorm.io) — Data Mapper vs Active Record section
 - [Sequelize v6 Docs](https://sequelize.org/docs/v6/) — Associations guide
 - [Knex.js Docs](https://knexjs.org) — Query Builder reference
-- [Prisma vs Drizzle — Official Comparison](https://orm.drizzle.team/docs/prisma) — written by the Drizzle team, so read critically
+- [Prisma vs Drizzle — Official Comparison](https://orm.drizzle.team/docs/prisma) — Drizzle team ne likha hai, isliye critically padhna
 
 ---
 
-*Next Chapter: Database Migrations — Managing Schema Changes Safely Across Environments*
+*Next Chapter: Database Migrations — Schema Changes Ko Environments Ke Across Safely Manage Karna*

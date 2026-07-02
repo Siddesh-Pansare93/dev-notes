@@ -2,37 +2,37 @@
 
 > **Level:** Beginner | **Estimated reading time:** 20–25 minutes
 >
-> **Prerequisites:** A general curiosity about how blockchains keep data secure — no prior cryptography knowledge required.
+> **Prerequisites:** Bas thoda curiosity honi chahiye ki blockchain apna data secure kaise rakhta hai — cryptography ka pehle se knowledge zaruri nahi hai.
 
 ---
 
-## 🧠 What Is Cryptography? (And Why Should You Care?)
+## 🧠 Cryptography Hai Kya? (Aur Isse Kaam Kyun Hai?)
 
-Imagine you want to pass a secret note to your friend in class, but the teacher might intercept it. You and your friend agree on a secret code beforehand: every letter is shifted three positions forward in the alphabet (`A → D`, `B → E`, `Z → C`). Now even if the teacher reads the note, it looks like gibberish.
+Socho tumhe class mein apne dost ko ek secret note pass karna hai, lekin teacher beech mein pakad sakti hai. Toh tum aur tumhara dost pehle se ek code decide kar lete ho: har letter ko three positions aage shift kar do (`A → D`, `B → E`, `Z → C`). Ab agar teacher note padh bhi le, toh usko sirf ulta-seedha gibberish dikhega.
 
-That, at its core, is **cryptography** — the science of securing information so that only the intended recipient can read or use it.
+Yahi, apne core mein, **cryptography** hai — information ko is tarah secure karne ka science ki sirf jiske liye woh meant hai, wahi use padh ya use kar sake.
 
-In blockchain, cryptography is not a feature — it is the **foundation**. Without it, there would be no:
+Blockchain mein cryptography koi "feature" nahi hai — yeh uski **foundation** hai. Isके bina yeh sab possible hi nahi hota:
 
-- Proof that *you* own a wallet
-- Guarantee that a transaction was not tampered with
-- Trust in a system with no central authority
+- Proof ki *tumhara* hi wallet hai
+- Guarantee ki transaction ke saath koi chhedkhaani (tampering) nahi hui
+- Trust — ek aise system mein jahan koi central authority hi nahi hai
 
-Cryptography gives blockchain its most important property: **trustlessness**. You do not need to trust a bank or company; you trust math.
+Cryptography blockchain ko uski sabse important property deti hai: **trustlessness**. Tumhe kisi bank ya company pe bharosa karne ki zarurat nahi — tum sirf math pe bharosa karte ho.
 
 ---
 
-## 🔢 Hashing: The Digital Fingerprint
+## 🔢 Hashing: Digital Fingerprint
 
-### What Is a Hash?
+### Hash Hota Kya Hai?
 
-Think of a **hash function** as a magical meat grinder. You can put *anything* in — a single letter, an entire novel, an image — and out comes a fixed-length string of characters. The output is called a **hash** or **digest**.
+Ek **hash function** ko ek magical meat grinder samajh lo. Usme tum *kuch bhi* daal sakte ho — ek single letter, poora novel, ek image — aur bahar aata hai fixed-length characters ka string. Is output ko **hash** ya **digest** kehte hain.
 
 ```
 Input (any size)  →  [Hash Function]  →  Output (fixed size)
 ```
 
-Blockchain (Bitcoin, Ethereum, and most others) relies on **SHA-256** (Secure Hash Algorithm, 256-bit output). Let us see it in action.
+Blockchain (Bitcoin, Ethereum, aur zyada tar dusre) **SHA-256** (Secure Hash Algorithm, 256-bit output) use karte hain. Chalo action mein dekhte hain.
 
 ### SHA-256 in Practice
 
@@ -52,76 +52,76 @@ $ echo -n "blockchain" | sha256sum
 ef7797e13d3a75526946a3bcf00daec9fc9d1a309d68c5e85a4b3c3f0a2e9b1c
 ```
 
-> Note: The exact hashes above are illustrative. Run these commands yourself to see the real outputs — they will always be the same on every machine in the world.
+> Note: Upar diye gaye exact hashes sirf illustrative hain. Khud commands run karke real output dekho — woh duniya ke har machine pe hamesha same hi aayenge.
 
-### The Three Golden Properties of Hash Functions
+### Hash Functions Ki Teen Golden Properties
 
 #### 1. Deterministic
 
-The same input **always** produces the same output. If you hash `"hello"` today and again in ten years on a different computer, you will always get the exact same hash. This is what makes hashes reliable fingerprints.
+Same input **hamesha** same output dega. Agar tum `"hello"` ko aaj hash karo aur dus saal baad kisi doosre computer pe phir se karo, tumhe exact wahi hash milega. Yahi cheez hash ko reliable fingerprint banati hai.
 
 ```
 "hello" → SHA-256 → 2cf24dba...  (always, everywhere, forever)
 ```
 
-#### 2. The Avalanche Effect
+#### 2. Avalanche Effect
 
-Change even **one character** — or one bit — and the output changes completely and unpredictably. There is no similarity between the hashes of `"hello"` and `"Hello"`:
+Sirf **ek character** — ya ek bit — change karo, aur output puri tarah aur unpredictably badal jaata hai. `"hello"` aur `"Hello"` ke hashes mein koi similarity hi nahi hai:
 
 ```
 "hello"  → 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c...
 "Hello"  → 185f8db32921bd46d35cc8b9f0b27c88f1b736b3...
-           ^^^^^^^^ completely different from the first character
+           ^^^^^^^^ pehle character se hi bilkul alag
 ```
 
-This is crucial for blockchain: if someone tweaks a single digit in a transaction, the hash changes dramatically, and the tampering is instantly detectable.
+Blockchain ke liye yeh crucial hai: agar koi transaction mein ek digit bhi chhed de, hash dramatically change ho jaata hai, aur tampering turant pakdi jaati hai.
 
 #### 3. One-Way (Pre-image Resistance)
 
-Given a hash output, it is **computationally infeasible** to reverse-engineer the original input. You can verify that `"hello"` hashes to `2cf24dba...`, but you cannot start with `2cf24dba...` and work backwards to `"hello"` without already knowing it.
+Hash output diya ho, toh original input ko reverse-engineer karna **computationally infeasible** hai. Tum verify kar sakte ho ki `"hello"` ka hash `2cf24dba...` hai, lekin `2cf24dba...` se shuru karke wapas `"hello"` tak pahunchna — bina pehle se pata hue — possible nahi hai.
 
-This is why hashing is used to store passwords. Databases store the hash, not the plain text. When you log in, your password is hashed and compared to the stored hash.
+Isi wajah se passwords store karne ke liye hashing use hoti hai. Database plain text nahi, hash store karta hai. Jab tum login karte ho, tumhara password hash hokar stored hash se compare hota hai.
 
-### How Hashing Fits Into Blockchain
+### Blockchain Mein Hashing Kaise Fit Hoti Hai
 
-Every block in a blockchain contains the hash of the **previous block**. Change any historical transaction and you break the chain of hashes — making tampering immediately obvious to every node in the network.
+Blockchain ka har block apne **previous block** ka hash rakhta hai. Kisi bhi purani transaction ko change karo, aur poori chain of hashes toot jaati hai — jisse tampering network ke har node ko turant obvious ho jaati hai.
 
 ---
 
 ## 🔑 Symmetric vs Asymmetric Encryption
 
-Encryption is about making data unreadable to anyone except the intended recipient. There are two major families of encryption, and they work very differently.
+Encryption ka matlab hai data ko unreadable banana — sabke liye, sirf intended recipient ko chhodkar. Encryption ki do major families hain, aur dono kaafi alag tarike se kaam karti hain.
 
-### Symmetric Encryption — One Key Does Everything
+### Symmetric Encryption — Ek Key Sab Kuch Karti Hai
 
 ```
 Alice encrypts with Key → 🔒 [Ciphertext] → Bob decrypts with same Key
 ```
 
-Imagine a lockbox where the **same physical key** both locks and unlocks it. Alice and Bob must somehow share that key securely beforehand. This is the fundamental weakness of symmetric encryption — **key distribution**. If an attacker intercepts the key exchange, the whole scheme falls apart.
+Ek lockbox socho jisme **same physical key** se lock bhi hota hai aur unlock bhi. Alice aur Bob ko pehle se securely woh key share karni hoti hai. Yahi symmetric encryption ki fundamental weakness hai — **key distribution**. Agar attacker key exchange beech mein intercept kar le, toh poora scheme collapse ho jaata hai.
 
-Common symmetric algorithms: **AES** (used in secure Wi-Fi, HTTPS tunnels), **ChaCha20**.
+Common symmetric algorithms: **AES** (secure Wi-Fi, HTTPS tunnels mein use hota hai), **ChaCha20**.
 
-- **Pros:** Very fast, great for encrypting large amounts of data
-- **Cons:** Requires a secure way to share the key first
+- **Pros:** Bahut fast, bade amount ka data encrypt karne ke liye best
+- **Cons:** Pehle se secure tarike se key share karni padti hai
 
-### Asymmetric Encryption — A Matched Key Pair
+### Asymmetric Encryption — Ek Matched Key Pair
 
-This is where things get elegant. Asymmetric encryption uses **two mathematically linked keys**:
+Yahan cheezein elegant ho jaati hain. Asymmetric encryption **do mathematically linked keys** use karti hai:
 
-- A **public key** — you can share this with the entire world
-- A **private key** — you guard this with your life and never share it
+- Ek **public key** — yeh tum poori duniya ke saath share kar sakte ho
+- Ek **private key** — ise apni jaan se guard karo aur kabhi share mat karo
 
-What one key locks, **only the other key can unlock**. This breaks the key-distribution problem wide open.
+Jo ek key lock karti hai, use **sirf doosri key hi unlock kar sakti hai**. Isse key-distribution ka problem hi khatam ho jaata hai.
 
 ```
 Alice's public key → 🔒 [Ciphertext] → only Alice's private key → 🔓 [Plaintext]
 ```
 
-Common asymmetric algorithms: **RSA**, **Elliptic Curve Cryptography (ECC)** — which Ethereum uses.
+Common asymmetric algorithms: **RSA**, **Elliptic Curve Cryptography (ECC)** — jise Ethereum use karta hai.
 
-- **Pros:** No need to share a secret key beforehand; enables digital signatures
-- **Cons:** Much slower than symmetric encryption; used for small data or key exchange
+- **Pros:** Pehle se secret key share karne ki zarurat nahi; digital signatures possible banata hai
+- **Cons:** Symmetric encryption se kaafi slow hai; isliye chhote data ya key exchange ke liye use hota hai
 
 ```mermaid
 graph LR
@@ -137,57 +137,57 @@ graph LR
 
 ---
 
-## 📬 Public/Private Key Pairs: The Mailbox Analogy
+## 📬 Public/Private Key Pairs: Mailbox Analogy
 
-Here is the best mental model for public/private keys:
+Public/private keys samajhne ka sabse best mental model yeh hai:
 
-> Picture a **mailbox** on the street. It has a **slot** on the front — anyone walking by can drop a letter into it. But only **you** have the key to open the mailbox door and retrieve the letters.
+> Ek **mailbox** socho jo street pe laga hai. Uske front mein ek **slot** hai — koi bhi rasta chalte hue usme letter daal sakta hai. Lekin mailbox ka darwaza kholkar letters nikaalne ki key sirf **tumhare** paas hai.
 
 | Mailbox Component | Cryptography Equivalent |
 |---|---|
-| The mailbox slot (open to everyone) | Your **public key** |
-| Your unique physical key | Your **private key** |
-| A letter dropped in the slot | An encrypted message sent to you |
-| Opening the mailbox to read it | Decrypting with your private key |
+| Mailbox ka slot (sabke liye open) | Tumhari **public key** |
+| Tumhari unique physical key | Tumhari **private key** |
+| Slot mein daala gaya letter | Tumhe bheja gaya encrypted message |
+| Mailbox khol ke padhna | Private key se decrypt karna |
 
-In Ethereum/Bitcoin:
+Ethereum/Bitcoin mein:
 
-- Your **wallet address** is derived from your public key (it is essentially a shorter, hashed version of it)
-- Your **private key** is a 256-bit random number — a secret that controls all assets associated with your address
-- Anyone can *send* crypto to your address (drop a letter in the slot)
-- Only you, with your private key, can *spend* it (open the mailbox)
+- Tumhara **wallet address** public key se derive hota hai (basically usi ka ek chhota, hashed version hai)
+- Tumhari **private key** ek 256-bit random number hai — ek secret jo tumhare address se juda saara asset control karta hai
+- Koi bhi tumhare address pe crypto *bhej* sakta hai (slot mein letter daalna)
+- Sirf tum, apni private key ke saath, use *spend* kar sakte ho (mailbox kholna)
 
 ```
 Private Key  →  [ECC math]  →  Public Key  →  [Keccak-256 hash + trim]  →  Wallet Address
 (256-bit secret)              (64 bytes)                                    (0x742d35Cc...)
 ```
 
-> **Critical rule:** Your private key is your identity on the blockchain. Lose it — and you lose access forever. Share it — and you lose everything immediately. There is no "forgot my password" button.
+> **Critical rule:** Tumhari private key hi blockchain pe tumhari identity hai. Kho di — toh access hamesha ke liye gaya. Share kar di — toh sab kuch turant gaya. Yahan "forgot my password" wala button nahi hota.
 
 ---
 
-## ✍️ Digital Signatures: Proving You Sent It
+## ✍️ Digital Signatures: Prove Karna Ki Tumne Bheja
 
-### The Problem
+### Problem Kya Hai?
 
-On a blockchain, when Alice sends 1 ETH to Bob, every node in the network needs to verify that Alice — and only Alice — authorized this transaction. But Alice cannot hand her private key to everyone for verification. How does this work?
+Blockchain pe jab Alice, Bob ko 1 ETH bhejti hai, network ke har node ko verify karna hota hai ki Alice ne — aur sirf Alice ne — is transaction ko authorize kiya hai. Lekin Alice apni private key sabko verification ke liye de nahi sakti. Toh yeh kaam kaise hota hai?
 
-### The Solution: Sign with Private, Verify with Public
+### Solution: Private Se Sign, Public Se Verify
 
-A **digital signature** is a cryptographic proof that:
+Ek **digital signature** ek cryptographic proof hoti hai ki:
 
-1. A specific private key authorized this message
-2. The message has not been altered since it was signed
+1. Ek specific private key ne is message ko authorize kiya
+2. Sign hone ke baad message mein koi chhedkhaani nahi hui
 
-Here is the flow:
+Flow kuch aisa hai:
 
-1. Alice creates a transaction: `"Send 1 ETH to Bob"`
-2. Alice hashes the transaction: `hash = SHA-256("Send 1 ETH to Bob")`
-3. Alice signs the hash with her **private key**: `signature = sign(hash, alicePrivateKey)`
-4. Alice broadcasts the transaction + signature to the network
-5. Any node can verify: `verify(hash, signature, alicePublicKey)` → `true` or `false`
+1. Alice ek transaction banati hai: `"Send 1 ETH to Bob"`
+2. Alice transaction ko hash karti hai: `hash = SHA-256("Send 1 ETH to Bob")`
+3. Alice us hash ko apni **private key** se sign karti hai: `signature = sign(hash, alicePrivateKey)`
+4. Alice transaction + signature dono network ko broadcast karti hai
+5. Koi bhi node verify kar sakta hai: `verify(hash, signature, alicePublicKey)` → `true` ya `false`
 
-The brilliant part: the signature proves Alice's private key was used **without ever revealing the private key itself**.
+Sabse zabardast part yeh hai: signature proof deta hai ki Alice ki private key use hui, **bina private key ko kabhi reveal kiye**.
 
 ```mermaid
 sequenceDiagram
@@ -209,19 +209,19 @@ sequenceDiagram
     end
 ```
 
-### Why This Cannot Be Faked
+### Yeh Fake Kyun Nahi Kiya Ja Sakta
 
-The mathematical relationship between the keys makes forgery computationally impossible:
+Keys ke beech ka mathematical relationship forgery ko computationally impossible bana deta hai:
 
-- Without Alice's private key, no one can produce a valid signature for Alice's address
-- If anyone tampers with the transaction data (even changing `1 ETH` to `100 ETH`), the hash changes, the signature no longer matches, and every node rejects it
-- Alice cannot deny having signed it (non-repudiation) — the signature is irrefutable proof
+- Alice ki private key ke bina, koi bhi Alice ke address ke liye valid signature produce nahi kar sakta
+- Agar koi transaction data mein chhedkhaani kare (chahe `1 ETH` ko `100 ETH` mein badal de), hash change ho jaata hai, signature ab match nahi karta, aur har node use reject kar deta hai
+- Alice yeh deny nahi kar sakti ki usne sign nahi kiya (non-repudiation) — signature khud irrefutable proof hai
 
 ---
 
-## ⛓️ How It All Comes Together in Blockchain
+## ⛓️ Yeh Sab Blockchain Mein Ek Saath Kaise Kaam Karta Hai
 
-Let us trace exactly how cryptography protects a simple Ethereum transaction from start to finish:
+Chalo dekhte hain ki ek simple Ethereum transaction ko cryptography start se end tak kaise protect karti hai:
 
 ```mermaid
 flowchart TD
@@ -241,87 +241,89 @@ flowchart TD
     style J fill:#8e44ad,color:#fff
 ```
 
-### Wallets Are Not Storage — They Are Key Managers
+### Wallets Storage Nahi Hain — Yeh Key Managers Hain
 
-A common misconception: your crypto wallet does not "hold" your coins. Your coins exist as entries on the blockchain ledger. Your wallet holds your **private key**, which proves ownership and lets you sign transactions.
+Ek common misconception: tumhara crypto wallet tumhare coins ko "hold" nahi karta. Tumhare coins blockchain ledger pe entries ke roop mein exist karte hain. Tumhara wallet sirf tumhari **private key** hold karta hai, jo ownership prove karti hai aur transactions sign karne deti hai.
+
+Isko aise samjho jaise Paytm ya PhonePe ka app tumhare paise "apne paas" nahi rakhta — woh bank ke ledger mein hote hain. App sirf tumhari identity/authentication ka zariya hai jisse tum apne paise access kar pao. Wallet bhi bilkul waise hi kaam karta hai.
 
 | Concept | Cryptographic Component |
 |---|---|
-| Wallet address | Derived from public key |
-| Proving ownership | Private key signature |
-| Receiving funds | Anyone sends to your public address |
-| Spending funds | Sign a transaction with your private key |
+| Wallet address | Public key se derive hota hai |
+| Ownership prove karna | Private key signature |
+| Funds receive karna | Koi bhi tumhare public address pe bhej sakta hai |
+| Funds spend karna | Private key se transaction sign karna |
 | Transaction integrity | Hash-based tamper detection |
-| Block linking | Each block hashes the previous block |
-| Mining/Proof of Work | Finding a hash below a target value |
+| Block linking | Har block, previous block ka hash rakhta hai |
+| Mining/Proof of Work | Target value se neeche wala hash dhoondhna |
 
 ### Seed Phrases (Mnemonics)
 
-Your 12 or 24-word seed phrase (e.g., `witch collapse practice feed shame open despair creek road again ice least`) is a human-readable encoding of your master private key. From this one seed, deterministic math (BIP-39/BIP-32) can derive thousands of key pairs — one for each blockchain account.
+Tumhara 12 ya 24-word seed phrase (jaise `witch collapse practice feed shame open despair creek road again ice least`) tumhari master private key ka ek human-readable encoding hai. Isi ek seed se, deterministic math (BIP-39/BIP-32) hazaaron key pairs derive kar sakti hai — har blockchain account ke liye ek.
 
 ---
 
 ## 🏁 Key Takeaways
 
-- **Cryptography is the bedrock of blockchain trust.** It replaces the need for banks, governments, or any central authority.
+- **Cryptography hi blockchain trust ki bedrock hai.** Yeh banks, governments, ya kisi bhi central authority ki zarurat ko khatam kar deti hai.
 
-- **Hash functions** (SHA-256, Keccak-256) produce fixed-size fingerprints of data. They are deterministic, one-way, and exhibit the avalanche effect — making blockchain immutability possible.
+- **Hash functions** (SHA-256, Keccak-256) data ke fixed-size fingerprints banate hain. Yeh deterministic hote hain, one-way hote hain, aur avalanche effect dikhate hain — jisse blockchain ki immutability possible hoti hai.
 
-- **Symmetric encryption** uses one shared key; fast but requires secure key exchange. **Asymmetric encryption** uses a public/private key pair; slower but solves the key-distribution problem elegantly.
+- **Symmetric encryption** ek shared key use karti hai; fast hai lekin secure key exchange chahiye. **Asymmetric encryption** public/private key pair use karti hai; slow hai lekin key-distribution problem ko elegantly solve kar deti hai.
 
-- **Public/private key pairs** are the identity system of blockchain. Your public key (and address derived from it) is your mailbox slot — share it freely. Your private key is the only thing that unlocks it — guard it absolutely.
+- **Public/private key pairs** blockchain ka identity system hain. Tumhari public key (aur usse derive hua address) tumhara mailbox slot hai — usse freely share karo. Tumhari private key hi ek cheez hai jo use unlock karti hai — use absolutely guard karo.
 
-- **Digital signatures** allow you to prove you authorized a transaction mathematically, without ever exposing your private key. Any node can verify the signature using only your public key.
+- **Digital signatures** tumhe mathematically prove karne dete hain ki tumne transaction authorize ki, bina private key kabhi expose kiye. Koi bhi node sirf tumhari public key se signature verify kar sakta hai.
 
-- **Losing your private key = losing your assets permanently.** There is no recovery mechanism. Hardware wallets and secure seed phrase storage are not optional for serious blockchain users.
+- **Private key kho gayi = assets permanently gaye.** Koi recovery mechanism nahi hai. Hardware wallets aur secure seed phrase storage serious blockchain users ke liye optional nahi hain.
 
 ---
 
-## 🧩 Quiz — Test Your Understanding
+## 🧩 Quiz — Apni Samajh Test Karo
 
-**Question 1:** Alice hashes the string `"Send 5 ETH to Bob"` and gets hash `abc123`. An attacker intercepts and changes it to `"Send 500 ETH to Bob"`. What happens when a node hashes the modified transaction?
+**Question 1:** Alice `"Send 5 ETH to Bob"` string ko hash karti hai aur hash `abc123` milta hai. Ek attacker beech mein intercept karke ise `"Send 500 ETH to Bob"` mein badal deta hai. Jab koi node modified transaction ko hash karega, tab kya hoga?
 
-> A) It still produces `abc123` because hashes are stable
-> B) It produces a completely different hash, and the signature verification fails
-> C) The node cannot tell the difference
-> D) The transaction goes through but is flagged
+> A) Fir bhi `abc123` hi produce hoga kyunki hashes stable hote hain
+> B) Ek bilkul different hash produce hoga, aur signature verification fail ho jaayegi
+> C) Node ko difference pata hi nahi chalega
+> D) Transaction ho jaayega lekin flag ho jaayega
 
 <details>
 <summary>Reveal Answer</summary>
 
-**B** — The avalanche effect means even a tiny change to the input produces a completely different hash. The attacker's modified transaction produces a different hash, which no longer matches Alice's signature (which was computed over the original hash). Every node rejects it.
+**B** — Avalanche effect ka matlab hai ki input mein chhota sa change bhi puri tarah alag hash produce karta hai. Attacker ke modified transaction se ek different hash aata hai, jo ab Alice ke signature (jo original hash pe compute hua tha) se match nahi karta. Har node use reject kar deta hai.
 
 </details>
 
 ---
 
-**Question 2:** Why is it safe to share your public key — or your wallet address — with anyone?
+**Question 2:** Apni public key — ya wallet address — kisi ke saath bhi share karna safe kyun hai?
 
-> A) Because public keys expire after 30 days
-> B) Because the network encrypts them automatically
-> C) Because mathematical one-way functions make it infeasible to derive the private key from the public key
-> D) Because wallet addresses contain no real information
+> A) Kyunki public keys 30 din baad expire ho jaati hain
+> B) Kyunki network unhe automatically encrypt kar deta hai
+> C) Kyunki mathematical one-way functions se public key se private key derive karna infeasible hai
+> D) Kyunki wallet addresses mein koi real information hoti hi nahi
 
 <details>
 <summary>Reveal Answer</summary>
 
-**C** — Asymmetric cryptography (specifically Elliptic Curve Discrete Logarithm Problem for Ethereum) makes it computationally infeasible to reverse from public key to private key. Sharing your public key or address only lets others *send* you funds — they cannot spend them without your private key.
+**C** — Asymmetric cryptography (Ethereum ke case mein specifically Elliptic Curve Discrete Logarithm Problem) public key se private key tak reverse jaana computationally infeasible bana deti hai. Apni public key ya address share karne se dusre sirf tumhe funds *bhej* sakte hain — bina private key ke woh use spend nahi kar sakte.
 
 </details>
 
 ---
 
-**Question 3:** What is the correct order of steps when Alice signs an Ethereum transaction?
+**Question 3:** Jab Alice apni Ethereum transaction sign karti hai, steps ka correct order kya hai?
 
 > A) Encrypt → Broadcast → Sign → Hash
 > B) Hash → Sign with public key → Broadcast
-> C) Hash the transaction → Sign the hash with private key → Broadcast transaction + signature
-> D) Sign with private key → Hash the signature → Broadcast
+> C) Transaction ko hash karo → Hash ko private key se sign karo → Transaction + signature broadcast karo
+> D) Private key se sign karo → Signature ko hash karo → Broadcast karo
 
 <details>
 <summary>Reveal Answer</summary>
 
-**C** — The transaction is first hashed to produce a fixed-size digest (efficient to sign), then the hash is signed using Alice's private key (producing the signature). The transaction data plus the signature are broadcast together. Nodes independently hash the transaction and verify the signature against Alice's public key.
+**C** — Sabse pehle transaction ko hash karke ek fixed-size digest banaya jaata hai (sign karne mein efficient), phir us hash ko Alice ki private key se sign kiya jaata hai (signature banti hai). Transaction data aur signature dono saath broadcast hote hain. Nodes independently transaction ko hash karke Alice ki public key ke against signature verify karte hain.
 
 </details>
 
@@ -329,10 +331,10 @@ Your 12 or 24-word seed phrase (e.g., `witch collapse practice feed shame open d
 
 ## 📚 Further Reading
 
-- [Bitcoin Whitepaper — Satoshi Nakamoto](https://bitcoin.org/bitcoin.pdf) — Section 2 covers transactions and signatures directly
-- [Mastering Ethereum — Chapter 4: Keys, Addresses](https://github.com/ethereumbook/ethereumbook) — Deep dive into Ethereum's key system
+- [Bitcoin Whitepaper — Satoshi Nakamoto](https://bitcoin.org/bitcoin.pdf) — Section 2 directly transactions aur signatures cover karta hai
+- [Mastering Ethereum — Chapter 4: Keys, Addresses](https://github.com/ethereumbook/ethereumbook) — Ethereum ke key system ka deep dive
 - [Dan Boneh's Cryptography Course (Coursera)](https://www.coursera.org/learn/cryptography) — Free, rigorous foundations
-- **Next Chapter:** `04-consensus-mechanisms.md` — How thousands of nodes agree on the same truth without trusting each other
+- **Next Chapter:** `04-consensus-mechanisms.md` — Hazaaron nodes bina ek dusre pe trust kiye same truth pe kaise agree karte hain
 
 ---
 

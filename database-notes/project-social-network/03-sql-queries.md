@@ -1,12 +1,12 @@
 # Social Network: Core SQL Queries
 
-This chapter is where theory meets reality. You have your tables created, your indexes defined — now let's write the actual SQL that powers every feature in your app. Each query here is production-grade, explained line by line so you understand not just *what* it does but *why* it's written that way.
+Ab tak tumne tables bana liye, indexes define kar liye — ab time hai theory ko reality mein badalne ka. Is chapter mein hum wahi actual SQL likhenge jo tumhare app ke har feature ko power karta hai. Har query production-grade hai, aur line-by-line explain ki gayi hai taaki tumhe sirf *kya* nahi, balki *kyun* bhi samajh aaye.
 
 ---
 
 ## 1. User Queries
 
-### Find a User by Username or Email
+### Username ya Email se User Dhoondo
 
 ```sql
 SELECT id, username, email, display_name, avatar_url, bio, created_at
@@ -15,22 +15,25 @@ WHERE LOWER(username) = LOWER($1)
    OR LOWER(email)    = LOWER($1);
 ```
 
-**What it does:** Looks up a single user by either their username or email — useful for login and profile lookups.
+**Kya karta hai?** Ek single user ko uske username ya email se dhoond nikaalta hai — login aur profile lookup ke liye kaam aata hai.
 
-**Why `LOWER()`?** SQL comparisons are case-sensitive by default. Without `LOWER()`, searching for `"Alice"` won't find a user stored as `"alice"`. Wrapping both sides in `LOWER()` normalises both the stored value and the input before comparing.
+**`LOWER()` kyun?** SQL comparisons by default case-sensitive hote hain. `LOWER()` ke bina, `"Alice"` search karoge toh database mein `"alice"` waala user nahi milega. Dono sides ko `LOWER()` mein wrap karke hum stored value aur input dono ko normalise kar dete hain compare karne se pehle.
 
-**Index that makes it fast:**
+**Index jo isse fast banata hai:**
 
 ```sql
 CREATE INDEX idx_users_lower_username ON users (LOWER(username));
 CREATE INDEX idx_users_lower_email    ON users (LOWER(email));
 ```
 
-These are *expression indexes* — PostgreSQL builds the index on the result of `LOWER(column)` so the lookup is O(log n) rather than a full table scan.
+Ye *expression indexes* hain — PostgreSQL `LOWER(column)` ke result par index banata hai, isliye lookup O(log n) hota hai, na ki full table scan.
+
+> [!tip]
+> Socho Zomato pe login karte waqt agar tum apna email `SIDDESH@GMAIL.COM` CAPS mein daal do, toh bhi login hona chahiye na? Yahi kaam `LOWER()` karta hai.
 
 ---
 
-### Get a Full User Profile
+### Poora User Profile Nikaalo
 
 ```sql
 SELECT
@@ -55,13 +58,13 @@ WHERE u.id = $1
 GROUP BY u.id;
 ```
 
-**What it does:** Returns everything about a user in one round-trip: their profile data, how many people follow them, how many they follow, and their 5 most recent posts.
+**Kya karta hai?** Ek hi round-trip mein user ke baare mein sab kuch de deta hai: profile data, kitne followers hain, kitno ko follow karta hai, aur uske 5 latest posts.
 
-**Why `COUNT(DISTINCT ...)`?** Each join can multiply rows. If a user has 100 followers and you join the `follows` table, you suddenly have 100 rows. `DISTINCT` collapses those back to a real count.
+**`COUNT(DISTINCT ...)` kyun?** Har join rows ko multiply kar sakta hai. Agar user ke 100 followers hain aur tum `follows` table join karo, toh achanak 100 rows aa jaayengi. `DISTINCT` unhe wapas ek real count mein collapse kar deta hai.
 
-**Why a correlated subquery for posts?** The alternative is another `LEFT JOIN` on posts, which would explode the row count and make the `GROUP BY` extremely expensive. A subquery that returns JSON is cleaner and the database can execute it separately.
+**Posts ke liye correlated subquery kyun?** Alternative hai posts par ek aur `LEFT JOIN` lagana, jo row count ko explode kar dega aur `GROUP BY` ko bahut expensive bana dega. JSON return karne waali subquery cleaner hai aur database use alag se execute kar sakta hai.
 
-**Index that makes it fast:**
+**Index jo isse fast banata hai:**
 
 ```sql
 CREATE INDEX idx_follows_following_id ON follows (following_id);
@@ -71,7 +74,7 @@ CREATE INDEX idx_posts_user_created   ON posts (user_id, created_at DESC);
 
 ---
 
-### Search Users by Username or Display Name
+### Username ya Display Name se Users Search Karo
 
 ```sql
 SELECT id, username, display_name, avatar_url,
@@ -83,9 +86,9 @@ ORDER BY score DESC, username
 LIMIT 20;
 ```
 
-**What it does:** Powers the "find people" search box. `ILIKE` is PostgreSQL's case-insensitive `LIKE`. The `pg_trgm` extension adds the `similarity()` function so results closest to what you typed appear first.
+**Kya karta hai?** "Find people" search box ko power deta hai. `ILIKE` PostgreSQL ka case-insensitive `LIKE` hai. `pg_trgm` extension `similarity()` function add karta hai taaki jo results tumhare typed text se sabse zyada milte-julte hain, woh top pe aayein.
 
-**Setup required:**
+**Setup chahiye:**
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -93,11 +96,14 @@ CREATE INDEX idx_users_username_trgm     ON users USING gin (username gin_trgm_o
 CREATE INDEX idx_users_displayname_trgm  ON users USING gin (display_name gin_trgm_ops);
 ```
 
-A GIN trigram index makes `ILIKE '%...%'` fast. Without this index, every `ILIKE` query does a full table scan — catastrophic on a table with millions of users. With it, the database narrows to a small candidate set before comparing.
+GIN trigram index `ILIKE '%...%'` ko fast bana deta hai. Ye index na ho toh har `ILIKE` query full table scan karegi — lakhon users waale table pe ye disaster hai. Index ke saath, database compare karne se pehle ek chhota candidate set nikaal leta hai.
+
+> [!info]
+> Ye bilkul Swiggy ke restaurant search jaisa hai — jab tum "biryani" type karte ho, wo exact match nahi dhoondta, balki closest matches sabse upar dikhata hai.
 
 ---
 
-### Get Mutual Followers Between Two Users
+### Do Users Ke Beech Mutual Followers Nikaalo
 
 ```sql
 SELECT u.id, u.username, u.avatar_url
@@ -111,15 +117,15 @@ WHERE f1.following_id = $1   -- user A
 ORDER BY u.username;
 ```
 
-**What it does:** Finds everyone who follows both user A and user B — the "people you both know" feature.
+**Kya karta hai?** Wo sab dhoondta hai jo user A aur user B, dono ko follow karte hain — "logo jinhe tum dono jaante ho" waala feature.
 
-**Why self-join on `follows`?** Think of it as: *give me all follower IDs in user A's followers list that also appear in user B's followers list.* Joining `follows` to itself once for each user, then matching on the shared `follower_id`, is the direct relational way to express that intersection.
+**`follows` par self-join kyun?** Isko aise socho: *mujhe user A ki followers list mein se un follower IDs do jo user B ki followers list mein bhi hain.* `follows` ko khud se do baar join karke (ek har user ke liye), aur phir shared `follower_id` par match karke — ye is intersection ko express karne ka direct relational tareeka hai.
 
 ---
 
 ## 2. Feed Queries (The Hard One)
 
-The news feed is the most complex query in a social network. Here it is in full, then broken apart line by line.
+News feed kisi bhi social network ki sabse complex query hoti hai. Pehle poori query dekho, phir line-by-line samjhenge.
 
 ```sql
 SELECT
@@ -154,22 +160,22 @@ LIMIT 20 OFFSET $2;
 
 | Fragment | Purpose |
 |---|---|
-| `SELECT p.*` | All columns from the post itself (content, image_urls, created_at, etc.) |
-| `u.username, u.avatar_url` | Author info — avoids a second query from the application layer |
-| `COUNT(DISTINCT l.user_id) AS like_count` | How many unique users liked this post. `DISTINCT` is necessary because the `LEFT JOIN` on comments multiplies rows |
-| `COUNT(DISTINCT c.id) AS comment_count` | How many non-deleted comments exist |
-| `EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND post_id = p.id)` | Boolean: did *you* specifically like this post? `EXISTS` stops as soon as it finds one matching row — extremely cheap |
-| `FROM posts p` | Posts is the driving table |
-| `JOIN users u ON p.user_id = u.id` | Attach author info — INNER JOIN so posts without a valid author are excluded (shouldn't happen, but safe) |
-| `JOIN follows f ON f.following_id = p.user_id AND f.follower_id = $1` | **The feed filter.** This INNER JOIN keeps only posts whose author is followed by you (`$1`). Posts from people you don't follow simply have no matching row in `follows` and are discarded |
-| `LEFT JOIN likes l ON l.post_id = p.id` | Attach all likes. LEFT JOIN keeps posts with zero likes |
-| `LEFT JOIN comments c ON c.post_id = p.id AND c.deleted_at IS NULL` | Attach non-deleted comments. The soft-delete filter goes in the ON clause, not WHERE, so posts with zero non-deleted comments still appear |
-| `WHERE p.deleted_at IS NULL AND p.is_public = true` | Exclude deleted posts and private posts |
-| `GROUP BY p.id, u.username, u.avatar_url` | Collapse all the joined rows (one per like, one per comment) back to one row per post |
-| `ORDER BY p.created_at DESC` | Newest posts first |
-| `LIMIT 20 OFFSET $2` | Pagination. `$2` is `page_number * 20` |
+| `SELECT p.*` | Post ke saare columns (content, image_urls, created_at, etc.) |
+| `u.username, u.avatar_url` | Author ki info — application layer se dusri query karne se bachaata hai |
+| `COUNT(DISTINCT l.user_id) AS like_count` | Kitne unique users ne is post ko like kiya. `DISTINCT` zaruri hai kyunki comments waala `LEFT JOIN` rows multiply karta hai |
+| `COUNT(DISTINCT c.id) AS comment_count` | Kitne non-deleted comments hain |
+| `EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND post_id = p.id)` | Boolean: kya *tumne* khud is post ko like kiya? `EXISTS` pehli matching row milte hi ruk jaata hai — bahut cheap |
+| `FROM posts p` | Posts driving table hai |
+| `JOIN users u ON p.user_id = u.id` | Author info attach karo — INNER JOIN taaki bina valid author waale posts exclude ho jaayein (aisa hona nahi chahiye, par safe hai) |
+| `JOIN follows f ON f.following_id = p.user_id AND f.follower_id = $1` | **Feed ka asli filter.** Ye INNER JOIN sirf unhi posts ko rakhta hai jinke author ko tum (`$1`) follow karte ho. Jinko tum follow nahi karte unke posts ke liye `follows` mein koi matching row nahi hoti, so wo discard ho jaate hain |
+| `LEFT JOIN likes l ON l.post_id = p.id` | Saare likes attach karo. LEFT JOIN se zero-like posts bhi dikhte hain |
+| `LEFT JOIN comments c ON c.post_id = p.id AND c.deleted_at IS NULL` | Non-deleted comments attach karo. Soft-delete filter `ON` clause mein hai, `WHERE` mein nahi — taaki zero non-deleted comments waale posts bhi appear karein |
+| `WHERE p.deleted_at IS NULL AND p.is_public = true` | Deleted aur private posts exclude karo |
+| `GROUP BY p.id, u.username, u.avatar_url` | Saari joined rows (har like ki, har comment ki) ko wapas ek row-per-post mein collapse karo |
+| `ORDER BY p.created_at DESC` | Sabse naye posts pehle |
+| `LIMIT 20 OFFSET $2` | Pagination. `$2` hota hai `page_number * 20` |
 
-**Indexes that make the feed fast:**
+**Indexes jo feed ko fast banate hain:**
 
 ```sql
 CREATE INDEX idx_follows_follower_following ON follows (follower_id, following_id);
@@ -179,15 +185,18 @@ CREATE INDEX idx_likes_post_id              ON likes (post_id);
 CREATE INDEX idx_comments_post_deleted      ON comments (post_id) WHERE deleted_at IS NULL;
 ```
 
-The partial index on `posts` (`WHERE deleted_at IS NULL AND is_public = true`) is a major win — it only indexes rows your query will actually use, keeping the index small and fast.
+`posts` par ye partial index (`WHERE deleted_at IS NULL AND is_public = true`) ek badi win hai — ye sirf unhi rows ko index karta hai jinki tumhari query ko zarurat hai, isse index chhota aur fast rehta hai.
+
+> [!tip]
+> Isko Instagram ke feed algorithm jaisa socho — tumhe sirf unhi logo ke posts dikhte hain jinhe tum follow karte ho, aur wo bhi newest-first order mein.
 
 ---
 
 ## 3. Post Queries
 
-### Create a Post with Hashtag Parsing
+### Hashtag Parsing Ke Saath Post Banao
 
-Application code extracts hashtags first; then you insert in a transaction:
+Application code pehle hashtags extract karta hai; phir tum ek transaction mein insert karte ho:
 
 ```sql
 -- Step 1: Insert the post
@@ -207,11 +216,11 @@ VALUES ($post_id, $hashtag_id)
 ON CONFLICT DO NOTHING;
 ```
 
-**Why `ON CONFLICT DO NOTHING`?** Hashtags like `#food` are shared across thousands of posts. You never want to `INSERT` and then crash because `#food` already exists. `ON CONFLICT DO NOTHING` makes the operation idempotent — safe to run multiple times with the same result.
+**`ON CONFLICT DO NOTHING` kyun?** `#food` jaise hashtags hazaaron posts mein share hote hain. Tum kabhi nahi chahoge ki `INSERT` karo aur crash ho jaaye kyunki `#food` pehle se exist karta hai. `ON CONFLICT DO NOTHING` operation ko idempotent bana deta hai — same result ke saath multiple baar chalana safe hai.
 
 ---
 
-### Get Post Detail with Author, Likes, and Top Comments
+### Author, Likes, aur Top Comments Ke Saath Post Detail Nikaalo
 
 ```sql
 SELECT
@@ -240,11 +249,11 @@ WHERE p.id = $1
 GROUP BY p.id, u.username, u.display_name, u.avatar_url;
 ```
 
-**Why top comments as a subquery?** Joining comments inline would multiply your rows and require complex deduplication. A subquery that returns JSON is clean, predictable, and the 3-row limit means it's always fast regardless of how many total comments exist.
+**Top comments subquery mein kyun?** Comments ko inline join karne se rows multiply ho jaayengi aur complex deduplication chahiye hogi. JSON return karne waali subquery clean, predictable hai, aur 3-row limit ka matlab hai ki total comments chahe jitne bhi hon, ye hamesha fast rahegi.
 
 ---
 
-### Get Trending Posts (Most Likes in Last 24 Hours)
+### Trending Posts Nikaalo (Last 24 Hours Mein Sabse Zyada Likes)
 
 ```sql
 SELECT p.*, u.username, u.avatar_url,
@@ -260,17 +269,20 @@ ORDER BY like_count DESC
 LIMIT 10;
 ```
 
-**Why filter on `l.created_at`?** A post from last month with 10,000 total likes should not beat a new post from 2 hours ago with 500 likes. You want recency of *engagement*, not total engagement.
+**`l.created_at` par filter kyun?** Pichle mahine ka post jisko 10,000 total likes mile hain, usko 2 ghante pehle post hue us naye post se nahi jeetna chahiye jisko 500 likes mile hain. Tumhe *engagement ki recency* chahiye, total engagement nahi.
 
-**Index that makes it fast:**
+**Index jo isse fast banata hai:**
 
 ```sql
 CREATE INDEX idx_likes_created_at ON likes (created_at DESC);
 ```
 
+> [!info]
+> Ye bilkul CRED ke "trending rewards" jaisa hai — jo abhi-abhi popular ho raha hai wo dikhta hai, na ki jo mahino pehle ek baar bahut popular tha.
+
 ---
 
-### Get Posts by Hashtag
+### Hashtag Se Posts Nikaalo
 
 ```sql
 SELECT p.*, u.username, u.avatar_url
@@ -296,7 +308,7 @@ CREATE INDEX idx_hashtags_lower_name ON hashtags (LOWER(name));
 
 ## 4. Follow Queries
 
-### Follow a User
+### Kisi User Ko Follow Karo
 
 ```sql
 INSERT INTO follows (follower_id, following_id)
@@ -304,9 +316,9 @@ VALUES ($1, $2)
 ON CONFLICT (follower_id, following_id) DO NOTHING;
 ```
 
-**Why `ON CONFLICT DO NOTHING`?** Users can tap "Follow" multiple times (double-click, network retry, etc.). Without conflict handling this crashes with a unique constraint violation. With it, the second attempt silently succeeds — the end state is the same.
+**`ON CONFLICT DO NOTHING` kyun?** Users "Follow" button ko multiple baar tap kar sakte hain (double-click, network retry, etc.). Conflict handling ke bina ye unique constraint violation ke saath crash ho jaayega. Isके साथ, second attempt silently succeed hota hai — end state same rehta hai.
 
-The table needs a unique constraint for this to work:
+Iske liye table mein unique constraint chahiye:
 
 ```sql
 ALTER TABLE follows ADD CONSTRAINT uq_follows UNIQUE (follower_id, following_id);
@@ -314,7 +326,7 @@ ALTER TABLE follows ADD CONSTRAINT uq_follows UNIQUE (follower_id, following_id)
 
 ---
 
-### Unfollow a User
+### Kisi User Ko Unfollow Karo
 
 ```sql
 DELETE FROM follows
@@ -322,11 +334,11 @@ WHERE follower_id  = $1
   AND following_id = $2;
 ```
 
-Simple. The compound index on `(follower_id, following_id)` makes this a direct lookup rather than a scan.
+Simple hai. `(follower_id, following_id)` par compound index isse scan ki jagah direct lookup bana deta hai.
 
 ---
 
-### Check if Following
+### Check Karo Ki Follow Kar Rahe Ho Ya Nahi
 
 ```sql
 SELECT EXISTS(
@@ -336,11 +348,11 @@ SELECT EXISTS(
 ) AS is_following;
 ```
 
-`EXISTS` is the right tool here — it stops scanning the moment it finds one row. Never use `COUNT(*) > 0` for a boolean check; it reads all matching rows unnecessarily.
+Yahan `EXISTS` hi sahi tool hai — ye pehli matching row milte hi scan karna band kar deta hai. Boolean check ke liye kabhi `COUNT(*) > 0` use mat karo; ye zarurat se zyada saari matching rows padh leta hai.
 
 ---
 
-### Get Followers List with Pagination
+### Pagination Ke Saath Followers List Nikaalo
 
 ```sql
 SELECT u.id, u.username, u.display_name, u.avatar_url,
@@ -352,7 +364,7 @@ ORDER BY f.created_at DESC
 LIMIT 20 OFFSET $2;
 ```
 
-**Get Following List with Pagination** — swap the join side:
+**Following List with Pagination** — join side switch karo:
 
 ```sql
 SELECT u.id, u.username, u.display_name, u.avatar_url,
@@ -364,13 +376,13 @@ ORDER BY f.created_at DESC
 LIMIT 20 OFFSET $2;
 ```
 
-Both queries use the same `follows` table but filter on opposite columns. The compound indexes on `(following_id)` and `(follower_id)` each serve one query.
+Dono queries same `follows` table use karti hain par opposite columns par filter karti hain. `(following_id)` aur `(follower_id)` par compound indexes har query ko alag-alag serve karte hain.
 
 ---
 
 ## 5. Like Queries
 
-### Like a Post (Upsert Pattern)
+### Post Ko Like Karo (Upsert Pattern)
 
 ```sql
 INSERT INTO likes (user_id, post_id)
@@ -378,18 +390,18 @@ VALUES ($1, $2)
 ON CONFLICT (user_id, post_id) DO NOTHING;
 ```
 
-### Unlike a Post
+### Post Ko Unlike Karo
 
 ```sql
 DELETE FROM likes
 WHERE user_id = $1 AND post_id = $2;
 ```
 
-**Why not a toggle?** A toggle in SQL requires a transaction with a SELECT then INSERT or DELETE — two round-trips. The application layer is simpler: the "like" button calls the INSERT endpoint; the "unlike" button calls the DELETE endpoint. Clean, explicit, no race conditions.
+**Toggle kyun nahi?** SQL mein toggle ke liye transaction chahiye hoga jisme SELECT phir INSERT ya DELETE ho — matlab do round-trips. Application layer mein ye simpler hai: "like" button INSERT endpoint call karta hai; "unlike" button DELETE endpoint call karta hai. Clean, explicit, koi race conditions nahi.
 
 ---
 
-### Get Users Who Liked a Post
+### Post Ko Like Karne Waale Users Nikaalo
 
 ```sql
 SELECT u.id, u.username, u.display_name, u.avatar_url,
@@ -411,21 +423,21 @@ CREATE INDEX idx_likes_post_user ON likes (post_id, user_id);
 
 ## 6. Notification Queries
 
-### Create a Notification
+### Notification Banao
 
 ```sql
 INSERT INTO notifications (recipient_id, actor_id, type, entity_type, entity_id)
 VALUES ($1, $2, $3, $4, $5);
 ```
 
-`type` is an ENUM: `'follow'`, `'like'`, `'comment'`, `'mention'`.  
-`entity_type` is `'post'` or `'comment'` and `entity_id` points to the relevant row.
+`type` ek ENUM hai: `'follow'`, `'like'`, `'comment'`, `'mention'`.
+`entity_type` `'post'` ya `'comment'` hota hai aur `entity_id` relevant row ko point karta hai.
 
-This insert happens inside the same transaction as the action that triggered it. If user A likes post 42, the `likes` insert and this notification insert happen together — either both succeed or neither does.
+Ye insert usi transaction ke andar hota hai jis action ne isko trigger kiya. Agar user A post 42 ko like karta hai, toh `likes` waala insert aur ye notification waala insert saath mein hote hain — ya toh dono succeed karte hain, ya koi nahi.
 
 ---
 
-### Get Unread Notifications for a User
+### User Ke Unread Notifications Nikaalo
 
 ```sql
 SELECT
@@ -440,7 +452,7 @@ ORDER BY n.created_at DESC
 LIMIT 20;
 ```
 
-**Why `read_at IS NULL` instead of a boolean `is_read`?** A timestamp gives you more: you know exactly when the user read each notification, which is useful for analytics and for the UI ("read 3 minutes ago").
+**Boolean `is_read` ki jagah `read_at IS NULL` kyun?** Timestamp tumhe zyada deta hai: tumhe pata chalta hai ki user ne exactly kab notification padha — jo analytics ke liye aur UI ke liye ("3 minute pehle padha") useful hai.
 
 **Index:**
 
@@ -450,11 +462,11 @@ CREATE INDEX idx_notifications_recipient_unread
   WHERE read_at IS NULL;
 ```
 
-This partial index only includes unread rows — which is exactly what the query filters on. As users read notifications, those rows fall out of the index automatically.
+Ye partial index sirf unread rows include karta hai — jo exactly wahi hai jispar query filter karti hai. Jaise-jaise users notifications padhte hain, wo rows automatically index se bahar nikal jaati hain.
 
 ---
 
-### Mark Notifications as Read
+### Notifications Ko Read Mark Karo
 
 ```sql
 -- Mark all as read
@@ -470,13 +482,16 @@ WHERE id = $1
   AND recipient_id = $2;  -- security: ensure the recipient owns it
 ```
 
-The `recipient_id` check in the single-read query is important. Without it, any user who guesses a notification ID could mark it read — always scope updates to the authenticated user.
+Single-read query mein `recipient_id` check bahut important hai. Iske bina, koi bhi user jo notification ID guess kar le, use read mark kar sakta hai — updates ko hamesha authenticated user tak hi scope karo.
+
+> [!warning]
+> Ye security ka bahut common bug hai. Socho koi Ola app mein sirf `ride_id` bhejke kisi aur ki ride cancel kar de — isliye har UPDATE/DELETE mein current user ka check hona zaruri hai.
 
 ---
 
 ## 7. Search Queries
 
-### Full-Text Search on Posts
+### Posts Par Full-Text Search
 
 ```sql
 SELECT p.*, u.username, u.avatar_url,
@@ -491,12 +506,12 @@ ORDER BY rank DESC
 LIMIT 20;
 ```
 
-**What it does:** Finds posts containing the searched words in any form (searches for "running" also finds "run", "runs"). PostgreSQL's built-in full-text search handles stemming and stop-word removal automatically.
+**Kya karta hai?** Un posts ko dhoondta hai jinme searched words kisi bhi form mein hon (jaise "running" search karne pe "run", "runs" bhi mil jaate hain). PostgreSQL ka built-in full-text search stemming aur stop-word removal automatically handle karta hai.
 
-**The `@@` operator** asks: "does this document match this query?"  
-**`ts_rank()`** scores how well each result matches — closer matches rank higher.
+**`@@` operator** poochta hai: "kya ye document is query se match karta hai?"
+**`ts_rank()`** score karta hai ki har result kitna acha match karta hai — jitna close match, utna high rank.
 
-**Index that makes it fast:**
+**Index jo isse fast banata hai:**
 
 ```sql
 CREATE INDEX idx_posts_fulltext
@@ -504,7 +519,7 @@ CREATE INDEX idx_posts_fulltext
   WHERE deleted_at IS NULL AND is_public = true;
 ```
 
-A GIN index on the `tsvector` expression means the planner doesn't re-compute it for every row at query time.
+`tsvector` expression par GIN index ka matlab hai ki planner ko har row ke liye query time pe dobara compute nahi karna padta.
 
 ---
 
@@ -520,15 +535,15 @@ ORDER BY score DESC
 LIMIT 10;
 ```
 
-**What `%` means here:** With `pg_trgm` loaded, `%` is the similarity threshold operator. It returns `true` when two strings share enough trigrams to be considered "similar" — the threshold is configurable with `pg_trgm.similarity_threshold` (default 0.3).
+**Yahan `%` ka matlab kya hai:** `pg_trgm` load hone ke saath, `%` similarity threshold operator hai. Ye `true` return karta hai jab do strings ke beech itne trigrams common hon ki unhe "similar" mana ja sake — threshold `pg_trgm.similarity_threshold` (default 0.3) se configurable hai.
 
-**Why concatenate `username || ' ' || display_name` for scoring?** A search for `"John Doe"` should score a user whose username is `johndoe` and display name is `John Doe` very highly. Concatenating gives the similarity function more signal.
+**Scoring ke liye `username || ' ' || display_name` concatenate kyun karein?** `"John Doe"` search karne par us user ko bahut high score milna chahiye jiska username `johndoe` hai aur display name `John Doe` hai. Concatenate karne se similarity function ko zyada signal milta hai.
 
 ---
 
 ## Index Summary
 
-Here is every index referenced in this chapter in one place:
+Is chapter mein reference kiye gaye saare indexes ek jagah:
 
 ```sql
 -- Users
@@ -565,16 +580,28 @@ CREATE INDEX idx_notifications_recipient ON notifications (recipient_id, created
 
 ---
 
-## Patterns to Remember
+## Yaad Rakhne Waale Patterns
 
-**Soft deletes everywhere:** Filter with `WHERE deleted_at IS NULL`, not `WHERE is_deleted = false`. A timestamp lets you restore deleted content and gives you an audit trail.
+**Soft deletes har jagah:** `WHERE is_deleted = false` nahi, `WHERE deleted_at IS NULL` se filter karo. Timestamp tumhe deleted content restore karne deta hai aur audit trail bhi deta hai.
 
-**`ON CONFLICT DO NOTHING` for idempotent writes:** Follows, likes, hashtag links — all can be inserted safely multiple times without crashing.
+**Idempotent writes ke liye `ON CONFLICT DO NOTHING`:** Follows, likes, hashtag links — ye sab crash hue bina multiple baar safely insert kiye ja sakte hain.
 
-**`EXISTS` over `COUNT > 0` for boolean checks:** `EXISTS` short-circuits; `COUNT` reads every matching row.
+**Boolean checks ke liye `COUNT > 0` se `EXISTS` behtar:** `EXISTS` short-circuit karta hai; `COUNT` har matching row padhta hai.
 
-**Subqueries returning JSON for nested data:** Avoids row-multiplication explosions from multiple joins. `json_agg()` lets you pack a list of child rows directly into a column.
+**Nested data ke liye JSON return karne waali subqueries:** Multiple joins se hone waale row-multiplication explosions se bachaata hai. `json_agg()` se tum child rows ki poori list ek column mein pack kar sakte ho.
 
-**Partial indexes on common filter columns:** If every query filters `WHERE deleted_at IS NULL`, only index those rows. Smaller index, faster lookups, less maintenance overhead.
+**Common filter columns par partial indexes:** Agar har query `WHERE deleted_at IS NULL` filter karti hai, toh sirf wahi rows index karo. Chhota index, faster lookups, kam maintenance overhead.
 
-**Scope every write to the authenticated user:** Always include `AND user_id = $current_user` or `AND recipient_id = $current_user` in UPDATEs and DELETEs. Never trust the ID coming from the request body alone.
+**Har write ko authenticated user tak scope karo:** UPDATEs aur DELETEs mein hamesha `AND user_id = $current_user` ya `AND recipient_id = $current_user` include karo. Request body se aayi ID par kabhi bharosa mat karo.
+
+## Key Takeaways
+
+- `LOWER()` expression indexes se case-insensitive lookups fast ho jaate hain
+- `COUNT(DISTINCT ...)` joins ke row-multiplication problem ko fix karta hai
+- Nested/child data ke liye JSON subqueries use karo, extra joins ki jagah — row explosion se bachega
+- `pg_trgm` extension `ILIKE` aur fuzzy search ko production-scale par fast bana deta hai
+- Feed query ka core trick: `follows` table ke saath INNER JOIN hi feed filter hai
+- `ON CONFLICT DO NOTHING` se writes idempotent (safe-to-retry) ban jaate hain
+- Boolean checks ke liye hamesha `EXISTS` use karo, `COUNT(*) > 0` nahi
+- Partial indexes (`WHERE deleted_at IS NULL`) sirf relevant rows index karke storage aur speed dono bachate hain
+- Har UPDATE/DELETE mein authenticated user ka ownership check karna security ke liye non-negotiable hai

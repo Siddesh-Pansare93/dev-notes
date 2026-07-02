@@ -5,11 +5,11 @@
 
 ---
 
-## 🗺️ What We Are Building
+## 🗺️ Kya Banane Wale Hain?
 
-In the previous chapters we designed the social network schema and learned what ORMs are. Now we wire everything together. By the end of this chapter you will have a complete, working service layer that handles users, posts, feeds, likes, comments, notifications, and search — the same moving parts found in any real social platform.
+Pichle chapters mein humne social network ka schema design kiya aur ORM kya hota hai woh samjha. Ab time hai sab kuch wire karne ka — actual production jaisa API layer khada karenge jo users, posts, feed, likes, comments, notifications, aur search — sab handle karega. Bilkul waisa hi jaisa Instagram ya kisi bhi real social platform ke peeche chalta hai.
 
-Every function in this chapter is production-shaped. It handles errors, uses transactions where money matters (counter integrity), and is typed end-to-end with TypeScript.
+Is chapter ka har function production-shaped hai. Errors handle karta hai, jahan paisa (yaani counters) involved hai wahan transactions use karta hai, aur end-to-end TypeScript mein typed hai.
 
 ---
 
@@ -22,12 +22,12 @@ npm install -D typescript ts-node @types/node
 npx prisma init
 ```
 
-Your folder layout after setup:
+Setup ke baad tumhara folder layout kuch aisa dikhega:
 
 ```
 social-network/
 ├── prisma/
-│   └── schema.prisma      ← data model lives here
+│   └── schema.prisma      ← data model yahin rehta hai
 ├── src/
 │   ├── lib/
 │   │   └── prisma.ts      ← shared client singleton
@@ -44,9 +44,9 @@ social-network/
 
 ---
 
-## 🧱 The Complete Prisma Schema
+## 🧱 Complete Prisma Schema
 
-Create `prisma/schema.prisma`. This schema is the single source of truth — Prisma reads it to generate your type-safe client.
+`prisma/schema.prisma` banao. Ye schema tumhara single source of truth hai — Prisma isko padhke tumhara type-safe client generate karta hai.
 
 ```prisma
 generator client {
@@ -72,7 +72,7 @@ model User {
   isVerified     Boolean   @default(false)
   isPrivate      Boolean   @default(false)
 
-  // Denormalized counters — kept in sync via transactions
+  // Denormalized counters — transactions ke through sync mein rakhte hain
   followerCount  Int       @default(0)
   followingCount Int       @default(0)
   postCount      Int       @default(0)
@@ -109,7 +109,7 @@ model Follow {
   follower    User @relation("follower",  fields: [followerId],  references: [id], onDelete: Cascade)
   following   User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
 
-  @@id([followerId, followingId])   // composite PK prevents duplicates
+  @@id([followerId, followingId])   // composite PK duplicate follow rok deta hai
   @@index([followingId])
 }
 
@@ -208,7 +208,7 @@ enum NotificationType {
 model Notification {
   id        Int              @id @default(autoincrement())
   userId    Int              // recipient
-  actorId   Int              // who triggered it
+  actorId   Int              // kisne trigger kiya
   type      NotificationType
   postId    Int?
   commentId Int?
@@ -222,7 +222,7 @@ model Notification {
 }
 ```
 
-After writing the schema:
+Schema likhne ke baad:
 
 ```bash
 npx prisma migrate dev --name init
@@ -233,7 +233,9 @@ npx prisma generate
 
 ## 🔗 Shared Prisma Client Singleton
 
-Always use a single `PrismaClient` instance. Multiple instances in Node.js each open their own connection pool — wasteful and sometimes fatal in serverless environments.
+Hamesha ek hi `PrismaClient` instance use karo. Node.js mein multiple instances banaoge toh har ek apna alag connection pool khol lega — wasteful hai, aur serverless environments mein toh kabhi kabhi fatal bhi ho sakta hai.
+
+Socho tumhare paas Zomato ka delivery-fleet hai — har baar naya order aane pe agar naya delivery hub khol do, toh resources waste honge aur system crash ho jaayega. Isliye ek fixed pool rakho, jise sab services share karein.
 
 ```typescript
 // src/lib/prisma.ts
@@ -254,7 +256,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 ```
 
-Import this `prisma` object everywhere — never `new PrismaClient()` again.
+Is `prisma` object ko har jagah import karo — dobara kabhi `new PrismaClient()` mat likhna.
 
 ---
 
@@ -264,7 +266,7 @@ Import this `prisma` object everywhere — never `new PrismaClient()` again.
 // src/services/userService.ts
 import { prisma } from '../lib/prisma'
 
-// ── Get a public profile ──────────────────────────────────────────────────
+// ── Public profile nikalo ──────────────────────────────────────────────────
 export async function getUserProfile(username: string) {
   const user = await prisma.user.findUnique({
     where: { username },
@@ -280,7 +282,7 @@ export async function getUserProfile(username: string) {
       followingCount: true,
       postCount: true,
       createdAt: true,
-      // Include latest 12 posts (grid view)
+      // Latest 12 posts include karo (grid view ke liye)
       posts: {
         where: { deletedAt: null },
         orderBy: { createdAt: 'desc' },
@@ -299,19 +301,19 @@ export async function getUserProfile(username: string) {
   return user
 }
 
-// ── Follow a user — atomic transaction ───────────────────────────────────
+// ── Follow karna — atomic transaction ───────────────────────────────────
 export async function followUser(followerId: number, followingId: number) {
   if (followerId === followingId) {
     throw new Error('Cannot follow yourself')
   }
 
-  // Check the follow does not already exist
+  // Check karo ki follow pehle se toh nahi hai
   const existing = await prisma.follow.findUnique({
     where: { followerId_followingId: { followerId, followingId } },
   })
   if (existing) throw new Error('Already following this user')
 
-  // All four writes succeed or all four roll back
+  // Chaaron writes ya toh sab succeed karenge, ya sab rollback
   await prisma.$transaction([
     prisma.follow.create({ data: { followerId, followingId } }),
     prisma.user.update({
@@ -332,7 +334,7 @@ export async function followUser(followerId: number, followingId: number) {
   ])
 }
 
-// ── Unfollow a user — atomic transaction ─────────────────────────────────
+// ── Unfollow karna — atomic transaction ─────────────────────────────────
 export async function unfollowUser(followerId: number, followingId: number) {
   const existing = await prisma.follow.findUnique({
     where: { followerId_followingId: { followerId, followingId } },
@@ -354,7 +356,7 @@ export async function unfollowUser(followerId: number, followingId: number) {
   ])
 }
 
-// ── Followers / Following lists ───────────────────────────────────────────
+// ── Followers / Following list ───────────────────────────────────────────
 export async function getFollowers(userId: number, page = 1, limit = 20) {
   const skip = (page - 1) * limit
   const follows = await prisma.follow.findMany({
@@ -388,13 +390,13 @@ export async function getFollowing(userId: number, page = 1, limit = 20) {
 }
 ```
 
-**Why the transaction?** Without it, the `follow.create` could succeed and then the server could crash before incrementing `followerCount`. You would have a corrupt counter with no reliable way to know how far it drifted.
+**Transaction kyun zaruri hai?** Isके bina, `follow.create` succeed ho jaata aur uske turant baad agar server crash ho jaaye, toh `followerCount` increment hi nahi hota. Result — ek corrupt counter, jisme kitna drift hua ye pata karne ka koi reliable tareeka nahi bachta. Bilkul waisa jaise UPI transaction mein paisa deduct ho gaya par receiver ke account mein credit hi nahi hua — dono steps ek saath hone chahiye, nahi toh gadbad guaranteed hai.
 
 ---
 
 ## 📰 Feed Service
 
-The home feed shows posts from accounts you follow, newest first, with cursor-based pagination (better for real-time content than offset pagination).
+Home feed un accounts ke posts dikhata hai jinko tum follow karte ho, newest-first, cursor-based pagination ke saath (real-time content ke liye offset pagination se kahi better).
 
 ```typescript
 // src/services/feedService.ts
@@ -407,7 +409,7 @@ interface FeedOptions {
 }
 
 export async function getHomeFeed({ userId, cursor, limit = 20 }: FeedOptions) {
-  // Step 1: get IDs of everyone the current user follows
+  // Step 1: current user kisko follow karta hai unke IDs nikalo
   const follows = await prisma.follow.findMany({
     where: { followerId: userId },
     select: { followingId: true },
@@ -418,16 +420,16 @@ export async function getHomeFeed({ userId, cursor, limit = 20 }: FeedOptions) {
     return { posts: [], nextCursor: null }
   }
 
-  // Step 2: fetch posts from those accounts
+  // Step 2: un accounts ke posts fetch karo
   const posts = await prisma.post.findMany({
     where: {
       authorId: { in: followingIds },
       deletedAt: null,
-      // Cursor: only fetch posts older than (lower ID than) the cursor
+      // Cursor: sirf woh posts jo cursor se purane (lower ID) hain
       ...(cursor ? { id: { lt: cursor } } : {}),
     },
-    orderBy: { id: 'desc' },   // newest first; ID order matches time order
-    take: limit + 1,           // fetch one extra to know if there is a next page
+    orderBy: { id: 'desc' },   // newest first; ID order hi time order ke barabar hai
+    take: limit + 1,           // ek extra fetch karo taaki pata chale next page hai ya nahi
     select: {
       id: true,
       caption: true,
@@ -441,7 +443,7 @@ export async function getHomeFeed({ userId, cursor, limit = 20 }: FeedOptions) {
     },
   })
 
-  // Step 3: determine next cursor
+  // Step 3: next cursor decide karo
   const hasMore = posts.length > limit
   const items = hasMore ? posts.slice(0, limit) : posts
   const nextCursor = hasMore ? items[items.length - 1].id : null
@@ -449,7 +451,7 @@ export async function getHomeFeed({ userId, cursor, limit = 20 }: FeedOptions) {
   return { posts: items, nextCursor }
 }
 
-// Explore feed — recent posts from everyone (public accounts)
+// Explore feed — sabke recent posts (public accounts ke)
 export async function getExploreFeed(cursor?: number, limit = 20) {
   const posts = await prisma.post.findMany({
     where: {
@@ -476,7 +478,7 @@ export async function getExploreFeed(cursor?: number, limit = 20) {
 }
 ```
 
-**Cursor vs offset:** Offset pagination (`SKIP 40`) re-scans the beginning of the index on every request and produces duplicate or missing posts when new content is inserted mid-scroll. Cursor pagination always starts from a known position in the index — much faster and consistent.
+**Cursor vs offset:** Offset pagination (`SKIP 40`) har request pe index ko shuru se scan karta hai, aur jab beech mein scroll karte waqt naya content insert hota hai toh duplicate ya missing posts dikhne lagte hain. Socho Swiggy pe scroll kar rahe ho aur beech mein naya restaurant add ho gaya — offset pagination se tumhe wahi item do baar dikh sakta hai. Cursor pagination hamesha index mein ek known position se shuru hota hai — bahut fast aur consistent.
 
 ---
 
@@ -486,14 +488,14 @@ export async function getExploreFeed(cursor?: number, limit = 20) {
 // src/services/postService.ts
 import { prisma } from '../lib/prisma'
 
-// ── Extract hashtags from caption text ───────────────────────────────────
+// ── Caption text se hashtags nikalo ───────────────────────────────────
 function extractHashtags(text: string): string[] {
   const matches = text.match(/#[\w]+/g) ?? []
-  // Deduplicate and normalise to lowercase
+  // Duplicate hatao aur lowercase mein normalize karo
   return [...new Set(matches.map((tag) => tag.slice(1).toLowerCase()))]
 }
 
-// ── Create a post ─────────────────────────────────────────────────────────
+// ── Post create karna ─────────────────────────────────────────────────────
 export async function createPost(
   authorId: number,
   imageUrls: string[],
@@ -505,18 +507,18 @@ export async function createPost(
   const tags = caption ? extractHashtags(caption) : []
 
   const post = await prisma.$transaction(async (tx) => {
-    // 1. Create the post
+    // 1. Post create karo
     const newPost = await tx.post.create({
       data: { authorId, imageUrls, caption },
     })
 
-    // 2. Increment user's post count
+    // 2. User ka post count increment karo
     await tx.user.update({
       where: { id: authorId },
       data: { postCount: { increment: 1 } },
     })
 
-    // 3. Upsert hashtags and link them to the post
+    // 3. Hashtags upsert karo aur post se link karo
     for (const tag of tags) {
       const hashtag = await tx.hashtag.upsert({
         where: { tag },
@@ -534,7 +536,7 @@ export async function createPost(
   return post
 }
 
-// ── Get a single post with comments ──────────────────────────────────────
+// ── Ek post ko comments ke saath fetch karo ──────────────────────────────
 export async function getPost(postId: number) {
   const post = await prisma.post.findUnique({
     where: { id: postId, deletedAt: null },
@@ -570,7 +572,7 @@ export async function getPost(postId: number) {
   return post
 }
 
-// ── Soft delete a post ────────────────────────────────────────────────────
+// ── Post soft delete karna ────────────────────────────────────────────────
 export async function deletePost(postId: number, requesterId: number) {
   const post = await prisma.post.findUnique({ where: { id: postId } })
   if (!post) throw new Error('Post not found')
@@ -578,19 +580,19 @@ export async function deletePost(postId: number, requesterId: number) {
   if (post.deletedAt) throw new Error('Post already deleted')
 
   await prisma.$transaction(async (tx) => {
-    // Soft-delete the post
+    // Post ko soft-delete karo
     await tx.post.update({
       where: { id: postId },
       data: { deletedAt: new Date() },
     })
 
-    // Decrement author's post count
+    // Author ka post count decrement karo
     await tx.user.update({
       where: { id: post.authorId },
       data: { postCount: { decrement: 1 } },
     })
 
-    // Decrement hashtag counters
+    // Hashtag counters decrement karo
     const postHashtags = await tx.postHashtag.findMany({
       where: { postId },
       select: { hashtagId: true },
@@ -605,7 +607,7 @@ export async function deletePost(postId: number, requesterId: number) {
 }
 ```
 
-**Why `upsert` for hashtags?** Two users might post `#sunset` simultaneously. A plain `findOrCreate` pattern (find → create) has a race condition: both find nothing and then both try to create, causing a unique constraint error. `upsert` pushes the race resolution into the database where it belongs.
+**`upsert` hashtags ke liye kyun?** Do users ek saath `#sunset` post kar sakte hain. Ek plain `findOrCreate` pattern (pehle find, phir create) mein race condition hai — dono ko kuch nahi milta, dono create karne ki koshish karte hain, aur unique constraint error aa jaata hai. Socho ek hi coupon code do log ek saath IRCTC pe apply kar rahe hain — jo `upsert` karta hai woh race resolution ko database ke andar hi daal deta hai, jahan ye handle hona chahiye.
 
 ---
 
@@ -615,7 +617,7 @@ export async function deletePost(postId: number, requesterId: number) {
 // src/services/likeService.ts
 import { prisma } from '../lib/prisma'
 
-// ── Toggle like (like if not liked, unlike if already liked) ──────────────
+// ── Like toggle karo (like nahi kiya toh like, kiya hai toh unlike) ──────────────
 export async function toggleLike(userId: number, postId: number) {
   const existing = await prisma.like.findUnique({
     where: { userId_postId: { userId, postId } },
@@ -632,7 +634,7 @@ export async function toggleLike(userId: number, postId: number) {
     ])
     return { liked: false }
   } else {
-    // Like + notify the post author
+    // Like + post author ko notify karo
     const post = await prisma.post.findUnique({
       where: { id: postId },
       select: { authorId: true },
@@ -645,7 +647,7 @@ export async function toggleLike(userId: number, postId: number) {
         where: { id: postId },
         data: { likeCount: { increment: 1 } },
       })
-      // Only notify if the liker is not the author
+      // Sirf tab notify karo jab liker khud author na ho
       if (post.authorId !== userId) {
         await tx.notification.create({
           data: {
@@ -661,7 +663,7 @@ export async function toggleLike(userId: number, postId: number) {
   }
 }
 
-// ── Fetch users who liked a post ──────────────────────────────────────────
+// ── Post ko kisne like kiya, woh users fetch karo ──────────────────────────────────
 export async function getPostLikers(postId: number, cursor?: number, limit = 20) {
   const likes = await prisma.like.findMany({
     where: {
@@ -694,17 +696,17 @@ export async function getPostLikers(postId: number, cursor?: number, limit = 20)
 // src/services/commentService.ts
 import { prisma } from '../lib/prisma'
 
-// ── Create a top-level comment or a reply ─────────────────────────────────
+// ── Top-level comment ya reply create karo ─────────────────────────────────
 export async function createComment(
   postId: number,
   authorId: number,
   content: string,
-  parentId?: number   // provide to reply to an existing comment
+  parentId?: number   // reply karna hai toh existing comment ki ID do
 ) {
   if (content.trim().length === 0) throw new Error('Comment cannot be empty')
   if (content.length > 500) throw new Error('Comment too long (max 500 characters)')
 
-  // If replying, verify the parent belongs to this post
+  // Agar reply hai, toh verify karo parent isi post ka hai
   if (parentId) {
     const parent = await prisma.comment.findUnique({ where: { id: parentId } })
     if (!parent || parent.postId !== postId) throw new Error('Parent comment not found')
@@ -725,13 +727,13 @@ export async function createComment(
       },
     })
 
-    // Increment post comment counter
+    // Post ka comment counter increment karo
     await tx.post.update({
       where: { id: postId },
       data: { commentCount: { increment: 1 } },
     })
 
-    // Notify the post author (if commenter !== author)
+    // Post author ko notify karo (agar commenter aur author alag hain)
     if (post.authorId !== authorId) {
       await tx.notification.create({
         data: {
@@ -744,7 +746,7 @@ export async function createComment(
       })
     }
 
-    // If this is a reply, also notify the parent comment author
+    // Ye reply hai toh parent comment ke author ko bhi notify karo
     if (parentId) {
       const parent = await tx.comment.findUnique({
         where: { id: parentId },
@@ -769,7 +771,7 @@ export async function createComment(
   return comment
 }
 
-// ── Soft delete a comment ─────────────────────────────────────────────────
+// ── Comment soft delete karna ─────────────────────────────────────────────────
 export async function deleteComment(commentId: number, requesterId: number) {
   const comment = await prisma.comment.findUnique({ where: { id: commentId } })
   if (!comment || comment.deletedAt) throw new Error('Comment not found')
@@ -787,7 +789,7 @@ export async function deleteComment(commentId: number, requesterId: number) {
   ])
 }
 
-// ── Get comments for a post (top-level only, with reply count) ────────────
+// ── Post ke comments fetch karo (sirf top-level, reply count ke saath) ────────────
 export async function getComments(postId: number, cursor?: number, limit = 20) {
   const comments = await prisma.comment.findMany({
     where: {
@@ -812,7 +814,7 @@ export async function getComments(postId: number, cursor?: number, limit = 20) {
   }
 }
 
-// ── Get replies for a comment ─────────────────────────────────────────────
+// ── Ek comment ke replies fetch karo ─────────────────────────────────
 export async function getReplies(parentId: number) {
   return prisma.comment.findMany({
     where: { parentId, deletedAt: null },
@@ -833,7 +835,7 @@ export async function getReplies(parentId: number) {
 import { prisma } from '../lib/prisma'
 import { NotificationType } from '@prisma/client'
 
-// ── Fetch notifications for a user ────────────────────────────────────────
+// ── User ke notifications fetch karo ────────────────────────────────────
 export async function getNotifications(
   userId: number,
   cursor?: number,
@@ -862,7 +864,7 @@ export async function getNotifications(
   }
 }
 
-// ── Mark a single notification as read ───────────────────────────────────
+// ── Ek notification read mark karo ───────────────────────────────
 export async function markRead(notificationId: number, userId: number) {
   const notif = await prisma.notification.findUnique({
     where: { id: notificationId },
@@ -875,7 +877,7 @@ export async function markRead(notificationId: number, userId: number) {
   })
 }
 
-// ── Mark ALL notifications as read ────────────────────────────────────────
+// ── SAB notifications read mark karo ────────────────────────────────
 export async function markAllRead(userId: number) {
   const result = await prisma.notification.updateMany({
     where: { userId, isRead: false },
@@ -884,14 +886,14 @@ export async function markAllRead(userId: number) {
   return { updated: result.count }
 }
 
-// ── Count unread notifications ─────────────────────────────────────────────
+// ── Unread notifications count karo ─────────────────────────────────────────────
 export async function getUnreadCount(userId: number): Promise<number> {
   return prisma.notification.count({
     where: { userId, isRead: false },
   })
 }
 
-// ── Manually create a notification (used by other services internally) ────
+// ── Manually notification create karo (dusre services internally isko use karte hain) ────
 export async function createNotification(data: {
   userId: number
   actorId: number
@@ -899,7 +901,7 @@ export async function createNotification(data: {
   postId?: number
   commentId?: number
 }) {
-  // Avoid notifying someone about their own actions
+  // Khud ke actions pe khud ko notify mat karo
   if (data.userId === data.actorId) return null
 
   return prisma.notification.create({ data })
@@ -920,7 +922,7 @@ export async function searchUsers(query: string, limit = 20) {
 
   const term = query.trim().toLowerCase()
 
-  // Use Prisma's `contains` with `mode: 'insensitive'` (maps to ILIKE in PostgreSQL)
+  // Prisma ka `contains` with `mode: 'insensitive'` use karo (PostgreSQL mein ILIKE ban jaata hai)
   return prisma.user.findMany({
     where: {
       deletedAt: null,
@@ -930,7 +932,7 @@ export async function searchUsers(query: string, limit = 20) {
       ],
     },
     orderBy: [
-      // Prioritise exact prefix matches by putting verified/popular users first
+      // Verified/popular users ko upar rakhke exact-match prioritize karo
       { isVerified: 'desc' },
       { followerCount: 'desc' },
     ],
@@ -991,12 +993,12 @@ export async function searchByHashtag(
   }
 }
 
-// ── Full-text caption search (PostgreSQL only) ────────────────────────────
+// ── Full-text caption search (sirf PostgreSQL) ────────────────────────────
 export async function searchPosts(query: string, cursor?: number, limit = 20) {
   if (query.trim().length < 3) throw new Error('Search query too short')
 
-  // Prisma raw query for PostgreSQL full-text search
-  // ts_rank orders results by relevance
+  // Prisma raw query, PostgreSQL full-text search ke liye
+  // ts_rank results ko relevance ke hisaab se order karta hai
   const posts = await prisma.$queryRaw<
     Array<{ id: number; caption: string; imageUrls: string[]; likeCount: number }>
   >`
@@ -1027,37 +1029,38 @@ export async function searchPosts(query: string, cursor?: number, limit = 20) {
 }
 ```
 
-**Note on full-text search:** The raw SQL query uses PostgreSQL's native `tsvector`/`tsquery` which Prisma does not yet expose through its type-safe API. For simpler setups use `contains: { mode: 'insensitive' }` — it works but does a `LIKE '%term%'` which cannot use a regular index. For scale, add a GIN index: `CREATE INDEX ON "Post" USING gin(to_tsvector('english', caption));`
+> [!info]
+> **Full-text search pe note:** Ye raw SQL query PostgreSQL ke native `tsvector`/`tsquery` ka use karti hai, jo Prisma abhi apne type-safe API ke through expose nahi karta. Simpler setups ke liye `contains: { mode: 'insensitive' }` use karo — kaam toh karta hai, lekin `LIKE '%term%'` chalata hai jo regular index use nahi kar paata. Scale ke liye GIN index add karo: `CREATE INDEX ON "Post" USING gin(to_tsvector('english', caption));`
 
 ---
 
-## ⚡ Key Patterns You Used in Every Service
+## ⚡ Har Service Mein Use Kiye Gaye Key Patterns
 
-| Pattern | Where | Why |
+| Pattern | Kahan | Kyun |
 |---|---|---|
-| `$transaction([...])` | Follow, like, comment | Guarantees counters stay in sync with relationship data |
-| `$transaction(async tx => ...)` | Create post, delete | Allows conditional logic inside the transaction |
-| Soft delete (`deletedAt`) | Post, comment, user | Preserves data for audit / recovery; filters via `where: { deletedAt: null }` |
-| Cursor pagination | Feed, notifications | Stable pages even when new content is inserted; index-friendly |
-| `select` over `include` | Profile, feed | Only fetch columns you actually send to the client |
-| `upsert` | Hashtag creation | Handles concurrent inserts without unique constraint crashes |
-| Singleton `PrismaClient` | `lib/prisma.ts` | One connection pool shared across all services |
+| `$transaction([...])` | Follow, like, comment | Counters aur relationship data ko sync mein guarantee karta hai |
+| `$transaction(async tx => ...)` | Post create, delete | Transaction ke andar conditional logic allow karta hai |
+| Soft delete (`deletedAt`) | Post, comment, user | Audit/recovery ke liye data preserve karta hai; `where: { deletedAt: null }` se filter |
+| Cursor pagination | Feed, notifications | Naya content insert hone par bhi stable pages; index-friendly |
+| `include` ke bajaye `select` | Profile, feed | Sirf woh columns fetch karo jo client ko actually bhejne hain |
+| `upsert` | Hashtag creation | Concurrent inserts ko unique constraint crash ke bina handle karta hai |
+| Singleton `PrismaClient` | `lib/prisma.ts` | Sab services mein ek hi connection pool share hota hai |
 
 ---
 
-## 🏁 Running Migrations in Practice
+## 🏁 Practically Migrations Chalana
 
 ```bash
-# First time setup
+# Pehli baar setup
 npx prisma migrate dev --name init
 
-# After editing schema.prisma
+# schema.prisma edit karne ke baad
 npx prisma migrate dev --name add_bookmarks
 
-# Production deploy (no prompt, no shadow DB)
+# Production deploy (koi prompt nahi, koi shadow DB nahi)
 npx prisma migrate deploy
 
-# Inspect the current DB in a browser UI
+# Browser UI mein current DB inspect karo
 npx prisma studio
 ```
 
@@ -1065,20 +1068,20 @@ npx prisma studio
 
 ## 🔑 Key Takeaways
 
-1. **Transactions are not optional for counters.** Every like, follow, and comment touches both a join table and a denormalized counter. If those two writes are not in a transaction you will drift, and the drift is silent and cumulative.
+1. **Counters ke liye transactions optional nahi hain.** Har like, follow, aur comment ek join table aur ek denormalized counter — dono ko touch karta hai. Agar ye do writes transaction mein nahi hain, toh drift hoga, aur ye drift silent aur cumulative hota hai.
 
-2. **Cursor pagination beats offset pagination for feeds.** Offset re-scans the index from the start and produces duplicates on live data. Cursor pagination is O(1) regardless of how deep into the list you are.
+2. **Feeds ke liye cursor pagination, offset pagination se better hai.** Offset shuru se index re-scan karta hai aur live data pe duplicates deta hai. Cursor pagination O(1) hai, chahe list mein kitna bhi deep ho.
 
-3. **Soft deletes preserve referential integrity.** A hard delete cascades and removes likes/comments tied to that post. A soft delete (`deletedAt = now()`) lets you keep the foreign keys intact and restore content if needed.
+3. **Soft deletes referential integrity preserve karte hain.** Hard delete cascade hoke us post se juде likes/comments hata deta hai. Soft delete (`deletedAt = now()`) foreign keys intact rakhta hai aur zarurat pade toh content restore kar sakte ho.
 
-4. **`select` keeps your responses lean.** Prisma will `SELECT *` if you use `include` without a nested `select`. Be explicit — your API surface should match what the client actually renders.
+4. **`select` tumhare responses lean rakhta hai.** Prisma agar `include` bina nested `select` ke use karoge, toh `SELECT *` kar dega. Explicit raho — tumhara API surface waisa hi hona chahiye jaisa client actually render karta hai.
 
-5. **`upsert` is the correct tool for find-or-create.** Any naive `findFirst → create` flow has a race condition in a concurrent environment. Push the conflict resolution into the database.
+5. **`upsert` hi find-or-create ke liye sahi tool hai.** Koi bhi naive `findFirst → create` flow concurrent environment mein race condition rakhta hai. Conflict resolution database ke andar push karo.
 
-6. **One `PrismaClient` instance per process.** Connection pools are expensive. The singleton pattern in `lib/prisma.ts` is especially important in Next.js and other runtimes that hot-reload modules during development.
+6. **Har process mein ek hi `PrismaClient` instance.** Connection pools expensive hote hain. `lib/prisma.ts` ka singleton pattern especially Next.js jaise runtimes mein important hai jo development ke time modules hot-reload karte hain.
 
-7. **`$queryRaw` is the escape hatch.** Prisma's type-safe API covers 95% of use cases. For things like full-text search ranking (`ts_rank`), window functions, or CTEs, drop to raw SQL — but keep it isolated in its own function so the rest of your codebase stays type-safe.
+7. **`$queryRaw` tumhara escape hatch hai.** Prisma ka type-safe API 95% use cases cover karta hai. Full-text search ranking (`ts_rank`), window functions, ya CTEs jaisi cheezon ke liye raw SQL pe jao — lekin usko apne alag function mein isolate rakho taaki baaki codebase type-safe bana rahe.
 
 ---
 
-*Next chapter: Adding authentication middleware, rate limiting, and wiring these services into an Express or Next.js API router.*
+*Next chapter: Authentication middleware, rate limiting add karenge, aur in services ko Express ya Next.js API router mein wire karenge.*

@@ -1,26 +1,24 @@
----
-tags: [testing, profiles, configuration]
-aliases: [Test Profiles, Test Properties]
-stage: advanced
----
-
 # Test Profiles and Properties
 
-> [!info] For the Express/TS dev
-> In Node you set `NODE_ENV=test` and load a different `.env`. In Spring you activate a **profile** (`test`) which selects `application-test.yml` and any `@Profile("test")` beans. Plus you have surgical overrides (`@TestPropertySource`, `@DynamicPropertySource`) for individual tests.
+> [!info] Express/TS wale dev ke liye
+> Node mein tum `NODE_ENV=test` set karte ho aur ek alag `.env` file load karte ho. Spring mein tum ek **profile** (`test`) activate karte ho jo `application-test.yml` aur `@Profile("test")` wale beans select kar leta hai. Aur uske upar, individual tests ke liye surgical overrides bhi milte hain (`@TestPropertySource`, `@DynamicPropertySource`) — matlab ek-ek test ka config bhi fine-tune kar sakte ho.
 
 ## Concept
 
-Three layers of test config, in order of precedence (later wins):
+Kya hota hai? Test config ke 3 layers hote hain, precedence order mein (jo baad mein aata hai, woh jeetta hai):
 
-1. **`application.yml`** + **`application-test.yml`** — base config with a `test` profile override.
-2. **`@TestPropertySource`** — class-level overrides.
-3. **`@DynamicPropertySource`** — programmatic overrides (e.g. Testcontainer URLs).
-4. **`@SpringBootTest(properties = ...)`** — inline overrides.
+1. **`application.yml`** + **`application-test.yml`** — base config, jisko `test` profile override karta hai.
+2. **`@TestPropertySource`** — class-level overrides. Ek specific test class ke liye kuch values badalni hain? Yahi use hoga.
+3. **`@DynamicPropertySource`** — programmatic overrides (jaise Testcontainer ka URL, jo runtime pe hi pata chalta hai).
+4. **`@SpringBootTest(properties = ...)`** — inline overrides, seedha annotation mein.
+
+Socho isko ek priority queue jaisa — jaise Zomato mein agar tumne "no onion" preference set ki hai globally, par order karte waqt "extra onion" bola, toh order-level preference jeetegi. Yahan bhi last layer (most specific) sabse zyada priority leta hai.
 
 ## Code example
 
 ### Profile-based config
+
+Kyun zaruri hai? Production mein tum real Postgres DB use karna chahte ho, lekin tests mein har baar real DB hit karna slow aur risky hai. Isliye ek alag "test" profile banate hain jisme fake/in-memory setup ho.
 
 `src/main/resources/application.yml`:
 
@@ -48,7 +46,7 @@ logging:
     org.hibernate.SQL: debug
 ```
 
-Activate it in tests:
+Isko test mein activate karo:
 
 ```java
 @SpringBootTest
@@ -56,7 +54,11 @@ Activate it in tests:
 class FooIT { ... }
 ```
 
+Bas itna karne se Spring automatically `application-test.yml` ko `application.yml` ke upar merge kar dega, aur tumhare tests H2 in-memory DB use karenge, prod Postgres nahi.
+
 ### `@TestPropertySource`
+
+Kya hota hai? Kabhi kabhi poore profile ki zarurat nahi hoti, bas 1-2 property values ek specific test ke liye badalni hoti hain. Uske liye `@TestPropertySource` use karo — ekdum surgical strike jaise.
 
 ```java
 @SpringBootTest
@@ -67,13 +69,15 @@ class FooIT { ... }
 class CheckoutFeatureFlagTest { ... }
 ```
 
-Or load a properties file:
+Ya phir ek poori properties file bhi load kar sakte ho:
 
 ```java
 @TestPropertySource(locations = "classpath:test-overrides.properties")
 ```
 
-### `@DynamicPropertySource` — for runtime values
+### `@DynamicPropertySource` — runtime values ke liye
+
+Kyun zaruri hai? Testcontainers jab ek Postgres/Kafka/Redis container spin karte hain, toh unka port random hota hai — pehle se pata nahi hota. Isliye compile-time pe hardcode nahi kar sakte, runtime pe hi register karna padta hai.
 
 ```java
 @DynamicPropertySource
@@ -85,9 +89,11 @@ static void registerProps(DynamicPropertyRegistry registry) {
 }
 ```
 
-Use for any value the test discovers at runtime — Testcontainer ports, random ports, generated secrets.
+Iska use karo kisi bhi aisi value ke liye jo test khud runtime pe discover karta hai — Testcontainer ke random ports, random server ports, generated secrets, waghera.
 
 ### `@SpringBootTest(properties = ...)`
+
+Ye sabse quick tarika hai — inline hi properties de do, bina koi alag file banaye:
 
 ```java
 @SpringBootTest(properties = {
@@ -98,6 +104,8 @@ class QuietTest { ... }
 ```
 
 ### Profile-specific beans
+
+Kya hota hai? `@Profile` annotation lagakar tum bata sakte ho ki koi bean sirf kis profile mein load hoga. Jaise Zomato ka "test mode" order pe real restaurant ko notification nahi bhejta, ek dummy/mock service use karta hai.
 
 ```java
 @Configuration
@@ -113,9 +121,11 @@ public class EmailConfig {
 }
 ```
 
-Now `@ActiveProfiles("test")` picks the in-memory implementation automatically.
+Ab `@ActiveProfiles("test")` lagate hi Spring automatically in-memory wala implementation pick kar lega, real SES email service nahi.
 
 ### Multi-profile composition
+
+Ek se zyada profiles ek saath bhi activate kar sakte ho — jaise "test" + "test-kafka" dono chalu:
 
 ```java
 @ActiveProfiles({"test", "test-kafka"})
@@ -124,7 +134,7 @@ class KafkaIT { ... }
 
 ### Environment variables in tests
 
-`@SpringBootTest` doesn't read your shell `.env` — but you can:
+`@SpringBootTest` tumhare shell ka `.env` khud se nahi padhta — lekin ye tarike use kar sakte ho:
 
 ```java
 @SpringBootTest
@@ -132,9 +142,11 @@ class KafkaIT { ... }
 class FooTest { ... }
 ```
 
-Or use `@SetEnvironmentVariable` from JUnit Pioneer for true env vars.
+Ya phir JUnit Pioneer ka `@SetEnvironmentVariable` use karo agar tumhe *actual* env variable chahiye (na ki Spring property).
 
 ### Random ports
+
+Kyun zaruri hai? Jab parallel mein multiple test JVMs chal rahe hon, toh fixed port (jaise 8080) clash kar sakta hai. Random port lene se ye problem solve ho jaati hai.
 
 ```yaml
 server:
@@ -153,7 +165,11 @@ class FooIT {
 }
 ```
 
+Bilkul waise hi jaise Node mein `app.listen(0)` karke `server.address().port` se actual port nikaalte ho.
+
 ### `application-test.yml` patterns
+
+Ek real-world test config kaisa dikhta hai, dekho:
 
 ```yaml
 spring:
@@ -202,7 +218,11 @@ resilience4j:
         max-attempts: 1   # fail fast in tests
 ```
 
+Dekho yahan pattern kya hai — payment gateway disable, email ko "noop" provider, retries ko 1 attempt tak limit — matlab jitna ho sake, real duniya se door rakho tests ko, taaki fast aur predictable rahen.
+
 ### Profile groups (Boot 2.4+)
+
+Kya hota hai? Agar tumhe baar-baar 3-4 profiles ek saath activate karne padte hain, toh unko ek "group" mein bandh sakte ho — jaise ek combo meal jisme burger + fries + coke sab saath aata hai.
 
 ```yaml
 spring:
@@ -212,9 +232,11 @@ spring:
       ci:    ["test", "testcontainers"]
 ```
 
-Activate `local` and Spring activates all three under it.
+Ab sirf `local` activate karo, aur Spring apne aap teeno (`dev`, `h2`, `verbose-logging`) activate kar dega.
 
 ### `@TestConfiguration` for test-only beans
+
+Kya hota hai? Agar tumhe kuch beans sirf test ke liye chahiye (production code mein unka koi matlab nahi), toh unko `@TestConfiguration` mein rakho.
 
 ```java
 @SpringBootTest
@@ -236,30 +258,30 @@ class EmailTestConfig {
 |--------|------|
 | `application-test.yml` | `.env.test` |
 | `@ActiveProfiles("test")` | `NODE_ENV=test` |
-| `@TestPropertySource(properties=...)` | overriding `process.env` in `beforeAll` |
-| `@DynamicPropertySource` | building a config object after starting Testcontainers |
+| `@TestPropertySource(properties=...)` | `beforeAll` mein `process.env` override karna |
+| `@DynamicPropertySource` | Testcontainers start karne ke baad ek config object banana |
 | `@Profile("!test")` beans | `if (process.env.NODE_ENV === "test") { ... }` |
-| `@LocalServerPort` | `app.listen(0)` then `server.address().port` |
+| `@LocalServerPort` | `app.listen(0)` phir `server.address().port` |
 | Profile groups | composite env loaders |
 
-The Spring approach is more declarative and discoverable; the Node approach is "just JS" and more flexible.
+Spring ka approach zyada declarative aur discoverable hai — sab kuch annotations mein saaf-saaf dikh jaata hai. Node ka approach "bas JS hai" wala hai, zyada flexible lekin kam structured.
 
 ## Gotchas
 
-> [!warning] `application.yml` precedence
-> Spring loads from many sources. Don't put secrets in `application.yml` and expect tests to override them — `@TestPropertySource` does, but env vars from your shell *also* leak in. Be intentional.
+> [!warning] `application.yml` precedence samajh lo
+> Spring bahut saari jagah se config load karta hai. `application.yml` mein secrets mat daalo ye soch ke ki test override kar dega — `@TestPropertySource` toh karta hai, lekin tumhare shell ke env vars bhi *leak* ho sakte hain andar. Intentional raho, guess mat karo.
 
-> [!warning] Context cache invalidation
-> Each unique `@TestPropertySource` / `@ActiveProfiles` / `@MockitoBean` set is a new context. Variations across tests = many cached contexts = slow + OOM. Standardize.
+> [!warning] Context cache invalidation ka dhyaan rakho
+> Har unique `@TestPropertySource` / `@ActiveProfiles` / `@MockitoBean` combination ek naya Spring context banata hai. Agar tests mein ye combinations alag-alag hote rahe, toh bahut saare cached contexts ban jaate hain — matlab slow tests aur OOM (out of memory) errors. Isliye standardize karo, jitna ho sake same config reuse karo.
 
-> [!danger] Don't bake real credentials into test resources
-> `application-test.yml` checked into git is fine for fakes, dangerous for real keys. Use environment-injected secrets in CI.
+> [!danger] Real credentials kabhi bhi test resources mein mat daalo
+> `application-test.yml` git mein commit karna theek hai agar usme fake values hain, lekin real API keys ya passwords daalna khatarnak hai. CI mein environment-injected secrets use karo, hardcoded nahi.
 
-> [!tip] Use `@AutoConfigureTestDatabase(replace = NONE)`
-> Stops Spring from automatically swapping your DataSource for H2 when you actually want the configured DB (e.g. with Testcontainers).
+> [!tip] `@AutoConfigureTestDatabase(replace = NONE)` use karo
+> Ye Spring ko rokta hai automatically tumhara DataSource H2 se replace karne se — jab tumhe genuinely configured DB chahiye ho (jaise Testcontainers ke saath).
 
-> [!tip] Validate config in CI
-> A `mvn test` run with `--fail-on-warning` catches typos in `@Value("${missing.prop}")` early.
+> [!tip] CI mein config validate karo
+> `mvn test --fail-on-warning` chalane se `@Value("${missing.prop}")` jaisi typos jaldi pakdi jaati hain, production mein jaane se pehle hi.
 
 ## Related
 - [[06-Testcontainers]]

@@ -1,22 +1,18 @@
----
-tags: [security, jwt, oauth2, resource-server]
-aliases: [JWT Auth, JWT Resource Server, JWT Issuer]
-stage: advanced
----
-
 # JWT with Spring Security
 
-> [!info] For the Express/TS dev
-> The Node version is `jsonwebtoken` + custom Express middleware that pulls `Authorization`, verifies, and stuffs `req.user`. Spring Security has the **OAuth2 Resource Server** module which does all of this, including JWKS rotation, when your tokens come from an external IdP. For a self-issued JWT setup, you write a small auth controller and either reuse the resource-server filter (recommended) or write a custom filter. Below: both flavors.
+> [!info] Express/TS dev ke liye
+> Node mein tum `jsonwebtoken` + custom Express middleware use karte ho — jo `Authorization` header uthata hai, verify karta hai, aur `req.user` mein daal deta hai. Spring Security ke paas iske liye poora **OAuth2 Resource Server** module hai jo yeh sab handle karta hai, JWKS rotation samet, jab tumhare tokens kisi external IdP (Identity Provider) se aate hain. Agar tum khud JWT issue kar rahe ho (self-issued), toh ek chhota sa auth controller likhna padega aur resource-server filter reuse karna padega (recommended), ya phir custom filter likhna padega. Neeche dono flavors dekhenge.
 
-## Concept / How it works
+## Concept / Yeh kaam kaise karta hai?
 
-A JWT (JSON Web Token) is `header.payload.signature` — base64url-encoded, signed (typically HS256 with shared secret or RS256/ES256 with key pair).
+Ek JWT (JSON Web Token) hota hai `header.payload.signature` format mein — base64url-encoded, aur signed (usually HS256 shared secret ke saath, ya RS256/ES256 key pair ke saath).
 
-Two distinct concerns:
+Socho JWT ek **signed parcel slip** jaisa hai jo Zomato delivery boy ke paas hota hai — usme customer ka naam, address, order ID likha hota hai, aur restaurant ki seal lagi hoti hai. Koi bhi usse padh sakta hai (encrypted nahi hai), lekin koi usse tamper nahi kar sakta bina seal todhe — kyunki signature verify ho jayega.
 
-1. **Issuing** the token — usually only on `/login`. Sign it. Set short expiry.
-2. **Validating** every other request — extract from `Authorization: Bearer …`, verify signature + claims (`exp`, `aud`, `iss`).
+Do alag concerns hain yahan:
+
+1. **Issuing** the token — usually sirf `/login` pe hota hai. Sign karo. Short expiry set karo.
+2. **Validating** har doosri request pe — `Authorization: Bearer …` se token nikalo, signature + claims verify karo (`exp`, `aud`, `iss`).
 
 ```mermaid
 sequenceDiagram
@@ -47,9 +43,11 @@ sequenceDiagram
     GW-->>C: {new accessToken}
 ```
 
-Spring's `oauth2-resource-server` handles validation. For issuing in a self-contained app, you'll use Nimbus JOSE.
+Spring ka `oauth2-resource-server` module validation handle karta hai. Aur agar tum self-contained app mein khud token issue karna chahte ho, toh Nimbus JOSE library use hogi.
 
-## Self-issued JWT (full example)
+## Self-issued JWT (poora example)
+
+Socho tum khud ka mini "auth service" bana rahe ho — jaise Ola apna khud ka login system chalata hai, kisi third-party IdP pe depend nahi karta.
 
 `pom.xml`:
 
@@ -78,12 +76,14 @@ app:
       private-key: classpath:keys/private.pem
 ```
 
-Generate keys (one-time):
+Keys generate karo (ek baar ka kaam):
 
 ```bash
 openssl genrsa -out private.pem 2048
 openssl rsa -in private.pem -pubout -out public.pem
 ```
+
+Yeh RSA key pair hai — `private.pem` se tum token sign karoge (sirf auth service ke paas hoga), aur `public.pem` se koi bhi service verify kar sakti hai ki token genuine hai ya nahi. Private key kabhi kisi ko mat do — yeh bilkul UPI PIN jaisa confidential hai.
 
 ### Config
 
@@ -143,7 +143,11 @@ public class SecurityConfig {
 }
 ```
 
+Yahan important cheez: `sessionCreationPolicy(STATELESS)` — matlab Spring session banayega hi nahi. Har request apna proof (JWT) khud lekar aati hai, bilkul jaise har Swiggy order apna khud ka OTP leke aata hai delivery verify karne ke liye — server ko yaad rakhne ki zarurat nahi.
+
 ### Token service (issuing)
+
+Kya hota hai yahan? Yeh service actual JWT banata hai — user ka data leke, claims set karke, aur private key se sign karke.
 
 ```java
 @Service
@@ -185,6 +189,8 @@ public class TokenService {
     }
 }
 ```
+
+Access token chhota-sa live rehta hai (15 min) — jaise CRED ka OTP jaldi expire ho jata hai. Refresh token lambi zindagi jeeta hai (7 din) — sirf naya access token maangne ke kaam aata hai, isiliye isme `"type": "refresh"` claim daal ke isse access token se alag pehchana jaata hai.
 
 ### Auth controller
 
@@ -248,7 +254,14 @@ public class AuthController {
 }
 ```
 
-### Using the principal
+`/login` pe credentials verify hote hain (email + password), aur success pe dono tokens (access + refresh) return hote hain — bilkul jaise Ola app login karte hi tumhe session token deta hai taaki har baar password na daalna pade. `/refresh` endpoint refresh token check karta hai — agar valid hai aur type "refresh" hai, toh naya pair de deta hai.
+
+> [!warning] Yahan ek gotcha hai
+> Refresh endpoint mein refresh token ko revoke ya rotate nahi kiya gaya — production mein tumhe har refresh pe purana refresh token invalidate karna chahiye (rotation), warna agar woh token leak ho jaye toh attacker forever naye access tokens banata rahega.
+
+### Principal use karna
+
+Ek baar JWT valid ho jaye, uska data seedha controller method mein inject ho jata hai — bilkul `req.user` jaisa Express mein.
 
 ```java
 @GetMapping("/api/v1/me")
@@ -260,9 +273,11 @@ public Map<String, Object> me(@AuthenticationPrincipal Jwt jwt) {
 }
 ```
 
-## External IdP (preferred for production)
+## External IdP (production ke liye preferred)
 
-If your tokens come from Keycloak / Auth0 / Cognito, you don't issue anything yourself:
+Kyun zaruri hai yeh approach? Kyunki khud auth system banana aur secure rakhna (password hashing, rate limiting, breach detection, MFA) bahut zyada kaam hai. Isliye real-world companies apna login Keycloak, Auth0, ya AWS Cognito jaise IdP ko de dete hain — bilkul jaise chhoti startups apna payment Razorpay/Stripe ko outsource kar deti hain, khud payment gateway nahi banati.
+
+Agar tumhare tokens Keycloak / Auth0 / Cognito se aa rahe hain, toh tumhe khud kuch issue nahi karna:
 
 ```yaml
 spring:
@@ -277,7 +292,7 @@ spring:
             - acme-api
 ```
 
-Spring fetches JWKS, caches it, rotates keys automatically. See [[08-OAuth2-Resource-Server]].
+Bas itna config likho aur Spring khud JWKS (public keys ka set) fetch karega, cache karega, aur key rotation automatically handle karega. Dekho [[08-OAuth2-Resource-Server]].
 
 ## Express/TS comparison
 
@@ -311,28 +326,30 @@ const auth = (req, res, next) => {
 | Manual JWKS fetch | Auto via `issuer-uri` |
 | Manual rotation | Auto |
 
+Basically Node mein tum sab kuch manually likhte ho — sign, verify, middleware sab custom code. Spring mein zyada cheezein "convention over configuration" hain: bas YAML mein `issuer-uri` daal do, baaki framework sambhal leta hai.
+
 ## Gotchas
 
-> [!danger] Don't put secrets in JWTs
-> JWTs are SIGNED, not ENCRYPTED. Anyone can base64-decode the payload. Store only non-sensitive claims (id, roles, email).
+> [!danger] JWT mein secrets mat daalo
+> JWTs SIGNED hote hain, ENCRYPTED nahi. Koi bhi payload ko base64-decode karke padh sakta hai — jaise ek khula postcard, seal lagi hai par content sabko dikh raha hai. Isliye sirf non-sensitive claims rakho (id, roles, email) — kabhi bhi password, card number, ya OTP jaisa data JWT mein mat daalo.
 
 > [!danger] HS256 with a weak shared secret
-> Use RS256/ES256 with a key pair. If you must use HS256, the secret must be at least 256 bits and stored in a vault.
+> RS256/ES256 use karo key pair ke saath. Agar HS256 hi use karna majboori hai, toh secret kam se kam 256 bits ka ho aur vault mein secure store ho — "mySecretKey123" jaisa weak secret Paytm ke password jaisa hai jo koi bhi guess kar le.
 
 > [!warning] Refresh token storage
-> Refresh tokens are bearer tokens too. Store them server-side in a revocation list, or rotate them on every use (and detect re-use as theft).
+> Refresh tokens bhi bearer tokens hi hain — jiske paas hai, uska hi hai. Inhe server-side revocation list mein store karo, ya har use pe rotate karo (naya refresh token do, purana invalidate karo) aur re-use detect karo as theft signal.
 
 > [!warning] Long token TTLs
-> 24-hour access tokens are too long. Industry norm: 5-15 min access + longer refresh + revocation list.
+> 24-hour access tokens bahut lambe hain. Industry norm hai: 5-15 min access token + longer refresh token + revocation list. Socho agar tumhara Swiggy session token 24 ghante tak valid rahe aur phone chori ho jaye — bahut zyada exposure window hai.
 
 > [!warning] Missing audience/issuer validation
-> Without `aud` validation, a token meant for service-A may be accepted by service-B. Always set `audiences` in the resource-server config.
+> Bina `aud` validation ke, service-A ke liye bana token service-B bhi accept kar sakti hai — jaise ek building ka access card doosri building ke gate pe bhi chal jaye. Hamesha `audiences` set karo resource-server config mein.
 
 > [!warning] Token in URL
-> Never put a JWT in query strings — they get logged in access logs and proxies. Always `Authorization: Bearer …`.
+> JWT ko kabhi query string mein mat daalo — yeh access logs aur proxies mein log ho jata hai, jaise tumne apna password billboard pe likh diya ho. Hamesha `Authorization: Bearer …` header use karo.
 
-> [!tip] Rotating keys
-> If you control the IdP, expose JWKS with multiple `kid` entries during rotation. Validators pick the matching key.
+> [!tip] Keys rotate karna
+> Agar tum khud IdP control karte ho, toh JWKS mein multiple `kid` (key ID) entries expose karo rotation ke dauran. Validators automatically matching key pick kar lenge — purane tokens tab tak valid rahenge jab tak unki expiry na ho jaye.
 
 ## Related
 

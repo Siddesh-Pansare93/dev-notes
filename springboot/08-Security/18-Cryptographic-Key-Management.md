@@ -1,51 +1,47 @@
----
-tags: [security, production, cryptography, jwt, key-rotation, kms, jwks, aes, envelope-encryption]
-aliases: [Key Management, JWT Key Rotation, JWKS, KMS, Crypto Agility, At-Rest Encryption]
-stage: advanced
----
-
 # Cryptographic Key Management
 
-> [!info] For the Express/TS dev
-> In Node you've probably used `jsonwebtoken` with a string secret. That works for demos. Production needs: RSA/EC keys for JWTs, JWKS endpoints for rotation, KMS for storing private keys, and AES-GCM for encrypting database fields. This note covers all of it with real Java code.
+> [!info] Express/TS wale dev ke liye
+> Node mein tumne shayad `jsonwebtoken` ke saath ek plain string secret use kiya hoga — kuch is tarah: `jwt.sign(payload, "mySecret123")`. Demo ke liye theek hai, but production mein yeh chalega nahi. Production mein chahiye: JWT ke liye RSA/EC keys, key rotation ke liye JWKS endpoint, private keys store karne ke liye KMS, aur database fields encrypt karne ke liye AES-GCM. Is note mein yeh sab kuch real Java code ke saath cover karenge.
 
 ## Concept / mental model
 
 ### JWT signing — RSA vs EC vs symmetric
 
+Kya hota hai? JWT ko sign karne ke liye alag-alag algorithms use ho sakte hain, aur har ek ka apna use-case hai. Socho isse tumhare ghar ki chaabi jaisa — HMAC waali chaabi ek hi hoti hai jo lock kholti bhi hai aur band bhi karti hai (symmetric), jabki RSA/EC mein do alag chaabiyan hoti hain — ek se lock karo (private key), doosri se sirf check karo ki lock sahi hai ya nahi (public key), unlock nahi kar sakte usse.
+
 | Algorithm | Key type | Verify | Sign | When to use |
 |---|---|---|---|---|
-| `HS256/384/512` | Shared secret (HMAC) | ✓ (same key) | ✓ (same key) | Single service, secret can stay private |
-| `RS256/384/512` | RSA 2048/4096 | Public key | Private key | Expose JWKS endpoint; multiple verifiers |
-| `ES256/384/512` | EC P-256/P-384/P-521 | Public key | Private key | Same as RSA but smaller + faster |
-| `PS256/384/512` | RSA-PSS | Public key | Private key | More modern RSA padding |
+| `HS256/384/512` | Shared secret (HMAC) | ✓ (same key) | ✓ (same key) | Single service, secret private rakh sakte ho |
+| `RS256/384/512` | RSA 2048/4096 | Public key | Private key | JWKS endpoint expose karna ho; multiple verifiers hon |
+| `ES256/384/512` | EC P-256/P-384/P-521 | Public key | Private key | RSA jaisa hi, but chhota aur fast |
+| `PS256/384/512` | RSA-PSS | Public key | Private key | RSA ka modern padding version |
 
 > [!tip]
-> Use **RS256 or ES256** in production if any other service verifies your tokens. A shared HMAC secret means every verifier also has signing capability — a compromised verifier can forge tokens. With asymmetric keys, verifiers only hold the public key.
+> Production mein **RS256 ya ES256** use karo agar koi doosri service tumhare tokens verify karti hai. Ek shared HMAC secret ka matlab hai — jo bhi verify kar sakta hai, woh sign bhi kar sakta hai. Agar koi ek verifier compromise ho gaya, toh attacker fake tokens bana sakta hai. Asymmetric keys mein verifiers ke paas sirf public key hoti hai — woh sign nahi kar sakte, sirf check kar sakte hain.
 
 ---
 
 ## Code examples
 
-### Generating JWT signing keys
+### JWT signing keys generate karna
 
 ```bash
 # RSA 2048 (common choice)
 openssl genrsa -out jwt-private.pem 2048
 openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
 
-# EC P-256 (smaller, faster, equally strong)
+# EC P-256 (chhota, fast, equally strong)
 openssl ecparam -name prime256v1 -genkey -noout -out ec-private.pem
 openssl ec -in ec-private.pem -pubout -out ec-public.pem
 ```
 
-Store private keys in Vault/KMS (see [[17-Secrets-Management]]). Never commit to Git.
+Private keys ko Vault/KMS mein store karo (dekho [[17-Secrets-Management]]). Kabhi bhi Git mein commit mat karo — yeh CRED card ka PIN Git mein daalne jaisa hai.
 
 ### Spring Boot JWT config with RS256
 
 ```yaml
-# application.yml — paths to key files (loaded from classpath/filesystem)
-# In production, inject these as env vars pointing to Vault-fetched content
+# application.yml — key files ke paths (classpath/filesystem se load hoga)
+# Production mein inko env vars ke through inject karo jo Vault se fetch hue content ko point karein
 spring:
   security:
     oauth2:
@@ -58,7 +54,7 @@ custom:
   jwt:
     private-key-location: classpath:keys/jwt-private.pem
     public-key-location:  classpath:keys/jwt-public.pem
-    key-id: v1   # the 'kid' header value
+    key-id: v1   # yeh 'kid' header ki value hai
 ```
 
 ```java
@@ -95,9 +91,9 @@ private RSAKey loadRsaKey(JwtKeyConfig config) throws Exception {
 }
 ```
 
-### JWKS endpoint — expose public keys for verifiers
+### JWKS endpoint — public keys ko verifiers ke liye expose karna
 
-If you're running an Authorization Server (e.g., with Spring Authorization Server):
+Kyun zaruri hai? Agar tumhare paas ek Authorization Server hai (jaise Spring Authorization Server) jo tokens issue karta hai, toh baaki saari microservices ko pata hona chahiye ki tokens genuine hain ya nahi — bina private key share kiye. JWKS endpoint yehi karta hai:
 
 ```
 GET /.well-known/jwks.json
@@ -116,26 +112,26 @@ GET /.well-known/jwks.json
 }
 ```
 
-Resource servers (your microservices) fetch this once at startup and cache. When they see a JWT with `kid: v1`, they verify using the matching public key.
+Resource servers (tumhari microservices) startup pe iss endpoint ko ek baar fetch karke cache kar lete hain. Jab bhi unko `kid: v1` waala JWT milega, woh matching public key se verify kar denge — jaise Zomato ka delivery partner OTP verify karta hai bina yeh jaane ki OTP kaise generate hua.
 
-### JWT key rotation — the `kid` overlap window pattern
+### JWT key rotation — `kid` overlap window pattern
 
 > [!danger]
-> **Do not swap keys atomically.** Tokens issued with key v1 are still in circulation when you want to move to v2. A hard cutover invalidates all active sessions at once.
+> **Keys ko atomically swap mat karo.** Jab tum key v1 se v2 pe move karna chahte ho, tab tak bahut saare tokens jo v1 se sign hue the, active hote hain (circulation mein). Agar tum ek jhatke mein hard cutover kar doge, toh saare active sessions ek saath invalid ho jayenge — jaise Paytm achanak sabka login expire kar de.
 
 **Safe rotation procedure:**
 
-1. **Generate key v2**
-2. **Serve both keys from JWKS** (v1 + v2 in the `keys` array)
-3. **Start signing new tokens with v2** (`kid: v2` in token header)
-4. **Wait for v1 token TTL to expire** (e.g., 15 minutes)
-5. **Remove v1 from JWKS** — no valid v1 tokens can exist anymore
+1. **Key v2 generate karo**
+2. **Dono keys JWKS mein serve karo** (v1 + v2, `keys` array mein)
+3. **Naye tokens ko v2 se sign karna start karo** (token header mein `kid: v2`)
+4. **v1 token ka TTL expire hone tak wait karo** (jaise 15 minute)
+5. **v1 ko JWKS se remove kar do** — ab koi valid v1 token exist hi nahi kar sakta
 
 ```java
 @Configuration
 public class JwksConfig {
 
-    // Load both current and previous key
+    // Current aur previous, dono keys load karo
     @Bean
     public JWKSource<SecurityContext> jwkSource(
             @Value("${custom.jwt.key-v1-private}") Resource v1Private,
@@ -147,35 +143,37 @@ public class JwksConfig {
         RSAKey keyV1 = buildRsaKey("v1", v1Private, v1Public);
         RSAKey keyV2 = buildRsaKey("v2", v2Private, v2Public);
 
-        // Both keys served; v2 is used for signing (first in list)
+        // Dono keys serve hongi; v2 signing ke liye use hoti hai (list mein pehli)
         return new ImmutableJWKSet<>(new JWKSet(List.of(keyV2, keyV1)));
     }
 
     @Bean
     public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
         return new NimbusJwtEncoder(jwkSource);
-        // NimbusJwtEncoder signs with the first key in the JWKSet by default
+        // NimbusJwtEncoder default mein JWKSet ki pehli key se sign karta hai
     }
 }
 ```
 
 ---
 
-## Storing private keys — KMS / HSM / Vault
+## Private keys store karna — KMS / HSM / Vault
+
+Kya hota hai? Private key kahan store karni hai, yeh decision security aur ops complexity ke beech ka trade-off hai. Socho isse aise — apna ghar ki chaabi tum kahan rakhoge? Table pe (classpath files — koi bhi utha sakta hai), ek locked drawer mein (Vault), ya bank locker mein (KMS/HSM — sabse secure but thoda process lagta hai access karne ke liye).
 
 | Option | Security | Ops complexity | Cost |
 |---|---|---|---|
-| Files on classpath (dev only) | Low | Trivial | Free |
+| Classpath pe files (sirf dev ke liye) | Low | Trivial | Free |
 | Vault Transit secret engine | High | Medium | Free (OSS Vault) |
 | AWS KMS | Very High | Low (managed) | ~$1/key/month + API calls |
-| GCP Cloud KMS | Very High | Low | Similar to AWS |
+| GCP Cloud KMS | Very High | Low | AWS jaisa hi |
 | Azure Key Vault HSM | Very High | Low | Premium tier |
-| HSM (physical/CloudHSM) | Highest | High | Expensive |
+| HSM (physical/CloudHSM) | Highest | High | Mehenga |
 
-**Vault Transit** (sign without exposing the key):
+**Vault Transit** (key bahar bheje bina sign karna):
 
 ```java
-// Vault signs your JWT payload — the private key never leaves Vault
+// Vault tumhare JWT payload ko sign karta hai — private key kabhi Vault se bahar nahi jaati
 @Service
 public class VaultTransitJwtSigner {
 
@@ -185,7 +183,7 @@ public class VaultTransitJwtSigner {
         VaultTransitContext context = VaultTransitContext.builder()
             .build();
 
-        // Base64url-encode payload, sign with Vault
+        // Payload ko base64url-encode karo, Vault se sign karwao
         String payloadB64 = Base64.getUrlEncoder().encodeToString(payload);
         Signature sig = vault.opsForTransit()
             .sign("jwt-signing-key", payloadB64, context);
@@ -197,19 +195,21 @@ public class VaultTransitJwtSigner {
 
 ---
 
-## At-rest encryption for database fields
+## Database fields ke liye at-rest encryption
 
-For highly sensitive fields (SSNs, credit card last 4, medical notes) that must be stored but protected even if the DB is compromised:
+Kyun zaruri hai? Highly sensitive fields (SSN, credit card ke last 4 digits, medical notes) ko store toh karna hai, but agar kabhi DB compromise ho jaaye, tab bhi woh safe rehne chahiye. Isliye sirf encrypt karke store karte hain.
 
 ### Envelope encryption pattern
 
+Kya hota hai? Ek locker ke andar doosra locker rakhne jaisa. Socho ek jewellery box hai (DEK se locked), aur us jewellery box ko tum bank locker mein rakhte ho (KEK se protected). Bank locker ki chaabi (KEK) kabhi tumhare ghar (application) mein nahi rehti — hamesha bank (KMS) mein hi rehti hai.
+
 ```
-Plaintext  →  [encrypt with DEK]  →  Ciphertext stored in DB
-DEK        →  [encrypt with KEK from KMS]  →  Encrypted DEK stored alongside ciphertext
+Plaintext  →  [DEK se encrypt]  →  Ciphertext DB mein store
+DEK        →  [KMS ke KEK se encrypt]  →  Encrypted DEK ciphertext ke saath store
 ```
 
-- **DEK** (Data Encryption Key) — unique per record, generated in your app
-- **KEK** (Key Encryption Key) — stored in KMS, never in your app
+- **DEK** (Data Encryption Key) — har record ke liye unique, tumhare app mein generate hoti hai
+- **KEK** (Key Encryption Key) — KMS mein store hoti hai, kabhi tumhare app mein nahi aati
 
 ```java
 @Component
@@ -217,10 +217,10 @@ DEK        →  [encrypt with KEK from KMS]  →  Encrypted DEK stored alongside
 public class FieldEncryptionService {
 
     private final KmsClient kmsClient;
-    private final String    kekArn;       // AWS KMS key ARN from config
+    private final String    kekArn;       // config se AWS KMS key ARN
 
     public EncryptedField encrypt(String plaintext) {
-        // Generate a fresh DEK via KMS
+        // KMS se ek fresh DEK generate karo
         GenerateDataKeyRequest req = GenerateDataKeyRequest.builder()
             .keyId(kekArn)
             .keySpec(DataKeySpec.AES_256)
@@ -230,10 +230,10 @@ public class FieldEncryptionService {
         byte[] dek           = resp.plaintext().asByteArray();
         byte[] encryptedDek  = resp.ciphertextBlob().asByteArray();
 
-        // Encrypt plaintext with DEK (AES-256-GCM)
+        // Plaintext ko DEK se encrypt karo (AES-256-GCM)
         byte[] ciphertext = encryptAesGcm(plaintext.getBytes(UTF_8), dek);
 
-        // Zero out the DEK in memory
+        // DEK ko memory se zero out kar do
         Arrays.fill(dek, (byte) 0);
 
         return new EncryptedField(
@@ -245,7 +245,7 @@ public class FieldEncryptionService {
     public String decrypt(EncryptedField field) {
         byte[] encryptedDek = Base64.getDecoder().decode(field.encryptedDek());
 
-        // Ask KMS to decrypt the DEK
+        // KMS se DEK decrypt karwao
         DecryptRequest req = DecryptRequest.builder()
             .ciphertextBlob(SdkBytes.fromByteArray(encryptedDek))
             .keyId(kekArn)
@@ -262,7 +262,7 @@ public class FieldEncryptionService {
     private byte[] encryptAesGcm(byte[] plaintext, byte[] key) {
         try {
             byte[] iv = new byte[12];
-            new SecureRandom().nextBytes(iv);  // 96-bit IV for GCM
+            new SecureRandom().nextBytes(iv);  // GCM ke liye 96-bit IV
 
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE,
@@ -271,7 +271,7 @@ public class FieldEncryptionService {
 
             byte[] encrypted = cipher.doFinal(plaintext);
 
-            // Prepend IV to ciphertext: [12 bytes IV][ciphertext + 16 bytes tag]
+            // IV ko ciphertext ke aage prepend karo: [12 bytes IV][ciphertext + 16 bytes tag]
             byte[] result = new byte[12 + encrypted.length];
             System.arraycopy(iv, 0, result, 0, 12);
             System.arraycopy(encrypted, 0, result, 12, encrypted.length);
@@ -283,14 +283,16 @@ public class FieldEncryptionService {
 }
 ```
 
-### JPA `@Convert` for transparent field encryption
+### JPA `@Convert` se transparent field encryption
+
+Kya hota hai? Yeh trick use karke tum apne entity mein normal `String` field likh sakte ho, aur JPA background mein automatically encrypt/decrypt kar dega — application code ko pata bhi nahi chalega.
 
 ```java
 @Converter
 @Component
 public class EncryptedStringConverter implements AttributeConverter<String, String> {
 
-    // Spring-injected via a static holder trick (converters aren't Spring beans by default)
+    // Static holder trick se Spring inject karta hai (converters by default Spring beans nahi hote)
     private static FieldEncryptionService encryptionService;
 
     @Autowired
@@ -302,7 +304,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     public String convertToDatabaseColumn(String attribute) {
         if (attribute == null) return null;
         EncryptedField field = encryptionService.encrypt(attribute);
-        // Serialize both ciphertext and encrypted DEK as JSON
+        // Ciphertext aur encrypted DEK, dono ko JSON mein serialize karo
         return field.toJson();
     }
 
@@ -320,30 +322,30 @@ public class Patient {
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "ssn_encrypted")
-    private String ssn;    // stored encrypted, transparent to application code
+    private String ssn;    // DB mein encrypted store hota hai, application code ko pata nahi chalta
 }
 ```
 
 > [!warning]
-> Encrypted fields cannot be queried with `WHERE ssn = ?` — you'd have to decrypt every row. For searchable encrypted fields, use deterministic encryption (AES-SIV) or store a keyed hash (HMAC) separately for lookup. AES-GCM is non-deterministic and preferred for storage.
+> Encrypted fields ko `WHERE ssn = ?` se query nahi kar sakte — iske liye tumhe har row decrypt karni padegi, jo bahut slow hai. Searchable encrypted fields ke liye deterministic encryption (AES-SIV) use karo, ya lookup ke liye alag se ek keyed hash (HMAC) store karo. AES-GCM non-deterministic hota hai (same plaintext, different ciphertext har baar) — storage ke liye best hai but searching ke liye nahi.
 
 ---
 
-## Crypto agility — design for algorithm rotation
+## Crypto agility — algorithm rotation ke liye design karo
 
-PBKDF2 → bcrypt → Argon2id: each generation is stronger. Design your password storage to support algorithm migration:
+Kya hota hai? Time ke saath crypto algorithms weak ho jaate hain (jaise purane phone ka lock pattern aajkal easily crack ho jaata hai). PBKDF2 → bcrypt → Argon2id — har generation pehle se strong hai. Apna password storage aise design karo ki naye algorithm pe migrate karna easy ho, bina saare users ko forcefully password reset kiye:
 
 ```java
-// Store algorithm identifier with the hash
+// Hash ke saath algorithm identifier bhi store karo
 @Entity
 public class User {
     // Format: "$argon2id$v=19$m=65536,t=3,p=4$salt$hash"
-    // or:      "$2a$12$salt+hash"           (bcrypt)
+    // ya:      "$2a$12$salt+hash"           (bcrypt)
     private String passwordHash;
-    private String hashAlgorithm;  // "ARGON2ID", "BCRYPT" — for migration
+    private String hashAlgorithm;  // "ARGON2ID", "BCRYPT" — migration ke liye
 }
 
-// DelegatingPasswordEncoder — Spring's built-in crypto agility for passwords
+// DelegatingPasswordEncoder — Spring ka built-in crypto agility, passwords ke liye
 @Bean
 public PasswordEncoder passwordEncoder() {
     Map<String, PasswordEncoder> encoders = Map.of(
@@ -351,10 +353,10 @@ public PasswordEncoder passwordEncoder() {
         "bcrypt",  new BCryptPasswordEncoder(12),
         "pbkdf2",  new Pbkdf2PasswordEncoder("secret", 16, 310000, SecretKeyFactoryAlgorithm.PBKDF2WithHmacSHA256)
     );
-    // New passwords use argon2; old bcrypt/pbkdf2 hashes still verify
+    // Naye passwords argon2 use karenge; purane bcrypt/pbkdf2 hashes abhi bhi verify honge
     return new DelegatingPasswordEncoder("argon2", encoders);
 }
-// Hash format: {argon2}$argon2id$...  — the prefix identifies the algorithm
+// Hash format: {argon2}$argon2id$...  — prefix se pata chalta hai kaunsa algorithm use hua
 ```
 
 ---
@@ -362,34 +364,35 @@ public PasswordEncoder passwordEncoder() {
 ## Common mistakes
 
 > [!danger]
-> **ECB mode** (`AES/ECB/PKCS5Padding`): identical plaintext blocks produce identical ciphertext. Reveals patterns. NEVER use ECB. Use GCM or CBC with a random IV.
+> **ECB mode** (`AES/ECB/PKCS5Padding`): same plaintext blocks se same ciphertext banta hai. Isse pattern reveal ho jaate hain — jaise ek scanned image mein blocks-blocks mein same rang dikhna. ECB kabhi mat use karo.
+ GCM ya random IV ke saath CBC use karo.
 
 > [!danger]
-> **Hardcoded IVs / nonces**: using a fixed IV for AES-GCM completely breaks semantic security. Generate a fresh random IV for every encryption with `new SecureRandom()`.
+> **Hardcoded IVs / nonces**: AES-GCM ke liye fixed IV use karna semantic security completely tod deta hai. Har encryption ke liye `new SecureRandom()` se fresh random IV generate karo.
 
 > [!danger]
-> **Custom crypto**: implementing your own cipher, hash, or key derivation function. Don't. Use JCA/JCE standard algorithms. The only exception is Bouncy Castle for algorithms not in the JDK (e.g., newer EC curves).
+> **Custom crypto**: apna khud ka cipher, hash, ya key derivation function likhna. Mat karo. JCA/JCE ke standard algorithms use karo. Ek hi exception hai — Bouncy Castle, un algorithms ke liye jo JDK mein nahi hain (jaise newer EC curves).
 
 > [!danger]
-> **MD5 or SHA-1 for passwords**: these are fast hashing algorithms — a GPU can compute billions per second. Always use bcrypt, Argon2, or scrypt for passwords. MD5/SHA-1 are only appropriate for non-security purposes (checksums, content addressing).
+> **Passwords ke liye MD5 ya SHA-1**: yeh fast hashing algorithms hain — ek GPU billions per second compute kar sakta hai. Passwords ke liye hamesha bcrypt, Argon2, ya scrypt use karo. MD5/SHA-1 sirf non-security purposes ke liye theek hain (checksums, content addressing) — password ke liye bilkul nahi.
 
 > [!warning]
-> **Not pinning `kid` in JWKS lookup**: if you don't validate the `kid` header against your JWKS before using the key, an attacker who controls an IdP could swap in their own key. Always match `kid` explicitly.
+> **JWKS lookup mein `kid` pin na karna**: agar tum `kid` header ko apne JWKS ke against explicitly validate nahi karte, toh ek attacker jo IdP control karta hai woh apni khud ki key swap kar sakta hai. Hamesha `kid` explicitly match karo.
 
 ---
 
-## Java's JCA/JCE and BouncyCastle
+## Java ka JCA/JCE aur BouncyCastle
 
-JCA (Java Cryptography Architecture) and JCE (Java Cryptography Extension) provide:
+Kya hota hai? JCA (Java Cryptography Architecture) aur JCE (Java Cryptography Extension) yeh provide karte hain:
 - `Cipher`, `MessageDigest`, `Mac`, `KeyPairGenerator`, `KeyStore`, `SecureRandom`
-- Available algorithms: AES-GCM, RSA-OAEP, ECDSA, SHA-256/384/512, PBKDF2, etc.
+- Available algorithms: AES-GCM, RSA-OAEP, ECDSA, SHA-256/384/512, PBKDF2, waghera
 
-Add BouncyCastle when you need:
+BouncyCastle add karo jab tumhe chahiye:
 - X.509 certificate parsing/generation
 - PKCS#12 key stores
-- Additional EC curves (Brainpool, Curve25519)
-- CMSM, PGP
-- Modern algorithms not yet in JDK (XChaCha20-Poly1305, Kyber — post-quantum)
+- Extra EC curves (Brainpool, Curve25519)
+- CMS, PGP
+- Modern algorithms jo abhi JDK mein nahi hain (XChaCha20-Poly1305, Kyber — post-quantum)
 
 ```xml
 <dependency>
@@ -400,9 +403,9 @@ Add BouncyCastle when you need:
 ```
 
 ```java
-// Register BouncyCastle as JCE provider
+// BouncyCastle ko JCE provider ke roop mein register karo
 Security.addProvider(new BouncyCastleProvider());
-// Now Cipher.getInstance("AES/GCM/NoPadding", "BC") uses Bouncy Castle
+// Ab Cipher.getInstance("AES/GCM/NoPadding", "BC") Bouncy Castle use karega
 ```
 
 ---
@@ -410,7 +413,7 @@ Security.addProvider(new BouncyCastleProvider());
 ## Express/TS comparison
 
 ```typescript
-// Node.js built-in crypto (equivalent to JCA)
+// Node.js ka built-in crypto module (JCA ke equivalent)
 import { createCipheriv, createDecipheriv, randomBytes, createSign } from 'crypto';
 
 // AES-256-GCM encryption
@@ -434,23 +437,23 @@ const token = jwt.sign({ sub: userId }, privateKey, {
 });
 ```
 
-The algorithms are the same — AES-256-GCM, RS256, EC. Java's API is more verbose but the cryptographic primitives are identical. The BouncyCastle library is equivalent to Node's `node-forge` or the `@noble/*` family of crypto libraries.
+Algorithms same hain — AES-256-GCM, RS256, EC — chahe Node ho ya Java. Java ka API thoda zyada verbose hai but cryptographic primitives bilkul identical hain. BouncyCastle library, Node ke `node-forge` ya `@noble/*` family jaisi hai.
 
 ---
 
 ## Production checklist
 
-- [ ] JWT signing uses RS256 or ES256 (not HS256 unless single-service internal)
-- [ ] JWKS endpoint served publicly; resource servers verify via JWKS, not hardcoded keys
-- [ ] `kid` header present in JWTs; JWKS lookup validates against known key IDs
-- [ ] Key rotation procedure documented and tested (two-key overlap window)
-- [ ] Private keys stored in KMS/Vault (not on filesystem or in `application.yml`)
-- [ ] Database field encryption uses AES-256-GCM with per-record random IV
-- [ ] Envelope encryption: DEK encrypted by KMS KEK; DEK not stored in plaintext
-- [ ] `DelegatingPasswordEncoder` for password hashing (Argon2id as default)
-- [ ] No ECB mode, no hardcoded IVs anywhere in codebase
-- [ ] SpotBugs + FindSecBugs plugin in Maven/Gradle build to catch crypto misuse
-- [ ] BouncyCastle version pinned and regularly updated
+- [ ] JWT signing RS256 ya ES256 use karta hai (HS256 sirf tab jab single-service internal ho)
+- [ ] JWKS endpoint publicly serve ho raha hai; resource servers JWKS se verify karte hain, hardcoded keys se nahi
+- [ ] JWTs mein `kid` header present hai; JWKS lookup known key IDs ke against validate karta hai
+- [ ] Key rotation procedure documented aur tested hai (two-key overlap window)
+- [ ] Private keys KMS/Vault mein store hain (filesystem ya `application.yml` mein nahi)
+- [ ] Database field encryption AES-256-GCM use karta hai, har record ke liye random IV ke saath
+- [ ] Envelope encryption: DEK, KMS ke KEK se encrypted hai; DEK kahin plaintext mein store nahi
+- [ ] Password hashing ke liye `DelegatingPasswordEncoder` (default Argon2id)
+- [ ] Codebase mein kahin bhi ECB mode ya hardcoded IVs nahi hain
+- [ ] Maven/Gradle build mein SpotBugs + FindSecBugs plugin, crypto misuse pakadne ke liye
+- [ ] BouncyCastle version pinned hai aur regularly update hoti hai
 
 ---
 

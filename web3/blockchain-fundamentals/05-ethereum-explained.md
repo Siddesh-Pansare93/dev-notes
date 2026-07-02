@@ -1,19 +1,19 @@
 # 05 - Ethereum Explained
 
-> **Target audience:** Developers new to Web3 who understand basic programming concepts but have never built on a blockchain before.
+> **Kiske liye hai:** Woh developers jo Web3 mein naye hain, basic programming aata hai, lekin blockchain pe kabhi kuch build nahi kiya.
 
 ---
 
 ## Table of Contents
 
-1. [Bitcoin vs Ethereum — Two Very Different Beasts](#1-bitcoin-vs-ethereum)
+1. [Bitcoin vs Ethereum — Do Bilkul Alag Janwar](#1-bitcoin-vs-ethereum)
 2. [The Ethereum Virtual Machine (EVM)](#2-the-ethereum-virtual-machine-evm)
-3. [Accounts — Who Is on the Network?](#3-accounts)
+3. [Accounts — Network Pe Kaun Kaun Hai?](#3-accounts)
 4. [Ether (ETH) and Denominations](#4-ether-eth-and-denominations)
 5. [The Ethereum Network — Nodes and Clients](#5-the-ethereum-network)
 6. [The Ethereum Roadmap](#6-the-ethereum-roadmap)
 7. [Layer 2 Solutions](#7-layer-2-solutions)
-8. [Testnets — Practice Without Real Money](#8-testnets)
+8. [Testnets — Bina Real Paisa Ganwaye Practice](#8-testnets)
 9. [Key Takeaways](#key-takeaways)
 10. [Quiz](#quiz)
 
@@ -25,42 +25,42 @@
 
 | | Bitcoin (BTC) | Ethereum (ETH) |
 |---|---|---|
-| Created | 2009 — Satoshi Nakamoto | 2015 — Vitalik Buterin et al. |
-| Primary purpose | Store of value ("digital gold") | Programmable platform ("world computer") |
-| Smart contracts | Very limited (Bitcoin Script) | Full Turing-complete programs |
-| Block time | ~10 minutes | ~12 seconds |
-| Supply cap | 21 million BTC (hard cap) | No hard cap (but issuance is managed) |
-| Consensus (today) | Proof of Work | Proof of Stake (post-Merge) |
+| Bana kab | 2009 — Satoshi Nakamoto | 2015 — Vitalik Buterin aur team |
+| Main kaam | Value store karna ("digital sona") | Programmable platform ("world computer") |
+| Smart contracts | Bahut limited (Bitcoin Script) | Poora Turing-complete programs |
+| Block time | ~10 minute | ~12 second |
+| Supply cap | 21 million BTC (fixed) | Koi hard cap nahi (lekin issuance manage hota hai) |
+| Consensus (aaj) | Proof of Work | Proof of Stake (Merge ke baad) |
 
-**Bitcoin** solved a single, elegant problem: how do two strangers transfer value over the internet without a bank? Every design decision in Bitcoin flows from that goal. Bitcoin Script, its scripting language, is deliberately limited — you can't write loops or complex logic. That limitation is a feature, not a bug. It keeps the network simple, auditable, and extremely hard to attack.
+**Bitcoin** ne ek hi problem solve ki, aur bahut elegant tareeke se: do ajnabi log bina bank ke internet pe paisa kaise bhejein? Bitcoin ka har design decision isi goal se nikalta hai. Bitcoin Script, uski scripting language, jaan-boojh kar limited rakhi gayi hai — usme loops ya complex logic nahi likh sakte. Ye limitation koi bug nahi, feature hai. Isse network simple, auditable, aur attack karna bohot mushkil ban jaata hai.
 
-**Ethereum** asked a bolder question: what if the blockchain itself were a general-purpose computer? Instead of hard-coding one application (money transfers), Ethereum lets developers upload and run arbitrary programs called **smart contracts**. Once deployed, these programs run exactly as written — no company can take them down, alter them, or refuse to execute them.
+**Ethereum** ne ek zyada bada sawaal poocha: agar blockchain hi ek general-purpose computer ho jaaye toh? Sirf ek application (paisa transfer) hardcode karne ke bajaye, Ethereum developers ko apne arbitrary programs upload aur run karne deta hai — inhe **smart contracts** kehte hain. Ek baar deploy hone ke baad, ye programs bilkul waise hi chalte hain jaise likhe gaye the — koi company inhe band nahi kar sakti, badal nahi sakti, ya chalane se mana nahi kar sakti.
 
-Think of it this way:
+Isko aise socho:
 
-- **Bitcoin** is a vending machine that only accepts and dispenses money.
-- **Ethereum** is a vending machine that runs an App Store — anyone can publish an app, and the machine executes it trustlessly.
+- **Bitcoin** ek vending machine hai jo sirf paisa leta aur deta hai.
+- **Ethereum** ek vending machine hai jispe poora App Store chal raha hai — koi bhi apna app publish kar sakta hai, aur machine usse trustlessly execute karti hai.
 
 ---
 
 ## 2. The Ethereum Virtual Machine (EVM)
 
-### What Is It?
+### Ye Hai Kya?
 
-The **Ethereum Virtual Machine** is the sandboxed runtime environment that executes smart contract code on every Ethereum node. It is a stack-based virtual machine — similar in spirit to the Java Virtual Machine (JVM) or the .NET CLR, but designed specifically for a decentralised, adversarial environment.
+**Ethereum Virtual Machine (EVM)** ek sandboxed runtime environment hai jo har Ethereum node pe smart contract code execute karta hai. Ye ek stack-based virtual machine hai — kuch-kuch Java Virtual Machine (JVM) ya .NET CLR jaisa, lekin specifically ek decentralised, adversarial environment ke liye banaya gaya hai.
 
-Key properties of the EVM:
+EVM ki key properties:
 
-- **Deterministic** — given the same inputs, every node on the planet reaches the exact same output.
-- **Isolated** — contract code cannot access the host machine's filesystem, network, or operating system.
-- **Metered** — every operation costs a precise amount of **gas**, preventing infinite loops and ensuring fair resource pricing.
-- **EVM-compatible** — dozens of other chains (Polygon, Binance Smart Chain, Avalanche C-Chain, Arbitrum, Optimism) implement the same specification, so Solidity code runs on all of them with minimal changes.
+- **Deterministic** — same input do, duniya ke har node pe exact same output milega.
+- **Isolated** — contract code host machine ki filesystem, network, ya OS ko touch nahi kar sakta.
+- **Metered** — har operation ki ek fix **gas** cost hoti hai, jisse infinite loops rukte hain aur resource pricing fair rehti hai.
+- **EVM-compatible** — bahut saari dusri chains (Polygon, Binance Smart Chain, Avalanche C-Chain, Arbitrum, Optimism) same specification implement karti hain, isliye Solidity code in sab pe minimal changes ke saath chal jaata hai.
 
-### The Global Computer Analogy
+### Global Computer Wala Analogy
 
-Imagine one single computer shared by eight billion people. No single person owns it. No single government controls it. It never goes offline. When you pay it to run a program, it runs exactly that program — forever, for anyone who asks.
+Socho ek hi computer hai jo 8 billion logon ne share kiya hua hai. Iska ek bhi owner nahi hai. Koi ek government control nahi karti. Ye kabhi offline nahi jaata. Jab tum isse paisa dekar ek program run karne ko kehte ho, ye exactly wahi program run karta hai — hamesha ke liye, jo bhi poochhe uske liye.
 
-That is Ethereum. Every node on the network holds a full copy of this computer's state and re-executes every transaction to verify correctness. The **EVM** is the CPU of that global computer.
+Yehi Ethereum hai. Network ka har node is computer ki poori state ki copy rakhta hai aur correctness verify karne ke liye har transaction dobara execute karta hai. **EVM** us global computer ka CPU hai.
 
 ### EVM Architecture Diagram
 
@@ -84,21 +84,21 @@ graph TD
     style State fill:#16213e,color:#e0e0ff,stroke:#7c83fd
 ```
 
-### How a Transaction Flows Through the EVM
+### Ek Transaction EVM Se Kaise Guzarta Hai
 
-1. A user signs a transaction and broadcasts it to the network.
-2. Validators (miners, pre-Merge) pick it up and include it in a block.
-3. Each node independently runs the transaction through its local EVM copy.
-4. The EVM executes opcodes (ADD, MSTORE, CALL, etc.) one by one, decrementing the gas counter each time.
-5. If gas runs out, execution reverts — state changes are rolled back, but the gas fee is still charged.
-6. If execution succeeds, the resulting state change (new balances, updated contract storage) is written to the world state.
-7. All nodes agree — consensus is reached.
+1. User ek transaction sign karke network pe broadcast karta hai.
+2. Validators (pehle miners the, Merge se pehle) usse pick karke ek block mein daalte hain.
+3. Har node independently us transaction ko apne local EVM copy mein run karta hai.
+4. EVM opcodes (ADD, MSTORE, CALL, waghera) ek-ek karke execute karta hai, aur har baar gas counter kam hota jaata hai.
+5. Agar gas khatam ho jaaye, execution revert ho jaata hai — state changes wapas roll back ho jaate hain, lekin gas fee phir bhi charge hoti hai.
+6. Agar execution successful raha, resulting state change (naye balances, updated contract storage) world state mein likh diya jaata hai.
+7. Sab nodes agree karte hain — consensus achieve ho jaata hai.
 
 ---
 
 ## 3. Accounts
 
-Ethereum has two fundamentally different types of accounts, and understanding the distinction is critical for every smart contract developer.
+Ethereum pe do fundamentally alag types ke accounts hote hain, aur inka fark samajhna har smart contract developer ke liye zaruri hai.
 
 ### Account Types Diagram
 
@@ -131,35 +131,35 @@ graph LR
 
 ### Externally Owned Accounts (EOA)
 
-An EOA is what most people think of as a "wallet." It is controlled by a **private key** held by a human (or a hardware device).
+EOA wahi hai jise zyadatar log "wallet" bolte hain. Ye ek **private key** se control hota hai jo kisi insaan (ya hardware device) ke paas hoti hai.
 
-Characteristics:
+Iski khasiyat:
 
-- Has an ETH balance.
-- Has a **nonce** — a counter that increments with every transaction, preventing replay attacks.
-- Can initiate transactions (send ETH, deploy contracts, call contracts).
-- Has **no code** attached to it.
-- Address is derived from the public key via `keccak256(publicKey)[12:]`.
+- Iska ETH balance hota hai.
+- Iska ek **nonce** hota hai — ek counter jo har transaction ke saath badhta hai, isse replay attacks rukte hain.
+- Ye transactions initiate kar sakta hai (ETH bhejna, contracts deploy karna, contracts call karna).
+- Isme **koi code nahi** hota.
+- Address public key se nikalta hai `keccak256(publicKey)[12:]` formula se.
 
-Examples: MetaMask, Ledger, a raw private key you generated with `ethers.js`.
+Examples: MetaMask, Ledger, ya woh raw private key jo tumne `ethers.js` se generate ki.
 
 ### Contract Accounts
 
-A Contract Account is created when a smart contract is deployed. Nobody holds a private key for it — it is controlled entirely by its code.
+Contract Account tab banta hai jab koi smart contract deploy hota hai. Iski koi private key nahi hoti — ye poori tarah apne code se control hota hai.
 
-Characteristics:
+Iski khasiyat:
 
-- Has an ETH balance (contracts can hold and receive ETH).
-- Has a **nonce** that increments when it deploys other contracts.
-- Contains **bytecode** — the compiled version of your Solidity (or Vyper) program.
-- Has **persistent storage** — a key-value store that survives between transactions.
-- **Cannot initiate transactions on its own** — it only reacts to being called.
+- Iska ETH balance hota hai (contracts ETH hold aur receive kar sakte hain).
+- Iska ek **nonce** hota hai jo tab badhta hai jab ye khud koi aur contract deploy karta hai.
+- Isme **bytecode** hota hai — tumhare Solidity (ya Vyper) program ka compiled version.
+- Isme **persistent storage** hoti hai — ek key-value store jo transactions ke beech mein bhi survive karti hai.
+- **Ye khud transaction initiate nahi kar sakta** — ye sirf tab react karta hai jab isse call kiya jaaye.
 
-> **Key insight:** A contract is dormant until someone calls it. Think of it like a vending machine — it does nothing until you insert a coin (send a transaction).
+> **Key insight:** Contract tab tak sota rehta hai jab tak koi usse call na kare. Isko vending machine jaisa samjho — jab tak tum coin (transaction) daalte nahi, ye kuch nahi karta.
 
 ### Address Format
 
-Both account types share the same address format: a 20-byte (40 hex character) string prefixed with `0x`.
+Dono account types ka address format same hota hai: 20-byte (40 hex character) ka string jiske aage `0x` lagta hai.
 
 ```
 0x71C7656EC7ab88b098defB751B7401B5f6d8976F
@@ -169,29 +169,29 @@ Both account types share the same address format: a 20-byte (40 hex character) s
 
 ## 4. Ether (ETH) and Denominations
 
-**Ether (ETH)** is the native currency of Ethereum. It serves two roles:
+**Ether (ETH)** Ethereum ki native currency hai. Ye do roles play karti hai:
 
-1. **Payment for gas** — every computation on the network costs gas, and gas is paid in ETH.
-2. **Store of value / collateral** — ETH is used as collateral in DeFi protocols, staked by validators, and traded as an asset.
+1. **Gas ka payment** — network pe har computation ki gas cost hoti hai, aur gas ETH mein hi pay hota hai.
+2. **Value store / collateral** — ETH DeFi protocols mein collateral ke roop mein use hoti hai, validators stake karte hain, aur ye ek asset ki tarah trade bhi hoti hai.
 
 ### Denominations Table
 
-Because smart contracts often deal in very small fractions of ETH, Ethereum uses smaller units. The smallest indivisible unit is **Wei**.
+Kyunki smart contracts aksar ETH ke bahut chote fractions mein deal karte hain, Ethereum chote units use karta hai. Sabse chota, indivisible unit hai **Wei**.
 
-| Unit | Wei Value | Common Use |
+| Unit | Wei Value | Kahan Use Hota Hai |
 |---|---|---|
-| **Wei** | 1 Wei | Base unit, used in contract code |
-| **Kwei** (Babbage) | 1,000 Wei | Rarely used |
-| **Mwei** (Lovelace) | 1,000,000 Wei | Rarely used |
-| **Gwei** (Shannon) | 1,000,000,000 Wei | **Gas prices** |
-| **Szabo** (microether) | 1,000,000,000,000 Wei | Occasionally referenced |
-| **Finney** (milliether) | 1,000,000,000,000,000 Wei | Occasionally referenced |
-| **Ether** | 1,000,000,000,000,000,000 Wei | User-facing amounts |
+| **Wei** | 1 Wei | Base unit, contract code mein use hota hai |
+| **Kwei** (Babbage) | 1,000 Wei | Kam hi use hota hai |
+| **Mwei** (Lovelace) | 1,000,000 Wei | Kam hi use hota hai |
+| **Gwei** (Shannon) | 1,000,000,000 Wei | **Gas prices** ke liye |
+| **Szabo** (microether) | 1,000,000,000,000 Wei | Kabhi-kabhi reference hota hai |
+| **Finney** (milliether) | 1,000,000,000,000,000 Wei | Kabhi-kabhi reference hota hai |
+| **Ether** | 1,000,000,000,000,000,000 Wei | User-facing amounts ke liye |
 
 > **Practical rule of thumb:**
-> - You see **Wei** in Solidity contract code (`msg.value` is in Wei).
-> - You see **Gwei** when reading gas prices (`baseFeePerGas`, `maxPriorityFeePerGas`).
-> - You see **ETH** in wallets, exchanges, and human conversation.
+> - **Wei** tumhe Solidity contract code mein dikhega (`msg.value` Wei mein hota hai).
+> - **Gwei** tumhe gas prices padhte waqt dikhega (`baseFeePerGas`, `maxPriorityFeePerGas`).
+> - **ETH** tumhe wallets, exchanges, aur normal baatcheet mein dikhega.
 
 ### Quick Mental Math
 
@@ -201,10 +201,10 @@ Because smart contracts often deal in very small fractions of ETH, Ethereum uses
 1 ETH  = 10^9  Gwei
 ```
 
-In Solidity:
+Solidity mein:
 
 ```solidity
-// Literal suffixes make unit conversions readable
+// Literal suffixes se unit conversions readable ho jaate hain
 uint256 gasPrice = 20 gwei;        // 20_000_000_000 Wei
 uint256 oneEther = 1 ether;        // 1_000_000_000_000_000_000 Wei
 require(msg.value >= 0.01 ether, "Minimum payment not met");
@@ -216,170 +216,170 @@ require(msg.value >= 0.01 ether, "Minimum payment not met");
 
 ### Nodes
 
-Every participant that downloads the blockchain and independently validates transactions is a **node**. Nodes are the backbone of Ethereum's decentralisation. There are several types:
+Har wo participant jo blockchain download karke independently transactions validate karta hai, ek **node** kehlata hai. Nodes hi Ethereum ki decentralisation ka backbone hain. Inke kai types hain:
 
-- **Full node** — downloads every block and re-executes every transaction. Stores the current state but may prune old history. Most common type for developers and validators.
-- **Archive node** — stores the full historical state at every block height. Required for querying historical balances or debugging old transactions. Very large (multiple terabytes).
-- **Light node** — downloads only block headers and trusts full nodes for state data. Used in resource-constrained environments (mobile).
+- **Full node** — har block download karta hai aur har transaction dobara execute karta hai. Current state store karta hai, lekin purani history prune kar sakta hai. Developers aur validators ke liye sabse common type.
+- **Archive node** — har block height pe poori historical state store karta hai. Purane balances query karne ya purani transactions debug karne ke liye zaruri. Bahut bada hota hai (multiple terabytes).
+- **Light node** — sirf block headers download karta hai aur state data ke liye full nodes pe trust karta hai. Resource-constrained environments (mobile) mein use hota hai.
 
 ### Clients
 
-An Ethereum client is the software that runs a node. Because Ethereum has an open specification, multiple independent teams have built their own clients. This **client diversity** is a security feature — a bug in one client does not crash the entire network.
+Ethereum client woh software hai jo node chalata hai. Kyunki Ethereum ka specification open hai, kai independent teams ne apne-apne clients bana liye hain. Ye **client diversity** ek security feature hai — agar ek client mein bug aa jaaye toh poora network crash nahi hota.
 
-Ethereum now has two layers that work together — the **execution layer** (EL, formerly "Eth1") and the **consensus layer** (CL, formerly "Eth2 beacon chain"). You need one client from each:
+Ab Ethereum ke do layers milkar kaam karte hain — **execution layer** (EL, pehle "Eth1" kehlata tha) aur **consensus layer** (CL, pehle "Eth2 beacon chain"). Tumhe har layer se ek-ek client chahiye:
 
 **Execution Layer Clients**
 
 | Client | Language | Notes |
 |---|---|---|
-| **Geth** (go-ethereum) | Go | Most widely used; reference implementation |
+| **Geth** (go-ethereum) | Go | Sabse zyada use hota hai; reference implementation |
 | **Besu** | Java | Enterprise-focused; EVM tracing support |
-| **Nethermind** | C# / .NET | High performance, good for validators |
-| **Erigon** | Go | Optimised for archive nodes; smaller footprint |
-| **Reth** | Rust | Newer, very fast; growing adoption |
+| **Nethermind** | C# / .NET | High performance, validators ke liye achha |
+| **Erigon** | Go | Archive nodes ke liye optimised; chhota footprint |
+| **Reth** | Rust | Naya, bahut fast; adoption badh raha hai |
 
 **Consensus Layer Clients**
 
 | Client | Language | Notes |
 |---|---|---|
-| **Lighthouse** | Rust | Popular with solo stakers |
-| **Prysm** | Go | Largest market share; user-friendly |
-| **Teku** | Java | Enterprise grade; ConsenSys-maintained |
-| **Nimbus** | Nim | Lightweight, good for low-power hardware |
-| **Lodestar** | TypeScript | Unique for its JS ecosystem familiarity |
+| **Lighthouse** | Rust | Solo stakers mein popular |
+| **Prysm** | Go | Sabse bada market share; user-friendly |
+| **Teku** | Java | Enterprise grade; ConsenSys maintain karta hai |
+| **Nimbus** | Nim | Lightweight, low-power hardware ke liye achha |
+| **Lodestar** | TypeScript | JS ecosystem familiarity ke liye unique |
 
-> **For most developers:** You will not run your own node day-to-day. Instead you will connect to a **node provider** (Alchemy, Infura, QuickNode) via JSON-RPC. Understanding nodes matters so you know what's happening under the hood.
+> **Zyadatar developers ke liye:** Roz-roz apna node run nahi karoge. Uski jagah tum ek **node provider** (Alchemy, Infura, QuickNode) se JSON-RPC ke zariye connect karoge. Nodes samajhna isliye zaruri hai taaki tumhe pata rahe ki peeche kya ho raha hai — jaise Zomato app use karte waqt tumhe kitchen ka process pata na ho, phir bhi jaanna helpful hota hai.
 
 ---
 
 ## 6. The Ethereum Roadmap
 
-Ethereum's development is ongoing and follows a long-term vision. Here are the key milestones that shaped the network you use today:
+Ethereum ka development chal raha hai aur ek long-term vision follow karta hai. Yahan wo key milestones hain jinhone aaj wala network banaya:
 
-| Milestone | Year | What Changed |
+| Milestone | Year | Kya Badla |
 |---|---|---|
 | **Frontier** | 2015 | Ethereum mainnet launch; basic functionality |
-| **Homestead** | 2016 | First production-ready release; stability improvements |
-| **The DAO Fork** | 2016 | Hard fork to recover ~$60M from a hacked DAO contract; Ethereum Classic (ETC) split off |
-| **Byzantium / Constantinople** | 2017–2019 | EVM improvements, cheaper operations, zkSNARK precompiles |
-| **Istanbul** | 2019 | Gas cost repricing for EVM opcodes |
-| **Berlin / London (EIP-1559)** | 2021 | EIP-1559 introduced base fee burning — a major change to fee mechanics |
-| **The Merge** | Sep 2022 | Ethereum switched from Proof of Work to Proof of Stake; energy use dropped ~99.95% |
-| **Shanghai / Capella** | Apr 2023 | Enabled staked ETH withdrawals from the beacon chain |
-| **Dencun (EIP-4844)** | Mar 2024 | "Proto-danksharding" — blob transactions that dramatically reduce L2 fees |
+| **Homestead** | 2016 | Pehla production-ready release; stability improvements |
+| **The DAO Fork** | 2016 | Hack hue DAO contract se ~$60M recover karne ke liye hard fork; Ethereum Classic (ETC) alag ho gaya |
+| **Byzantium / Constantinople** | 2017–2019 | EVM improvements, sasti operations, zkSNARK precompiles |
+| **Istanbul** | 2019 | EVM opcodes ki gas cost repricing |
+| **Berlin / London (EIP-1559)** | 2021 | EIP-1559 laaya base fee burning — fee mechanics mein bada change |
+| **The Merge** | Sep 2022 | Ethereum Proof of Work se Proof of Stake pe switch hua; energy use ~99.95% kam ho gaya |
+| **Shanghai / Capella** | Apr 2023 | Staked ETH ko beacon chain se withdraw karna possible hua |
+| **Dencun (EIP-4844)** | Mar 2024 | "Proto-danksharding" — blob transactions jo L2 fees kaafi kam kar dete hain |
 
-**What is coming next (as of mid-2026):**
+**Aage kya aa raha hai (mid-2026 tak):**
 
-- **Pectra** — validator UX improvements, account abstraction groundwork (EIP-7702), higher blob counts.
-- **Fusaka / Glamsterdam** — full Danksharding (verkle trees, PeerDAS), further scaling the blob lane.
-- **The Purge** — simplifying the protocol by removing historical data requirements from nodes.
+- **Pectra** — validator UX improvements, account abstraction ki groundwork (EIP-7702), zyada blob counts.
+- **Fusaka / Glamsterdam** — full Danksharding (verkle trees, PeerDAS), blob lane ko aur scale karna.
+- **The Purge** — nodes se historical data requirements hata kar protocol simplify karna.
 
 ---
 
 ## 7. Layer 2 Solutions
 
-### Why L2 Exists
+### L2 Kyun Zaruri Hai?
 
-Ethereum mainnet (L1) is intentionally designed to optimise for **security and decentralisation**, not raw throughput. This means:
+Ethereum mainnet (L1) jaan-boojh kar **security aur decentralisation** ke liye optimise kiya gaya hai, raw throughput ke liye nahi. Iska matlab:
 
-- Transactions are slow (~12 second block times).
-- Block space is limited.
-- Gas fees rise sharply during congestion.
+- Transactions slow hain (~12 second block times).
+- Block space limited hai.
+- Congestion mein gas fees tezi se badh jaate hain.
 
-**Layer 2 (L2)** solutions process transactions off the main chain in batches, then post compressed proofs or data back to L1. You get Ethereum's security guarantees at a fraction of the cost and with much higher throughput.
+**Layer 2 (L2)** solutions transactions ko main chain se hatkar batches mein process karte hain, phir compressed proofs ya data wapas L1 pe post kar dete hain. Isse tumhe Ethereum ki security milti hai, lekin bahut kam cost aur bahut zyada throughput ke saath — bilkul waise jaise IRCTC ka tatkal counter alag rakh dena taaki main system slow na ho, par ticket phir bhi valid rahe.
 
 ### Main L2 Flavours
 
-**Optimistic Rollups** — assume transactions are valid by default and only run full computation if someone submits a fraud proof within a challenge window (~7 days).
+**Optimistic Rollups** — by default maan lete hain ki transactions valid hain, aur sirf tab poora computation run karte hain jab koi challenge window (~7 din) ke andar fraud proof submit kare.
 
-**ZK Rollups** — generate a cryptographic validity proof (ZK-SNARK or ZK-STARK) for every batch. No challenge window; near-instant finality on L1.
+**ZK Rollups** — har batch ke liye ek cryptographic validity proof (ZK-SNARK ya ZK-STARK) generate karte hain. Koi challenge window nahi chahiye; L1 pe near-instant finality milti hai.
 
 ### Major L2 Networks
 
 | Network | Type | Notes |
 |---|---|---|
-| **Arbitrum One** | Optimistic Rollup | Largest TVL among L2s; EVM-compatible |
-| **Optimism (OP Mainnet)** | Optimistic Rollup | Powers the "Superchain" (Base, Mode, Zora); OP Stack |
-| **Base** | Optimistic Rollup | Built by Coinbase on OP Stack; very high adoption |
-| **Polygon PoS** | Sidechain + zk-bridge | Established; transitioning toward zkEVM |
-| **Polygon zkEVM** | ZK Rollup | EVM-equivalent; uses STARK proofs |
+| **Arbitrum One** | Optimistic Rollup | L2s mein sabse bada TVL; EVM-compatible |
+| **Optimism (OP Mainnet)** | Optimistic Rollup | "Superchain" (Base, Mode, Zora) chalata hai; OP Stack |
+| **Base** | Optimistic Rollup | Coinbase ne OP Stack pe banaya; bahut high adoption |
+| **Polygon PoS** | Sidechain + zk-bridge | Established; zkEVM ki taraf transition kar raha hai |
+| **Polygon zkEVM** | ZK Rollup | EVM-equivalent; STARK proofs use karta hai |
 | **zkSync Era** | ZK Rollup | Native account abstraction; zkEVM |
-| **Starknet** | ZK Rollup | Uses Cairo language; not EVM-equivalent |
+| **Starknet** | ZK Rollup | Cairo language use karta hai; EVM-equivalent nahi hai |
 | **Linea** | ZK Rollup | ConsenSys; Ethereum-equivalent |
 
-> **For Solidity developers:** Arbitrum, Optimism, Base, and Polygon are EVM-compatible or EVM-equivalent. Your Solidity contracts deploy to them with zero or minimal changes. Just switch your RPC URL and chain ID.
+> **Solidity developers ke liye:** Arbitrum, Optimism, Base, aur Polygon EVM-compatible ya EVM-equivalent hain. Tumhare Solidity contracts inpe zero ya minimal changes ke saath deploy ho jaate hain. Bas apna RPC URL aur chain ID switch karo.
 
 ---
 
-## 8. Testnets — Practice Without Real Money
+## 8. Testnets — Bina Real Paisa Ganwaye Practice
 
-### What Is a Testnet?
+### Testnet Hota Kya Hai?
 
-A **testnet** is a parallel Ethereum network that mimics mainnet behaviour but uses **valueless test ETH**. It is where you deploy, test, and debug your contracts before spending real money on mainnet.
+**Testnet** ek parallel Ethereum network hai jo mainnet jaisa hi behave karta hai, lekin **valueless test ETH** use karta hai. Yahin tum apne contracts deploy, test, aur debug karte ho, mainnet pe real paisa lagane se pehle.
 
-Testnet ETH is obtained for free from **faucets** — websites that drip small amounts of test ETH to your address on request.
+Testnet ETH tumhe **faucets** se free mein milta hai — ye websites request karne pe tumhare address pe thoda-thoda test ETH bhej deti hain.
 
 ### Current Testnets
 
 | Testnet | Status | Notes |
 |---|---|---|
-| **Sepolia** | Active (recommended) | PoS-based; fast; primary developer testnet since 2023 |
-| **Holesky** | Active | High validator count; useful for staking/validator testing |
-| **Goerli** | Deprecated | Was the dominant testnet until 2023; being wound down |
+| **Sepolia** | Active (recommended) | PoS-based; fast; 2023 se primary developer testnet |
+| **Holesky** | Active | High validator count; staking/validator testing ke liye useful |
+| **Goerli** | Deprecated | 2023 tak dominant testnet tha; ab band ho raha hai |
 
-> **Use Sepolia for all new projects.** Goerli is being deprecated and may be unreliable. Holesky is specifically for staking infrastructure testing.
+> **Naye projects ke liye Sepolia use karo.** Goerli deprecate ho raha hai aur unreliable ho sakta hai. Holesky specifically staking infrastructure testing ke liye hai.
 
-### Why You Must Test on Testnets First
+### Testnets Pe Test Karna Kyun Zaruri Hai
 
-1. **Contracts are immutable** — once deployed to mainnet you cannot change them (only upgrade via proxy patterns).
-2. **Gas fees are real money** — a buggy deployment can waste hundreds of dollars.
-3. **You can simulate real network conditions** — block times, reorgs, and MEV behaviour are present on testnets.
+1. **Contracts immutable hote hain** — ek baar mainnet pe deploy karne ke baad tum unhe badal nahi sakte (sirf proxy patterns se upgrade kar sakte ho).
+2. **Gas fees real paisa hai** — ek buggy deployment sau-do sau dollar barbaad kar sakti hai.
+3. **Tum real network conditions simulate kar sakte ho** — block times, reorgs, aur MEV behaviour testnets pe bhi present hote hain.
 
-### Getting Testnet ETH
+### Testnet ETH Kaise Lo
 
 - **Sepolia faucet:** https://sepoliafaucet.com (Alchemy)
 - **Chainlink faucet:** https://faucets.chain.link/sepolia
 - **Google Cloud faucet:** https://cloud.google.com/application/web3/faucet/ethereum/sepolia
 
-Most faucets require a mainnet balance or social verification to prevent abuse.
+Zyadatar faucets abuse rokne ke liye mainnet balance ya social verification maangte hain.
 
 ---
 
 ## Key Takeaways
 
-- Ethereum is a **programmable blockchain** — unlike Bitcoin, it can run arbitrary code via smart contracts.
-- The **EVM** is the global, deterministic, metered runtime that executes every smart contract identically across all nodes.
-- There are two account types: **EOAs** (controlled by private keys) and **Contract Accounts** (controlled by code). Both can hold ETH.
-- ETH's base unit is **Wei**. Gas prices are expressed in **Gwei**. User-facing amounts use **ETH**.
-- Ethereum runs on a network of independent **nodes** running **execution clients** (Geth, Besu, Nethermind) paired with **consensus clients** (Lighthouse, Prysm, Teku).
-- The **Merge** (2022) switched Ethereum to Proof of Stake, slashing energy usage by ~99.95%.
-- **Layer 2s** (Arbitrum, Optimism, Base, Polygon) make Ethereum cheaper and faster by batching transactions off-chain and settling on L1.
-- Always develop and test on **Sepolia testnet** before touching mainnet.
+- Ethereum ek **programmable blockchain** hai — Bitcoin ke ulat, ye smart contracts ke zariye arbitrary code run kar sakta hai.
+- **EVM** woh global, deterministic, metered runtime hai jo har smart contract ko sab nodes pe bilkul same tarike se execute karta hai.
+- Do account types hote hain: **EOAs** (private keys se control hote hain) aur **Contract Accounts** (code se control hote hain). Dono ETH hold kar sakte hain.
+- ETH ka base unit **Wei** hai. Gas prices **Gwei** mein expressed hote hain. User-facing amounts **ETH** mein hote hain.
+- Ethereum independent **nodes** ke network pe chalta hai, jo **execution clients** (Geth, Besu, Nethermind) ko **consensus clients** (Lighthouse, Prysm, Teku) ke saath pair karke run karte hain.
+- **The Merge** (2022) ne Ethereum ko Proof of Stake pe switch kiya, energy usage ~99.95% kam kar diya.
+- **Layer 2s** (Arbitrum, Optimism, Base, Polygon) transactions ko off-chain batch karke aur L1 pe settle karke Ethereum ko sasta aur fast banate hain.
+- Mainnet touch karne se pehle hamesha **Sepolia testnet** pe develop aur test karo.
 
 ---
 
 ## Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test karo.
 
 **Question 1**
 
-You are reading a Solidity contract and see this line:
+Tum ek Solidity contract padh rahe ho aur ye line dikhti hai:
 
 ```solidity
 require(msg.value >= 500000000000000000, "Too low");
 ```
 
-What is the minimum payment required, expressed in ETH?
+Minimum payment kitna hai, ETH mein?
 
 <details>
 <summary>Answer</summary>
 
 `500000000000000000 Wei = 0.5 ETH`
 
-(Divide by 10^18: 5 * 10^17 / 10^18 = 0.5)
+(10^18 se divide karo: 5 * 10^17 / 10^18 = 0.5)
 
-A cleaner way to write this in Solidity: `require(msg.value >= 0.5 ether, "Too low");`
+Isse Solidity mein zyada clean tarike se likhne ka tareeka: `require(msg.value >= 0.5 ether, "Too low");`
 
 </details>
 
@@ -387,21 +387,21 @@ A cleaner way to write this in Solidity: `require(msg.value >= 0.5 ether, "Too l
 
 **Question 2**
 
-A colleague deploys a smart contract to Ethereum mainnet and then realises there is a critical bug. They ask you: "Can we just update the contract to fix it?"
+Tumhara ek colleague Ethereum mainnet pe ek smart contract deploy karta hai aur phir usse pata chalta hai ki usme ek critical bug hai. Woh tumse poochta hai: "Kya hum bas contract update karke fix kar sakte hain?"
 
-What do you tell them, and what are the options?
+Tum use kya bologe, aur options kya hain?
 
 <details>
 <summary>Answer</summary>
 
-Contract bytecode is **immutable** — you cannot change code that has already been deployed.
+Contract bytecode **immutable** hota hai — jo code deploy ho chuka hai usse badal nahi sakte.
 
 Options:
-1. **Deploy a new contract** at a different address and migrate users/funds to it.
-2. **Use a proxy upgrade pattern** (OpenZeppelin Transparent Proxy or UUPS) — if the original contract was built with upgradeability in mind, you can point the proxy to a new implementation. This only works if the proxy was set up in advance.
-3. If no proxy was used and funds are at risk: the situation may be unrecoverable without a social consensus / hard fork (as seen in The DAO incident in 2016 — a rare and controversial precedent).
+1. **Naya contract deploy karo** ek alag address pe aur users/funds ko usme migrate karo.
+2. **Proxy upgrade pattern use karo** (OpenZeppelin Transparent Proxy ya UUPS) — agar original contract shuru se upgradeability ke saath banaya gaya tha, toh proxy ko naye implementation pe point kar sakte ho. Ye tabhi kaam karega jab proxy pehle se set up ho.
+3. Agar proxy use nahi hua tha aur funds risk mein hain: situation bina social consensus / hard fork ke unrecoverable ho sakti hai (jaise 2016 ke The DAO incident mein dekha gaya — ek rare aur controversial precedent).
 
-**Lesson:** always use testnets, audits, and upgrade patterns from day one.
+**Lesson:** din 1 se hi testnets, audits, aur upgrade patterns use karo.
 
 </details>
 
@@ -409,23 +409,23 @@ Options:
 
 **Question 3**
 
-What is the difference between an Optimistic Rollup and a ZK Rollup? Name one example of each.
+Optimistic Rollup aur ZK Rollup mein kya fark hai? Har ek ka ek example do.
 
 <details>
 <summary>Answer</summary>
 
-**Optimistic Rollup** — assumes all transactions are valid and only triggers a fraud proof challenge if a validator disputes a batch within the challenge window (~7 days). This means withdrawals from L2 to L1 can take up to 7 days without a liquidity bridge.
+**Optimistic Rollup** — maan leta hai ki sab transactions valid hain, aur sirf tab fraud proof challenge trigger hota hai jab koi validator challenge window (~7 din) ke andar ek batch dispute kare. Iska matlab L2 se L1 withdrawals bina liquidity bridge ke 7 din tak le sakte hain.
 
 Examples: **Arbitrum One**, **Optimism (OP Mainnet)**, **Base**
 
-**ZK Rollup** — generates a cryptographic validity proof (ZK-SNARK / ZK-STARK) for every batch. The proof mathematically guarantees correctness, so no challenge window is needed. Withdrawals can be near-instant on L1.
+**ZK Rollup** — har batch ke liye ek cryptographic validity proof (ZK-SNARK / ZK-STARK) generate karta hai. Proof mathematically correctness guarantee karta hai, isliye koi challenge window nahi chahiye. Withdrawals L1 pe near-instant ho sakte hain.
 
 Examples: **zkSync Era**, **Polygon zkEVM**, **Starknet**, **Linea**
 
-Trade-off: ZK Rollups are computationally heavier to generate proofs but offer faster finality. Optimistic Rollups are simpler to implement and fully EVM-compatible.
+Trade-off: ZK Rollups mein proofs generate karna computationally heavy hota hai, lekin finality fast milti hai. Optimistic Rollups implement karna simpler hai aur fully EVM-compatible hote hain.
 
 </details>
 
 ---
 
-> **Next chapter:** 06 - Smart Contracts Deep Dive — anatomy of a Solidity contract, the compilation pipeline, and your first deployment.
+> **Next chapter:** 06 - Smart Contracts Deep Dive — Solidity contract ki anatomy, compilation pipeline, aur tumhara pehla deployment.

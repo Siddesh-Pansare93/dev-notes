@@ -1,24 +1,18 @@
----
-tags: [messaging, kafka, spring-kafka, streaming]
-aliases: [Kafka, Spring Kafka]
-stage: advanced
----
-
 # Spring Kafka
 
-> [!info] For the Express/TS dev
-> Kafka is `kafkajs`'s big brother — the same broker, but Spring Kafka gives you batteries-included producer/consumer + serialization + DLT support. Kafka's not a queue — it's a **distributed log**: messages stay around for days/weeks, multiple consumer groups read independently, you can replay. If you've used kafkajs in Node, the protocol is identical.
+> [!info] Express/TS dev ke liye
+> Kafka ko `kafkajs` ka bada bhai samajh lo — broker wahi hai, bas Spring Kafka tumhe batteries-included producer/consumer + serialization + DLT support de deta hai. Aur ek baat clear kar lete hain — Kafka ek **queue nahi hai**, ye ek **distributed log** hai. Matlab messages days/weeks tak pade rehte hain, multiple consumer groups independently unhe padh sakte hain, aur chaho to purane messages replay bhi kar sakte ho. Agar tumne Node mein kafkajs use kiya hai, to protocol bilkul same hai — bas Java mein syntax alag lagega.
 
 ## Concept
 
-Kafka mental model:
+Kafka ka mental model samajhna hai to Swiggy/Zomato order pipeline soch lo.
 
-- **Topic** = append-only log, divided into **partitions**.
-- Each **partition** is FIFO; across partitions, no global order.
-- **Producer** sends a message; the partitioner picks a partition (by key, or round-robin if no key).
-- **Consumer** reads from a topic in a **consumer group**. Each partition is owned by exactly one consumer in the group.
-- **Offset** = position in a partition; consumers commit offsets to track progress.
-- **Retention** = how long messages stay (default 7 days). Replayable.
+- **Topic** = ek append-only log, jo aage **partitions** mein baata hua hota hai. Jaise "orders.placed" ek topic hai jahan har naya order event aake append hota hai.
+- Har **partition** FIFO hai (jo pehle aaya wahi pehle jaayega), lekin partitions ke aar-paar koi global order guarantee nahi hai.
+- **Producer** message bhejta hai; **partitioner** decide karta hai ki konse partition mein jaayega — agar key di hai to usी key ke hisaab se, warna round-robin.
+- **Consumer** ek topic ko ek **consumer group** ke andar padhta hai. Ek partition group ke andar sirf EK consumer ke paas hoti hai — do consumer ek hi partition simultaneously nahi padh sakte (isi se work distribute hota hai).
+- **Offset** = partition ke andar position, jaise "main partition 0 ka message number 42 tak padh chuka hoon." Consumer apna offset commit karta hai taaki progress track ho.
+- **Retention** = message kitni der tak store rahega (default 7 din). Isi wajah se replay possible hai — agar bug aaya to purana data dobara process kar sakte ho.
 
 ```
 Topic "orders.placed"
@@ -34,7 +28,7 @@ Group "analytics":
   consumer-C → partitions 0, 1, 2  (independent of email-service)
 ```
 
-Same message → email-service AND analytics get it (different groups). Inside email-service, only one consumer gets each message (work distribution).
+Yaha samajhne wali baat ye hai — same message "email-service" group ko bhi milega AUR "analytics" group ko bhi milega (kyunki dono alag groups hain, dono ka apna copy hai). Lekin email-service ke andar, ek message sirf ek hi consumer ko milega — jaise Swiggy mein ek order sirf ek delivery partner ko assign hota hai, sabko nahi.
 
 ## Code example
 
@@ -54,7 +48,7 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      acks: all                              # wait for all replicas
+      acks: all                              # sabhi replicas ka wait karo
       properties:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
@@ -63,7 +57,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest
-      enable-auto-commit: false              # commit manually
+      enable-auto-commit: false              # manually commit karenge
       properties:
         spring.json.trusted.packages: 'com.example.*'
     listener:
@@ -71,6 +65,8 @@ spring:
       concurrency: 3
       type: single
 ```
+
+`acks: all` ka matlab — producer tab tak "success" nahi maanega jab tak saare replicas ne message confirm na kar diya ho. Slow thoda hoga, lekin data loss ka risk kam. Ye UPI transaction jaisa hai — jab tak dono bank confirm na karein, transaction "pending" hi rehta hai.
 
 ### Topic provisioning (programmatic)
 
@@ -83,13 +79,13 @@ public class KafkaTopics {
         return TopicBuilder.name("orders.placed")
             .partitions(6)
             .replicas(3)
-            .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")   // 7 days
+            .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")   // 7 din
             .build();
     }
 }
 ```
 
-Spring creates these on startup if they don't exist (only against brokers that allow it).
+Kya hota hai yaha? Spring startup pe check karta hai ki ye topic exist karta hai ya nahi, agar nahi karta to bana deta hai (bas condition ye hai ki broker aisa karne de — production mein zyada tar teams isse disable rakhte hain aur topics ko manually/Terraform se banate hain).
 
 ### Producer
 
@@ -106,8 +102,8 @@ public class OrderEventPublisher {
     public void publishPlaced(OrderPlacedEvent ev) {
         var record = new ProducerRecord<>(
             "orders.placed",
-            null,                              // partition (null = let partitioner pick)
-            ev.orderId().toString(),           // KEY — same key → same partition (ordering)
+            null,                              // partition (null = partitioner khud choose kare)
+            ev.orderId().toString(),           // KEY — same key → same partition (ordering guarantee)
             ev
         );
         record.headers().add("event-type",
@@ -123,11 +119,16 @@ public class OrderEventPublisher {
 }
 ```
 
-Synchronous version (slower but simpler):
+Key kyun important hai? Agar tum `orderId` ko key bana doge, to us particular order se related saare events hamesha usi partition mein jaayenge — matlab unka order guaranteed maintain rahega. Zomato ke context mein socho: ek order ke "placed", "confirmed", "picked up", "delivered" events agar alag-alag partitions mein chale gaye to unka processing order bigad sakta hai. Key set karke ye risk khatam ho jaata hai.
+
+Synchronous version (dheeme lekin simple):
 
 ```java
 kafka.send("orders.placed", key, value).get(5, TimeUnit.SECONDS);
 ```
+
+> [!tip] Async vs Sync
+> `.get()` call karke tum wait karoge jab tak broker confirm na kare — throughput kam ho jaata hai. Production mein zyadatar async (`whenComplete`) hi use hota hai, jaise upar ke pehle example mein dikhaya.
 
 ### Consumer
 
@@ -145,17 +146,19 @@ public class OrderEventListener {
 
         try {
             email.sendConfirmation(ev);
-            ack.acknowledge();          // commit offset
+            ack.acknowledge();          // offset commit karo
         } catch (TransientException e) {
-            // don't ack → re-poll same offset; OR rethrow for retry handler
+            // ack mat karo → same offset dobara poll hoga; YA rethrow karo retry handler ke liye
             throw e;
         } catch (Exception e) {
-            // don't ack — leave to error handler / DLT
+            // ack mat karo — error handler / DLT ke bharose chhodo
             throw e;
         }
     }
 }
 ```
+
+`@KafkaListener` basically ek annotation-based way hai kehne ka "is method ko is topic ke messages ke liye call karo." `Acknowledgment ack` param manual commit ke liye hai — jab tak tum `ack.acknowledge()` nahi bologe, Kafka soch lega ki tumne message process nahi kiya, aur agli baar retry karega. Ye at-least-once delivery ka core mechanism hai.
 
 ### Batch consumer
 
@@ -168,7 +171,7 @@ public void onBatch(List<OrderPlacedEvent> batch, Acknowledgment ack) {
 }
 ```
 
-Set `listener.type: batch` and provide a batch-aware factory.
+`listener.type: batch` set karo aur ek batch-aware factory provide karo. Batch consumer tab kaam aata hai jab ek-ek message process karna slow ho — jaise DB writes batch mein karna zyada efficient hota hai (BigBasket order ke case mein 1000 items ek-ek karke insert karne se accha hai 100-100 ke batch mein insert karna).
 
 ### Error handling — retries + DLT
 
@@ -183,7 +186,7 @@ public class KafkaErrorConfig {
 
         var backoff = new ExponentialBackOff(1_000L, 2.0);
         backoff.setMaxInterval(30_000L);
-        backoff.setMaxElapsedTime(120_000L);    // give up after 2 min
+        backoff.setMaxElapsedTime(120_000L);    // 2 minute baad haar maan lo
 
         var handler = new DefaultErrorHandler(recoverer, backoff);
         handler.addNotRetryableExceptions(IllegalArgumentException.class);
@@ -192,7 +195,9 @@ public class KafkaErrorConfig {
 }
 ```
 
-After all retries fail, the message goes to `orders.placed.DLT`. See [[06-Dead-Letter-Queues]].
+Socho ek delivery boy (consumer) ek order process karne ki koshish kar raha hai, lekin baar-baar fail ho raha hai. Ye code bolta hai: "1 second wait karo, dobara try karo. Fail hua? 2 second wait karo. Fir fail? 4 second..." — exponential backoff. Aur agar 2 minute mein bhi successful nahi hua, to message ko "orders.placed.DLT" (Dead Letter Topic) mein daal do, taaki baad mein manually inspect kar sako. Detail ke liye [[06-Dead-Letter-Queues]] dekho.
+
+`IllegalArgumentException` jaisi exceptions ko "not retryable" mark karna important hai — kyunki agar data hi galat hai (jaise malformed JSON), to 10 baar retry karne se bhi kuch nahi badlega, sirf time waste hoga.
 
 ### Transactional producer + consumer
 
@@ -208,13 +213,13 @@ spring:
 public void doWork() {
     kafka.send("topic-a", payload1);
     kafka.send("topic-b", payload2);
-    // both commit atomically OR both abort
+    // dono commit honge atomically YA dono abort ho jaayenge
 }
 ```
 
-Combined with `read_committed` consumers, gives you exactly-once semantics across Kafka topics. **Doesn't span DB transactions** — for that, use the [[../10-Microservices/11-Outbox-Pattern]].
+Ye `read_committed` consumers ke saath combine karke tumhe Kafka topics ke aar-paar exactly-once semantics deta hai. Lekin dhyan rakho — **ye DB transactions ke saath span nahi karta**. Matlab agar tum ek hi method mein DB save aur Kafka publish dono kar rahe ho, to ye transaction unhe atomically link nahi karega. Uske liye [[../10-Microservices/11-Outbox-Pattern]] use karo.
 
-### Schema evolution with Avro / Schema Registry
+### Schema evolution Avro / Schema Registry ke saath
 
 ```xml
 <dependency>
@@ -233,7 +238,7 @@ spring:
         schema.registry.url: http://schema-registry:8081
 ```
 
-Avro + Schema Registry catches incompatible schema changes at producer-time, not at consumer-runtime.
+Kyun zaruri hai ye? Socho tumne ek event ka schema badal diya (field remove ya rename kar diya), aur consumer ko pata hi nahi chala — runtime mein crash. Avro + Schema Registry ye galti producer-time pe hi pakad leta hai, consumer ke crash hone se pehle. Ye ek tarah ka "TypeScript ka type-check" hai lekin producer aur consumer ke beech, alag services mein.
 
 ### Testcontainers test
 
@@ -258,6 +263,8 @@ class OrderEventIT {
 }
 ```
 
+Ye test asli Docker container mein Kafka spin up karta hai, message publish karta hai, aur verify karta hai ki consumer ne sahi se process kiya. `await()` isliye use hota hai kyunki Kafka processing async hai — message bhejte hi turant result nahi milega, thoda wait karna padega.
+
 ## Express/Node comparison
 
 ```typescript
@@ -274,7 +281,7 @@ await consumer.run({
   eachMessage: async ({ message }) => {
     const ev = JSON.parse(message.value!.toString());
     await sendEmail(ev);
-    // offsets auto-commit by default
+    // offsets default mein auto-commit ho jaate hain
   },
 });
 ```
@@ -288,33 +295,33 @@ await consumer.run({
 | Transactional producer | `producer.transaction()` |
 | Schema Registry | `@kafkajs/confluent-schema-registry` |
 
-Spring's listeners are more declarative; kafkajs gives you imperative control.
+Bas fark itna hai — Spring ke listeners zyada declarative hain (annotation likho aur bhool jao), jabki kafkajs tumhe imperative control deta hai (khud loop, khud error handling likho). Jo Node se aaye ho unke liye Spring thoda "magic" jaisa lagega shuru mein, lekin ek baar samajh aa gaya to boilerplate bahut kam ho jaata hai.
 
 ## Gotchas
 
-> [!warning] Auto-commit hides bugs
-> Default `enable-auto-commit=true` commits offsets every 5s — even if processing failed in between. Always use `enable-auto-commit: false` + manual ack for at-least-once.
+> [!warning] Auto-commit bugs chhupa deta hai
+> Default `enable-auto-commit=true` hoti hai to har 5 second mein offset commit ho jaata hai — chahe beech mein processing fail hi kyun na ho gayi ho. Matlab tumhara message "processed" maan liya gaya, jabki asal mein fail hua tha aur data loss ho gaya. Isliye hamesha `enable-auto-commit: false` + manual ack use karo agar at-least-once delivery chahiye.
 
-> [!warning] Number of partitions ≥ consumer threads
-> 3 partitions, 5 consumers in a group → 2 consumers idle. Plan partition count for your peak parallelism.
+> [!warning] Partitions ki sankhya ≥ consumer threads honi chahiye
+> 3 partitions hain aur group mein 5 consumers hain → 2 consumers khali baithe rahenge, kuch kaam nahi milega. Jaise agar tumhare paas sirf 3 delivery zones hain to 5 delivery boys mein se 2 idle rahenge. Apne peak parallelism ke hisaab se partition count plan karo.
 
-> [!danger] Repartitioning is painful
-> Adding partitions changes the key→partition mapping. Existing messages keyed by `customerId` stop being co-partitioned with new ones. Plan partition count up-front.
+> [!danger] Repartitioning bahut painful hai
+> Partitions badhaane se key→partition ka mapping badal jaata hai. Jo messages pehle `customerId` ke hisaab se ek partition mein jaate the, wo naye messages ke saath co-partitioned nahi rahenge — matlab ordering guarantee toot jaayegi. Isliye partition count ko shuru mein hi soch samajh kar plan karo, baad mein badalna mushkil hota hai.
 
-> [!warning] Hot keys
-> If 80% of traffic has the same key, one partition gets 80% of load. Watch partition lag; consider sub-keying.
+> [!warning] Hot keys ka masla
+> Agar 80% traffic ek hi key pe aa raha hai (jaise ek hi mega-seller ke saare orders), to ek hi partition pe 80% load pad jaayega — baaki partitions khali baithe rahenge. Partition lag monitor karo, aur zarurat pade to sub-keying consider karo (jaise `customerId + ":" + region`).
 
-> [!warning] `auto-offset-reset` semantics
-> `earliest` = read from beginning if no committed offset. `latest` = skip pre-existing messages. Wrong choice in dev → "consumer doesn't see my messages."
+> [!warning] `auto-offset-reset` ka behavior samajh lo
+> `earliest` = agar koi committed offset nahi hai to shuru se padho. `latest` = jo pehle se maujood messages hain unhe skip karo, sirf naye padho. Dev environment mein galat choice karne se ye classic bug aata hai: "mera consumer messages dekh hi nahi raha" — jabki asal mein wo sirf naye messages ka wait kar raha hai.
 
-> [!warning] Consumer rebalancing pauses
-> When a consumer joins/leaves, the group rebalances — all consumers stop briefly. With `static membership` and `cooperative-sticky` assignor, you can reduce pauses.
+> [!warning] Consumer rebalancing pause laata hai
+> Jab koi consumer group join/leave karta hai, poora group rebalance hota hai — is dauraan saare consumers thodi der ke liye ruk jaate hain. `static membership` aur `cooperative-sticky` assignor use karke ye pauses kam kiye ja sakte hain.
 
-> [!tip] Lag is your most important metric
-> `kafka_consumer_lag` per partition. Alert when sustained > N. Lag growing = consumer can't keep up.
+> [!tip] Lag sabse important metric hai
+> `kafka_consumer_lag` per partition track karo. Agar ye sustained tarike se N se upar rahe to alert lagao. Lag badhna matlab consumer processing speed se message aane ki speed zyada hai — kahin na kahin bottleneck hai.
 
-> [!tip] Use Spring Kafka Test for unit tests
-> `@EmbeddedKafka` boots an in-memory broker — fast tests without Docker. For integration tests, prefer Testcontainers.
+> [!tip] Unit tests ke liye Spring Kafka Test use karo
+> `@EmbeddedKafka` ek in-memory broker boot kar deta hai — fast tests, Docker ki zarurat nahi. Integration tests ke liye Testcontainers better hai kyunki wo real Kafka broker jaisa behavior deta hai.
 
 ## Related
 - [[01-Messaging-Concepts]]

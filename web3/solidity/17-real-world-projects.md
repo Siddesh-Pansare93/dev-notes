@@ -1,6 +1,6 @@
 # 🏗️ Chapter 17: Real-World Projects in Solidity
 
-> **Goal:** Stop reading, start building. This chapter walks you through four production-grade smart contracts, each explained line-by-line, deployed on a testnet, and extended with real tooling.
+> **Goal:** Ab bas padhna band karo, banana shuru karo. Is chapter mein hum four production-grade smart contracts banayenge — har ek line-by-line samjhaya gaya hai, testnet pe deploy kiya gaya hai, aur real tooling ke saath extend kiya gaya hai.
 
 ---
 
@@ -18,7 +18,7 @@
 
 ## 1. Environment Setup (Hardhat)
 
-Before writing a single line of Solidity, get your toolchain ready.
+Solidity ki ek bhi line likhne se pehle, apna toolchain ready karlo.
 
 ### 1.1 Install Dependencies
 
@@ -59,7 +59,7 @@ PRIVATE_KEY=0xYOUR_PRIVATE_KEY
 ETHERSCAN_API_KEY=YOUR_ETHERSCAN_KEY
 ```
 
-> **Security tip:** Add `.env` to `.gitignore` immediately. Never push private keys.
+> **Security tip:** `.env` ko turant `.gitignore` mein daal do. Kabhi bhi private key GitHub pe push mat karna — ye bilkul aisa hai jaise apna ATM PIN public repo mein daal dena.
 
 ### 1.4 Project Folder Structure
 
@@ -88,9 +88,9 @@ my-solidity-projects/
 
 ## 2. Project 1 — ERC-20 Token (MyToken)
 
-### 2.1 What Is ERC-20?
+### 2.1 ERC-20 Kya Hota Hai?
 
-ERC-20 is the Ethereum standard interface for fungible tokens — tokens where every unit is identical (like dollars or loyalty points). Every major token you've heard of (USDC, DAI, UNI) follows this standard.
+ERC-20 Ethereum ka standard interface hai fungible tokens ke liye — matlab jaha har unit identical hoti hai (jaise rupaye ya loyalty points). Zomato ke wallet credits socho: 1 credit = 1 credit, koi farak nahi kaunsa credit hai. Har bada token jo tumne suna hai (USDC, DAI, UNI) isi standard ko follow karta hai.
 
 ### 2.2 Architecture Diagram
 
@@ -107,7 +107,7 @@ graph TD
 
 ### 2.3 From Scratch Implementation
 
-Understanding the raw implementation teaches you what OpenZeppelin abstracts away.
+Raw implementation samajhne se pata chalta hai ki OpenZeppelin actually kitna kaam chupa deta hai humse.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -279,7 +279,7 @@ contract MyToken {
 
 ### 2.4 OpenZeppelin Version (Production Ready)
 
-In real projects, use OpenZeppelin — it's audited, battle-tested, and saves hundreds of lines.
+Real projects mein OpenZeppelin use karo — ye audited hai, battle-tested hai, aur sau-do-sau lines bacha deta hai. Socho khud ka payment gateway banane ke bajaye Razorpay/Stripe use karna — wheel reinvent karne ki zarurat nahi.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -427,18 +427,18 @@ describe("MyToken", function () {
 
 ### 2.8 Extension Ideas
 
-- **Capped supply** — add `ERC20Capped` to enforce a maximum total supply
-- **Snapshot** — `ERC20Snapshot` for DAO voting power at specific blocks
-- **Pausable** — freeze transfers during emergencies
-- **Permit (EIP-2612)** — gasless approvals using `ERC20Permit`
+- **Capped supply** — `ERC20Capped` add karo taaki maximum total supply enforce ho
+- **Snapshot** — `ERC20Snapshot`, specific blocks pe DAO voting power ke liye
+- **Pausable** — emergency mein transfers freeze karne ke liye
+- **Permit (EIP-2612)** — `ERC20Permit` use karke gasless approvals
 
 ---
 
 ## 3. Project 2 — ERC-721 NFT Contract
 
-### 3.1 What Is ERC-721?
+### 3.1 ERC-721 Kya Hota Hai?
 
-ERC-721 defines the standard for Non-Fungible Tokens (NFTs). Unlike ERC-20, each token has a unique ID and cannot be exchanged 1:1 with another — they represent ownership of a distinct item: art, land, a gaming character.
+ERC-721 Non-Fungible Tokens (NFTs) ka standard define karta hai. ERC-20 ke ulat, har token ka apna unique ID hota hai aur usko kisi doosre token se 1:1 exchange nahi kiya ja sakta — ye kisi distinct cheez ke ownership ko represent karta hai: art, zameen, ek gaming character. Socho ye jaise IRCTC ki confirmed train ticket — har ticket unique hai, seat number ke saath, do tickets kabhi identical nahi honge.
 
 ### 3.2 Architecture Diagram
 
@@ -643,7 +643,7 @@ contract MyNFT is ERC721, ERC721Royalty, Ownable, ReentrancyGuard {
 
 ### 3.4 IPFS Metadata Format
 
-Each token needs a JSON file on IPFS. Example for `42.json`:
+Har token ko IPFS pe ek JSON file chahiye. `42.json` ka example dekho:
 
 ```json
 {
@@ -658,7 +658,7 @@ Each token needs a JSON file on IPFS. Example for `42.json`:
 }
 ```
 
-Upload your images + JSON folder to [Pinata](https://pinata.cloud) or [NFT.Storage](https://nft.storage) to get your `ipfs://QmHash/` base URI.
+Apni images + JSON folder [Pinata](https://pinata.cloud) ya [NFT.Storage](https://nft.storage) pe upload karo taaki tumhe `ipfs://QmHash/` base URI mil jaye.
 
 ### 3.5 Deployment Script
 
@@ -708,18 +708,18 @@ console.log(`Royalty: ${ethers.formatEther(amount)} ETH to ${receiver}`);
 
 ### 3.7 Extension Ideas
 
-- **Allowlist / Whitelist** — use Merkle Tree proofs for presale
-- **Dutch Auction** — price decreases over time until sold out
-- **Soulbound tokens** — override `transferFrom` to revert (non-transferable)
-- **Staking NFTs** — lock NFT to earn ERC-20 rewards (see Project 3!)
+- **Allowlist / Whitelist** — presale ke liye Merkle Tree proofs use karo
+- **Dutch Auction** — price time ke saath kam hota jaata hai jab tak sold out na ho jaye
+- **Soulbound tokens** — `transferFrom` ko override karke revert karao (non-transferable)
+- **Staking NFTs** — NFT ko lock karke ERC-20 rewards kamao (dekho Project 3!)
 
 ---
 
 ## 4. Project 3 — Staking Contract (Simple DeFi)
 
-### 4.1 What Is Staking?
+### 4.1 Staking Kya Hota Hai?
 
-Staking lets users lock their tokens into a contract to earn rewards over time — similar to a savings account with interest. This is the foundation of most DeFi protocols.
+Staking mein users apne tokens ko ek contract mein lock kar dete hain aur time ke saath rewards kamate hain — bilkul ek fixed deposit (FD) ki tarah jisme interest milta hai. Ye zyada tar DeFi protocols ka foundation hai.
 
 **Real use cases:** Uniswap liquidity mining, Curve gauge rewards, protocol-owned liquidity.
 
@@ -956,6 +956,9 @@ contract StakingContract is Ownable, ReentrancyGuard {
 }
 ```
 
+> [!tip]
+> `accRewardPerShare` pattern samajhna thoda tricky lagta hai shuru mein, lekin ye basically ek running total hai — "har ek staked token ne ab tak kitna reward kamaya hai". Jab bhi koi deposit/withdraw karta hai, hum pehle is total ko update karte hain (`_updatePool`), phir user ka `rewardDebt` set karte hain taaki wo dobara wahi purane rewards claim na kar sake. Bilkul waise jaise CRED pe purane transactions dobara reward na de.
+
 ### 4.4 Deployment Script
 
 ```javascript
@@ -1017,18 +1020,18 @@ await staking.withdraw(amount);
 
 ### 4.6 Extension Ideas
 
-- **Lock period** — prevent withdrawal for N days to reduce sell pressure
-- **Multiplier** — longer lockups earn bonus reward rate
-- **Multi-pool** — support multiple stake/reward token pairs in one contract
-- **Compound** — auto-stake rewards back into the pool
+- **Lock period** — N din tak withdrawal rokna, taaki sell pressure kam ho
+- **Multiplier** — lambi lockups pe bonus reward rate
+- **Multi-pool** — ek hi contract mein multiple stake/reward token pairs support karna
+- **Compound** — rewards ko wapas pool mein auto-stake kar dena
 
 ---
 
 ## 5. Project 4 — DAO Governance
 
-### 5.1 What Is a DAO?
+### 5.1 DAO Kya Hota Hai?
 
-A Decentralized Autonomous Organization (DAO) is a community governed by smart contracts. Token holders vote on proposals — no CEO, no board. Examples: Uniswap DAO, Compound, MakerDAO.
+Decentralized Autonomous Organization (DAO) ek aisi community hai jo smart contracts se govern hoti hai. Token holders proposals pe vote karte hain — na koi CEO, na koi board. Examples: Uniswap DAO, Compound, MakerDAO. Socho apne housing society ki general body meeting jaisa — jitne "shares" (tokens) tumhare paas hain, utna vote weight — bas fark itna hai ki yaha meeting on-chain hoti hai aur result automatically execute ho jaata hai.
 
 ### 5.2 Architecture Diagram
 
@@ -1339,6 +1342,9 @@ contract DAOGovernance is ReentrancyGuard {
 }
 ```
 
+> [!warning]
+> `castVote` mein comment dekho — "current token balance as vote weight" use karna production mein risky hai. Koi bhi voting se pehle exchange se tokens borrow karke (flash loan) apna vote weight badha sakta hai, vote daal sakta hai, aur turant tokens wapas kar sakta hai. Isiliye production DAOs (jaise Compound, Uniswap) `getPastVotes()` use karte hain — jo ek fixed past block ka snapshot leta hai, taaki last-minute manipulation na ho sake.
+
 ### 5.4 Deployment Script
 
 ```javascript
@@ -1445,10 +1451,10 @@ it("full proposal lifecycle", async function() {
 
 ### 5.7 Extension Ideas
 
-- **Timelock** — add a mandatory delay between pass and execution (security)
-- **Delegation** — let token holders delegate votes without losing tokens
-- **Quadratic voting** — reduce whale dominance (votes = sqrt(tokens))
-- **Snapshot.org** — off-chain signaling before expensive on-chain execution
+- **Timelock** — pass hone aur execute hone ke beech ek mandatory delay (security ke liye)
+- **Delegation** — token holders apne votes delegate kar sakein bina tokens khoye
+- **Quadratic voting** — whale dominance kam karne ke liye (votes = sqrt(tokens))
+- **Snapshot.org** — mehenge on-chain execution se pehle off-chain signaling
 
 ---
 
@@ -1461,37 +1467,37 @@ it("full proposal lifecycle", async function() {
 | Staking | Custom DeFi | accRewardPerShare, rewardDebt | Yield farming, liquidity mining |
 | DAO | EIP-20 Votes | proposals, quorum, execution | Protocol governance, community treasuries |
 
-### Common Patterns Across All Projects
+### Sabhi Projects Mein Common Patterns
 
-- **`nonReentrant`** — Always protect functions that send ETH or tokens
-- **`SafeERC20`** — Use when interacting with unknown/external tokens
-- **Events** — Emit events for every meaningful state change (UIs depend on them)
-- **`onlyOwner`** — Protect admin functions with access control
-- **`require` early** — Validate inputs at the top of every function (fail fast)
-- **`immutable`** — Use for constructor-set addresses (saves gas)
+- **`nonReentrant`** — Jo bhi function ETH ya tokens bhejta hai, usse hamesha protect karo
+- **`SafeERC20`** — Unknown/external tokens ke saath interact karte waqt use karo
+- **Events** — Har meaningful state change pe event emit karo (UIs inhi pe depend karte hain)
+- **`onlyOwner`** — Admin functions ko access control se protect karo
+- **`require` early** — Har function ke top mein hi inputs validate karo (fail fast)
+- **`immutable`** — Constructor mein set hone wale addresses ke liye use karo (gas bachta hai)
 
 ---
 
 ## 7. 🚀 Next Steps
 
-### Immediate (This Week)
-- [ ] Deploy all four contracts to Sepolia testnet
-- [ ] Verify contracts on Etherscan: `npx hardhat verify --network sepolia CONTRACT_ADDR arg1 arg2`
-- [ ] Write comprehensive tests targeting 100% line coverage: `npx hardhat coverage`
-- [ ] Interact via Etherscan's "Write Contract" UI (no frontend needed)
+### Immediate (Is Hafte)
+- [ ] Charon contracts ko Sepolia testnet pe deploy karo
+- [ ] Contracts ko Etherscan pe verify karo: `npx hardhat verify --network sepolia CONTRACT_ADDR arg1 arg2`
+- [ ] 100% line coverage target karke comprehensive tests likho: `npx hardhat coverage`
+- [ ] Etherscan ke "Write Contract" UI se interact karo (frontend ki zaroorat nahi)
 
-### Short-Term (This Month)
-- [ ] Add a frontend using Next.js + wagmi + viem
-- [ ] Integrate your ERC-721 with OpenSea testnet
-- [ ] Connect ERC-20 token to your staking contract
-- [ ] Build a governance UI showing proposal states in real time
+### Short-Term (Is Mahine)
+- [ ] Next.js + wagmi + viem se ek frontend add karo
+- [ ] Apne ERC-721 ko OpenSea testnet se integrate karo
+- [ ] ERC-20 token ko apne staking contract se connect karo
+- [ ] Real time mein proposal states dikhane wala governance UI banao
 
 ### Security Before Mainnet
-- [ ] Get a professional audit (Code4rena, Sherlock, or a solo auditor)
-- [ ] Run Slither static analyzer: `pip install slither-analyzer && slither .`
-- [ ] Run Echidna fuzzer on critical math (reward calculation, vote counting)
-- [ ] Review OpenZeppelin's security checklist
-- [ ] Add a bug bounty program (Immunefi)
+- [ ] Professional audit karwao (Code4rena, Sherlock, ya ek solo auditor)
+- [ ] Slither static analyzer chalao: `pip install slither-analyzer && slither .`
+- [ ] Critical math (reward calculation, vote counting) pe Echidna fuzzer chalao
+- [ ] OpenZeppelin ka security checklist review karo
+- [ ] Bug bounty program add karo (Immunefi)
 
 ### Advanced Topics to Explore
 - **ERC-4626** — Tokenized vaults (yield strategies)
@@ -1502,8 +1508,8 @@ it("full proposal lifecycle", async function() {
 
 ---
 
-> **Remember:** Every contract that holds user funds is a target. Write tests first, audit before mainnet, and always give users a way out. The best smart contracts are simple, audited, and battle-tested.
+> **Yaad rakhna:** Jo bhi contract user funds hold karta hai, wo ek target hai. Pehle tests likho, mainnet se pehle audit karwao, aur users ko hamesha bahar nikalne ka raasta do. Best smart contracts simple hote hain, audited hote hain, aur battle-tested hote hain.
 
 ---
 
-*Chapter 17 complete. You now have four production-grade contracts, a Hardhat workspace, deployment scripts, and interaction patterns. The rest is iteration.*
+*Chapter 17 complete. Ab tumhare paas four production-grade contracts hain, ek Hardhat workspace hai, deployment scripts hain, aur interaction patterns hain. Baaki sab iteration hai.*

@@ -2,19 +2,19 @@
 
 > **Chapter 5** — Performance and Scaling for Your First Real SQL Project
 
-You have a working social network schema. Users can follow each other, post content, and like posts. Now imagine your app goes viral overnight and you wake up to 500,000 users hitting your database at the same time. This chapter is about not letting that moment break you.
+Tumhara social network schema ready hai — users follow kar sakte hain, post kar sakte hain, like kar sakte hain. Ab socho ek din tumhara app raatoraat viral ho jaata hai aur subah uthte hi dekhte ho 500,000 users ek saath tumhare database pe hit kar rahe hain. Yeh chapter isi moment ke liye hai — taaki woh moment tumhe todhe na.
 
-We will cover every layer of the performance stack — from the right indexes to read replicas, from the N+1 trap in Prisma to the infamous celebrity problem. By the end, you will understand how production systems at real scale are structured.
+Hum performance stack ki har layer cover karenge — sahi indexes se leke read replicas tak, Prisma ke N+1 trap se leke us famous "celebrity problem" tak. End tak tumhe samajh aa jaayega ki real production systems bade scale pe kaise structure kiye jaate hain.
 
 ---
 
-## 🗂️ The Index Strategy
+## 🗂️ Index Strategy
 
-An index is a separate data structure your database maintains so it can find rows without scanning the entire table. Think of it like a book's index — instead of reading every page to find "pagination", you look it up in the back and jump straight there.
+Kya hota hai index? Ek index basically ek separate data structure hai jo tumhara database maintain karta hai taaki poori table scan kiye bina rows dhoondh sake. Bilkul kisi book ke index jaisa — "pagination" topic dhoondhne ke liye tum har page nahi palatte, seedha peeche index mein dekhte ho aur exact page pe pahunch jaate ho.
 
-Without indexes, every query that filters or sorts data performs a **sequential scan** — reading every single row. On a table with 10 million posts, that is catastrophically slow.
+Bina index ke, koi bhi query jo filter ya sort karti hai, woh **sequential scan** karti hai — matlab har single row padhti hai. 10 million posts wali table pe yeh bilkul disaster level slow hai.
 
-### Core Indexes for a Social Network
+### Social Network Ke Liye Core Indexes
 
 ```sql
 -- Feed queries: "show me posts by user X, newest first, excluding deleted"
@@ -47,9 +47,9 @@ CREATE INDEX idx_notifications_user_read
   WHERE read_at IS NULL;
 ```
 
-### Reading EXPLAIN ANALYZE Output
+### EXPLAIN ANALYZE Kaise Padhein?
 
-`EXPLAIN ANALYZE` runs the query and shows you exactly what the planner did and how long each step took. Always read it top to bottom (innermost step first).
+`EXPLAIN ANALYZE` actually query ko run karta hai aur tumhe bata deta hai ki planner ne exactly kya kiya aur har step mein kitna time laga. Isko hamesha upar se neeche padho (innermost step sabse pehle).
 
 ```sql
 EXPLAIN ANALYZE
@@ -62,42 +62,42 @@ ORDER BY p.created_at DESC
 LIMIT 20;
 ```
 
-**Without the index — sequential scan:**
+**Bina index ke — sequential scan:**
 ```
 Seq Scan on posts  (cost=0.00..48210.00 rows=23 width=512)
                    (actual time=0.042..892.331 rows=23 loops=1)
   Filter: ((user_id = 42) AND (deleted_at IS NULL))
   Rows Removed by Filter: 1999977
 Planning Time: 0.8 ms
-Execution Time: 892.4 ms   ← nearly 1 second!
+Execution Time: 892.4 ms   ← lagbhag 1 second!
 ```
 
-**With `idx_posts_user_created` — index scan:**
+**`idx_posts_user_created` ke saath — index scan:**
 ```
 Index Scan using idx_posts_user_created on posts
   (cost=0.56..98.34 rows=23 width=512)
   (actual time=0.031..0.187 rows=23 loops=1)
   Index Cond: (user_id = 42)
 Planning Time: 0.7 ms
-Execution Time: 0.3 ms     ← 3000x faster
+Execution Time: 0.3 ms     ← 3000x tez
 ```
 
-**Key things to look for in EXPLAIN ANALYZE:**
-- `Seq Scan` on a large table — almost always means a missing index
-- `rows=X` estimate vs `actual rows=Y` — if they diverge wildly, run `ANALYZE` to refresh statistics
-- `Execution Time` at the bottom — this is your baseline to beat
+**EXPLAIN ANALYZE mein yeh cheezein dhundo:**
+- Kisi badi table pe `Seq Scan` — matlab almost hamesha koi index missing hai
+- `rows=X` estimate vs `actual rows=Y` — agar yeh dono bahut alag hain, `ANALYZE` chalao taaki statistics refresh ho jaayein
+- Neeche `Execution Time` — yehi tumhara baseline hai jise beat karna hai
 
-> **Rule of thumb:** Any query running over 100ms in your app is a candidate for optimization. Any query over 500ms is a fire to put out.
+> **Rule of thumb:** Koi bhi query jo app mein 100ms se zyada leti hai, woh optimization ka candidate hai. 500ms se upar wali query toh aag bujhaane wali emergency hai.
 
 ---
 
-## 🔁 The N+1 Problem
+## 🔁 N+1 Problem
 
-The N+1 problem is the most common performance mistake developers make when using ORMs like Prisma. It happens when you fetch a list of N items and then run one additional query for each item to get related data — resulting in N+1 total queries instead of 1.
+N+1 problem woh sabse common mistake hai jo developers Prisma jaise ORMs use karte waqt karte hain. Yeh tab hota hai jab tum N items ki list fetch karte ho aur phir har item ke liye ek extra query chalate ho related data ke liye — result mein N+1 total queries ban jaati hain, jabki 1 hi kaafi thi.
 
-### How It Hides in Prisma Code
+### Prisma Code Mein Yeh Kaise Chhup Jaata Hai
 
-This looks completely fine at first glance:
+Pehli nazar mein yeh bilkul theek lagta hai:
 
 ```typescript
 // BAD: N+1 problem
@@ -120,9 +120,9 @@ async function getFeedWithComments(userId: number) {
 }
 ```
 
-When this runs, your database sees: 1 query for posts + 20 queries for comments = **21 round trips**. At 1ms per query, that is 21ms of pure database overhead before you even process data. At 100 posts, it is 101ms. At 1000 posts, over a second.
+Jab yeh run hota hai, tumhara database dekhta hai: posts ke liye 1 query + comments ke liye 20 queries = **21 round trips**. 1ms per query ke hisaab se, yeh 21ms ka pure database overhead hai — data process karne se pehle hi. 100 posts pe yeh 101ms ban jaata hai. 1000 posts pe, ek second se zyada.
 
-### The Fix: Use `include` or Join in One Query
+### Fix: `include` Ya Ek Hi Query Mein Join
 
 ```typescript
 // GOOD: One query with a JOIN under the hood
@@ -154,9 +154,9 @@ async function getFeedWithComments(userId: number) {
 }
 ```
 
-**Prisma's actual strategy:** For `include`, Prisma does not always produce a single SQL JOIN. It often runs a small number of batched queries (one per relation type) and merges results in memory. This is still dramatically better than N+1.
+**Prisma ki actual strategy:** `include` use karne pe Prisma hamesha ek single SQL JOIN nahi banata. Zyaadatar woh thodi batched queries chalata hai (har relation type ke liye ek) aur results ko memory mein merge kar deta hai. Fir bhi yeh N+1 se kaafi behtar hai — jaise Zomato apne 20 restaurants ki details ek hi batched call mein fetch kar le, na ki har restaurant ke liye alag Ola bhejna pade.
 
-> **How to detect N+1 in development:** Set `log: ['query']` in your Prisma client config. If you see the same query repeated many times with only the ID changing, you have an N+1 problem.
+> **Development mein N+1 kaise detect karein:** Apne Prisma client config mein `log: ['query']` set karo. Agar tumhe same query baar-baar dikhe, sirf ID change ho rahi ho — toh samajh jao N+1 problem hai.
 
 ```typescript
 const prisma = new PrismaClient({
@@ -166,26 +166,26 @@ const prisma = new PrismaClient({
 
 ---
 
-## ⭐ The Celebrity Problem
+## ⭐ Celebrity Problem
 
-Imagine a user with 10 million followers posts something. How do you get that post into 10 million people's feeds?
+Socho ek user ke 10 million followers hain aur woh kuch post karta hai. Uss post ko 10 million logon ke feed tak kaise pahunchaoge?
 
-This is the **celebrity problem** (also called the **hotspot problem**), and it is one of the hardest challenges in social network engineering.
+Isko kehte hain **celebrity problem** (ya **hotspot problem**), aur yeh social network engineering ke sabse mushkil challenges mein se ek hai.
 
 ### Fan-Out on Write
 
-When the celebrity posts, immediately write a copy of that post ID into the feed cache (Redis sorted set) of every single follower.
+Jab celebrity post karta hai, turant background job chalao jo har single follower ke feed cache (Redis sorted set) mein us post ID ki copy likh de.
 
 ```
 Celebrity posts → background job → iterate 10M followers → write to each feed
 ```
 
-**Pros:** Feed reads are instant. Just fetch from your pre-built cache.
-**Cons:** One post triggers 10 million writes. If Beyoncé posts at noon, your write infrastructure spikes massively. The post takes minutes to propagate.
+**Fayda:** Feed reads instant hain. Bas apne pre-built cache se fetch karo.
+**Nuksaan:** Ek post 10 million writes trigger kar deta hai. Agar Beyoncé dopahar 12 baje post karti hai, tumhara write infrastructure massively spike ho jaata hai. Post propagate hone mein minutes lag sakte hain.
 
 ### Fan-Out on Read
 
-Store nothing up front. When a user loads their feed, query the database for posts from everyone they follow, merge and sort in real time.
+Kuch bhi pehle se store mat karo. Jab user apna feed load kare, tab database se query karo un sab logon ke posts jinko woh follow karta hai, aur real time mein merge-sort kar do.
 
 ```sql
 SELECT p.*
@@ -198,15 +198,15 @@ ORDER BY p.created_at DESC
 LIMIT 20;
 ```
 
-**Pros:** Posting is instant. No write amplification.
-**Cons:** Reading is expensive. For users following 1000 people, this query touches a lot of data. For 100,000 users loading feeds simultaneously, your database melts.
+**Fayda:** Posting instant hai. Koi write amplification nahi.
+**Nuksaan:** Reading mehengi hai. Jo user 1000 logon ko follow karta hai, uske liye yeh query kaafi data touch karti hai. Agar 100,000 users ek saath feed load karein, tumhara database pighal jaayega.
 
-### The Hybrid Approach (What Twitter Actually Did)
+### Hybrid Approach (Jo Twitter Ne Actually Kiya)
 
-Twitter's architecture used a hybrid strategy that is the industry standard:
+Twitter ka architecture ek hybrid strategy use karta tha jo aaj industry standard hai:
 
-1. **Normal users (under ~10,000 followers):** Fan-out on write. When they post, their post ID is pushed into each follower's feed cache.
-2. **Celebrity users (over ~10,000 followers):** Fan-out on read. Their posts are NOT pre-distributed. Instead, when any user loads their feed, the system fetches celebrity posts separately and merges them in at read time.
+1. **Normal users (~10,000 se kam followers):** Fan-out on write. Jab woh post karte hain, unki post ID har follower ke feed cache mein push ho jaati hai.
+2. **Celebrity users (~10,000 se zyada followers):** Fan-out on read. Unke posts pehle se distribute nahi kiye jaate. Iski jagah, jab koi bhi user apna feed load karta hai, system celebrity posts ko alag se fetch karke read time pe merge karta hai.
 
 ```
 Feed for user A =
@@ -215,17 +215,17 @@ Feed for user A =
   (real-time query for celebrity posts)  ← live database lookup
 ```
 
-This means the write spike from a celebrity post is absorbed by distributed reads instead of 10 million immediate writes. The merge step in your application layer is cheap because you are only merging two sorted lists.
+Iska matlab hai ki celebrity post ka write spike 10 million immediate writes ki jagah distributed reads mein absorb ho jaata hai. Application layer mein merge step sasta hai kyunki tum sirf do sorted lists merge kar rahe ho.
 
-For a beginner project, implement fan-out on read first. It is simpler and perfectly adequate up to tens of thousands of users. Add the hybrid approach when you actually see database strain from feed queries.
+Ek beginner project ke liye, pehle fan-out on read implement karo. Yeh simple hai aur tens of thousands of users tak bilkul theek chalta hai. Jab feed queries ki wajah se database pe real strain dikhe, tab hybrid approach add karo.
 
 ---
 
 ## 📄 Pagination: Cursor vs Offset
 
-When displaying a feed, you cannot return all posts at once. You need pagination. There are two approaches: **offset pagination** and **cursor pagination**.
+Feed dikhate waqt tum saare posts ek saath return nahi kar sakte. Pagination chahiye hi hoga. Iske do approaches hain: **offset pagination** aur **cursor pagination**.
 
-### Why Offset Pagination Breaks at Scale
+### Offset Pagination Scale Pe Kyun Toot Jaata Hai
 
 ```typescript
 // Offset pagination — looks fine, hides problems
@@ -236,13 +236,13 @@ const posts = await prisma.post.findMany({
 });
 ```
 
-**Problem 1 — Performance:** `OFFSET 2000` does not "jump" to row 2000. The database scans and discards those 2000 rows first. At page 500, you are discarding 10,000 rows on every request.
+**Problem 1 — Performance:** `OFFSET 2000` seedha row 2000 pe "jump" nahi karta. Database pehle woh 2000 rows scan karta hai aur discard karta hai. Page 500 pe, tum har request pe 10,000 rows discard kar rahe ho — bilkul waste.
 
-**Problem 2 — Data drift:** If new posts are inserted between page 1 and page 2, all row numbers shift. Users see duplicate posts on the next page or miss posts entirely.
+**Problem 2 — Data drift:** Agar page 1 aur page 2 ke beech naye posts insert ho jaayein, toh saare row numbers shift ho jaate hain. Users ko agle page pe duplicate posts dikhte hain ya posts miss ho jaate hain.
 
-### Cursor Pagination: The Right Way
+### Cursor Pagination: Sahi Tareeka
 
-Instead of "skip N rows", cursor pagination says "give me posts newer/older than this specific post ID". Because IDs are stable, data drift is eliminated. Because the database uses an index seek, performance stays constant regardless of how deep into the feed you are.
+"Skip N rows" kehne ki bajaye, cursor pagination kehta hai "mujhe is specific post ID se newer/older posts do". Chunki IDs stable hoti hain, data drift khatam ho jaata hai. Aur chunki database index seek use karta hai, performance constant rehti hai chahe tum feed mein kitni bhi gehrai tak jao.
 
 ```typescript
 async function getFeed(userId: number, cursor?: number) {
@@ -281,17 +281,17 @@ async function getFeed(userId: number, cursor?: number) {
 }
 ```
 
-The client receives `nextCursor`. To load the next page, it passes that cursor back. When `nextCursor` is `null`, the feed is exhausted.
+Client ko `nextCursor` milta hai. Agla page load karne ke liye, woh usi cursor ko wapas bhej deta hai. Jab `nextCursor` `null` ho, matlab feed khatam ho gaya.
 
-> **Important:** For cursor pagination to work correctly with `created_at DESC` ordering, your cursor column must be unique or combined with a tiebreaker. Using the post `id` (which is always unique and correlates with creation order for auto-increment IDs) works well as the cursor.
+> **Zaruri baat:** `created_at DESC` ordering ke saath cursor pagination sahi se kaam kare, iske liye cursor column unique hona chahiye ya kisi tiebreaker ke saath combine hona chahiye. Post ki `id` (jo hamesha unique hoti hai aur auto-increment IDs ke case mein creation order se correlate karti hai) cursor ke taur pe accha kaam karti hai.
 
 ---
 
 ## 📊 Denormalization: Counter Columns
 
-Every time you display a post, you probably show its like count and comment count. If you compute these with `COUNT(*)` on every page load, you are scanning the likes and comments tables constantly.
+Jab bhi tum koi post dikhate ho, uske like count aur comment count bhi dikhate ho, right? Agar yeh har page load pe `COUNT(*)` se compute karoge, toh tum likes aur comments tables ko lagataar scan kar rahe hoge — bilkul waise jaise Swiggy har order pe restaurant ka poora rating history recalculate kare instead of ek saved number dikhane ke.
 
-The solution is **denormalization** — storing derived data (the count) directly on the parent row, trading some write complexity for dramatically faster reads.
+Solution hai **denormalization** — derived data (yaani count) ko directly parent row pe store karna, thodi write complexity ke badle mein dramatically faster reads.
 
 ```sql
 ALTER TABLE posts ADD COLUMN like_count INTEGER NOT NULL DEFAULT 0;
@@ -300,11 +300,11 @@ ALTER TABLE users ADD COLUMN follower_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN following_count INTEGER NOT NULL DEFAULT 0;
 ```
 
-Now `SELECT like_count FROM posts WHERE id = $id` is a single index lookup — no join, no count.
+Ab `SELECT like_count FROM posts WHERE id = $id` ek single index lookup hai — na join, na count.
 
-### Keeping Counters Consistent: Three Approaches
+### Counters Ko Consistent Rakhne Ke Teen Tareeke
 
-**Approach 1 — Database Triggers (always consistent)**
+**Approach 1 — Database Triggers (hamesha consistent)**
 
 ```sql
 CREATE OR REPLACE FUNCTION increment_like_count()
@@ -332,9 +332,9 @@ CREATE TRIGGER after_like_delete
   FOR EACH ROW EXECUTE FUNCTION decrement_like_count();
 ```
 
-Triggers run inside the same transaction as the INSERT/DELETE. The counter is always consistent. The tradeoff is that every like operation now does two writes (likes table + posts table update).
+Triggers usi transaction ke andar chalte hain jisme INSERT/DELETE hua tha. Counter hamesha consistent rehta hai. Tradeoff yeh hai ki ab har like operation do writes karta hai (likes table + posts table update).
 
-**Approach 2 — Application Layer (race condition risk)**
+**Approach 2 — Application Layer (race condition ka risk)**
 
 ```typescript
 // Do NOT do this without transactions — race condition!
@@ -347,26 +347,26 @@ await prisma.$transaction([
 ]);
 ```
 
-Using `increment: 1` with Prisma generates `SET like_count = like_count + 1` in SQL — an atomic operation that avoids race conditions. Wrapping in a transaction ensures both writes succeed or both fail.
+`increment: 1` Prisma ke saath use karne pe SQL mein `SET like_count = like_count + 1` generate hota hai — ek atomic operation jo race conditions se bachaata hai. Transaction mein wrap karne se ensure hota hai ki dono writes ya toh success honge ya dono fail.
 
 **Approach 3 — Scheduled Reconciliation**
 
-Run a background job nightly or hourly to recompute all counters from scratch:
+Ek background job raat ko ya har ghante chalao jo saare counters ko scratch se recompute kar de:
 
 ```sql
 UPDATE posts p
 SET like_count = (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id);
 ```
 
-This is a safety net, not a primary strategy. Combine it with approach 1 or 2. It catches any drift caused by bugs, failed transactions, or manual database edits.
+Yeh ek safety net hai, primary strategy nahi. Isse approach 1 ya 2 ke saath combine karo. Yeh bugs, failed transactions, ya manual database edits se hui kisi bhi drift ko pakad leta hai.
 
 ---
 
-## 🔀 Read Replicas: Spreading the Load
+## 🔀 Read Replicas: Load Failaana
 
-In PostgreSQL, you can configure one primary (write) database and one or more replicas that receive a continuous stream of changes. Replicas are read-only. This lets you direct all SELECT queries away from your primary, freeing it to handle writes.
+PostgreSQL mein tum ek primary (write) database configure kar sakte ho aur ek ya zyada replicas jo changes ka continuous stream receive karte hain. Replicas read-only hote hain. Isse tum saari SELECT queries primary se door bhej sakte ho, aur primary sirf writes handle karta hai.
 
-With Prisma, you configure multiple datasources using the `@prisma/extension-read-replicas` package:
+Prisma ke saath, tum `@prisma/extension-read-replicas` package use karke multiple datasources configure karte ho:
 
 ```typescript
 import { PrismaClient } from '@prisma/client';
@@ -388,41 +388,41 @@ const newPost = await prisma.post.create({ data: { ... } });
 const freshPost = await prisma.$primary().post.findUnique({ where: { id: newPost.id } });
 ```
 
-**When to use `$primary()` for reads:** Immediately after a write, the replica may be a few milliseconds behind (replication lag). If you write a post and immediately redirect to the post page, the replica might not have it yet. In this case, read from primary.
+**`$primary()` ka use kab karein reads ke liye:** Write ke turant baad, replica thoda sa peeche reh sakta hai (replication lag). Agar tum post likhkar turant post page pe redirect karo, ho sakta hai replica ke paas woh data abhi na pahuncha ho. Aise case mein primary se hi read karo.
 
 ---
 
-## 🔌 Connection Pooling: PgBouncer and Prisma Accelerate
+## 🔌 Connection Pooling: PgBouncer Aur Prisma Accelerate
 
-PostgreSQL creates a process for each database connection. At 500 concurrent Node.js requests, each with its own connection, you would have 500 PostgreSQL processes — each consuming ~5-10 MB of RAM. This exhausts resources quickly.
+PostgreSQL har database connection ke liye ek process banata hai. 500 concurrent Node.js requests pe, har ek ka apna connection ho, toh tumhare paas 500 PostgreSQL processes ho jaayenge — har ek ~5-10 MB RAM khaate hue. Yeh resources ko bahut jaldi khatam kar deta hai.
 
-**PgBouncer** sits between your app and PostgreSQL. It maintains a small pool of actual connections (say, 50) and multiplexes hundreds of application connections through them. In transaction pooling mode, a database connection is only held for the duration of one transaction, then returned to the pool.
+**PgBouncer** tumhare app aur PostgreSQL ke beech baithta hai. Yeh actual connections ka ek chhota pool maintain karta hai (maano, 50) aur sainkdon application connections ko unhi se multiplex kar deta hai. Transaction pooling mode mein, ek database connection sirf ek transaction ki duration ke liye hold hota hai, phir wapas pool mein chala jaata hai.
 
-**Prisma Accelerate** is a managed connection pooler from Prisma that also adds a built-in cache layer. Configure it by replacing your direct database URL:
+**Prisma Accelerate** Prisma ka managed connection pooler hai jo saath mein ek built-in cache layer bhi deta hai. Isko configure karne ke liye bas apna direct database URL replace karo:
 
 ```
 # .env
 DATABASE_URL="prisma://accelerate.prisma-data.net/?api_key=your_key"
 ```
 
-Your Prisma code does not change at all — Accelerate handles pooling transparently.
+Tumhara Prisma code bilkul change nahi hota — Accelerate pooling ko transparently handle kar leta hai.
 
-**Connection pool sizing rule of thumb:** `connections = (2 * num_cpu_cores) + num_disk_spindles`. For a 2-core database server, ~5-10 connections is often enough. More connections does not mean more throughput — it means more contention.
+**Connection pool size ka rule of thumb:** `connections = (2 * num_cpu_cores) + num_disk_spindles`. 2-core database server ke liye, ~5-10 connections aksar kaafi hote hain. Zyada connections ka matlab zyada throughput nahi hota — iska matlab hai zyada contention.
 
 ---
 
-## ⚡ Caching with Redis
+## ⚡ Redis Ke Saath Caching
 
-A cache stores frequently read, rarely changed data in memory so you never hit the database for it. Redis is the standard choice.
+Kya hota hai cache? Cache frequently read hone waali, kam badalne waali data ko memory mein store karta hai taaki uske liye database hit hi na karna pade. Redis is field ka standard choice hai.
 
-### What to Cache
+### Kya Cache Karein
 
 | Data | TTL | Reason |
 |------|-----|--------|
-| User profile (username, avatar) | 5 minutes | Read thousands of times per second, changes rarely |
-| Post like count | 30 seconds | Slightly stale is acceptable |
-| Feed for a celebrity | 60 seconds | Saves enormous repeated computation |
-| `isFollowing(A, B)` check | 2 minutes | Repeated on every feed render |
+| User profile (username, avatar) | 5 minutes | Per second hazaaron baar read hota hai, rarely change hota hai |
+| Post like count | 30 seconds | Thoda stale chalta hai |
+| Celebrity ka feed | 60 seconds | Bahut zyada repeated computation bacha leta hai |
+| `isFollowing(A, B)` check | 2 minutes | Har feed render pe repeat hota hai |
 
 ### Redis Integration Pattern
 
@@ -460,17 +460,17 @@ async function updateUserProfile(userId: number, data: Partial<User>) {
 }
 ```
 
-**Cache invalidation** (knowing when to clear the cache) is notoriously tricky. Keep it simple: invalidate on write, use short TTLs, and accept that some data may be a few seconds stale. For a social network, seeing a like count that is 30 seconds old is perfectly acceptable.
+**Cache invalidation** (yaani kab cache clear karna hai, yeh jaanna) badnaam roop se tricky hai — jaise UPI mein "payment pending" state samajhna. Simple raho: write pe invalidate karo, short TTLs use karo, aur accept karo ki kuch data thoda seconds purana ho sakta hai. Social network ke liye, like count 30 second purana dikhna bilkul acceptable hai.
 
 ---
 
 ## 🔍 Database Monitoring
 
-You cannot optimize what you cannot see. PostgreSQL ships with powerful built-in observability tools.
+Jo tumhe dikhta hi nahi, usko optimize nahi kar sakte. PostgreSQL ke saath powerful built-in observability tools already aate hain.
 
 ### pg_stat_statements
 
-This extension tracks execution statistics for every query. Enable it in your PostgreSQL config:
+Yeh extension har query ke execution statistics track karta hai. Apne PostgreSQL config mein isko enable karo:
 
 ```sql
 -- In postgresql.conf:
@@ -492,36 +492,36 @@ ORDER BY mean_exec_time DESC
 LIMIT 10;
 ```
 
-This single query tells you exactly which SQL statements are hurting you the most. Run it weekly.
+Yeh ek hi query tumhe exactly bata deti hai kaunse SQL statements tumhe sabse zyada dukha rahe hain. Isko weekly chalao.
 
 ### Slow Query Log
 
-In `postgresql.conf`, set:
+`postgresql.conf` mein set karo:
 ```
 log_min_duration_statement = 100   # log any query taking over 100ms
 ```
 
-Slow query logs appear in your PostgreSQL log files. Ship them to a log aggregator (Datadog, Grafana Loki) so you get alerts when regressions appear.
+Slow query logs tumhare PostgreSQL log files mein aate hain. Inhe kisi log aggregator (Datadog, Grafana Loki) ko bhejo taaki regressions aane pe alert mile.
 
-### Key Metrics to Watch
+### Dekhne Layak Key Metrics
 
-- **Cache hit ratio** — should be above 95%. Below 90% means you need more RAM.
-- **Active connections** — approaching your `max_connections` limit is a sign you need a pooler.
-- **Table bloat** — DELETE/UPDATE operations leave dead rows. Run `VACUUM ANALYZE` regularly (PostgreSQL's autovacuum handles this automatically by default).
-- **Replication lag** — the delay between a write on primary and its visibility on replicas, measured in bytes or milliseconds.
+- **Cache hit ratio** — 95% se upar hona chahiye. 90% se neeche matlab tumhe zyada RAM chahiye.
+- **Active connections** — `max_connections` limit ke paas pahunchna sign hai ki tumhe ek pooler chahiye.
+- **Table bloat** — DELETE/UPDATE operations dead rows chhod jaate hain. Regularly `VACUUM ANALYZE` chalao (PostgreSQL ka autovacuum by default yeh automatically handle karta hai).
+- **Replication lag** — primary pe write aur replicas pe uski visibility ke beech ka delay, bytes ya milliseconds mein measure hota hai.
 
 ---
 
 ## 🧩 Sharding: Facebook Scale (Conceptual)
 
-Sharding means splitting your data across multiple database servers — each server owns a subset of the data. For example, users with IDs 1-1M go to shard 1, users 1M-2M go to shard 2.
+Sharding ka matlab hai apna data multiple database servers mein split karna — har server data ka ek subset apne paas rakhta hai. Jaise, IDs 1-1M waale users shard 1 mein jaayein, 1M-2M waale shard 2 mein.
 
-This is complex infrastructure you will not need until you are past millions of active users and hundreds of thousands of writes per second. Most successful startups never shard their primary database — they scale vertically (bigger machines), optimize queries, add caching, and use read replicas instead.
+Yeh complex infrastructure hai jiski zarurat tumhe tab tak nahi padegi jab tak tum millions active users aur lakhon writes-per-second cross na kar lo. Zyaadatar successful startups apna primary database kabhi shard nahi karte — woh vertically scale karte hain (bade machines), queries optimize karte hain, caching add karte hain, aur read replicas use karte hain.
 
-When you do need sharding, the key decisions are:
-- **Shard key:** What column determines which shard a row lives on? For a social network, `user_id` is the natural choice — it keeps all of a user's data co-located.
-- **Cross-shard queries:** A query that needs data from multiple shards is expensive. Design your shard key to minimize these.
-- **Tools:** Citus (PostgreSQL extension), Vitess (MySQL), or moving to a natively distributed database like CockroachDB.
+Jab sharding ki zarurat aa hi jaaye, toh yeh key decisions lene padte hain:
+- **Shard key:** Kaunsa column decide karega ki row kaunse shard pe rahegi? Social network ke liye, `user_id` natural choice hai — isse ek user ka saara data ek hi jagah rehta hai.
+- **Cross-shard queries:** Jis query ko multiple shards se data chahiye, woh mehengi padti hai. Apni shard key aise design karo ki inhe minimize kiya ja sake.
+- **Tools:** Citus (PostgreSQL extension), Vitess (MySQL), ya CockroachDB jaise natively distributed database pe move karna.
 
 ---
 
@@ -610,34 +610,34 @@ graph TB
 ## ✅ Key Takeaways
 
 **Indexes**
-- A partial index (`WHERE deleted_at IS NULL`) is smaller and faster than a full-table index.
-- Composite indexes should list the equality-filter column first, then the sort column.
-- Always `EXPLAIN ANALYZE` your queries before and after adding an index.
+- Partial index (`WHERE deleted_at IS NULL`) full-table index se chhota aur tez hota hai.
+- Composite indexes mein equality-filter column pehle list karo, phir sort column.
+- Index add karne se pehle aur baad mein hamesha `EXPLAIN ANALYZE` chalao.
 
 **N+1**
-- Use Prisma's `include` to load relations in one shot instead of looping.
-- Enable query logging in development to catch N+1 problems before they reach production.
+- Loop lagane ki bajaye Prisma ka `include` use karo taaki relations ek hi shot mein load ho jaayein.
+- Development mein query logging enable karo taaki N+1 problems production tak pahunchne se pehle hi pakad lo.
 
 **Celebrity Problem**
-- Start with fan-out on read (simpler).
-- Graduate to a hybrid approach (fan-out on write for normal users, fan-out on read for celebrities) when feed query times climb.
+- Fan-out on read se start karo (simpler hai).
+- Jab feed query times badhne lagein, tab hybrid approach pe upgrade karo (normal users ke liye fan-out on write, celebrities ke liye fan-out on read).
 
 **Pagination**
-- Cursor pagination is always the right choice for large, live datasets.
-- Pass the ID of the last item as your cursor; use `take: N+1` to detect if there is a next page.
+- Bade, live datasets ke liye cursor pagination hamesha sahi choice hai.
+- Last item ki ID ko cursor ke taur pe pass karo; next page hai ya nahi yeh detect karne ke liye `take: N+1` use karo.
 
 **Denormalization**
-- Counter columns (`like_count`, `follower_count`) are worth the write overhead.
-- Prefer database triggers for correctness; use scheduled reconciliation as a safety net.
+- Counter columns (`like_count`, `follower_count`) ka write overhead uthana worth it hai.
+- Correctness ke liye database triggers prefer karo; scheduled reconciliation ko safety net ki tarah use karo.
 
 **Infrastructure**
-- Read replicas handle read traffic; your primary only handles writes.
-- A connection pooler (PgBouncer or Prisma Accelerate) is mandatory in production.
-- Cache user profiles, post counts, and computed feeds in Redis with appropriate TTLs.
-- `pg_stat_statements` is your best friend for finding slow queries.
+- Read replicas read traffic handle karte hain; tumhara primary sirf writes handle karta hai.
+- Production mein connection pooler (PgBouncer ya Prisma Accelerate) mandatory hai.
+- User profiles, post counts, aur computed feeds ko Redis mein appropriate TTLs ke saath cache karo.
+- Slow queries dhundhne ke liye `pg_stat_statements` tumhara best friend hai.
 
 **Sharding**
-- You almost certainly do not need it yet. Optimize first, scale vertically second, shard last.
+- Almost certainly tumhe abhi iski zarurat nahi hai. Pehle optimize karo, phir vertically scale karo, sharding sabse last mein.
 
 ---
 

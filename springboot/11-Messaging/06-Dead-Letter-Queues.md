@@ -1,17 +1,13 @@
----
-tags: [messaging, dlq, dlt, error-handling]
-aliases: [Dead Letter Queue, DLQ, Dead Letter Topic, DLT]
-stage: advanced
----
-
 # Dead Letter Queues (DLQ / DLT)
 
-> [!info] For the Express/TS dev
-> When a consumer can't process a message after retries, you don't want it spinning forever blocking the queue. A **dead letter queue** (RabbitMQ) or **dead letter topic** (Kafka) is the parking lot — the message moves there, the main queue drains, and humans (or another job) deal with it. Same idea as `bullmq`'s "failed jobs" tab.
+> [!info] Express/TS dev ke liye
+> Jab ek consumer kisi message ko retries ke baad bhi process nahi kar paata, toh usse queue mein hamesha ke liye atkaake nahi rakhna chahiye — nahi toh poora queue jam ho jaayega. Ek **dead letter queue** (RabbitMQ mein) ya **dead letter topic** (Kafka mein) basically ek "parking lot" hai — problematic message wahaan shift ho jaata hai, main queue clear ho jaati hai, aur baad mein koi insaan (ya replay job) us message ko dekhta hai. Bilkul `bullmq` ke "failed jobs" tab jaisa concept hai.
 
 ## Concept
 
-The lifecycle:
+**Kya hota hai?** Socho tum Swiggy pe order place karte ho, aur restaurant ka system order accept nahi kar paata — kabhi network issue, kabhi corrupt data. Ab agar Swiggy ka backend usi order ko baar-baar retry karta rahe bina kabhi give up kiye, toh poori queue jam ho jaayegi aur baaki sab orders bhi atak jaayenge. Isliye ek smart system kya karta hai — kuch retries ke baad, agar order phir bhi fail ho raha hai, toh use ek "problem orders" bucket mein daal deta hai. Support team baad mein us bucket ko dekh ke manually resolve karti hai. Yehi DLQ hai.
+
+Poora lifecycle aise samjho:
 
 ```
             success → ack
@@ -32,24 +28,24 @@ The lifecycle:
        └───────────┘
 ```
 
-### What goes in a DLQ
+### DLQ mein kya jaata hai?
 
-- **Poison messages** — malformed, unparseable.
-- **Persistent failures** — downstream is gone, validation always fails.
-- **Bugs** — your code can't handle this case yet.
+- **Poison messages** — jo malformed hain, parse hi nahi ho paate.
+- **Persistent failures** — downstream service down hai, ya validation hamesha fail ho rahi hai.
+- **Bugs** — tumhara code abhi tak us case ko handle nahi kar sakta.
 
-### What you do with DLQ messages
+### DLQ mein pade messages ka kya karein?
 
-- Inspect them (UI, log search).
-- Fix the bug, redeploy, replay messages.
-- Ignore (with audit) — known-bad data.
-- Alert: "DLQ has > 0 messages" should be a **page**.
+- Inspect karo (UI se, ya log search se).
+- Bug fix karo, redeploy karo, phir messages replay karo.
+- Ignore karo (par audit trail ke saath) — agar pata hai data hi galat tha.
+- Alert set karo: "DLQ mein > 0 messages hain" — yeh ek **page** (on-call alert) hona chahiye, koi normal log nahi.
 
 ## Code example
 
 ### RabbitMQ DLQ
 
-Declare a queue with DLX (dead letter exchange):
+**Kyun zaruri hai?** RabbitMQ mein DLQ setup karne ke liye ek DLX (dead letter exchange) declare karna padta hai — jab bhi koi message reject hota hai ya expire hota hai, RabbitMQ use automatically DLX ke through DLQ mein bhej deta hai.
 
 ```java
 @Configuration
@@ -77,7 +73,7 @@ public class RabbitDlqConfig {
 }
 ```
 
-When a message is **rejected without requeue** (`basicNack(tag, false, false)`) or expires (TTL), RabbitMQ routes it to the DLX → DLQ.
+Jab koi message **requeue kiye bina reject** hota hai (`basicNack(tag, false, false)`) ya TTL expire ho jaata hai, RabbitMQ use DLX ke through DLQ mein route kar deta hai.
 
 ```java
 @RabbitListener(queues = "email.queue")
@@ -94,9 +90,11 @@ public void on(EmailJob job, Channel ch, @Header(AmqpHeaders.DELIVERY_TAG) long 
 }
 ```
 
-Spring's retry interceptor handles transient retries; after `max-attempts` it does the final `nack(requeue=false)` → DLQ.
+Spring ka retry interceptor transient failures ke liye automatic retry karta hai; `max-attempts` hit hone ke baad woh final `nack(requeue=false)` call karta hai → seedha DLQ mein.
 
 ### Kafka DLT (Dead Letter Topic)
+
+Kafka mein isko "DLQ" nahi, "DLT" (Dead Letter Topic) kehte hain — kyunki Kafka mein sab kuch topic hai, queue nahi.
 
 ```java
 @Configuration
@@ -130,9 +128,9 @@ public class KafkaErrorConfig {
 }
 ```
 
-Failed messages go to `<topic>.DLT` with original headers + a `kafka_dlt-exception-fqcn` header so you can see why.
+Failed messages `<topic>.DLT` mein jaate hain — original headers ke saath, plus ek `kafka_dlt-exception-fqcn` header jisse pata chalta hai ki failure kis exception ki wajah se hua.
 
-### Inspecting a DLT message
+### DLT message ko inspect karna
 
 ```java
 @KafkaListener(topics = "orders.placed.DLT", groupId = "dlt-monitor")
@@ -147,7 +145,7 @@ public void onDlt(ConsumerRecord<String, byte[]> record,
 
 ### Non-Blocking Retries (Spring Kafka 2.7+)
 
-For Kafka, blocking retries (sleep + retry) hold up the partition. Non-blocking retries shift failed messages to retry topics:
+**Kyun zaruri hai?** Kafka mein blocking retries (jahan tum sleep karke retry karte ho) poori partition ko hold kar dete hain — jaise IRCTC ki tatkal booking line mein agar ek banda counter pe atak jaaye toh peeche wali poori line ruk jaati hai. Non-blocking retries iska solution hain — failed messages ko alag retry topics mein shift kar diya jaata hai, taaki main partition free rahe aur baaki messages process hote rahein.
 
 ```java
 @RetryableTopic(
@@ -162,18 +160,20 @@ public void on(OrderPlacedEvent ev) {
 }
 ```
 
-Topics created automatically:
+Ye topics automatically create ho jaate hain:
 - `orders.placed-retry-0` (1s delay)
 - `orders.placed-retry-1` (2s)
 - `orders.placed-retry-2` (4s)
 - `orders.placed-retry-3` (8s)
 - `orders.placed-dlt` (final)
 
-The main consumer doesn't block — failed messages get rescheduled to retry topics. Hugely improves throughput when many messages can fail intermittently.
+Main consumer block nahi hota — failed messages retry topics mein reschedule ho jaate hain. Jab bahut saare messages intermittently fail ho rahe hon, toh yeh approach throughput ko kaafi improve kar deti hai.
 
-### Replaying from DLQ
+### DLQ se replay karna
 
-A simple replay job:
+**Kyun zaruri hai?** Bug fix karne ke baad, DLQ mein pade messages ko wapas process karna hota hai — jaise Zomato pe agar kisi payment ka webhook fail ho gaya tha aur baad mein fix ho gaya, toh us failed webhook ko wapas trigger karna padta hai.
+
+Ek simple replay job:
 
 ```java
 @Component
@@ -194,11 +194,11 @@ class DlqReplayer {
 }
 ```
 
-Or trigger manual replays via an admin endpoint after fixing a bug.
+Ya phir bug fix hone ke baad admin endpoint se manually bhi replay trigger kar sakte ho.
 
 ### Monitoring
 
-Metrics you must track:
+**Kyun zaruri hai?** Agar DLQ ko monitor nahi kiya toh woh silently grow karta rahega aur kisi ko pata bhi nahi chalega — jab tak koi customer complain na kare ki uska order/payment kahin gum ho gaya. Isliye yeh metrics track karna zaruri hai:
 
 ```
 rabbitmq_queue_messages{queue="email.dlq"}            > 0   → alert
@@ -206,9 +206,11 @@ kafka_consumergroup_lag{topic="orders.placed.DLT"}     > 0   → alert
 spring_kafka_listener_seconds_count{result="failure"}  rate  → spike alert
 ```
 
-Dashboards on these turn DLQ from a hidden problem into a visible one.
+In metrics ke dashboards bana do — isse DLQ ek "hidden problem" na rahe balki turant dikhne wali cheez ban jaaye.
 
 ## Express/Node comparison
+
+Node.js background se aane wale logon ke liye, yeh dekh lo ki wahi cheez kafkajs mein kaise karte hain:
 
 ```typescript
 // kafkajs — manual DLQ
@@ -237,32 +239,46 @@ await consumer.run({
 | Spring | Node |
 |--------|------|
 | `DefaultErrorHandler + DLT` | manual try/catch + producer.send |
-| `@RetryableTopic` non-blocking | `kafkajs-dead-letter` lib or hand-rolled |
+| `@RetryableTopic` non-blocking | `kafkajs-dead-letter` lib ya haath se likha hua logic |
 | RabbitMQ `x-dead-letter-exchange` | same `amqplib` arguments |
-| `bullmq` `failedJobs` | (built-in for Redis-backed jobs) |
+| `bullmq` `failedJobs` | (Redis-backed jobs ke liye built-in) |
+
+Basically Spring mein yeh sab configuration/annotation driven hai — ek baar setup kar diya toh Spring khud handle karta hai. Node/kafkajs mein tumhe har jagah manually try/catch aur retry-count check karna padta hai.
 
 ## Gotchas
 
-> [!danger] No DLQ = stuck consumer
-> Without a DLQ, a poison message blocks the queue forever. The consumer keeps retrying, throwing, retrying. Eventually you `kafka-delete-records` in panic. Set up DLQs from day one.
+> [!danger] DLQ nahi hai = consumer atak jaayega
+> Agar DLQ set up nahi hai, toh ek poison message poori queue ko hamesha ke liye block kar dega. Consumer retry karta rahega, throw karega, phir retry karega — infinite loop. Aakhir mein tumhe panic mein `kafka-delete-records` chalana padega. Isliye DLQ pehle din se hi set up karo, baad mein nahi.
 
-> [!warning] DLQ != "fix it later"
-> A DLQ that grows untouched is invisible data loss. Treat DLQ messages as bugs to fix, not garbage to ignore.
+> [!warning] DLQ ka matlab "baad mein fix karenge" nahi hai
+> Jo DLQ bina touch kiye grow karta rahega, woh invisible data loss hai. DLQ ke messages ko bugs samjho jo fix karne hain, kachra nahi jo ignore karna hai.
 
-> [!warning] DLQ messages keep their original payload
-> If the DLQ is on the same broker, anyone with consume access to the original topic also has access to the DLQ. Personal/sensitive data in messages = sensitive data in DLQ. Encrypt or scrub.
+> [!warning] DLQ messages mein original payload as-is rehta hai
+> Agar DLQ same broker pe hai, toh jisko original topic consume karne ki permission hai usko DLQ bhi access mil jaata hai. Agar message mein personal/sensitive data (jaise phone number, address) hai, toh woh DLQ mein bhi expose ho jaata hai. Encrypt karo ya scrub karo.
 
-> [!warning] Replay carefully
-> Don't replay 100k DLQ messages at once — overwhelms downstream. Throttle. Also, the original cause might still be there.
+> [!warning] Replay carefully karo
+> Ek saath 100k DLQ messages replay mat karo — downstream system overwhelm ho jaayega. Throttle karke replay karo. Aur yeh bhi dhyan rakho — ho sakta hai jo original cause tha woh abhi bhi maujood ho.
 
-> [!warning] Non-retryable exceptions
-> Bad: retrying a `DeserializationException` 5 times. Configure `addNotRetryableExceptions` for things you know can't succeed (validation, parse errors).
+> [!warning] Non-retryable exceptions ko identify karo
+> Bura idea: `DeserializationException` ko 5 baar retry karna — woh 5 baar bhi fail hi hoga, kyunki data hi corrupt hai. `addNotRetryableExceptions` configure karo un cheezon ke liye jo definitely succeed nahi ho sakti (validation errors, parse errors).
 
-> [!tip] Build a DLQ inspector UI
-> Even a basic page that lists last 100 DLQ messages with payload + error + replay button saves hours of debugging. Some companies build this once and reuse across all services.
+> [!tip] DLQ inspector UI bana lo
+> Ek basic page jo last 100 DLQ messages ko payload + error + replay button ke saath list kare — ghanton ki debugging bacha deta hai. Kai companies isse ek baar bana ke sabhi services mein reuse karti hain.
 
-> [!tip] DLQ TTL
-> Don't keep DLQ messages forever. 14-30 day retention is typical. After that they're stale — the world has moved on.
+> [!tip] DLQ pe TTL rakho
+> DLQ messages ko hamesha ke liye store mat karo. 14-30 din ka retention typical hai. Uske baad woh stale ho jaate hain — duniya aage badh chuki hoti hai, purana data ka koi matlab nahi rehta.
+
+## Key Takeaways
+
+- DLQ (RabbitMQ) / DLT (Kafka) ek "parking lot" hai jahan aise messages jaate hain jo max retries ke baad bhi process nahi ho paaye.
+- RabbitMQ mein DLX (dead letter exchange) set up karke `x-dead-letter-exchange` aur `x-dead-letter-routing-key` arguments se queue ko wire karte hain.
+- Kafka mein `DeadLetterPublishingRecoverer` ke saath `DefaultErrorHandler` use karke failed records ko `<topic>.DLT` mein bhejte hain.
+- `@RetryableTopic` (Spring Kafka 2.7+) non-blocking retries deta hai — retry topics create hote hain taaki main partition block na ho.
+- Har DLQ ka ek replay strategy hona chahiye — scheduled job ya manual admin endpoint se.
+- DLQ ko monitor karna non-negotiable hai — "DLQ > 0 messages" ek alert/page hona chahiye, silent log nahi.
+- Non-retryable exceptions (deserialization, validation) ko `addNotRetryableExceptions` se seedha DLQ mein bhejo, waste of retries mat karo.
+- DLQ messages mein sensitive data ho sakta hai — access control aur encryption ka dhyan rakho.
+- Replay karte time throttle karo, aur DLQ pe reasonable TTL (14-30 din) set karo.
 
 ## Related
 - [[01-Messaging-Concepts]]

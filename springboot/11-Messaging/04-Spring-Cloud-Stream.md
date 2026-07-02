@@ -1,32 +1,29 @@
----
-tags: [messaging, spring-cloud-stream, abstraction, binders]
-aliases: [Spring Cloud Stream, SCS]
-stage: advanced
----
-
 # Spring Cloud Stream
 
-> [!info] For the Express/TS dev
-> Spring Cloud Stream (SCS) is a higher-level abstraction over Kafka, RabbitMQ, Pulsar, etc. You write `Function<Order, Confirmation>` beans and Spring binds them to topics/queues based on a chosen **binder**. Closest Node analog: NestJS Microservices' `@MessagePattern` — same idea, broker-agnostic.
+> [!info] Express/TS dev ke liye
+> Spring Cloud Stream (SCS) ek higher-level abstraction hai Kafka, RabbitMQ, Pulsar waghera ke upar. Tum bas `Function<Order, Confirmation>` type ke beans likhte ho, aur Spring inko topics/queues se bind kar deta hai ek chuni hui **binder** ke through. Node wale duniya mein sabse close analog hai NestJS Microservices ka `@MessagePattern` — same concept, bas broker-agnostic.
 
 ## Concept
 
-You write functions; Spring Cloud Stream wires them to messaging infrastructure declaratively.
+Kya hota hai yahan? Socho tumhe Zomato jaisa ek order-processing system banana hai. Kabhi tum RabbitMQ use karte ho dev mein (halka-fulka, local pe chalane mein aasan), aur production mein Kafka pe switch karna hai (scale ke liye). Normally iska matlab hota — pura consumer/producer ka code phir se likhna. Spring Cloud Stream yeh problem solve karta hai: tum sirf plain Java `Function`, `Supplier`, `Consumer` likhte ho, aur SCS unhe messaging infra se wire kar deta hai — declaratively, config ke through, code change kiye bina.
 
-Three function shapes:
+Teen function shapes hote hain:
 
 | Shape | Direction | Use |
 |-------|-----------|-----|
-| `Supplier<T>` | Output only | Producer: emits messages on a schedule. |
-| `Function<I, O>` | Input → Output | Consumer + producer (transform). |
-| `Consumer<T>` | Input only | Pure consumer. |
+| `Supplier<T>` | Output only | Producer: schedule pe messages emit karta hai. |
+| `Function<I, O>` | Input → Output | Consumer + producer (transform karta hai). |
+| `Consumer<T>` | Input only | Pure consumer, sirf read karta hai. |
 
-A **binder** translates between your `Function` and a real broker:
+Ek **binder** tumhare `Function` aur actual broker ke beech translate karta hai:
 - `spring-cloud-starter-stream-kafka`
 - `spring-cloud-starter-stream-rabbit`
 - `spring-cloud-starter-stream-pulsar`
 
-Switch brokers by changing the dependency — your code doesn't change.
+Broker switch karna matlab bas dependency badalna — tumhara business logic code same rehta hai.
+
+> [!tip] Kyun zaruri hai?
+> Real duniya mein aksar aisa hota hai — startup Rabbit se shuru karti hai kyunki setup aasan hai, phir scale hone pe Kafka pe move karti hai. Agar tumne Spring AMQP directly use kiya hota, toh yeh migration bahut painful hota. SCS ke saath, sirf pom.xml aur YAML change hota hai.
 
 ## Code example
 
@@ -40,6 +37,8 @@ Switch brokers by changing the dependency — your code doesn't change.
 ```
 
 ### Pure consumer
+
+Socho ek order place hua — tumhe bas email bhejna hai, kuch return nahi karna. Yeh use-case `Consumer<T>` ka hai:
 
 ```java
 @Configuration
@@ -68,9 +67,11 @@ spring:
           brokers: localhost:9092
 ```
 
-The naming convention is `<beanName>-in-0` for input and `<beanName>-out-0` for output. The `0` allows multiple inputs per function.
+Naming convention yaad rakho: `<beanName>-in-0` input ke liye, aur `<beanName>-out-0` output ke liye. Yeh `0` isliye hai kyunki ek function ke multiple inputs bhi ho sakte hain.
 
 ### Transformer
+
+Ab agar order aaya aur usse shipping request mein convert karke aage bhejna hai — yeh `Function<I, O>` ka kaam hai:
 
 ```java
 @Bean
@@ -94,9 +95,11 @@ spring:
           destination: shipping.requests
 ```
 
-Spring reads `orders.placed`, calls the function, writes the result to `shipping.requests`. Zero plumbing code.
+Spring `orders.placed` topic se message padhta hai, function call karta hai, aur result `shipping.requests` topic pe likh deta hai. Zero plumbing code — na consumer likhna, na producer, kuch nahi.
 
-### Multiple outputs (function returning tuple)
+### Multiple outputs (function jo tuple return kare)
+
+Ek order place hone pe agar tumhe do alag jagah bhejna ho — ek notification (customer ko) aur ek analytics event — toh:
 
 ```java
 @Bean
@@ -116,6 +119,8 @@ bindings:
 
 ### Producer (Supplier)
 
+Heartbeat jaisa periodic event bhejna ho, ya koi scheduled job — `Supplier<T>` use karo:
+
 ```java
 @Bean
 public Supplier<HeartbeatEvent> heartbeat() {
@@ -134,7 +139,7 @@ spring:
         fixed-delay: 30s
 ```
 
-Or imperative production via `StreamBridge`:
+Ya phir imperative tareeke se, jab tumhe kisi user action pe turant message bhejna ho (jaise checkout button dabate hi), `StreamBridge` use karo:
 
 ```java
 @Service
@@ -149,7 +154,11 @@ class OrderService {
 }
 ```
 
+Yeh bilkul waise hai jaise Express mein tum kisi HTTP handler ke andar directly `producer.send()` call karte ho — koi scheduler nahi, event-driven trigger hai.
+
 ### Reactive (Project Reactor)
+
+Agar tum reactive stack use kar rahe ho (WebFlux waghera), toh `Function<Flux<>, Flux<>>` likh sakte ho:
 
 ```java
 @Bean
@@ -161,7 +170,9 @@ public Function<Flux<OrderPlacedEvent>, Flux<ShippingRequest>> orderToShipping()
 }
 ```
 
-### Multiple binders (e.g. Kafka + Rabbit in one app)
+### Multiple binders (ek hi app mein Kafka + Rabbit)
+
+Kabhi kabhi ek service ko dono brokers se baat karni padti hai — kuch events Kafka pe aa rahe hain, kuch RabbitMQ pe jaane hain:
 
 ```yaml
 spring:
@@ -185,6 +196,8 @@ spring:
 
 ### DLQ + retries
 
+Message process karte waqt exception aa gaya? Kitni baar retry karna hai, aur retries khatam hone ke baad message kahan jaayega — yeh sab config se control hota hai:
+
 ```yaml
 spring:
   cloud:
@@ -203,9 +216,11 @@ spring:
               dlq-name: orders.placed.DLT
 ```
 
-After retries are exhausted, the binder publishes the failed message to the DLQ topic.
+Retries khatam hone ke baad, binder failed message ko DLQ topic pe publish kar deta hai — jaise Zomato ka order agar 3 baar fail ho jaaye deliver hone mein, toh woh "manual review" wali queue mein chala jaata hai.
 
 ### Function composition
+
+Ek se zyada functions ko chain karna ho — pehle enrich karo, phir transform karo — bina koi wiring code likhe:
 
 ```java
 @Bean public Function<Order, Order>          enrich()      { return o -> o.withTimestamp(); }
@@ -223,7 +238,7 @@ spring:
         enrichtoShipping-out-0: { destination: shipping.requests }
 ```
 
-Pipe `|` composes functions; SCS binds the composite.
+Pipe `|` functions ko compose karta hai; SCS is composite function ko bind kar deta hai jaise woh ek hi function ho.
 
 ## Express/Node comparison
 
@@ -246,27 +261,27 @@ class OrderController {
 | Function composition | manual chaining |
 | Reactive `Function<Flux<>, Flux<>>` | Observable handlers |
 
-The big SCS win: change brokers without changing code. NestJS gets you 80% there with `Transport.X`.
+Asli SCS ka fayda yeh hai: broker badlo, code mat badlo. NestJS `Transport.X` se tumhe 80% wahan tak pahuncha deta hai, lekin baaki 20% (jaise ek hi app mein multiple binders, ya function composition) SCS jaisi maturity nahi rakhta.
 
 ## Gotchas
 
-> [!warning] The naming convention is unforgiving
-> `bindings:` keys must match `<beanName>-in-N` / `<beanName>-out-N` exactly. Misspell → silent (no message). Always log binding info on startup to verify.
+> [!warning] Naming convention maaf nahi karti
+> `bindings:` ke keys exactly `<beanName>-in-N` / `<beanName>-out-N` match hone chahiye. Spelling mistake ki toh silently kuch nahi hoga — koi error nahi aayega, bas message kahin nahi jaayega. Startup pe hamesha binding info log karo taaki verify ho sake ki sab sahi wire hua hai.
 
-> [!warning] Don't fight the abstraction
-> If you need broker-specific features (Kafka transactions, RabbitMQ headers exchange routing rules) you'll find SCS' lowest common denominator restrictive. Drop to Spring Kafka / Spring AMQP directly for those services.
+> [!warning] Abstraction se mat lado
+> Agar tumhe broker-specific features chahiye (Kafka transactions, ya RabbitMQ ka headers exchange routing) toh SCS ka "lowest common denominator" approach tumhe restrict karega. Aise services ke liye directly Spring Kafka / Spring AMQP use karo — SCS har jagah fit nahi hota.
 
-> [!warning] Function vs Consumer for transformations
-> A `Function<I, O>` requires an output binding. If you forget it, messages disappear. A `Consumer<I>` doesn't write — pick the right shape.
+> [!warning] Function vs Consumer — transformation ke liye sahi shape chuno
+> `Function<I, O>` ko output binding chahiye hi chahiye. Agar bhool gaye, toh messages gayab ho jaayenge (silently). `Consumer<I>` kuch likhta nahi — sahi shape pick karo, warna debugging mein ghanton lag jaayenge.
 
-> [!warning] DLQ behavior differs by binder
-> Kafka binder publishes to a DLQ topic. RabbitMQ binder uses a separate DLX. The configuration property names also differ. Read your binder's docs.
+> [!warning] DLQ ka behavior binder ke hisaab se alag hota hai
+> Kafka binder ek DLQ topic pe publish karta hai. RabbitMQ binder ek alag DLX (dead letter exchange) use karta hai. Configuration property names bhi different hain. Apne binder ki docs zaroor padho, assume mat karo.
 
-> [!tip] Use SCS when broker portability matters
-> Real wins: development-vs-production switching (Rabbit dev, Kafka prod), or supporting multiple deployments. If you're committed to Kafka forever, Spring Kafka is more capable.
+> [!tip] SCS tab use karo jab broker portability matter kare
+> Real fayda tab hai jab: dev mein Rabbit, production mein Kafka — is tarah ka switching, ya multiple deployments support karna ho. Agar tum Kafka ke saath permanently committed ho, toh Spring Kafka directly zyada powerful aur capable hai.
 
-> [!tip] Pair with Schema Registry
-> SCS integrates with Confluent Schema Registry / Apicurio. Add it for any non-trivial event-driven system.
+> [!tip] Schema Registry ke saath pair karo
+> SCS Confluent Schema Registry / Apicurio ke saath integrate hota hai. Kisi bhi non-trivial event-driven system ke liye isko zaroor add karo — warna schema evolution handle karna bahut mushkil ho jaayega.
 
 ## Related
 - [[01-Messaging-Concepts]]

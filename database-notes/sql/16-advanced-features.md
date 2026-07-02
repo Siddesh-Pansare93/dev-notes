@@ -1,6 +1,6 @@
-# 🔍 Chapter 16: Full-Text Search and Advanced Features
+# 🔍 Chapter 16: Full-Text Search aur Advanced Features
 
-> **Who this chapter is for:** You know the SQL basics — SELECT, JOIN, GROUP BY — and want to explore the powerful features that separate a production-grade database from a toy one. This chapter covers full-text search, arrays, ranges, extensions, and lateral joins. Most examples focus on PostgreSQL, with clear callouts when MySQL, SQL Server, or Oracle behave differently.
+> **Yeh chapter kiske liye hai:** Tumhe SQL basics aa chuke hain — SELECT, JOIN, GROUP BY — aur ab tum woh powerful features explore karna chahte ho jo ek production-grade database ko toy database se alag karte hain. Is chapter mein full-text search, arrays, ranges, extensions, aur lateral joins cover honge. Zyadatar examples PostgreSQL ke honge, aur jahan MySQL, SQL Server, ya Oracle alag behave karte hain wahan clearly bataya gaya hai.
 
 ---
 
@@ -18,9 +18,15 @@
 
 ## 🔤 Full-Text Search
 
-A `LIKE '%keyword%'` query works fine for small tables, but it cannot rank results by relevance, it ignores word forms (*run* vs *running*), and it cannot use an index efficiently. **Full-text search** solves all three problems.
+Socho tumhare paas ek Zomato jaisa app hai jisme users restaurants search karte hain. Agar tum sirf `LIKE '%keyword%'` use karoge, toh chhote table ke liye theek chalega — lekin teen badi problems aayengi:
 
-Each database has its own approach. Here is a high-level comparison before diving in:
+1. Results ko relevance ke hisaab se rank nahi kar sakte (kaunsa result "best match" hai, pata nahi).
+2. Word forms ignore ho jaate hain — *run* search karoge toh *running* wale results nahi milenge.
+3. Index efficiently use nahi ho paata, matlab bade table pe slow ho jaayega.
+
+**Full-text search** in teeno problems ko solve karta hai — yeh Zomato ke search bar ke andar jo magic hota hai, wahi hai.
+
+Har database ka apna approach hai. Pehle high-level comparison dekh lete hain:
 
 | Feature | PostgreSQL | MySQL | SQL Server |
 |---|---|---|---|
@@ -33,41 +39,43 @@ Each database has its own approach. Here is a high-level comparison before divin
 
 ### PostgreSQL Full-Text Search
 
-PostgreSQL has the most capable built-in full-text engine. Two special types power it:
+PostgreSQL ka built-in full-text engine sabse capable hai. Do special types iski power hain:
 
 | Type | Purpose |
 |---|---|
-| `tsvector` | A pre-processed, sorted list of lexemes (root word forms) with position info |
-| `tsquery` | A search query that can use `&` (AND), `\|` (OR), `!` (NOT), and `<->` (phrase) operators |
+| `tsvector` | Ek pre-processed, sorted list of lexemes (root word forms) with position info |
+| `tsquery` | Ek search query jo `&` (AND), `\|` (OR), `!` (NOT), aur `<->` (phrase) operators use kar sakti hai |
 
-#### Converting text to tsvector
+#### Text ko tsvector mein convert karna
+
+**Kya hota hai?** `to_tsvector()` tumhare text ko lekar usme se stop words (the, is, over jaise words) hata deta hai aur baaki words ko unke root form mein convert kar deta hai — isse "stemming" kehte hain.
 
 ```sql
 -- PostgreSQL
 SELECT to_tsvector('english', 'The quick brown fox jumps over the lazy dog');
 -- Result: 'brown':3 'dog':9 'fox':4 'jump':5 'lazi':8 'quick':2
--- Notice: stop words ("the", "over") are removed; words are stemmed ("jumps" -> "jump")
+-- Notice: stop words ("the", "over") hata diye gaye; words stem kiye gaye ("jumps" -> "jump")
 ```
 
-The first argument `'english'` is the **text search configuration** — it controls the language dictionary and stop-word list.
+Pehla argument `'english'` hai **text search configuration** — yeh decide karta hai ki kaunsi language dictionary aur stop-word list use hogi.
 
-#### Searching with tsquery
+#### tsquery se search karna
 
 ```sql
 -- PostgreSQL
 SELECT to_tsquery('english', 'jump & fox');
 -- Result: 'jump' & 'fox'
 
--- Phrase search (fox immediately followed by jump)
+-- Phrase search (fox ke turant baad jump aana chahiye)
 SELECT to_tsquery('english', 'fox <-> jump');
 
 -- OR search
 SELECT to_tsquery('english', 'cat | dog');
 ```
 
-#### The @@ Match Operator
+#### @@ Match Operator
 
-The `@@` operator returns `true` when a `tsvector` matches a `tsquery`:
+`@@` operator `true` return karta hai jab `tsvector`, `tsquery` se match ho jaaye:
 
 ```sql
 -- PostgreSQL
@@ -76,23 +84,23 @@ FROM articles
 WHERE to_tsvector('english', body) @@ to_tsquery('english', 'database & performance');
 ```
 
-This works, but calling `to_tsvector()` on every row at query time is slow for large tables.
+Yeh kaam toh karta hai, lekin har row pe query time pe `to_tsvector()` call karna bade table ke liye slow hai — jaise Swiggy har order pe restaurant ka poora menu re-scan kare, instead of ek indexed list use karne ke.
 
-#### Stored tsvector Column for Performance
+#### Performance ke liye Stored tsvector Column
 
-The recommended production pattern is to store the tsvector in a dedicated column and keep it up to date with a trigger:
+**Kyun zaruri hai?** Production mein recommended pattern yeh hai ki tsvector ko ek dedicated column mein store karo aur trigger se usko fresh rakho — bilkul waise jaise Swiggy apne search index ko background mein update karta rehta hai, har request pe recompute nahi karta.
 
 ```sql
 -- PostgreSQL
 
--- 1. Add the column
+-- 1. Column add karo
 ALTER TABLE articles ADD COLUMN search_vector tsvector;
 
--- 2. Populate it
+-- 2. Usse populate karo
 UPDATE articles
 SET search_vector = to_tsvector('english', coalesce(title, '') || ' ' || coalesce(body, ''));
 
--- 3. Create a trigger to keep it fresh
+-- 3. Ek trigger banao jo isse fresh rakhe
 CREATE FUNCTION articles_search_vector_trigger() RETURNS trigger AS $$
 BEGIN
   NEW.search_vector := to_tsvector('english',
@@ -106,23 +114,23 @@ BEFORE INSERT OR UPDATE ON articles
 FOR EACH ROW EXECUTE FUNCTION articles_search_vector_trigger();
 ```
 
-#### GIN Index on tsvector
+#### tsvector pe GIN Index
 
-A **GIN** (Generalized Inverted Index) makes the `@@` operator fast on millions of rows:
+Ek **GIN** (Generalized Inverted Index) `@@` operator ko lakhon rows pe bhi fast banata hai:
 
 ```sql
 -- PostgreSQL
 CREATE INDEX idx_articles_search ON articles USING GIN (search_vector);
 
--- Now this query hits the index:
+-- Ab yeh query index hit karegi:
 SELECT title
 FROM articles
 WHERE search_vector @@ to_tsquery('english', 'database & performance');
 ```
 
-#### Relevance Ranking with ts_rank()
+#### ts_rank() se Relevance Ranking
 
-`ts_rank()` returns a `float4` score based on how often query terms appear:
+`ts_rank()` ek `float4` score deta hai jo batata hai ki query terms kitni baar aur kitni prominently appear hue hain — jaise Amazon "best match" ke hisaab se products sort karta hai:
 
 ```sql
 -- PostgreSQL
@@ -136,9 +144,9 @@ ORDER BY rank DESC
 LIMIT 10;
 ```
 
-#### Highlighting with ts_headline()
+#### ts_headline() se Highlighting
 
-`ts_headline()` wraps matched terms in HTML tags (great for search result snippets):
+`ts_headline()` matched terms ko HTML tags mein wrap kar deta hai (search result snippets ke liye perfect — jaise Google search mein bold keywords dikhte hain):
 
 ```sql
 -- PostgreSQL
@@ -155,10 +163,10 @@ WHERE search_vector @@ to_tsquery('english', 'database');
 
 ### MySQL Full-Text Search
 
-MySQL requires a `FULLTEXT` index — you cannot do full-text search without one.
+MySQL mein ek `FULLTEXT` index chahiye hi hota hai — uske bina full-text search possible nahi.
 
 ```sql
--- MySQL: Add FULLTEXT index at table creation
+-- MySQL: Table banate waqt FULLTEXT index add karo
 CREATE TABLE articles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255),
@@ -166,7 +174,7 @@ CREATE TABLE articles (
   FULLTEXT idx_ft (title, body)
 );
 
--- Or add it later:
+-- Ya baad mein add karo:
 ALTER TABLE articles ADD FULLTEXT INDEX idx_ft (title, body);
 ```
 
@@ -174,7 +182,7 @@ ALTER TABLE articles ADD FULLTEXT INDEX idx_ft (title, body);
 
 ```sql
 -- MySQL: Natural Language Mode (default)
--- Ranks results by relevance; common words are ignored
+-- Relevance ke hisaab se rank karta hai; common words ignore ho jaate hain
 SELECT title, MATCH(title, body) AGAINST ('database performance') AS score
 FROM articles
 WHERE MATCH(title, body) AGAINST ('database performance')
@@ -187,13 +195,13 @@ FROM articles
 WHERE MATCH(title, body) AGAINST ('+database -slow "query optimizer"' IN BOOLEAN MODE);
 ```
 
-**Key difference from PostgreSQL:** MySQL's full-text search does not stem words (searching *run* will not match *running*) and minimum word length defaults to 4 characters.
+**PostgreSQL se key difference:** MySQL ka full-text search words ko stem nahi karta (*run* search karoge toh *running* match nahi hoga) aur minimum word length default 4 characters hoti hai.
 
 ---
 
 ### SQL Server Full-Text Search
 
-SQL Server treats full-text search as a separate installable feature. Once enabled, two main functions are available:
+SQL Server full-text search ko ek separate installable feature ki tarah treat karta hai. Ek baar enable ho jaaye, toh do main functions available hote hain:
 
 ```sql
 -- SQL Server
@@ -206,43 +214,43 @@ WHERE CONTAINS((title, body), '"database" AND "performance"');
 -- Wildcard
 WHERE CONTAINS(body, '"datab*"');
 
--- FREETEXT: natural language, more forgiving (auto-stems and expands)
+-- FREETEXT: natural language, zyada forgiving (auto-stems and expands)
 SELECT title
 FROM articles
 WHERE FREETEXT(body, 'database performance tuning');
 ```
 
-`CONTAINSTABLE` and `FREETEXTTABLE` return a table with a `RANK` column for relevance ordering, similar to `ts_rank()` in PostgreSQL.
+`CONTAINSTABLE` aur `FREETEXTTABLE` ek table return karte hain jisme `RANK` column hota hai relevance ordering ke liye — bilkul PostgreSQL ke `ts_rank()` jaisa.
 
 ---
 
-### When SQL Full-Text Search Is Not Enough
+### Jab SQL Full-Text Search Kaafi Nahi Hai
 
-Built-in full-text search covers the common cases well, but consider **Elasticsearch** (or **OpenSearch**) when you need:
+Built-in full-text search common cases ke liye theek hai, lekin **Elasticsearch** (ya **OpenSearch**) consider karo jab tumhe yeh chahiye:
 
-- Multi-language stemming across dozens of languages in the same index
-- Fuzzy matching tolerant of typos (`fliht` matching `flight`)
-- Faceted search (filter by category, price range, etc. alongside keyword search)
-- Distributed search across billions of documents with sub-second response
-- Custom ranking formulas mixing textual relevance with business signals
+- Ek hi index mein dozens languages ka multi-language stemming
+- Typo-tolerant fuzzy matching (`fliht` type karne pe bhi `flight` match ho jaaye)
+- Faceted search (category, price range jaise filters keyword search ke saath)
+- Billions documents pe distributed search, sub-second response ke saath
+- Custom ranking formulas jisme textual relevance ke saath business signals bhi mix ho
 
-Elasticsearch is typically used alongside a relational database — PostgreSQL stores the source of truth; Elasticsearch powers the search API.
+Elasticsearch ko usually relational database ke saath use kiya jaata hai — jaise Flipkart ka main database source of truth hoga, aur Elasticsearch unke search bar ko power karega, super fast.
 
 ---
 
 ## 📦 Arrays (PostgreSQL)
 
-PostgreSQL lets you store an ordered list of values in a single column. This is genuinely useful — for example, storing a list of tags on a blog post without a separate junction table.
+PostgreSQL tumhe ek single column mein ordered list of values store karne deta hai. Yeh genuinely useful hai — jaise ek blog post ke tags store karna, bina separate junction table banaye.
 
 ```sql
--- PostgreSQL: create a table with an array column
+-- PostgreSQL: array column ke saath table banao
 CREATE TABLE posts (
   id SERIAL PRIMARY KEY,
   title TEXT,
   tags TEXT[]
 );
 
--- Insert with array literal
+-- Array literal ke saath insert karo
 INSERT INTO posts (title, tags) VALUES
   ('Intro to SQL', ARRAY['sql', 'beginner', 'database']),
   ('PostgreSQL Arrays', '{postgresql, arrays, advanced}');  -- alternative syntax
@@ -252,58 +260,58 @@ INSERT INTO posts (title, tags) VALUES
 
 | Operator | Meaning | Example |
 |---|---|---|
-| `@>` | Contains (left contains all elements of right) | `tags @> '{sql}'` |
+| `@>` | Contains (left, right ke saare elements contain karta hai) | `tags @> '{sql}'` |
 | `<@` | Is contained by | `'{sql}' <@ tags` |
-| `&&` | Overlap (share at least one element) | `tags && '{sql, python}'` |
+| `&&` | Overlap (kam se kam ek element common ho) | `tags && '{sql, python}'` |
 | `\|\|` | Concatenate | `tags \|\| '{new-tag}'` |
 
 ```sql
--- PostgreSQL: posts tagged with both 'sql' AND 'beginner'
+-- PostgreSQL: posts jinme 'sql' AUR 'beginner' dono tags hain
 SELECT title FROM posts WHERE tags @> ARRAY['sql', 'beginner'];
 
--- Posts tagged with 'sql' OR 'python' (any overlap)
+-- Posts jinme 'sql' YA 'python' hai (koi bhi overlap)
 SELECT title FROM posts WHERE tags && ARRAY['sql', 'python'];
 
--- Add a tag
+-- Ek tag add karo
 UPDATE posts SET tags = tags || '{featured}' WHERE id = 1;
 ```
 
-### ANY and ALL with Arrays
+### Arrays ke saath ANY aur ALL
 
 ```sql
--- PostgreSQL: any element equals 'sql'
+-- PostgreSQL: koi bhi element 'sql' ke equal ho
 SELECT title FROM posts WHERE 'sql' = ANY(tags);
 
--- All elements are non-empty (contrived example)
+-- Saare elements non-empty hain (contrived example)
 SELECT title FROM posts WHERE '' <> ALL(tags);
 ```
 
-### UNNEST(): Expand Array to Rows
+### UNNEST(): Array ko Rows mein Expand Karna
 
-`UNNEST()` is incredibly useful — it "explodes" an array into individual rows so you can group, count, or join on the elements:
+`UNNEST()` bahut hi useful hai — yeh ek array ko individual rows mein "explode" kar deta hai, taaki tum elements pe group, count, ya join kar sako.
 
 ```sql
--- PostgreSQL: count how many posts each tag appears in
+-- PostgreSQL: count karo har tag kitne posts mein appear hota hai
 SELECT tag, COUNT(*) AS post_count
 FROM posts, UNNEST(tags) AS tag
 GROUP BY tag
 ORDER BY post_count DESC;
 ```
 
-### array_agg(): Aggregate Rows into an Array
+### array_agg(): Rows ko Array mein Aggregate Karna
 
-The reverse of `UNNEST()` — collect values from multiple rows into one array:
+`UNNEST()` ka ulta — multiple rows se values collect karke ek array bana do:
 
 ```sql
--- PostgreSQL: get all tags per author as a single array
+-- PostgreSQL: har author ke saare tags ek single array mein
 SELECT author_id, array_agg(DISTINCT tag ORDER BY tag) AS all_tags
 FROM posts, UNNEST(tags) AS tag
 GROUP BY author_id;
 ```
 
-### GIN Index on Arrays
+### Arrays pe GIN Index
 
-Just like with tsvector, a GIN index makes `@>`, `<@`, and `&&` fast:
+Bilkul tsvector jaisa, GIN index `@>`, `<@`, aur `&&` ko fast banata hai:
 
 ```sql
 -- PostgreSQL
@@ -314,9 +322,9 @@ CREATE INDEX idx_posts_tags ON posts USING GIN (tags);
 
 ## 📅 Ranges (PostgreSQL)
 
-A **range type** stores a contiguous span of values — think "from Monday to Friday" or "seats 10 to 20". PostgreSQL has built-in range types:
+Ek **range type** values ka ek contiguous span store karta hai — jaise "Monday se Friday tak" ya "seat 10 se 20 tak." PostgreSQL mein built-in range types hain:
 
-| Type | Covers |
+| Type | Kya Cover Karta Hai |
 |---|---|
 | `int4range` | Integer range |
 | `int8range` | Bigint range |
@@ -324,6 +332,8 @@ A **range type** stores a contiguous span of values — think "from Monday to Fr
 | `daterange` | Date range |
 | `tsrange` | Timestamp without time zone |
 | `tstzrange` | Timestamp with time zone |
+
+Socho tum OYO ke liye ek hotel booking system bana rahe ho — har room ke reservations ka ek date range hoga:
 
 ```sql
 -- PostgreSQL: hotel reservations table
@@ -334,75 +344,76 @@ CREATE TABLE reservations (
   stay daterange  -- e.g. [2026-07-01, 2026-07-05)
 );
 
--- Insert a reservation: inclusive start, exclusive end (standard convention)
+-- Reservation insert karo: start inclusive, end exclusive (standard convention)
 INSERT INTO reservations (room_number, guest_name, stay) VALUES
   (101, 'Alice', '[2026-07-01, 2026-07-05)'),
   (101, 'Bob',   '[2026-07-10, 2026-07-15)');
 ```
 
-### The && Overlap Operator
+### && Overlap Operator
 
-The killer feature of ranges is **overlap detection** — something that would require complex date arithmetic otherwise:
+Ranges ka killer feature hai **overlap detection** — jo without ranges karna complex date arithmetic maangta:
 
 ```sql
--- PostgreSQL: is room 101 available for July 3–8?
+-- PostgreSQL: kya room 101, July 3–8 ke liye available hai?
 SELECT *
 FROM reservations
 WHERE room_number = 101
   AND stay && '[2026-07-03, 2026-07-08)'::daterange;
 
--- Returns Alice's reservation (July 1–5 overlaps with July 3–8)
+-- Returns Alice ka reservation (July 1–5, July 3–8 se overlap karta hai)
 ```
 
-Other useful range operators:
+Baaki useful range operators:
 
 | Operator | Meaning |
 |---|---|
-| `@>` | Range contains a point or range |
-| `<@` | Range is contained by |
-| `<<` | Strictly left of (no overlap, ends before other starts) |
+| `@>` | Range ek point ya range ko contain karta hai |
+| `<@` | Range kisi doosre range se contained hai |
+| `<<` | Strictly left of (koi overlap nahi, doosre ke start se pehle end hota hai) |
 | `>>` | Strictly right of |
-| `-\|-` | Adjacent (share an endpoint) |
+| `-\|-` | Adjacent (ek endpoint share karte hain) |
 
 ```sql
--- Is July 4 inside Alice's reservation?
+-- Kya July 4, Alice ke reservation ke andar hai?
 SELECT stay @> '2026-07-04'::date FROM reservations WHERE id = 1;  -- true
 ```
 
-A **GiST index** (not GIN) accelerates range queries:
+Range queries ko fast banane ke liye **GiST index** (GIN nahi) use hota hai:
 
 ```sql
 CREATE INDEX idx_reservations_stay ON reservations USING GIST (stay);
 ```
 
-Ranges are ideal for **scheduling**, **pricing windows**, **event planning**, and **audit period tracking** — anywhere you need "did X happen while Y was active?"
+Ranges perfect hain **scheduling**, **pricing windows**, **event planning**, aur **audit period tracking** ke liye — jahan bhi tumhe "kya X hua tha jab Y active tha?" jaisa sawal poochna ho.
 
 ---
 
 ## 🧩 Common Extensions
 
-PostgreSQL's extension system lets you bolt on new types, functions, and operators. Install with `CREATE EXTENSION`.
+PostgreSQL ka extension system tumhe naye types, functions, aur operators bolt-on karne deta hai. `CREATE EXTENSION` se install karo.
 
 ### uuid-ossp: UUID Generation
 
-UUIDs (Universally Unique Identifiers) are 128-bit values used as primary keys when you need to generate IDs outside the database (e.g., in your application before INSERT).
+UUIDs (Universally Unique Identifiers) 128-bit values hote hain jo primary keys ke liye use hote hain jab tumhe database ke bahar (application code mein, INSERT se pehle) IDs generate karni ho.
 
 ```sql
 -- PostgreSQL
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Generate a UUID v4 (random)
+-- UUID v4 generate karo (random)
 SELECT uuid_generate_v4();
 -- e.g. 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
 
--- Use as default primary key
+-- Default primary key ki tarah use karo
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL
 );
 ```
 
-> **PostgreSQL 13+** ships `gen_random_uuid()` built-in (no extension needed) — prefer that for new projects.
+> [!tip]
+> **PostgreSQL 13+** mein `gen_random_uuid()` built-in hi aata hai (koi extension nahi chahiye) — naye projects ke liye usi ko prefer karo.
 
 ### pgcrypto: Encryption
 
@@ -410,10 +421,10 @@ CREATE TABLE users (
 -- PostgreSQL
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Hash a password (bcrypt)
+-- Password hash karo (bcrypt)
 SELECT crypt('my_secret_password', gen_salt('bf'));
 
--- Verify a password
+-- Password verify karo
 SELECT crypt('my_secret_password', stored_hash) = stored_hash AS is_valid;
 
 -- Symmetric encryption
@@ -421,11 +432,12 @@ SELECT pgp_sym_encrypt('sensitive data', 'encryption_key');
 SELECT pgp_sym_decrypt(encrypted_col, 'encryption_key') FROM secrets;
 ```
 
-> **Caution:** For passwords in production, prefer doing hashing in application code (bcrypt/argon2 libraries). `pgcrypto` is useful for encrypting data fields at rest.
+> [!warning]
+> Production mein passwords ke liye application code mein hashing (bcrypt/argon2 libraries) prefer karo. `pgcrypto` data fields ko at rest encrypt karne ke liye useful hai, passwords ke liye nahi.
 
 ### PostGIS: Geographic Data
 
-PostGIS adds geometry/geography types and spatial operators. It is the standard choice for any application dealing with maps, locations, or distances.
+PostGIS geometry/geography types aur spatial operators add karta hai. Yeh standard choice hai kisi bhi application ke liye jo maps, locations, ya distances handle karti hai — jaise Ola/Uber ka nearest-driver-dhundo wala logic.
 
 ```sql
 -- PostgreSQL + PostGIS
@@ -437,7 +449,7 @@ CREATE TABLE locations (
   geom GEOMETRY(Point, 4326)  -- SRID 4326 = WGS84 (GPS coordinates)
 );
 
--- Find all locations within 5 km of a point
+-- Ek point ke 5 km radius ke andar saari locations dhundo
 SELECT name
 FROM locations
 WHERE ST_DWithin(
@@ -447,29 +459,29 @@ WHERE ST_DWithin(
 );
 ```
 
-PostGIS is a large topic on its own — think of it as "GIS inside your database."
+PostGIS apne aap mein ek bada topic hai — isse "GIS database ke andar" samjho.
 
 ### pg_trgm: Fuzzy Text Matching
 
-Trigram matching splits text into overlapping 3-character chunks and measures similarity. It enables fast `LIKE '%substring%'` queries and typo-tolerant search.
+Trigram matching text ko overlapping 3-character chunks mein todta hai aur similarity measure karta hai. Isse fast `LIKE '%substring%'` queries aur typo-tolerant search possible hoti hai — jaise Amazon search mein tum "moble" type karo toh bhi "mobile" wale results aa jaate hain.
 
 ```sql
 -- PostgreSQL
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
--- Similarity score (0 to 1)
+-- Similarity score (0 se 1 ke beech)
 SELECT similarity('hello', 'helo');  -- 0.444...
 
--- Find names that are at least 40% similar to a misspelled input
+-- Woh names dhundo jo misspelled input se kam se kam 40% similar hain
 SELECT name
 FROM customers
 WHERE similarity(name, 'Jonatan') > 0.4
 ORDER BY similarity(name, 'Jonatan') DESC;
 
--- GIN index makes LIKE fast (even leading wildcards!)
+-- GIN index LIKE ko fast banata hai (leading wildcards ke saath bhi!)
 CREATE INDEX idx_customers_name_trgm ON customers USING GIN (name gin_trgm_ops);
 
--- Now this hits the index:
+-- Ab yeh query index hit karti hai:
 SELECT name FROM customers WHERE name LIKE '%natan%';
 ```
 
@@ -477,44 +489,44 @@ SELECT name FROM customers WHERE name LIKE '%natan%';
 
 ## ↔️ Lateral Joins
 
-A **LATERAL join** lets a subquery in the `FROM` clause reference columns from tables that appear earlier in the same `FROM` clause. Think of it as "run this subquery once per row of the outer table."
+Ek **LATERAL join** `FROM` clause ke andar ek subquery ko us same `FROM` clause mein pehle aayi tables ke columns reference karne deta hai. Isse "har row ke liye yeh subquery ek baar run karo" samjho.
 
-The syntax differs slightly across databases:
+Syntax har database mein thoda alag hai:
 
 ```sql
 -- PostgreSQL / MySQL 8+
 ... FROM outer_table, LATERAL (subquery) AS alias
--- or
+-- ya
 ... FROM outer_table JOIN LATERAL (subquery) AS alias ON true
 
 -- SQL Server
 ... FROM outer_table CROSS APPLY (subquery) AS alias
--- (OUTER APPLY is the LEFT JOIN equivalent)
+-- (OUTER APPLY, LEFT JOIN ka equivalent hai)
 
 -- Oracle
 ... FROM outer_table, LATERAL (subquery) alias
 ```
 
-### Use Case: Top N Rows Per Group
+### Use Case: Har Group Mein Top N Rows
 
-A classic problem — "get the 3 most recent orders for each customer." Window functions can do this, but LATERAL is often more readable and sometimes faster:
+Ek classic problem — "har customer ke 3 sabse recent orders lao." Window functions bhi yeh kar sakte hain, lekin LATERAL aksar zyada readable aur kabhi kabhi faster hota hai — jaise CRED app mein tumhe har card ke last 3 transactions dikhane hon:
 
 ```sql
--- PostgreSQL: top 3 orders per customer
+-- PostgreSQL: har customer ke top 3 orders
 SELECT c.name, recent.*
 FROM customers AS c
 JOIN LATERAL (
   SELECT order_date, total_amount
   FROM orders
-  WHERE orders.customer_id = c.id   -- references c from outer query
+  WHERE orders.customer_id = c.id   -- outer query ke c ko reference karta hai
   ORDER BY order_date DESC
   LIMIT 3
 ) AS recent ON true;
 ```
 
-Without LATERAL, you would need a window function (`ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC)`) and a wrapping subquery. LATERAL expresses the intent more directly.
+LATERAL ke bina, tumhe window function (`ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC)`) aur ek wrapping subquery chahiye hoti. LATERAL intent ko zyada directly express karta hai.
 
-### SQL Server Equivalent with CROSS APPLY
+### SQL Server Equivalent — CROSS APPLY
 
 ```sql
 -- SQL Server
@@ -527,7 +539,7 @@ CROSS APPLY (
   ORDER BY order_date DESC
 ) AS recent;
 
--- OUTER APPLY includes customers with no orders (like LEFT JOIN)
+-- OUTER APPLY un customers ko bhi include karta hai jinke koi orders nahi hain (LEFT JOIN jaisa)
 SELECT c.name, recent.order_date
 FROM customers AS c
 OUTER APPLY (
@@ -537,12 +549,12 @@ OUTER APPLY (
 ) AS recent;
 ```
 
-### Another Use Case: Calling a Function Per Row
+### Ek Aur Use Case: Har Row Pe Function Call Karna
 
-LATERAL is also the right tool when you have a **set-returning function** that needs a per-row argument:
+LATERAL sahi tool hai jab tumhare paas ek **set-returning function** ho jisme per-row argument chahiye:
 
 ```sql
--- PostgreSQL: expand each post's tags array into rows, joined back to the post
+-- PostgreSQL: har post ke tags array ko rows mein expand karo, post ke saath joined
 SELECT p.title, tag
 FROM posts AS p
 JOIN LATERAL UNNEST(p.tags) AS tag ON true;
@@ -552,14 +564,14 @@ JOIN LATERAL UNNEST(p.tags) AS tag ON true;
 
 ## ✅ Key Takeaways
 
-- **Full-text search** is far more powerful than `LIKE` — it stems words, removes stop words, ranks by relevance, and uses inverted indexes. Store a computed `tsvector` column and index it with GIN for production performance.
-- **MySQL** uses `MATCH ... AGAINST` with `FULLTEXT` indexes; boolean mode supports +/- operators but no stemming.
-- **SQL Server** offers `CONTAINS()` and `FREETEXT()` via its full-text catalog feature.
-- **Elasticsearch** is the right tool when you need typo tolerance, faceting, or billion-document scale.
-- **PostgreSQL arrays** let you model one-to-many relationships inside a single column. Use `@>` to query containment and a **GIN index** for speed. `UNNEST()` and `array_agg()` let you move freely between rows and arrays.
-- **Range types** model contiguous spans elegantly. The `&&` overlap operator makes conflict detection (e.g., double-booking prevention) trivial and indexable.
-- **Extensions** are plug-in superpowers: `uuid-ossp` for UUIDs, `pgcrypto` for encryption, `PostGIS` for geography, and `pg_trgm` for fuzzy text search.
-- **LATERAL joins** (or `CROSS APPLY` in SQL Server) let a subquery reference the outer row, enabling clean "top N per group" queries and per-row function calls.
+- **Full-text search**, `LIKE` se kahin zyada powerful hai — yeh words ko stem karta hai, stop words hataata hai, relevance ke hisaab se rank karta hai, aur inverted indexes use karta hai. Production performance ke liye ek computed `tsvector` column store karo aur usse GIN se index karo.
+- **MySQL**, `MATCH ... AGAINST` ke saath `FULLTEXT` indexes use karta hai; boolean mode +/- operators support karta hai lekin stemming nahi karta.
+- **SQL Server** apne full-text catalog feature ke through `CONTAINS()` aur `FREETEXT()` deta hai.
+- **Elasticsearch** sahi tool hai jab tumhe typo tolerance, faceting, ya billion-document scale chahiye ho.
+- **PostgreSQL arrays** ek single column ke andar one-to-many relationships model karne dete hain. Containment query ke liye `@>` use karo aur speed ke liye **GIN index** lagao. `UNNEST()` aur `array_agg()` se tum rows aur arrays ke beech free move kar sakte ho.
+- **Range types** contiguous spans ko elegantly model karte hain. `&&` overlap operator conflict detection (jaise double-booking rokna) ko trivial aur indexable bana deta hai.
+- **Extensions** plug-in superpowers hain: UUIDs ke liye `uuid-ossp`, encryption ke liye `pgcrypto`, geography ke liye `PostGIS`, aur fuzzy text search ke liye `pg_trgm`.
+- **LATERAL joins** (SQL Server mein `CROSS APPLY`) ek subquery ko outer row reference karne dete hain, jisse clean "top N per group" queries aur per-row function calls possible hote hain.
 
 ---
 
@@ -567,7 +579,7 @@ JOIN LATERAL UNNEST(p.tags) AS tag ON true;
 
 **Question 1**
 
-You have a PostgreSQL `articles` table with a `search_vector tsvector` column indexed with GIN. A user searches for posts about "running" or "jogging." Which query correctly handles both terms including their stemmed forms?
+Tumhare paas ek PostgreSQL `articles` table hai jisme `search_vector tsvector` column hai jo GIN se indexed hai. Ek user "running" ya "jogging" ke posts search karta hai. Kaunsi query dono terms ko unke stemmed forms samet correctly handle karti hai?
 
 ```
 A) WHERE body LIKE '%running%' OR body LIKE '%jogging%'
@@ -579,7 +591,7 @@ D) WHERE search_vector = to_tsvector('english', 'running jogging')
 <details>
 <summary>Show answer</summary>
 
-**B** — `|` is the OR operator in tsquery. The `'english'` configuration will stem both *running* → *run* and *jogging* → *jog*, so the query matches any document containing either root. Option A cannot use the index and does not stem. Option C requires both terms. Option D compares a vector to a vector, which is not valid search syntax.
+**B** — tsquery mein `|` OR operator hai. `'english'` configuration dono *running* → *run* aur *jogging* → *jog* stem kar dega, isliye query kisi bhi document ko match karegi jisme koi bhi root word ho. Option A index use nahi kar sakta aur stemming bhi nahi karta. Option C mein dono terms chahiye hote hain. Option D ek vector ko vector se compare kar raha hai, jo valid search syntax nahi hai.
 
 </details>
 
@@ -587,7 +599,7 @@ D) WHERE search_vector = to_tsvector('english', 'running jogging')
 
 **Question 2**
 
-A hotel booking app stores reservations as `daterange` values. A new booking request arrives for `[2026-08-10, 2026-08-14)` in room 5. Which SQL correctly detects any conflicting reservation?
+Ek hotel booking app reservations ko `daterange` values ki tarah store karta hai. Room 5 ke liye `[2026-08-10, 2026-08-14)` ki nayi booking request aati hai. Kaunsi SQL correctly conflicting reservation detect karegi?
 
 ```sql
 -- Option A
@@ -614,7 +626,7 @@ WHERE room_number = 5
 <details>
 <summary>Show answer</summary>
 
-**A** — The `&&` (overlap) operator returns true if two ranges share any point. This correctly catches partial overlaps (e.g., an existing booking from Aug 8–12 would conflict). Option B only finds exact matches. Option C works too but requires separate date columns and no range type. Option D (`@>`) checks if the existing booking fully *contains* the new range — it would miss partial overlaps.
+**A** — `&&` (overlap) operator `true` return karta hai agar do ranges koi bhi point share karte hon. Yeh partial overlaps ko bhi correctly catch karta hai (jaise Aug 8–12 ki existing booking conflict karegi). Option B sirf exact matches dhundta hai. Option C bhi kaam karta hai lekin usme separate date columns chahiye, range type nahi. Option D (`@>`) check karta hai ki existing booking naye range ko fully *contain* karti hai ya nahi — yeh partial overlaps miss kar dega.
 
 </details>
 
@@ -622,7 +634,7 @@ WHERE room_number = 5
 
 **Question 3**
 
-You want the 2 highest-rated products in each category using a LATERAL join in PostgreSQL. Which query is correct?
+Tumhe PostgreSQL mein LATERAL join use karke har category ke 2 highest-rated products chahiye. Kaunsi query correct hai?
 
 ```sql
 -- Option A
@@ -658,10 +670,10 @@ LIMIT 2;
 <details>
 <summary>Show answer</summary>
 
-**A** — The LATERAL subquery references `c.id` (the outer table), runs independently for each category row, and applies `LIMIT 2` per category. Option B is a plain subquery (no LATERAL) — its `LIMIT 2` applies globally, not per category, and it would not compile because `top.category_id` is not in scope. Option C has invalid syntax (`LATERAL JOIN` is not a keyword — the word order must be `JOIN LATERAL`).
+**A** — LATERAL subquery `c.id` (outer table) ko reference karti hai, har category row ke liye independently run hoti hai, aur `LIMIT 2` per category apply hota hai. Option B ek plain subquery hai (LATERAL nahi) — iska `LIMIT 2` globally apply hoga, per category nahi, aur yeh compile bhi nahi hoga kyunki `top.category_id` scope mein hi nahi hai. Option C ka syntax invalid hai (`LATERAL JOIN` koi keyword nahi hai — sahi order `JOIN LATERAL` hona chahiye).
 
 </details>
 
 ---
 
-*Next chapter: Query Optimization and EXPLAIN ANALYZE →*
+*Next chapter: Query Optimization aur EXPLAIN ANALYZE →*

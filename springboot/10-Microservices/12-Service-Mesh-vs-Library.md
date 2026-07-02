@@ -1,22 +1,18 @@
----
-tags: [microservices, service-mesh, istio, linkerd, infrastructure]
-aliases: [Service Mesh, Sidecar, Istio]
-stage: advanced
----
-
 # Service Mesh vs Library (Istio/Linkerd vs Spring Cloud)
 
-> [!info] For the Express/TS dev
-> Cross-cutting concerns — mTLS, retries, circuit breakers, traffic shifting, observability — can live in your **app** (libraries: Spring Cloud, Resilience4j) or in the **platform** (a service mesh: Istio, Linkerd, Consul Connect). Each strategy has tradeoffs. Polyglot teams gravitate to meshes; Java-only teams often stick with Spring Cloud.
+> [!info] Express/TS dev ke liye
+> mTLS, retries, circuit breakers, traffic shifting, observability — ye saare cross-cutting concerns (jo har service ko chahiye) do jagah rakhe ja sakte hain: tumhare **app code** mein (libraries jaise Spring Cloud, Resilience4j) ya phir **platform level** pe (ek service mesh jaise Istio, Linkerd, Consul Connect). Dono ke apne tradeoffs hain. Polyglot teams (multiple languages) mesh ki taraf jaati hain; pure Java/Spring teams often Spring Cloud pe hi tike rehte hain.
 
 ## Concept
 
-A **service mesh** runs a tiny proxy (a "sidecar") next to every service. All traffic in/out of the service goes through the proxy. The proxies are configured centrally (the "control plane") and provide:
+Socho tumhare paas 50 microservices hain — kuch Java mein, kuch Node mein, kuch Python mein. Har service ko chahiye: retries, timeouts, encryption, load balancing. Ab do raaste hain — ya to har service ke andar ye logic likho (library approach), ya phir ek "common guard" har service ke bahar khada kar do jo ye sab automatically handle kare (mesh approach).
 
-- mTLS (encrypted, authenticated traffic between services)
+**Service mesh** bilkul yahi karta hai — har service ke saath ek chhota sa proxy chalata hai jise **"sidecar"** kehte hain (jaise Zomato delivery partner ke saath ek assistant chalta ho jo traffic, payment verification, aur route optimization sab sambhal le, delivery partner sirf khana deliver karne pe focus kare). Service ka saara traffic — in bhi, out bhi — is proxy se hokar guzarta hai. Ye proxies centrally configure hote hain ek **"control plane"** se, aur ye provide karte hain:
+
+- mTLS (services ke beech encrypted, authenticated traffic)
 - Retries, timeouts, circuit breakers
 - Load balancing
-- Traffic splitting (canary, A/B)
+- Traffic splitting (canary, A/B testing)
 - Observability (metrics, logs, tracing)
 - Authorization policies
 
@@ -32,11 +28,11 @@ A **service mesh** runs a tiny proxy (a "sidecar") next to every service. All tr
             (Istio, Linkerd, etc.)
 ```
 
-The app itself becomes simpler — no Resilience4j, no mTLS, no retries in code.
+Yahan interesting baat ye hai — app khud simple ho jaata hai. Koi Resilience4j nahi, koi mTLS setup nahi, code mein koi retry logic nahi. Sab kuch sidecar proxy sambhal leta hai.
 
 ### Library approach (Spring Cloud)
 
-The app contains all the resilience logic:
+Isme resilience ka saara logic app ke andar hi baitha hota hai:
 
 ```
 ┌─────────────────────────────┐
@@ -49,44 +45,48 @@ The app contains all the resilience logic:
 └─────────────────────────────┘
 ```
 
+Yaani app khud apna bouncer hai — apni security, apni retries, sab kuch khud handle karta hai.
+
 ### Comparison
+
+Kya farak padta hai dono approach mein? Table dekho:
 
 | Concern | Library (Spring Cloud) | Mesh (Istio) |
 |---------|----------------------|--------------|
-| Where it runs | In your JVM | In a sidecar proxy (Envoy) |
-| Language | Java/Spring only | Any language |
-| Config | YAML in app | CRDs / VirtualService / DestinationRule |
-| Updates | Redeploy app | Update mesh config (no app redeploy) |
-| mTLS | Manual (Spring Security or custom) | Free, automatic |
+| Kahan chalta hai | Tumhare JVM ke andar | Sidecar proxy mein (Envoy) |
+| Language | Sirf Java/Spring | Koi bhi language |
+| Config | App ke andar YAML | CRDs / VirtualService / DestinationRule |
+| Updates | App redeploy karna padega | Sirf mesh config update karo (app redeploy nahi chahiye) |
+| mTLS | Manual (Spring Security ya custom) | Free, automatic |
 | Latency cost | Negligible | +1-3ms per hop |
-| Operational complexity | Lower (no extra infra) | Higher (control plane, sidecars) |
-| Resource cost | App memory only | +50-200MB RAM per pod for sidecar |
-| Polyglot | Doesn't help non-Java services | Works for any service |
-| Local dev | Just run apps | Hard (no mesh) |
+| Operational complexity | Kam (extra infra nahi chahiye) | Zyada (control plane, sidecars manage karne padenge) |
+| Resource cost | Sirf app memory | +50-200MB RAM per pod sidecar ke liye |
+| Polyglot support | Non-Java services ke liye kaam nahi aata | Kisi bhi service ke liye kaam karta hai |
+| Local dev | Bas apps run karo | Mushkil (mesh nahi hota local mein) |
 
-### When to use which
+### Kaunsa use karein kab?
 
-**Use libraries (Spring Cloud) if:**
-- Mostly Java/Kotlin services
-- Not on Kubernetes
-- Small team, want simpler ops
-- Need fine-grained control inside business logic
+**Libraries (Spring Cloud) use karo agar:**
+- Zyadatar services Java/Kotlin mein hain
+- Kubernetes pe nahi ho
+- Team chhoti hai, simple ops chahiye
+- Business logic ke andar fine-grained control chahiye
 
-**Use a mesh if:**
-- Polyglot stack (Java + Go + Python + Node)
-- On Kubernetes already
-- Need uniform mTLS / zero-trust
-- Have platform engineers
-- Want to update traffic rules without redeploying
+**Mesh use karo agar:**
+- Polyglot stack hai (Java + Go + Python + Node — jaise Swiggy ka backend jisme alag alag teams alag language use karti hain)
+- Pehle se hi Kubernetes pe ho
+- Uniform mTLS / zero-trust chahiye sab services ke beech
+- Tumhare paas platform engineers hain jo ye complexity manage kar sakein
+- Traffic rules update karne ho bina redeploy kiye
 
-**Hybrid (common):**
-- App keeps OpenFeign for declarative clients + Resilience4j for fine-grained policies
-- Mesh provides mTLS, observability, traffic shifting
-- Avoid duplicating retries (turn off mesh retries OR Resilience4j retries — not both)
+**Hybrid (sabse common approach):**
+- App mein OpenFeign rakho declarative clients ke liye + Resilience4j fine-grained policies ke liye
+- Mesh de mTLS, observability, traffic shifting
+- > [!warning] Dhyan rakhna — retries duplicate mat karo (mesh retries YA Resilience4j retries — dono ek saath nahi)
 
 ## Code example
 
-### Spring Cloud (library) — the in-app way
+### Spring Cloud (library) — in-app tareeka
 
 ```java
 @FeignClient(name = "payment-service")
@@ -110,9 +110,9 @@ resilience4j:
         max-attempts: 3
 ```
 
-### Istio (mesh) — the platform way
+### Istio (mesh) — platform tareeka
 
-The Spring app is **stripped of resilience code**:
+Yahan Spring app se resilience code **hata diya gaya hai** — bilkul plain:
 
 ```java
 @FeignClient(name = "payment-service", url = "http://payment-service")
@@ -122,7 +122,7 @@ interface PaymentClient {
 }
 ```
 
-The retry/circuit-breaker behavior comes from Istio CRDs in the cluster:
+Retry aur circuit-breaker ka behavior ab Istio ke CRDs se aata hai cluster mein — app ko pata bhi nahi chalta:
 
 ```yaml
 apiVersion: networking.istio.io/v1beta1
@@ -156,7 +156,7 @@ spec:
       baseEjectionTime: 30s
 ```
 
-mTLS comes from a single mesh-wide policy:
+mTLS bhi ek single mesh-wide policy se aata hai — ek jagah likho, sab pe apply ho jaata hai:
 
 ```yaml
 apiVersion: security.istio.io/v1beta1
@@ -169,9 +169,9 @@ spec:
     mode: STRICT
 ```
 
-Now every service-to-service call is encrypted and authenticated — without a single line of app code.
+Ab har service-to-service call encrypted aur authenticated hai — bina app ki ek bhi line likhe. Jaise UPI ka underlying encryption — tumhe usko implement karne ki zaroorat nahi, platform khud sambhal leta hai.
 
-### Canary deployment with Istio
+### Canary deployment Istio ke saath
 
 ```yaml
 apiVersion: networking.istio.io/v1beta1
@@ -186,50 +186,52 @@ spec:
           weight: 5
 ```
 
-Doing the same in app code requires custom load-balancer logic and feature flags — far more work.
+Socho — jaise Swiggy naya checkout flow sirf 5% users ko dikhana chahta hai test karne ke liye. Mesh mein ye sirf weight change karna hai. App code mein yahi karna ho to custom load-balancer logic aur feature flags likhne padenge — kaafi zyada kaam.
 
-### Observability for free
+### Observability free mein
 
-Istio emits standard metrics for every request:
+Istio har request ke liye standard metrics emit karta hai — tumhe kuch instrument nahi karna padta:
 
 ```
 istio_requests_total{source_workload="order-service",destination_service="payment-service",response_code="200"}
 istio_request_duration_milliseconds_bucket{...}
 ```
 
-Tracing spans are auto-generated by Envoy if you propagate the headers (Spring Boot does this automatically with Micrometer Tracing). See [[09-Distributed-Tracing]].
+Tracing spans automatically Envoy generate karta hai, bas headers propagate hone chahiye (Spring Boot ye khud kar deta hai Micrometer Tracing ke saath). Dekho [[09-Distributed-Tracing]].
 
 ## Express/Node comparison
 
+Node wale dev ke liye ye samajhna easy hai:
+
 | Library | Mesh |
 |---------|------|
-| Node: `opossum`, `axios-retry`, `consul-resolver` | Istio works for Node services with **zero changes** |
-| Spring Cloud equivalent | Linkerd, Consul Connect, AWS App Mesh — all language-agnostic |
+| Node: `opossum`, `axios-retry`, `consul-resolver` | Istio Node services ke liye **bina kisi change ke** kaam karta hai |
+| Spring Cloud equivalent | Linkerd, Consul Connect, AWS App Mesh — sab language-agnostic |
 
-A mesh's biggest selling point: **the same policies apply uniformly** to your Java service AND your Node service AND your Python service. A library approach forces you to reimplement them per language.
+Mesh ka sabse bada selling point yahi hai: **same policies uniformly** apply hoti hain tumhare Java service pe bhi, Node service pe bhi, aur Python service pe bhi. Library approach mein tumhe har language mein alag se reimplement karna padta hai — jaise agar Zomato ka har team (Java, Node, Python) apna khud ka retry logic likhe, to maintain karna nightmare ban jaayega.
 
 ## Gotchas
 
-> [!danger] Don't double-retry
-> If both Resilience4j and Istio retry, you get N×M retry attempts on failure — load amplifies catastrophically. Pick one layer per concern.
+> [!danger] Double-retry mat karo
+> Agar Resilience4j aur Istio dono retry kar rahe hain, to failure hone pe N×M retry attempts ho jaayenge — load catastrophically amplify ho jaata hai. Har concern ke liye ek hi layer choose karo.
 
 > [!warning] Sidecar startup ordering
-> Apps can start calling networks before Envoy is ready (in K8s pre-1.29). Istio recommends `holdApplicationUntilProxyStarts: true`.
+> Apps network calls karna shuru kar sakte hain Envoy ready hone se pehle bhi (K8s pre-1.29 mein). Istio recommend karta hai `holdApplicationUntilProxyStarts: true` set karna.
 
 > [!warning] Sidecar resource cost
-> 100-200MB RAM × thousands of pods adds up. Linkerd's Rust-based proxy is leaner (~10MB) than Envoy.
+> 100-200MB RAM × hazaaron pods — ye jod ke bahut ho jaata hai. Linkerd ka Rust-based proxy zyada lean hai (~10MB) Envoy ke comparison mein.
 
-> [!warning] Local dev without mesh
-> Devs running services on localhost don't have a mesh. Either: (a) use Tilt/Skaffold to deploy locally to k8s, (b) keep behavior identical with-or-without mesh, (c) run lightweight in-app fallbacks.
+> [!warning] Local dev bina mesh ke
+> Devs jab localhost pe services chalate hain, wahan mesh nahi hota. Options: (a) Tilt/Skaffold use karo local k8s pe deploy karne ke liye, (b) behavior same rakho with-or-without mesh, (c) lightweight in-app fallbacks rakho.
 
 > [!warning] Gateway vs mesh
-> A mesh handles **east-west** traffic (service-to-service). For **north-south** (client → gateway → services), you still want a gateway like Spring Cloud Gateway or Istio Gateway. They're complementary.
+> Mesh sirf **east-west** traffic handle karta hai (service-to-service). **North-south** traffic ke liye (client → gateway → services), tumhe abhi bhi ek gateway chahiye jaise Spring Cloud Gateway ya Istio Gateway. Ye dono ek dusre ko complement karte hain, replace nahi.
 
-> [!tip] Linkerd if you're new to meshes
-> Istio is feature-rich but complex. Linkerd is simpler, lighter, easier to operate. Start there if you're not bought in to Istio's ecosystem.
+> [!tip] Naye ho meshes mein to Linkerd try karo
+> Istio feature-rich hai lekin complex bhi. Linkerd simpler hai, lighter hai, operate karna easy hai. Agar Istio ke ecosystem mein bought-in nahi ho to Linkerd se start karo.
 
-> [!tip] Don't adopt a mesh "to be ready"
-> Mesh ROI starts when you have ~10+ services AND pain (mTLS demands, polyglot retries, blue/green, etc.). Below that threshold, libraries beat the operational cost.
+> [!tip] Mesh "ready rehne ke liye" mat adopt karo
+> Mesh ka ROI tabhi shuru hota hai jab tumhare paas ~10+ services hon AND real pain ho (mTLS demands, polyglot retries, blue/green deployments, etc.). Us threshold se neeche, libraries operational cost ke hisaab se better hain.
 
 ## Related
 - [[02-Spring-Cloud-Overview]]

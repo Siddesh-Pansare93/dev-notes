@@ -12,18 +12,36 @@ const md = new MarkdownIt();
  * Content rendering route handler
  */
 function getContent(navTree, flatFiles) {
-  return (req, res) => {
-    // Normalize the URL path
-    let urlPath = decodeURIComponent(req.path).replace(/\\/g, '/');
+  // Pre-compute the boundary string once: CONTENT_ROOT + separator.
+  // Using this instead of bare startsWith(CONTENT_ROOT) prevents the
+  // sibling-directory bypass (e.g. /content-extra/ matching /content).
+  const ROOT_PREFIX = CONTENT_ROOT.endsWith(path.sep)
+    ? CONTENT_ROOT
+    : CONTENT_ROOT + path.sep;
 
-    // Remove leading slash
+  function isSafe(p) {
+    // Allow the root itself or any strict descendant
+    return p === CONTENT_ROOT || p.startsWith(ROOT_PREFIX);
+  }
+
+  return (req, res) => {
+    // req.path is already decoded once by Express; decode it ourselves with
+    // error handling so we control exactly one decode pass.
+    let urlPath;
+    try {
+      urlPath = decodeURIComponent(req.path);
+    } catch (_) {
+      return res.status(400).send('Bad Request');
+    }
+    // Normalise separators and strip leading slash
+    urlPath = urlPath.replace(/\\/g, '/');
     if (urlPath.startsWith('/')) urlPath = urlPath.slice(1);
 
-    // Resolve to filesystem path
+    // Resolve to an absolute filesystem path (handles any remaining .. segments)
     let filePath = path.resolve(CONTENT_ROOT, urlPath);
 
-    // Path traversal protection
-    if (!filePath.startsWith(CONTENT_ROOT)) {
+    // Path traversal protection — check before AND after extension append
+    if (!isSafe(filePath)) {
       return res.status(403).send('Forbidden');
     }
 
@@ -53,6 +71,11 @@ function getContent(navTree, flatFiles) {
     const isCanvas = filePath.toLowerCase().endsWith('.canvas');
     if (!filePath.toLowerCase().endsWith('.md') && !isCanvas) {
       filePath += '.md';
+    }
+
+    // Re-validate after extension append (defense-in-depth)
+    if (!isSafe(filePath)) {
+      return res.status(403).send('Forbidden');
     }
 
     // Check file exists

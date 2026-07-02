@@ -1,32 +1,30 @@
----
-tags: [deployment, kubernetes, k8s, beginner]
-aliases: [K8s From Scratch, Kubernetes Crash Course, K8s for Docker Devs]
-stage: foundation
----
+# Kubernetes From Scratch (Docker jaanne wale dev ke liye)
 
-# Kubernetes From Scratch (for the Docker-fluent dev)
+> [!info] Tumhare liye specifically
+> Tumhe Docker aata hai. `docker run`, `docker-compose up`, port mappings, volumes, env vars — sab familiar hai. Kubernetes basically wahi cheez hai jab tumhe wahi containers **bahut saare machines** pe chalane hote hain, saath mein self-healing, rolling updates, aur service discovery ke saath. Ye note ek pul hai — left side Docker concept, right side uska k8s wala equivalent.
 
-> [!info] For you specifically
-> You know Docker. You know `docker run`, `docker-compose up`, port mappings, volumes, env vars. Kubernetes is what happens when you need to run those containers across **many machines** with self-healing, rolling updates, and discovery. This note is the bridge — Docker concept on the left, k8s equivalent on the right.
+## 5-minute wala mental model
 
-## The 5-minute mental model
+Socho tumne Zomato jaisa system banaya hai. Ek single laptop pe `docker run orders-api` chala ke kaam nahi chalega — traffic badhega toh crash ho jayega, aur agar container mar gaya toh koi restart nahi karega. Kubernetes yahi problem solve karta hai.
 
-> [!tip] Read this twice
-> - You used to run **one container** on one host with `docker run`
-> - Now you tell k8s: "I want **3 copies** of this container, **always**, behind a stable address"
-> - K8s does the placing, restarting, scaling, and routing
-> - You write **YAML** describing the *desired state*; k8s makes reality match it
+> [!tip] Ye do baar padho
+> - Pehle tum **ek container** ek host pe `docker run` se chalate the
+> - Ab tum k8s ko batate ho: "Mujhe is container ki **3 copies** chahiye, **hamesha**, ek stable address ke peeche"
+> - K8s khud placement, restart, scaling, aur routing sambhalta hai
+> - Tum sirf **YAML** likhte ho jisme *desired state* describe hota hai; k8s reality ko us state ke jaisa banata rehta hai
+
+Isko aise socho jaise tumne Swiggy ko ek order diya: "Mujhe 3 delivery partners chahiye is area mein, hamesha active." Swiggy ka system khud dekhta rahega — agar ek partner offline ho gaya, dusra assign kar dega. Tumhe manually track nahi karna padta. Kubernetes bhi exactly yही karta hai apne pods ke saath.
 
 ```mermaid
 flowchart TD
-    subgraph You["👨‍💻 You"]
+    subgraph You["👨‍💻 Tum"]
         YAML["kubectl apply -f deployment.yaml\ndesired: replicas=3"]
     end
 
     subgraph CP["Kubernetes Control Plane"]
         API["API Server"]
-        SCHED["Scheduler\npicks which node"]
-        CM["Controller Manager\nreconciles actual → desired"]
+        SCHED["Scheduler\ndecide karta hai kaunsa node"]
+        CM["Controller Manager\nactual → desired reconcile karta hai"]
         ETCD[("etcd\nstate store")]
     end
 
@@ -38,14 +36,14 @@ flowchart TD
         P3["Pod: orders-api"]
     end
 
-    SVC["Service: orders-api\nStable DNS + ClusterIP\nload balances across 3 pods"]
+    SVC["Service: orders-api\nStable DNS + ClusterIP\n3 pods ke beech load balance"]
 
     YAML --> API --> ETCD
     API --> SCHED
     SCHED --> N1 & N2
     CM -- "watch + reconcile" --> API
     P1 & P2 & P3 --> SVC
-    SVC --> EXT(["Other pods\nor Ingress"])
+    SVC --> EXT(["Doosre pods\nya Ingress"])
 
     style CP fill:#f0f9ff,stroke:#0ea5e9
     style SVC fill:#22c55e,color:#fff
@@ -54,27 +52,34 @@ flowchart TD
 
 ## Docker → Kubernetes vocabulary map
 
+Kya hota hai? Basically jo cheezein tum already Docker mein karte ho, unhi ka ek "enterprise-grade" naam k8s mein hai. Table dekh lo, dimag mein bulb jal jayega.
+
 | Docker | Kubernetes | Notes |
 |--------|------------|-------|
-| `docker run image` | **Pod** | A pod wraps 1+ containers (usually 1). Smallest deploy unit. |
-| `docker-compose.yml` | **Deployment** + **Service** + **ConfigMap** | Multiple YAML files, but same intent |
-| `docker run --restart=always` | **Deployment** | Automatically restarts crashed pods |
-| `--scale=3` | `replicas: 3` in Deployment | Run N copies |
-| Container port mapping | **Service** | Stable virtual IP/DNS pointing at pods |
-| `docker network` | Cluster network (built-in) | All pods can reach all pods by default |
-| `docker volume` | **PersistentVolumeClaim** | Storage that survives pod restarts |
+| `docker run image` | **Pod** | Ek pod 1 ya usse zyada containers ko wrap karta hai (usually 1). Sabse chhota deploy unit. |
+| `docker-compose.yml` | **Deployment** + **Service** + **ConfigMap** | Multiple YAML files, lekin intent same hai |
+| `docker run --restart=always` | **Deployment** | Crash hue pods ko automatically restart karta hai |
+| `--scale=3` | `replicas: 3` Deployment mein | N copies chalao |
+| Container port mapping | **Service** | Stable virtual IP/DNS jo pods ki taraf point karta hai |
+| `docker network` | Cluster network (built-in) | By default sab pods ek dusre tak pahunch sakte hain |
+| `docker volume` | **PersistentVolumeClaim** | Storage jo pod restart ke baad bhi bacha rehta hai |
 | `--env-file` | **ConfigMap** + **Secret** | Non-secret vs secret config |
 | `docker exec -it` | `kubectl exec -it` | Same idea |
 | `docker logs` | `kubectl logs` | Same idea |
-| `docker ps` | `kubectl get pods` | List running things |
+| `docker ps` | `kubectl get pods` | Chal rahi cheezon ki list |
 
-## The core objects you must know
+## Wo core objects jo aana hi chahiye
 
-### 1. Pod — one (or more) running container
+### 1. Pod — ek (ya zyada) chalta hua container
 
-You rarely create pods directly. You create **Deployments** that create pods for you.
+Kya hota hai? Pod k8s ka sabse chhota deployable unit hai. Isme ek ya usse zyada containers hote hain jo saath mein schedule hote hain, same network namespace share karte hain.
 
-### 2. Deployment — "I want N replicas of this image, always"
+> [!info] Direct pod mat banao
+> Tum khud se pods rarely banate ho. Iske bajaye tum **Deployments** banate ho, jo apne aap pods create karte hain. Manually pod banana matlab manually delivery boy hire karna instead of Swiggy app use karna — kaam ho jayega lekin scale nahi karega.
+
+### 2. Deployment — "Mujhe is image ki N replicas chahiye, hamesha"
+
+Kyun zaruri hai? Kyunki tumhe khud track nahi karna hai ki kaunsa pod zinda hai, kaunsa mara. Deployment ye guarantee deta hai ki desired replica count hamesha maintain rahe.
 
 ```yaml
 apiVersion: apps/v1
@@ -95,11 +100,11 @@ spec:
           ports: [{ containerPort: 8080 }]
 ```
 
-K8s ensures 3 pods are always running. If one dies → started fresh. If you push `1.0.1` → rolling update one pod at a time.
+K8s ensure karta hai ki 3 pods hamesha chal rahe hon. Agar ek mar gaya → fresh start ho jata hai. Agar tum `1.0.1` push karo → rolling update hoga, ek-ek pod karke (jaise Zomato apna app update karta hai bina poora system down kiye).
 
-### 3. Service — stable address for a Deployment
+### 3. Service — Deployment ke liye stable address
 
-Pod IPs change every restart. You can't hard-code them. **Services** give you a stable DNS name.
+Kya problem hai? Pod IPs har restart pe change hoti hain. Tum unhe hardcode nahi kar sakte — jaise tum kisi Swiggy delivery boy ka phone number hardcode nahi karoge kyunki wo roz badal sakta hai. **Services** tumhe ek stable DNS naam dete hain jo hamesha same rehta hai, chahe peeche ke pods badalte rahein.
 
 ```yaml
 apiVersion: v1
@@ -107,18 +112,20 @@ kind: Service
 metadata:
   name: orders-api
 spec:
-  selector: { app: orders-api }       # match pods with label app=orders-api
+  selector: { app: orders-api }       # label app=orders-api wale pods match karo
   ports:
     - port: 80
       targetPort: 8080
 ```
 
-Now from any other pod in the cluster: `http://orders-api/...` works. K8s load-balances across the 3 replicas.
+Ab cluster ke kisi bhi doosre pod se: `http://orders-api/...` kaam karega. K8s khud 3 replicas ke beech load-balance karta hai.
 
 > [!tip] DNS naming
-> Inside the cluster: `<service>.<namespace>.svc.cluster.local`. Within the same namespace, just `<service>` is enough.
+> Cluster ke andar: `<service>.<namespace>.svc.cluster.local`. Same namespace ke andar, sirf `<service>` likhna hi kaafi hai.
 
 ### 4. ConfigMap — non-secret config
+
+Kya hota hai? Wo config values jo secret nahi hain (jaise profile name, kisi service ka URL) — unhe hardcode karne ke bajaye ConfigMap mein daalte ho, taaki alag environments (dev/staging/prod) ke liye alag values easily inject ho sakein.
 
 ```yaml
 apiVersion: v1
@@ -129,7 +136,7 @@ data:
   EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
 ```
 
-Mount as env vars in the Deployment:
+Deployment mein env vars ki tarah mount karo:
 
 ```yaml
 envFrom:
@@ -148,10 +155,12 @@ stringData:
   JWT_SIGNING_KEY: another-secret
 ```
 
-> [!warning] "Secret" ≠ encrypted
-> Plain Secrets are just base64. Use **Sealed Secrets**, **External Secrets Operator**, or your cloud's secret manager (AWS Secrets Manager, GCP Secret Manager, Vault) for real protection.
+> [!warning] "Secret" ka matlab encrypted nahi hota
+> Plain Secrets sirf base64-encoded hote hain, encrypted nahi — koi bhi decode kar sakta hai jise access mil jaaye. Real protection ke liye **Sealed Secrets**, **External Secrets Operator**, ya apne cloud ka secret manager use karo (AWS Secrets Manager, GCP Secret Manager, Vault). Ye waise hi hai jaise UPI PIN ko plain text mein kahin likh dena — "hidden" hai lekin secure nahi.
 
 ### 6. Ingress — public HTTP entry point
+
+Kya hota hai? Ingress cluster ke bahar se aane wale HTTP traffic ke liye ek entry gate hai — jaise IRCTC ka main website jo peeche alag-alag services (booking, payment, PNR status) ko route karta hai.
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -169,31 +178,31 @@ spec:
               service: { name: api-gateway, port: { number: 80 } }
 ```
 
-In your stack, the Ingress points at **Spring Cloud Gateway**, which then routes internally. See [[09-Stack-Specific-Eureka-Gateway-Feign-on-K8s]].
+Tumhare stack mein, Ingress **Spring Cloud Gateway** ki taraf point karta hai, jo phir internally route karta hai. Dekho [[09-Stack-Specific-Eureka-Gateway-Feign-on-K8s]].
 
-### 7. Namespace — folder for resources
+### 7. Namespace — resources ke liye ek folder
 
 ```bash
 kubectl create namespace dev
 kubectl apply -f orders.yaml -n dev
 ```
 
-Namespaces isolate environments (`dev`, `staging`, `prod`) inside one cluster.
+Namespaces environments ko isolate karte hain (`dev`, `staging`, `prod`) ek hi cluster ke andar — jaise ek hi office building mein alag-alag floors, har floor apna kaam karta hai bina doosre ko disturb kiye.
 
-## kubectl — your daily driver
+## kubectl — tumhara roz ka driver
 
-> [!tip] If you only learn 10 commands
+> [!tip] Agar sirf 10 commands seekhne hain
 > ```bash
-> kubectl get pods                          # list pods in current namespace
-> kubectl get pods -n dev -w                # watch pods in 'dev' namespace
-> kubectl get all                           # everything in this namespace
+> kubectl get pods                          # current namespace ke pods list karo
+> kubectl get pods -n dev -w                # 'dev' namespace ke pods watch karo
+> kubectl get all                           # is namespace mein sab kuch
 > kubectl describe pod orders-api-abc123    # detailed status, events, errors
-> kubectl logs orders-api-abc123 -f         # tail logs
-> kubectl logs orders-api-abc123 --previous # logs from the *crashed* container
-> kubectl exec -it orders-api-abc123 -- sh  # shell into a pod
-> kubectl apply -f deployment.yaml          # create/update from YAML
-> kubectl delete -f deployment.yaml         # remove
-> kubectl port-forward svc/orders-api 8080:80  # tunnel to localhost
+> kubectl logs orders-api-abc123 -f         # logs tail karo
+> kubectl logs orders-api-abc123 --previous # *crashed* container ke logs
+> kubectl exec -it orders-api-abc123 -- sh  # pod ke andar shell
+> kubectl apply -f deployment.yaml          # YAML se create/update karo
+> kubectl delete -f deployment.yaml         # hatao
+> kubectl port-forward svc/orders-api 8080:80  # localhost tak tunnel
 > ```
 
 ### Useful aliases
@@ -209,31 +218,31 @@ alias kl='kubectl logs -f'
 ### Context & namespace
 
 ```bash
-kubectl config get-contexts                # list clusters you can talk to
-kubectl config use-context my-cluster      # switch
-kubectl config set-context --current --namespace=dev  # default ns
+kubectl config get-contexts                # jin clusters se baat kar sakte ho, unki list
+kubectl config use-context my-cluster      # switch karo
+kubectl config set-context --current --namespace=dev  # default ns set karo
 ```
 
-## Local k8s for development
+## Local k8s development ke liye
 
-You don't need a cloud cluster to learn. Pick one:
+Seekhne ke liye cloud cluster ki zaroorat nahi. Ek pick karo:
 
 | Tool | Notes |
 |------|-------|
 | **kind** | Kubernetes-in-Docker. Fast. `brew install kind && kind create cluster` |
-| **minikube** | Mature, more features. `brew install minikube && minikube start` |
-| **k3d** | k3s in Docker. Lightweight. |
-| **Docker Desktop** | Has built-in k8s — toggle in settings |
-| **Rancher Desktop** | Free, like Docker Desktop with k3s |
+| **minikube** | Mature, zyada features. `brew install minikube && minikube start` |
+| **k3d** | k3s Docker ke andar. Lightweight. |
+| **Docker Desktop** | Built-in k8s hai — settings mein toggle karo |
+| **Rancher Desktop** | Free, Docker Desktop jaisa hi k3s ke saath |
 
-For your stack (Eureka + Gateway + multiple services), **kind** with 3-4 nodes is plenty.
+Tumhare stack ke liye (Eureka + Gateway + multiple services), 3-4 nodes wala **kind** kaafi hai.
 
-## A complete worked example
+## Ek complete worked example
 
-Here's a Spring Boot service deployed properly:
+Ye ek Spring Boot service hai jo properly deploy ki gayi hai:
 
 ```yaml
-# orders-api.yaml — combine all in one file with `---` separators
+# orders-api.yaml — sab kuch ek file mein `---` separators ke saath
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -298,7 +307,7 @@ spec:
       targetPort: http
 ```
 
-Apply:
+Apply karo:
 
 ```bash
 kubectl apply -f orders-api.yaml
@@ -306,55 +315,65 @@ kubectl get pods -n dev -w
 kubectl logs -n dev -l app=orders-api -f
 ```
 
-## Common newcomer mistakes
+## Naye logon ki common galtiyan
 
-> [!warning] Pitfalls to avoid
-> 1. **No resource requests/limits** → noisy neighbors, OOMKills with no warning
-> 2. **No probes, or wrong probes** → either traffic to dead pods or restart loops. See [[05-Health-Checks-and-Readiness]]
-> 3. **No `startupProbe` for Spring Boot** → JVM is too slow to boot before liveness fails. Always add one.
-> 4. **`imagePullPolicy: Always` in dev with `:latest` tag** → unpredictable. Use semantic tags (`1.0.0`, sha-`abc123`).
-> 5. **Hardcoding cluster IPs** → use Service names instead.
-> 6. **Putting secrets in ConfigMap** — use Secret (and ideally a real secret manager).
-> 7. **Skipping Namespaces** — always namespace dev/staging/prod. Easy to delete the wrong thing.
-> 8. **Ignoring `kubectl describe`** → 90% of "why isn't my pod running" answers are in the **Events** section.
+> [!warning] Ye pitfalls avoid karo
+> 1. **Resource requests/limits set na karna** → noisy neighbors, OOMKills bina kisi warning ke
+> 2. **Probes na hona, ya galat probes** → ya toh dead pods pe traffic jaayega ya restart loops honge. Dekho [[05-Health-Checks-and-Readiness]]
+> 3. **Spring Boot ke liye `startupProbe` na hona** → JVM boot hone mein slow hai, liveness fail ho jaayega usse pehle. Hamesha ek add karo.
+> 4. **Dev mein `imagePullPolicy: Always` with `:latest` tag** → unpredictable behavior. Semantic tags use karo (`1.0.0`, sha-`abc123`).
+> 5. **Cluster IPs hardcode karna** → iske bajaye Service names use karo.
+> 6. **ConfigMap mein secrets daalna** — Secret use karo (aur ideally ek real secret manager).
+> 7. **Namespaces skip karna** — hamesha dev/staging/prod ko namespace do. Warna galat cheez delete karna easy ho jata hai.
+> 8. **`kubectl describe` ignore karna** → "mera pod kyun nahi chal raha" jaise 90% sawaalon ke jawaab **Events** section mein hote hain.
 
 ## Debugging flowchart
 
-Pod won't start?
+Pod start nahi ho raha?
 
 ```
-kubectl get pods                     # what's the status? (Pending / CrashLoopBackOff / ImagePullBackOff)
-kubectl describe pod <name>          # read the Events section first
+kubectl get pods                     # status kya hai? (Pending / CrashLoopBackOff / ImagePullBackOff)
+kubectl describe pod <name>          # pehle Events section padho
 kubectl logs <name>                  # current logs
 kubectl logs <name> --previous       # last crash
-kubectl exec -it <name> -- sh        # shell in to poke around
+kubectl exec -it <name> -- sh        # andar ghus ke check karo
 kubectl get events --sort-by=.lastTimestamp  # cluster-wide events
 ```
 
 | Status | Likely cause |
 |--------|-------------|
-| `Pending` | No node has resources. Check requests vs node capacity. |
-| `ImagePullBackOff` | Wrong image name, or no registry credentials. |
-| `CrashLoopBackOff` | App is crashing on startup. Check logs. |
-| `OOMKilled` | Memory limit too low. |
-| Ready 0/1 forever | Readiness probe failing. `describe` shows the failure. |
+| `Pending` | Kisi node ke paas resources nahi hain. Requests vs node capacity check karo. |
+| `ImagePullBackOff` | Galat image name, ya registry credentials missing. |
+| `CrashLoopBackOff` | App startup pe crash ho raha hai. Logs check karo. |
+| `OOMKilled` | Memory limit bahut kam hai. |
+| Ready 0/1 hamesha | Readiness probe fail ho raha hai. `describe` mein failure dikhega. |
 
-## Beyond the basics (when you're ready)
+## Basics ke aage (jab ready ho)
 
-- **Helm** — package & template your YAML; install third-party charts
-- **Kustomize** — overlay-based config (built into kubectl)
-- **HorizontalPodAutoscaler** — scale on CPU/memory/custom metrics
-- **PodDisruptionBudget** — guard against voluntary disruptions
+- **Helm** — apna YAML package & template karo; third-party charts install karo
+- **Kustomize** — overlay-based config (kubectl mein built-in)
+- **HorizontalPodAutoscaler** — CPU/memory/custom metrics pe scale karo
+- **PodDisruptionBudget** — voluntary disruptions se bachao
 - **NetworkPolicies** — east-west firewall rules
-- **GitOps** with **ArgoCD** or **Flux** — k8s reconciles from a Git repo
+- **GitOps** with **ArgoCD** ya **Flux** — k8s ek Git repo se reconcile karta hai
 
-## Where to learn next
+## Key Takeaways
 
-- [[04-Kubernetes-Basics]] — full Spring Boot k8s manifests with HPA/PDB/Ingress
-- [[09-Stack-Specific-Eureka-Gateway-Feign-on-K8s]] — your stack on k8s, gotchas and patterns
-- [[05-Health-Checks-and-Readiness]] — probe semantics in depth
-- [[02-Docker-for-Spring-Boot]] — building the image you'll deploy
-- [[05-CI-CD-Pipeline-Example]] — automate it
+- Pod = smallest deploy unit; Deployment = "N replicas hamesha chalao" guarantee; Service = pods ke liye stable address, kyunki pod IPs change hoti rehti hain.
+- ConfigMap non-secret config ke liye, Secret sensitive data ke liye — lekin Secret sirf base64 hai, encrypted nahi. Real security ke liye Vault/Secrets Manager use karo.
+- Ingress cluster ke bahar se traffic andar laata hai; tumhare stack mein ye Spring Cloud Gateway tak jaata hai.
+- Spring Boot deployments mein `startupProbe` daalna mat bhoolo — JVM boot slow hota hai aur usse pehle liveness fail ho sakta hai.
+- `kubectl describe pod` sabse pehla debugging step hona chahiye — Events section mein zyadatar answers mil jaate hain.
+- Local practice ke liye `kind` ya `minikube` use karo, cloud cluster ki zaroorat nahi.
+- Namespaces se dev/staging/prod isolate karo — galat namespace mein galti se delete karne se bachne ka best tareeka.
+
+## Aage kahan seekhna hai
+
+- [[04-Kubernetes-Basics]] — HPA/PDB/Ingress ke saath full Spring Boot k8s manifests
+- [[09-Stack-Specific-Eureka-Gateway-Feign-on-K8s]] — tumhara stack k8s pe, gotchas aur patterns
+- [[05-Health-Checks-and-Readiness]] — probe semantics deeply
+- [[02-Docker-for-Spring-Boot]] — jo image deploy karoge usse banana
+- [[05-CI-CD-Pipeline-Example]] — isko automate karna
 
 ## Related
 - [[04-Kubernetes-Basics]]

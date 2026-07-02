@@ -1,101 +1,101 @@
 # Chapter 3: Solana Account Model
 
-> "In Solana, everything is an account. Code is an account. Data is an account. Your wallet is an account. Once you truly understand this, Solana clicks."
+> "Solana mein sab kuch ek account hai. Code bhi account hai. Data bhi account hai. Tumhara wallet bhi account hai. Ek baar yeh baat samajh mein aa gayi, toh Solana click ho jaata hai."
 
 ---
 
-## 🗺️ The Big Picture: Why Accounts Matter
+## 🗺️ Big Picture: Accounts Itne Important Kyun Hain?
 
-Before you write a single line of Solana code, you need to understand one foundational truth:
+Solana ka ek line of code likhne se pehle, ek foundational cheez samajh lo:
 
-**Solana stores everything — wallets, programs, token balances, configuration — inside accounts.**
+**Solana har cheez — wallets, programs, token balances, configuration — sab kuch accounts ke andar store karta hai.**
 
-This is different from how most blockchains work, and it is the key to understanding why Solana is fast, cheap, and sometimes confusing at first.
+Yeh baaki blockchains se bilkul alag tareeka hai, aur yahi wajah hai ki Solana fast, cheap hai — aur shuru mein thoda confusing bhi lagta hai.
 
-Let us start with a real-world analogy.
-
----
-
-## 🏦 Real-World Analogy: The Bank Vault
-
-Imagine Solana as a massive bank with millions of safety deposit boxes. Each box has:
-
-- A unique **box number** (the address / public key)
-- A **lock** that only the owner can open
-- Some **cash inside** (SOL lamports)
-- Some **documents** (data — arbitrary bytes)
-- A **label** that says who manages the box (owner program)
-- A tag saying whether this box is **executable** (is it a machine, or just storage?)
-
-Anyone can look inside any box (all state is public). But only the designated owner program can change what is inside.
+Chalo ek real-world analogy se shuru karte hain.
 
 ---
 
-## ⚔️ Solana vs Ethereum: A Fundamental Difference
+## 🏦 Real-World Analogy: Bank Locker
 
-If you come from Ethereum, you are used to two types of things: **Externally Owned Accounts (EOA)** and **Smart Contracts**. They are separate, different beasts.
+Socho Solana ek bahut bada bank hai jismein lakhon safety deposit boxes (lockers) hain. Har box mein hota hai:
 
-Solana collapses this distinction. Everything is just an **account**. The difference is in the fields.
+- Ek unique **box number** (address / public key)
+- Ek **lock** jo sirf owner khol sakta hai
+- Kuch **cash andar** (SOL lamports)
+- Kuch **documents** (data — arbitrary bytes)
+- Ek **label** jo batata hai ki is box ko kaun manage karta hai (owner program)
+- Ek tag jo batata hai ki yeh box **executable** hai ya nahi (yeh ek machine hai ya sirf storage?)
+
+Koi bhi kisi bhi box ke andar jhaank sakta hai (saara state public hai). Lekin sirf designated owner program hi andar ka saamaan badal sakta hai.
+
+---
+
+## ⚔️ Solana vs Ethereum: Fundamental Farak
+
+Agar tum Ethereum se aaye ho, toh tumhe do cheezon ki aadat hai: **Externally Owned Accounts (EOA)** aur **Smart Contracts**. Yeh dono alag-alag jaanwar hain.
+
+Solana yeh distinction hi khatam kar deta hai. Yahan sab kuch ek **account** hai. Farak sirf fields mein hai.
 
 | Feature | Ethereum | Solana |
 |---|---|---|
-| Wallet | EOA (has private key, no code) | Account owned by System Program |
-| Smart Contract | Contract account (has code + state bundled) | Program account (code only, no state!) |
-| Contract State | Stored inside the contract | Stored in separate data accounts |
-| Address type | Hash of public key or contract deployment | Public key (32 bytes) |
-| Code + State | Bundled together | Strictly separated |
-| Upgradeable by default | No (unless proxy pattern) | Yes (programs are upgradeable) |
+| Wallet | EOA (private key hai, code nahi) | System Program ka owned account |
+| Smart Contract | Contract account (code + state ek saath bundled) | Program account (sirf code, koi state nahi!) |
+| Contract State | Contract ke andar hi store hota hai | Alag data accounts mein store hota hai |
+| Address type | Public key ya contract deployment ka hash | Public key (32 bytes) |
+| Code + State | Ek saath bundled | Strictly separate |
+| By default upgradeable? | Nahi (jab tak proxy pattern na ho) | Haan (programs upgrade ho sakte hain) |
 
-The biggest difference: **Solana programs are stateless**. They hold zero data about what has happened. All state lives in separate data accounts. This separation is what allows Solana to parallelize transactions at massive scale.
+Sabse bada farak: **Solana programs stateless hote hain**. Unhe kuch bhi yaad nahi rehta ki ab tak kya hua. Saara state alag data accounts mein rehta hai. Yahi separation Solana ko massive scale par transactions parallelize karne deta hai.
 
 ---
 
-## 🧱 Account Structure: Every Field Explained
+## 🧱 Account Structure: Har Field Explain Ki Gayi
 
-Every single account on Solana has exactly these six fields:
+Solana ke har single account mein exactly yeh chhe fields hote hain:
 
 ```
 Account {
-  key:        Pubkey,     // 32-byte address — the "box number"
-  lamports:   u64,        // balance in lamports (1 SOL = 1,000,000,000 lamports)
-  owner:      Pubkey,     // which program is allowed to modify this account
-  data:       Vec<u8>,    // arbitrary bytes — the "documents" inside the box
-  executable: bool,       // if true, this account contains a deployed program
-  rent_epoch: u64,        // legacy field, mostly 0 after rent reform
+  key:        Pubkey,     // 32-byte address — "box number"
+  lamports:   u64,        // balance lamports mein (1 SOL = 1,000,000,000 lamports)
+  owner:      Pubkey,     // kaunsa program is account ko modify kar sakta hai
+  data:       Vec<u8>,    // arbitrary bytes — box ke andar ke "documents"
+  executable: bool,       // true ho toh iska matlab yeh account ek deployed program hai
+  rent_epoch: u64,        // legacy field, rent reform ke baad mostly 0
 }
 ```
 
-Let us go through each field one by one.
+Chalo ek-ek field ko dekhte hain.
 
-### `key` — The Address
+### `key` — Address
 
-This is the public key. It uniquely identifies the account. When you send SOL to someone, you are sending it to their `key`. When you deploy a program, it gets a `key`. 32 bytes, encoded as a Base58 string like `7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU`.
+Yeh public key hai. Account ko uniquely identify karta hai. Jab tum kisi ko SOL bhejte ho, toh unke `key` par bhej rahe ho. Jab tum program deploy karte ho, usko bhi ek `key` milta hai. 32 bytes, Base58 string ki tarah encode hota hai — jaise `7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU`.
 
-### `lamports` — The Balance
+### `lamports` — Balance
 
-SOL is stored in lamports. 1 SOL = 1,000,000,000 lamports (one billion). Even program accounts and data accounts can hold lamports — and they must hold a minimum amount to stay alive (more on this in the Rent section).
+SOL lamports mein store hota hai. 1 SOL = 1,000,000,000 lamports (ek billion). Program accounts aur data accounts bhi lamports hold kar sakte hain — aur unhe zinda rehne ke liye ek minimum amount hold karna padta hai (Rent section mein detail mein baat karenge).
 
-### `owner` — Who Can Write Here
+### `owner` — Kaun Yahan Likh Sakta Hai
 
-This is one of the most important fields. Only the program listed as `owner` can modify an account's `data` and `lamports`. The System Program can transfer lamports on behalf of wallets. A custom program can only modify accounts it owns. If a program tries to modify an account it does not own, the transaction fails.
+Yeh sabse important fields mein se ek hai. Sirf woh program jo `owner` mein listed hai, account ka `data` aur `lamports` modify kar sakta hai. System Program wallets ki taraf se lamports transfer kar sakta hai. Koi custom program sirf usi account ko modify kar sakta hai jise woh owns karta hai. Agar koi program aisa account modify karne ki koshish kare jo uska nahi hai, toh transaction fail ho jaata hai.
 
-### `data` — The Bytes
+### `data` — Bytes
 
-This is raw byte storage. For a wallet account it is empty (zero bytes). For a program account it holds compiled BPF bytecode. For a data account it holds whatever your program decided to serialize there — a struct, a JSON blob, a game state, a token balance.
+Yeh raw byte storage hai. Wallet account ke liye yeh empty hota hai (zero bytes). Program account ke liye yahan compiled BPF bytecode hota hai. Data account ke liye yahan wahi hota hai jo tumhare program ne serialize karke rakha hai — ek struct, JSON blob, game state, token balance, kuch bhi.
 
-### `executable` — Is This Code?
+### `executable` — Yeh Code Hai Kya?
 
-If `true`, the `data` field contains deployed program bytecode. If `false`, it is a data or wallet account. You cannot call a non-executable account as a program. This field is set by the BPF Loader when you deploy.
+Agar `true` hai, toh `data` field mein deployed program bytecode hai. Agar `false` hai, toh yeh data ya wallet account hai. Tum non-executable account ko program ki tarah call nahi kar sakte. Yeh field BPF Loader set karta hai jab tum deploy karte ho.
 
 ### `rent_epoch` — Legacy Field
 
-After Solana's rent reform, this field is mostly deprecated and set to `u64::MAX` for rent-exempt accounts. You will see it in account structs but can mostly ignore it.
+Solana ke rent reform ke baad, yeh field mostly deprecated ho chuki hai aur rent-exempt accounts ke liye `u64::MAX` set rehti hai. Account structs mein dikh jaayega lekin mostly ignore kar sakte ho.
 
 ---
 
-## 🗂️ The Four Account Types
+## 🗂️ Char Types Ke Accounts
 
-All accounts share the same structure. What makes them different is their `owner`, `executable` flag, and what is in their `data`.
+Saare accounts ka structure same hota hai. Farak unke `owner`, `executable` flag, aur `data` mein kya hai — usse aata hai.
 
 ```mermaid
 graph TD
@@ -112,65 +112,65 @@ graph TD
 
 ### Type 1: Wallet Accounts (owned by System Program)
 
-When you create a Solana wallet, you get a key pair. The public key becomes your account address. The account is owned by the **System Program** (`11111111111111111111111111111111`).
+Jab tum ek Solana wallet banate ho, tumhe ek key pair milta hai. Public key hi tumhara account address ban jaata hai. Yeh account **System Program** (`11111111111111111111111111111111`) ke owner mein hota hai.
 
 - `owner` = System Program
 - `executable` = false
 - `data` = empty (0 bytes)
-- `lamports` = your SOL balance
+- `lamports` = tumhara SOL balance
 
-The System Program is the only program allowed to create new accounts and transfer lamports from wallet accounts (when the wallet signs the transaction).
+System Program ek hi program hai jo naye accounts create kar sakta hai aur wallet accounts se lamports transfer kar sakta hai (jab wallet transaction sign kare).
 
 ### Type 2: Program Accounts (owned by BPF Loader)
 
-When you deploy a Solana program, the compiled bytecode is stored in an account. This account is owned by the BPF Loader (the runtime component that executes programs).
+Jab tum ek Solana program deploy karte ho, compiled bytecode ek account mein store hota hai. Is account ka owner BPF Loader (jo runtime component programs execute karta hai) hota hai.
 
 - `owner` = BPF Loader (`BPFLoaderUpgradeab1e11111111111111111111111`)
 - `executable` = true
 - `data` = compiled BPF bytecode
-- `lamports` = enough SOL to be rent-exempt
+- `lamports` = itna SOL ki rent-exempt ho jaaye
 
-Programs are read-only at runtime — they execute but never modify themselves during a transaction.
+Programs runtime par read-only hote hain — woh execute hote hain lekin transaction ke dauraan khud ko kabhi modify nahi karte.
 
 ### Type 3: Data Accounts (owned by your program)
 
-This is where your program's state lives. A data account is a regular account whose `owner` is set to your program's address. Only your program can modify it.
+Yahin tumhare program ka state rehta hai. Data account ek regular account hi hota hai jiska `owner` tumhare program ke address par set hota hai. Sirf tumhara program hi ise modify kar sakta hai.
 
 Examples:
-- A user's profile: `{ name: "Alice", score: 9001 }`
-- A token balance: `{ amount: 500 }`
-- A game board state: `{ board: [0,1,0,2,...] }`
+- Kisi user ki profile: `{ name: "Alice", score: 9001 }`
+- Token balance: `{ amount: 500 }`
+- Game board state: `{ board: [0,1,0,2,...] }`
 
-Your program must define the data layout and handle serialization (usually with the `borsh` crate in Rust).
+Tumhara program hi data layout define karta hai aur serialization handle karta hai (Rust mein usually `borsh` crate use hota hai).
 
 ### Type 4: Native Programs
 
-These are programs that come built into the Solana runtime. They live at well-known addresses and provide core infrastructure.
+Yeh woh programs hain jo Solana runtime mein built-in aate hain. Yeh well-known addresses par rehte hain aur core infrastructure provide karte hain.
 
-| Program | Address (shortened) | What it does |
+| Program | Address (shortened) | Kya karta hai |
 |---|---|---|
-| System Program | `1111...1111` | Create accounts, transfer SOL, allocate space |
-| Token Program | `TokenkegQ...` | Create tokens, mint, burn, transfer SPL tokens |
-| Associated Token Program | `ATokenGPv...` | Create deterministic token accounts for wallets |
-| BPF Loader | `BPFLoader...` | Deploy and execute programs |
-| Sysvar Clock | `SysvarC1ock...` | Current cluster time and slot |
+| System Program | `1111...1111` | Accounts create karna, SOL transfer karna, space allocate karna |
+| Token Program | `TokenkegQ...` | Tokens create, mint, burn, transfer SPL tokens |
+| Associated Token Program | `ATokenGPv...` | Wallets ke liye deterministic token accounts banana |
+| BPF Loader | `BPFLoader...` | Programs deploy aur execute karna |
+| Sysvar Clock | `SysvarC1ock...` | Current cluster time aur slot |
 | Sysvar Rent | `SysvarRent...` | Current rent parameters |
 
 ---
 
-## 💸 Rent: Why Accounts Must Hold SOL
+## 💸 Rent: Accounts Ko SOL Kyun Hold Karna Padta Hai
 
-Imagine renting storage space. If you stop paying, your stuff gets thrown out. Solana has the same concept for accounts.
+Socho tumne storage space rent par li hai. Agar rent nahi bhari, toh saamaan bahar phenk diya jaata hai. Solana mein accounts ke saath bhi yahi concept hai.
 
-Every byte stored on-chain costs resources (validators must keep it in memory). To compensate validators, accounts must maintain a minimum SOL balance called the **rent-exempt threshold**.
+Chain par store hone wala har byte resources consume karta hai (validators ko usse memory mein rakhna padta hai). Validators ko compensate karne ke liye, accounts ko ek minimum SOL balance maintain karna padta hai jise **rent-exempt threshold** kehte hain.
 
-The formula is roughly:
+Formula roughly kuch aisa hai:
 
 ```
 minimum_lamports = (128 + data_size_bytes) * lamports_per_byte_year * 2
 ```
 
-The `* 2` means you pre-pay for 2 years of rent upfront — this makes you **rent-exempt**, meaning the account lives forever and never gets garbage-collected.
+`* 2` ka matlab hai tum 2 saal ka rent pehle hi pay kar dete ho — isse tum **rent-exempt** ho jaate ho, matlab account hamesha ke liye zinda rehta hai aur kabhi garbage-collect nahi hota.
 
 ### Real Numbers
 
@@ -178,32 +178,32 @@ The `* 2` means you pre-pay for 2 years of rent upfront — this makes you **ren
 |---|---|
 | 0 bytes (wallet) | ~0.00089 SOL |
 | 165 bytes (token account) | ~0.002 SOL |
-| 1000 bytes (small data account) | ~0.007 SOL |
-| 10,000 bytes (larger state) | ~0.07 SOL |
+| 1000 bytes (chota data account) | ~0.007 SOL |
+| 10,000 bytes (bada state) | ~0.07 SOL |
 
-### When to Use / When NOT to Use Large Accounts
+### Kab Bade Accounts Use Karein / Kab Na Karein
 
-**Use small accounts when:**
-- You only need a handful of fields (e.g., a user score, a flag)
-- You want to minimize rent cost for your users
+**Chhote accounts use karo jab:**
+- Sirf kuch fields chahiye (jaise ek user score, ek flag)
+- Users ke liye rent cost minimize karni hai
 
-**Do NOT use one giant account when:**
-- You need to store a dynamic list (Solana accounts have a fixed max size at creation)
-- You need to store per-user data for thousands of users (create one account per user instead)
+**Ek hi giant account mat banao jab:**
+- Dynamic list store karni ho (Solana accounts ka creation ke time hi fixed max size hoti hai)
+- Hazaaron users ka per-user data store karna ho (uske jagah har user ke liye ek separate account banao)
 
-### Closing an Account (Reclaiming Rent)
+### Account Close Karna (Rent Wapas Lena)
 
-When you no longer need a data account, your program can close it — setting its lamports to zero and transferring the SOL back to the user. This is a common pattern to give users a refund.
+Jab tumhe koi data account ki zaroorat nahi rehti, tumhara program usse close kar sakta hai — lamports ko zero karke SOL user ko wapas transfer kar sakta hai. Yeh ek common pattern hai users ko refund dene ke liye.
 
 ---
 
-## 🤖 Programs Are Stateless: The Core Mental Model
+## 🤖 Programs Stateless Hote Hain: Core Mental Model
 
-This is the hardest concept for developers coming from Ethereum.
+Yeh Ethereum se aane wale developers ke liye sabse tough concept hai.
 
-In Ethereum, your contract is a single object: it has code AND it stores its own variables.
+Ethereum mein tumhara contract ek single object hai: usme code bhi hai AUR woh apne khud ke variables bhi store karta hai.
 
-In Solana, your program is pure logic — like a function. It receives accounts as arguments, reads from them, writes to them, and exits. The program itself stores nothing between calls.
+Solana mein tumhara program pure logic hai — ek function jaisa. Yeh accounts ko arguments ki tarah leta hai, unse read karta hai, unme likhta hai, aur exit ho jaata hai. Program khud calls ke beech kuch bhi store nahi karta.
 
 ```mermaid
 sequenceDiagram
@@ -221,24 +221,24 @@ sequenceDiagram
     Note over DataAccount: State now updated
 ```
 
-Think of a Solana program like a calculator. The calculator does not remember your last calculation. You give it numbers (accounts), it does math, it gives you a result. The memory lives on a notepad (data account) beside the calculator — not inside the calculator itself.
+Solana program ko ek calculator ki tarah socho. Calculator ko tumhari pichhli calculation yaad nahi rehti. Tum usko numbers (accounts) dete ho, woh math karta hai, tumhe result de deta hai. Memory calculator ke andar nahi, balki uske bagal wale notepad (data account) mein rehti hai.
 
 ---
 
 ## 🔑 Program Derived Addresses (PDA)
 
-### The Problem PDAs Solve
+### Problem Jo PDA Solve Karta Hai
 
-Your program needs to own data accounts. But if you create a regular keypair and set that as the owner, who controls that keypair? If you lose the private key, you lose control of the account. And programs cannot sign transactions with a regular private key anyway.
+Tumhare program ko data accounts ko own karna hota hai. Lekin agar tum ek regular keypair banao aur usko owner set kar do, toh us keypair ko control kaun karega? Agar private key kho gayi, toh account par control bhi gaya. Aur programs waise bhi regular private key se transaction sign nahi kar sakte.
 
-PDAs solve this by creating addresses that:
-1. Are deterministically derived from seeds + your program ID
-2. Do NOT have a corresponding private key (no one can sign from them normally)
-3. Can be "signed for" by your program itself inside the runtime
+PDA yeh solve karta hai — aise addresses banaakar jo:
+1. Seeds + tumhare program ID se deterministically derive hote hain
+2. Inki koi corresponding private key nahi hoti (normally koi bhi in par se sign nahi kar sakta)
+3. Runtime ke andar tumhara program khud inke liye "sign" kar sakta hai
 
-### How PDAs Are Derived
+### PDA Kaise Derive Hota Hai
 
-The derivation takes your seeds (arbitrary bytes) and your program ID, hashes them, and checks if the result is off the ed25519 elliptic curve. If it is on the curve, a `bump` byte is subtracted until it falls off the curve (off-curve = no private key exists).
+Derivation tumhare seeds (arbitrary bytes) aur program ID ko leta hai, hash karta hai, aur check karta hai ki result ed25519 elliptic curve se bahar hai ya nahi. Agar curve par hai, toh ek `bump` byte subtract kiya jaata hai jab tak woh curve se bahar na ho jaaye (off-curve = koi private key exist nahi karti).
 
 ```mermaid
 graph LR
@@ -251,7 +251,7 @@ graph LR
     C -->|No - valid PDA!| PDA[PDA Address\nNo private key exists]
 ```
 
-### Finding a PDA in Code
+### Code Mein PDA Dhoondna
 
 ```typescript
 import { PublicKey } from "@solana/web3.js";
@@ -273,13 +273,13 @@ console.log("Profile PDA:", profilePda.toBase58());
 console.log("Bump seed:", bump); // usually 254 or 255
 ```
 
-### Why the Bump Must Be Stored
+### Bump Store Kyun Karna Padta Hai
 
-Because finding the PDA is deterministic (same seeds = same PDA), you can always re-derive it. But the bump is needed for your program to "sign" for the PDA inside the runtime. It is standard practice to store the bump inside the data account itself.
+Kyunki PDA dhoondna deterministic hai (same seeds = same PDA), tum ise kabhi bhi re-derive kar sakte ho. Lekin bump ki zaroorat runtime ke andar tumhare program ko PDA ke liye "sign" karne ke liye padti hai. Yeh standard practice hai ki bump ko data account ke andar hi store kar diya jaaye.
 
-### How Programs Sign With a PDA (CPI + PDA Signer)
+### Programs PDA Se Kaise Sign Karte Hain (CPI + PDA Signer)
 
-When your program calls another program (Cross-Program Invocation / CPI) and needs to authorize a PDA it controls, it passes the seeds + bump as `signer_seeds`. The runtime re-derives the PDA and confirms your program owns it.
+Jab tumhara program kisi doosre program ko call karta hai (Cross-Program Invocation / CPI) aur usko apne control mein wali PDA ko authorize karna hota hai, toh woh seeds + bump ko `signer_seeds` ki tarah pass karta hai. Runtime PDA ko re-derive karke confirm karta hai ki tumhara program hi isko owns karta hai.
 
 ```rust
 // Inside your Solana program (Anchor framework)
@@ -303,28 +303,28 @@ anchor_lang::solana_program::program::invoke_signed(
 )?;
 ```
 
-### When to Use PDAs / When NOT to Use
+### PDA Kab Use Karein / Kab Na Karein
 
-| Use PDAs when... | Do NOT use PDAs when... |
+| PDA use karo jab... | PDA use mat karo jab... |
 |---|---|
-| You need a deterministic address for per-user state | You just need a regular wallet to hold SOL for a user |
-| Your program needs to sign for an account (e.g., escrow, vault) | The account should be controlled by a human (use a regular keypair) |
-| You want users to always be able to re-derive the address without storing it | You need true randomness in the address |
-| Creating program-controlled token vaults | Creating token accounts the user will control directly |
+| Per-user state ke liye deterministic address chahiye | Sirf ek regular wallet chahiye jisme user ka SOL rahe |
+| Program ko account ke liye sign karna hai (jaise escrow, vault) | Account ko ek insaan control kare (regular keypair use karo) |
+| Users chahte hain ki woh address ko bina store kiye kabhi bhi re-derive kar sakein | Address mein true randomness chahiye |
+| Program-controlled token vaults banane hain | Aise token accounts banane hain jo user khud control karega |
 
 ---
 
 ## 🎟️ Associated Token Account (ATA): Deterministic Token Storage
 
-### The Problem
+### Problem
 
-Every token on Solana is an SPL token. To hold an SPL token, you need a **token account** — a data account that stores your balance for that specific token mint. You might hold 50 different tokens, which means 50 different token accounts.
+Solana par har token ek SPL token hota hai. SPL token hold karne ke liye tumhe ek **token account** chahiye — ek data account jo us specific token mint ke liye tumhara balance store karta hai. Ho sakta hai tum 50 alag tokens hold karo — matlab 50 alag token accounts.
 
-Without a standard, how would Alice know where to send USDC to Bob? She would need to ask Bob for his USDC token account address specifically.
+Agar koi standard na ho, toh Alice ko kaise pata chalega ki Bob ko USDC kahan bhejni hai? Usko Bob se uska USDC token account address specifically maangna padega.
 
-### The Solution: ATA
+### Solution: ATA
 
-The **Associated Token Program** defines a deterministic PDA for every (wallet, mint) pair. Given Alice's wallet and the USDC mint, anyone can compute exactly where Alice's USDC token account should live.
+**Associated Token Program** har (wallet, mint) pair ke liye ek deterministic PDA define karta hai. Alice ka wallet aur USDC mint diya jaaye, toh koi bhi exactly compute kar sakta hai ki Alice ka USDC token account kahan hoga.
 
 ```
 ATA address = PDA derived from:
@@ -350,9 +350,9 @@ console.log("Alice's USDC token account:", aliceUsdcAta.toBase58());
 // This is deterministic — always the same address for this wallet+mint pair
 ```
 
-### Creating an ATA
+### ATA Banana
 
-ATAs do not exist until someone creates them (pays the rent). Usually the sender creates the ATA before sending tokens.
+ATAs khud se exist nahi karte jab tak koi unhe create na kare (rent pay karke). Usually sender hi tokens bhejne se pehle ATA create karta hai.
 
 ```typescript
 import {
@@ -400,7 +400,7 @@ async function createAtaIfNeeded(
 
 ## 🧩 Full Account Model Diagram
 
-Here is how all the pieces fit together in a real dApp:
+Ek real dApp mein yeh saare pieces kaise fit hote hain, dekho:
 
 ```mermaid
 graph TB
@@ -432,18 +432,18 @@ graph TB
 
 ---
 
-## 🛠️ Putting It All Together: A Mini dApp Walkthrough
+## 🛠️ Sab Kuch Ek Saath: Mini dApp Walkthrough
 
-Let us trace what happens when a user calls an instruction to update their profile in a simple dApp.
+Chalo dekhte hain ki jab ek user apni profile update karne ke liye ek instruction call karta hai, tab kya hota hai.
 
-**Scenario:** User "Alice" calls `update_profile` with `new_score = 42`.
+**Scenario:** User "Alice" `update_profile` call karti hai `new_score = 42` ke saath.
 
-**Accounts passed to the instruction:**
-1. `alice_wallet` — the signer (wallet account)
-2. `alice_profile_pda` — Alice's profile data account (owned by your program)
-3. `system_program` — needed for potential account creation
+**Instruction ko pass ki gayi accounts:**
+1. `alice_wallet` — signer (wallet account)
+2. `alice_profile_pda` — Alice ka profile data account (tumhare program ke owner mein)
+3. `system_program` — kisi account creation ki zaroorat ho toh
 
-**Inside the program:**
+**Program ke andar:**
 
 ```rust
 // Anchor framework example
@@ -498,74 +498,74 @@ pub struct UserProfile {
 // Total: 53 bytes of data
 ```
 
-**What happened on-chain:**
-1. Runtime received the transaction with Alice's signature
-2. Program was loaded from the program account (BPF bytecode)
-3. `profile` data account was passed in; runtime checked `owner == your_program_id`
-4. Program read the current state from `profile.data`
-5. Program wrote the new score to `profile.data`
-6. Transaction finalized — validators replicated the new state
+**On-chain kya hua:**
+1. Runtime ko Alice ke signature ke saath transaction mila
+2. Program account se program load hua (BPF bytecode)
+3. `profile` data account pass kiya gaya; runtime ne check kiya `owner == your_program_id`
+4. Program ne `profile.data` se current state read kiya
+5. Program ne `profile.data` mein naya score likha
+6. Transaction finalize hua — validators ne naya state replicate kiya
 
 ---
 
 ## 📊 Quick Reference: Account Ownership Rules
 
-| Who owns the account | Who can change `data` and `lamports` | Example |
+| Account ka owner kaun hai | `data` aur `lamports` kaun badal sakta hai | Example |
 |---|---|---|
-| System Program | System Program (when user signs) | Wallet account |
-| BPF Loader | BPF Loader (only during deploy/upgrade) | Program account |
-| Your Program | Your program (when called via instruction) | Profile PDA, vault account |
-| Token Program | Token Program (when valid authority signs) | ATA, token mint |
+| System Program | System Program (jab user sign kare) | Wallet account |
+| BPF Loader | BPF Loader (sirf deploy/upgrade ke time) | Program account |
+| Tumhara Program | Tumhara program (jab instruction ke through call ho) | Profile PDA, vault account |
+| Token Program | Token Program (jab valid authority sign kare) | ATA, token mint |
 
-The golden rule: **only the account's owner program can modify its data.**
+Golden rule: **sirf account ka owner program hi uska data modify kar sakta hai.**
 
 ---
 
-## 🚦 When to Use Each Pattern
+## 🚦 Kaunsa Pattern Kab Use Karein
 
 ### Regular Keypair Account
-- **Use when:** Storing SOL for a user, creating a hot wallet, testing
-- **Do not use when:** You need the account to be controlled by your program
+- **Use karo jab:** User ke liye SOL store karna hai, hot wallet banana hai, testing karni hai
+- **Mat use karo jab:** Account ko tumhara program control kare, aisi zaroorat ho
 
 ### PDA (no private key, program-controlled)
-- **Use when:** Per-user state (profile, inventory), escrow vaults, program-owned liquidity pools
-- **Do not use when:** The user needs to independently control the account without going through your program
+- **Use karo jab:** Per-user state (profile, inventory), escrow vaults, program-owned liquidity pools
+- **Mat use karo jab:** User ko independently, bina tumhare program se guzre, account control karna ho
 
 ### ATA (Associated Token Account)
-- **Use when:** Storing SPL tokens for a user (always use ATA as the default)
-- **Do not use when:** You need multiple token accounts for the same wallet/mint pair (edge case: order books)
+- **Use karo jab:** User ke liye SPL tokens store karne hain (default hamesha ATA use karo)
+- **Mat use karo jab:** Same wallet/mint pair ke liye multiple token accounts chahiye (edge case: order books)
 
-### Separate Data Account per User (not one giant account)
-- **Use when:** You have many users with individual state
-- **Do not use when:** The state is global and small (use a single config PDA owned by the program)
+### Har User Ke Liye Separate Data Account (ek giant account nahi)
+- **Use karo jab:** Bahut saare users hain, sabka apna individual state hai
+- **Mat use karo jab:** State global aur chhota hai (single config PDA use karo jo program owns kare)
 
 ---
 
 ## ✅ Key Takeaways
 
-1. **Everything is an account.** Wallets, programs, data — all the same six-field structure. The `owner` and `executable` fields determine what kind it is.
+1. **Sab kuch ek account hai.** Wallets, programs, data — sab same six-field structure follow karte hain. `owner` aur `executable` fields decide karte hain ki yeh kis type ka hai.
 
-2. **Programs are stateless.** A Solana program is pure logic. State always lives in separate data accounts that the program owns. This is the opposite of Ethereum contracts.
+2. **Programs stateless hote hain.** Solana program pure logic hai. State hamesha alag data accounts mein rehta hai jinhe program owns karta hai. Yeh Ethereum contracts ke bilkul ulta hai.
 
-3. **Only the owner program can write.** You cannot accidentally modify someone else's account from your program. The runtime enforces this at every instruction.
+3. **Sirf owner program hi likh sakta hai.** Tum galti se bhi kisi doosre ke account ko apne program se modify nahi kar sakte. Runtime har instruction par yeh enforce karta hai.
 
-4. **Rent keeps accounts alive.** Every account must hold a minimum SOL balance (rent-exempt threshold) or it gets deleted. Always fund new accounts with enough SOL.
+4. **Rent accounts ko zinda rakhta hai.** Har account ko minimum SOL balance (rent-exempt threshold) hold karna hota hai warna woh delete ho jaata hai. Naye accounts ko hamesha enough SOL se fund karo.
 
-5. **PDAs are the key to program-controlled state.** Derived deterministically from seeds + program ID. No private key. Your program signs for them during CPI using signer seeds.
+5. **PDAs hi program-controlled state ki chaabi hain.** Seeds + program ID se deterministically derive hote hain. Koi private key nahi hoti. Tumhara program CPI ke dauraan signer seeds use karke inke liye sign karta hai.
 
-6. **ATAs give every wallet a canonical token address.** Anyone can compute where your USDC lives without asking you. The Associated Token Program standardizes this.
+6. **ATAs har wallet ko ek canonical token address dete hain.** Koi bhi bina tumse poochhe compute kar sakta hai ki tumhara USDC kahan hai. Associated Token Program isko standardize karta hai.
 
-7. **Separate accounts = parallelism.** Because each transaction declares its accounts upfront, Solana can run non-overlapping transactions in parallel. Keeping state in separate small accounts is a feature, not a limitation.
-
----
-
-## 🔗 What Comes Next
-
-Now that you understand accounts, you are ready to learn:
-- **Chapter 4: Writing Your First Solana Program** — using Anchor to write Rust programs that create and modify accounts
-- **Chapter 5: Transactions and Instructions** — how instructions reference accounts, how the runtime validates ownership, and how to batch multiple instructions
-- **Chapter 6: Cross-Program Invocations (CPI)** — how your program calls the Token Program or other programs, using PDA signing
+7. **Separate accounts = parallelism.** Kyunki har transaction pehle hi apne accounts declare karta hai, Solana non-overlapping transactions ko parallel mein chala sakta hai. State ko chhote-chhote alag accounts mein rakhna ek feature hai, limitation nahi.
 
 ---
 
-*Last updated: 2026-06-26 | Solana version reference: 1.18.x / Anchor 0.30.x*
+## 🔗 Aage Kya Aata Hai
+
+Ab jab accounts samajh mein aa gaye, aage yeh seekhne ke liye ready ho:
+- **Chapter 4: Apna Pehla Solana Program Likhna** — Anchor use karke Rust programs likhna jo accounts create aur modify karein
+- **Chapter 5: Transactions aur Instructions** — instructions accounts ko kaise reference karte hain, runtime ownership kaise validate karta hai, aur multiple instructions ko kaise batch karein
+- **Chapter 6: Cross-Program Invocations (CPI)** — tumhara program Token Program ya doosre programs ko kaise call karta hai, PDA signing use karke
+
+---
+
+*Last updated: 2026-07-02 | Solana version reference: 1.18.x / Anchor 0.30.x*

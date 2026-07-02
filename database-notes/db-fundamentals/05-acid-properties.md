@@ -1,29 +1,31 @@
 # Chapter 5: ACID Properties
 
-> "Databases make promises. ACID is how they keep them."
+> "Databases promises karte hain. ACID unke promises nibhaane ka tarika hai."
 
 ---
 
 ## Table of Contents
 
-1. [What Is a Transaction?](#what-is-a-transaction)
+1. [Transaction Kya Hota Hai?](#what-is-a-transaction)
 2. [Real-World Analogy: Bank Transfer](#real-world-analogy-bank-transfer)
 3. [A — Atomicity](#a--atomicity)
 4. [C — Consistency](#c--consistency)
 5. [I — Isolation](#i--isolation)
 6. [D — Durability](#d--durability)
-7. [COMMIT, ROLLBACK, and SAVEPOINT](#commit-rollback-and-savepoint)
+7. [COMMIT, ROLLBACK, aur SAVEPOINT](#commit-rollback-and-savepoint)
 8. [Cross-Database Default Isolation Levels](#cross-database-default-isolation-levels)
 9. [Key Takeaways](#key-takeaways)
 10. [Quiz](#quiz)
 
 ---
 
-## 🔄 What Is a Transaction?
+## 🔄 Transaction Kya Hota Hai?
 
-A **transaction** is a **unit of work** — a group of one or more SQL operations that are treated as a single, indivisible action. The database guarantees that either **all operations in the transaction succeed**, or **none of them take effect**. There is no in-between.
+Socho tumne UPI se paise transfer kiye — ek nahi, do steps hote hain: pehle tumhare account se paisa katega, phir doosre ke account mein add hoga. Ab agar beech mein kuch fail ho jaaye toh? Yahi cheez handle karne ke liye **transaction** hota hai.
 
-Think of a transaction as a promise: "I will do all of these things together, or I will undo everything and pretend nothing happened."
+Ek **transaction** ek **unit of work** hai — SQL operations ka ek group jinhe database ek hi single, indivisible action ki tarah treat karta hai. Database guarantee deta hai ki ya toh **transaction ke saare operations successful honge**, ya phir **koi bhi apply nahi hoga**. Beech ka koi option nahi hai.
+
+Transaction ko ek promise samjho: "Main ye saare kaam ek saath karunga, ya phir sab undo kar dunga jaise kuch hua hi nahi."
 
 ```sql
 -- A transaction wrapping two related operations
@@ -35,24 +37,24 @@ BEGIN;
 COMMIT;
 ```
 
-In the example above, both `UPDATE` statements are part of one transaction. The database will not let one succeed while the other fails.
+Upar wale example mein dono `UPDATE` statements ek hi transaction ka part hain. Database kabhi bhi ek ko success aur doosre ko fail nahi hone dega.
 
 ---
 
 ## 🏦 Real-World Analogy: Bank Transfer
 
-Imagine you want to transfer $500 from **Alice's account** to **Bob's account**.
+Socho tumhe **Alice ke account** se **Bob ke account** mein $500 transfer karna hai — bilkul Paytm se paise bhejne jaisa.
 
-At the database level, this involves two separate operations:
+Database level pe iska matlab hai do alag operations:
 
-1. **Debit Alice**: subtract $500 from Alice's balance
-2. **Credit Bob**: add $500 to Bob's balance
+1. **Alice ko debit karo**: Alice ke balance se $500 minus karo
+2. **Bob ko credit karo**: Bob ke balance mein $500 add karo
 
-What happens if the power goes out after step 1 but before step 2? Without transactions, Alice loses $500 and Bob never receives it — money disappears into thin air.
+Ab socho — agar step 1 ke baad light chali jaye, step 2 se pehle? Transactions ke bina, Alice ke $500 gayab ho jaayenge aur Bob ko kabhi milenge hi nahi — paisa hawa mein udd jaayega!
 
-With a transaction, the database guarantees: **either both operations complete, or neither does**. If anything goes wrong mid-way, the debit to Alice is automatically reversed (rolled back).
+Transaction ke saath, database guarantee deta hai: **ya toh dono operations complete honge, ya koi bhi nahi**. Agar beech mein kuch galat hua, toh Alice ka debit automatically reverse (rollback) ho jaayega.
 
-Here is a sequence diagram showing this flow:
+Yahan ek sequence diagram hai jo ye flow dikhata hai:
 
 ```mermaid
 sequenceDiagram
@@ -84,29 +86,29 @@ sequenceDiagram
     end
 ```
 
-This "all or nothing" guarantee is the essence of ACID.
+Ye "all or nothing" guarantee hi ACID ka core idea hai.
 
 ---
 
 ## ⚛️ A — Atomicity
 
-**Atomicity** means a transaction is **atomic** — indivisible. Like an atom (in the classical sense), it cannot be split into smaller pieces. Either every operation inside the transaction succeeds, or the entire transaction is rolled back as if it never happened.
+**Atomicity** ka matlab hai ek transaction **atomic** hota hai — indivisible, yaani usse chhote pieces mein todha nahi ja sakta (jaise atom, classical sense mein). Ya toh transaction ke andar ke saare operations succeed karenge, ya phir poora transaction rollback ho jaayega jaise hua hi nahi.
 
-### Why It Matters
+### Kyun Zaruri Hai?
 
-Without atomicity, partial updates could corrupt your data. Consider what a half-completed bank transfer looks like:
+Agar atomicity na ho, toh partial updates tumhara data corrupt kar sakte hain. Socho ek half-completed bank transfer kaisa dikhega:
 
 | State | Alice's Balance | Bob's Balance | Total Money |
 |---|---|---|---|
-| Before transfer | $2,000 | $300 | $2,300 |
-| After debit (no atomicity) | $1,500 | $300 | $1,800 |
-| After both steps (atomic) | $1,500 | $800 | $2,300 |
+| Transfer se pehle | $2,000 | $300 | $2,300 |
+| Debit ke baad (atomicity nahi) | $1,500 | $300 | $1,800 |
+| Dono steps ke baad (atomic) | $1,500 | $800 | $2,300 |
 
-Without atomicity, $500 simply vanishes. With atomicity, either the total stays at $2,300 or stays at the original state — never a broken in-between.
+Atomicity ke bina $500 seedha gayab ho jaate hain. Atomicity ke saath, ya toh total $2,300 hi rehta hai, ya original state — kabhi bhi ek broken beech ki state nahi.
 
-### How Databases Implement It
+### Databases Isse Kaise Implement Karte Hain
 
-Databases use a mechanism called the **transaction log** (or undo log) to track every change made during a transaction. If anything fails — a crash, a constraint violation, an application error — the database uses the log to **undo** all changes back to the state before the transaction started.
+Databases ek mechanism use karte hain jisse **transaction log** (ya undo log) kehte hain, jo transaction ke dauraan har change track karta hai. Agar kuch fail ho jaaye — crash, constraint violation, application error — database is log ka use karke saare changes **undo** kar deta hai, wapas transaction shuru hone se pehle wali state pe.
 
 ```sql
 BEGIN;
@@ -120,25 +122,25 @@ BEGIN;
 COMMIT; -- Never reached
 ```
 
-Result: Alice's debit is reversed. Data is safe.
+Result: Alice ka debit reverse ho jaata hai. Data safe rehta hai.
 
 ---
 
 ## ✅ C — Consistency
 
-**Consistency** means a transaction takes the database from **one valid state to another valid state**. The database's rules — its constraints — are never violated before, during, or after a transaction.
+**Consistency** ka matlab hai ek transaction database ko **ek valid state se doosri valid state** mein le jaata hai. Database ke rules — uske constraints — kabhi bhi violate nahi hote, chahe transaction se pehle ho, dauraan ho, ya baad mein.
 
-### What "Consistent State" Means
+### "Consistent State" Ka Matlab Kya Hai
 
-A consistent state is one where all defined rules are satisfied:
+Ek consistent state woh hai jahan saare defined rules satisfy ho rahe hon:
 
-- **Primary Key constraints**: no duplicate IDs
-- **Foreign Key constraints**: no orphaned references
-- **NOT NULL constraints**: required fields always have values
-- **CHECK constraints**: values fall within allowed ranges
-- **UNIQUE constraints**: no duplicate values in unique columns
+- **Primary Key constraints**: koi duplicate IDs nahi
+- **Foreign Key constraints**: koi orphaned references nahi
+- **NOT NULL constraints**: required fields mein hamesha value ho
+- **CHECK constraints**: values allowed range mein hi hon
+- **UNIQUE constraints**: unique columns mein koi duplicate value nahi
 
-If any operation within a transaction would break one of these rules, the **entire transaction is rejected**.
+Agar transaction ke andar koi bhi operation in rules mein se kisi ko break karega, toh **poora transaction reject** ho jaata hai.
 
 ### Example
 
@@ -155,24 +157,24 @@ BEGIN;
 COMMIT; -- Never reached
 ```
 
-The database never enters an invalid state. Alice's balance stays at $200.
+Database kabhi bhi invalid state mein nahi jaata. Alice ka balance $200 pe hi rehta hai.
 
 ### Consistency vs. Application Logic
 
-It is important to understand that **consistency in ACID** refers to database-level constraints. Business logic consistency (e.g., "a user cannot have more than 5 active subscriptions") is your application's responsibility. The database enforces what you explicitly define as a constraint.
+Ye samajhna zaruri hai ki **ACID mein consistency** database-level constraints ko refer karta hai. Business logic consistency (jaise, "ek user ke paas 5 se zyada active subscriptions nahi ho sakte") tumhari application ki responsibility hai. Database sirf wahi enforce karta hai jo tumne explicitly constraint ki tarah define kiya hai.
 
 ---
 
 ## 🔒 I — Isolation
 
-**Isolation** controls how **concurrent transactions interact with each other**. In a real system, hundreds of transactions may be running at the same time. Isolation ensures they don't step on each other's toes in unexpected ways.
+**Isolation** control karta hai ki **concurrent transactions ek doosre ke saath kaise interact karte hain**. Real system mein, sau-do-sau transactions ek saath chal rahe hote hain — bilkul Swiggy ke peak dinner time jaisa, jahan hazaaron orders parallel mein process ho rahe hote hain. Isolation ensure karta hai ki wo ek doosre ke pair pe pair na rakhein unexpected tarike se.
 
-### The Problems Isolation Solves
+### Isolation Kaunse Problems Solve Karta Hai
 
-Without proper isolation, three types of read anomalies can occur:
+Proper isolation ke bina, teen tarah ki read anomalies ho sakti hain:
 
 #### 1. Dirty Read
-Transaction A reads data that Transaction B has written **but not yet committed**. If B then rolls back, A has read data that never officially existed.
+Transaction A wo data padhta hai jo Transaction B ne likha hai **lekin abhi commit nahi kiya**. Agar B baad mein rollback kar de, toh A ne aisa data padh liya jo kabhi officially exist hi nahi kiya.
 
 ```
 Time →
@@ -182,7 +184,7 @@ T1:  uses $500 (which is now "dirty" — it was never real)
 ```
 
 #### 2. Non-Repeatable Read
-Transaction A reads the same row twice and gets **different values** because Transaction B updated and committed the row between A's two reads.
+Transaction A ek hi row ko do baar padhta hai aur **alag-alag values** milti hain, kyunki Transaction B ne A ke do reads ke beech mein row update karke commit kar diya.
 
 ```
 Time →
@@ -192,7 +194,7 @@ T1:  reads balance again = $500  ← different from first read!
 ```
 
 #### 3. Phantom Read
-Transaction A executes the same query twice and gets **different sets of rows** because Transaction B inserted or deleted rows between A's two queries.
+Transaction A ek hi query do baar chalata hai aur **rows ka alag set** milta hai, kyunki Transaction B ne A ke do queries ke beech mein rows insert ya delete kar diye.
 
 ```
 Time →
@@ -205,43 +207,43 @@ T1:  SELECT COUNT(*) FROM orders WHERE user_id = 7  → returns 4  ← phantom r
 
 ### Isolation Levels
 
-SQL provides four standard isolation levels, each offering a different trade-off between **data accuracy** and **performance** (higher isolation = more locking = slower concurrency).
+SQL char standard isolation levels deta hai, har ek **data accuracy** aur **performance** ke beech alag trade-off deta hai (jitna zyada isolation, utna zyada locking, utna slower concurrency).
 
-#### READ UNCOMMITTED (Lowest)
-- Transactions can read **uncommitted changes** from other transactions
-- Fastest, but least safe
-- Dirty reads, non-repeatable reads, and phantom reads are all possible
-- Rarely used in practice
+#### READ UNCOMMITTED (Sabse Kam)
+- Transactions doosre transactions ke **uncommitted changes** padh sakte hain
+- Sabse fast, lekin sabse kam safe
+- Dirty reads, non-repeatable reads, aur phantom reads — sab possible hain
+- Practice mein rarely use hota hai
 
 ```sql
 SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 ```
 
 #### READ COMMITTED
-- Transactions only read **committed data**
-- Eliminates dirty reads
-- Non-repeatable reads and phantom reads are still possible
-- **Default in PostgreSQL, SQL Server, and Oracle**
+- Transactions sirf **committed data** padhte hain
+- Dirty reads eliminate ho jaate hain
+- Non-repeatable reads aur phantom reads abhi bhi possible hain
+- **PostgreSQL, SQL Server, aur Oracle ka default**
 
 ```sql
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 ```
 
 #### REPEATABLE READ
-- Guarantees that if you read a row once in a transaction, it will return the **same value** if you read it again
-- Eliminates dirty reads and non-repeatable reads
-- Phantom reads are still possible (new rows can appear)
-- **Default in MySQL InnoDB**
+- Guarantee deta hai ki agar tumne ek row ek baar transaction mein padhi, toh dobara padhne pe **same value** milegi
+- Dirty reads aur non-repeatable reads eliminate ho jaate hain
+- Phantom reads abhi bhi possible hain (naye rows appear ho sakte hain)
+- **MySQL InnoDB ka default**
 
 ```sql
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 ```
 
-#### SERIALIZABLE (Highest)
-- Transactions behave as if they were executed **one at a time**, sequentially
-- Eliminates all anomalies: dirty reads, non-repeatable reads, and phantom reads
-- Safest, but can be significantly slower due to locking and blocking
-- Use when absolute correctness is required (e.g., financial reconciliation)
+#### SERIALIZABLE (Sabse Zyada)
+- Transactions aise behave karte hain jaise wo **ek-ek karke, sequentially** execute hue hon
+- Saari anomalies eliminate ho jaati hain: dirty reads, non-repeatable reads, phantom reads
+- Sabse safe, lekin locking aur blocking ki wajah se kaafi slow ho sakta hai
+- Use karo jab absolute correctness chahiye (jaise financial reconciliation)
 
 ```sql
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
@@ -258,27 +260,28 @@ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 | REPEATABLE READ | Prevented | Prevented | Possible | Moderate |
 | SERIALIZABLE | Prevented | Prevented | Prevented | Slowest |
 
-> **Rule of thumb**: Start with READ COMMITTED (the most common default). Only increase isolation to SERIALIZABLE when you observe correctness problems. Do not use READ UNCOMMITTED unless you have a very specific reason and fully understand the risks.
+> [!tip]
+> Rule of thumb: READ COMMITTED se shuru karo (sabse common default). Isolation ko SERIALIZABLE tak tabhi badhao jab tumhe correctness problems dikhein. READ UNCOMMITTED tab tak use mat karo jab tak koi bahut specific reason na ho aur tumhe risks poori tarah samajh na aayein.
 
 ---
 
 ## 💾 D — Durability
 
-**Durability** means that once a transaction is **committed**, its changes are **permanent** — even if the server crashes immediately afterward.
+**Durability** ka matlab hai ki ek baar transaction **commit** ho jaaye, toh uske changes **permanent** ho jaate hain — chahe server turant crash ho jaaye.
 
-### The Problem Without Durability
+### Durability Ke Bina Problem Kya Hai
 
-Imagine you commit a payment transaction and see the success confirmation. Then the server loses power. When it comes back up, is your payment still there? With durability, yes — always.
+Socho tumne ek payment transaction commit kiya aur success confirmation dikha. Uske turant baad server ki power chali gayi. Jab wapas start hoga, kya tumhara payment abhi bhi wahan hoga? Durability ke saath, haan — hamesha.
 
-### How Durability Works: Write-Ahead Logging (WAL)
+### Durability Kaise Kaam Karta Hai: Write-Ahead Logging (WAL)
 
-Databases implement durability using a technique called **Write-Ahead Logging (WAL)**. The idea is simple but powerful:
+Databases durability implement karte hain ek technique se jisse **Write-Ahead Logging (WAL)** kehte hain. Idea simple hai lekin powerful hai:
 
-> **Before writing any change to the actual data files, the database first records the change in a log file.**
+> **Actual data files mein koi bhi change likhne se pehle, database sabse pehle change ko ek log file mein record karta hai.**
 
-The log file is sequential and fast to write. Even if the server crashes mid-operation, the database can **replay the log** on startup to recover to a consistent, committed state.
+Log file sequential hoti hai aur likhne mein fast hoti hai. Chahe server mid-operation crash ho jaaye, database startup pe **log ko replay** karke ek consistent, committed state pe recover kar sakta hai.
 
-Here is the simplified WAL flow:
+Yahan simplified WAL flow hai:
 
 ```
 1. Transaction begins
@@ -288,11 +291,11 @@ Here is the simplified WAL flow:
 5. Eventually, the actual data files are updated on disk
 ```
 
-If the server crashes between steps 3 and 5, the WAL log contains enough information to redo the committed changes when the server restarts. The committed transaction is never lost.
+Agar server step 3 aur 5 ke beech crash ho jaaye, WAL log mein itni information hoti hai ki server restart hone pe committed changes ko redo kiya ja sake. Committed transaction kabhi lost nahi hota.
 
-### Why Sequential Log Writes Are Fast
+### Sequential Log Writes Itni Fast Kyun Hoti Hain
 
-Writing to the end of a sequential log file is much faster than random writes to data files scattered across the disk. This is why WAL allows databases to commit transactions quickly while still guaranteeing durability.
+Ek sequential log file ke end mein likhna, disk ke idhar-udhar bikhre hue data files mein random writes karne se kaafi fast hota hai. Isi wajah se WAL databases ko fast transaction commit karne deta hai, wo bhi durability guarantee karte hue.
 
 ```
 WAL Log (sequential, on disk):
@@ -304,11 +307,11 @@ WAL Log (sequential, on disk):
 
 ---
 
-## 🔁 COMMIT, ROLLBACK, and SAVEPOINT
+## 🔁 COMMIT, ROLLBACK, aur SAVEPOINT
 
 ### COMMIT
 
-`COMMIT` ends a transaction and makes all its changes **permanent**. After a commit, other transactions can see the changes, and the changes survive crashes.
+`COMMIT` transaction ko end karta hai aur uske saare changes **permanent** bana deta hai. Commit ke baad, doosre transactions ye changes dekh sakte hain, aur ye changes crashes ke baad bhi survive karte hain.
 
 ```sql
 BEGIN;
@@ -319,7 +322,7 @@ COMMIT; -- Both changes are now permanent
 
 ### ROLLBACK
 
-`ROLLBACK` ends a transaction and **undoes all changes** made since the transaction began. The database returns to exactly the state it was in before `BEGIN`.
+`ROLLBACK` transaction ko end karta hai aur transaction shuru hone ke baad se hue **saare changes ko undo** kar deta hai. Database exactly usi state mein wapas chala jaata hai jaisa `BEGIN` se pehle tha.
 
 ```sql
 BEGIN;
@@ -330,7 +333,7 @@ ROLLBACK; -- The DELETE never happened
 
 ### SAVEPOINT
 
-`SAVEPOINT` creates a **named checkpoint within a transaction**. You can roll back to a savepoint without abandoning the entire transaction. This is useful for complex transactions where you want to retry a sub-step without losing all prior work.
+`SAVEPOINT` transaction ke andar ek **named checkpoint** banata hai. Tum poore transaction ko chhode bina, ek savepoint tak rollback kar sakte ho. Ye complex transactions ke liye useful hai, jahan tum ek sub-step ko retry karna chahte ho bina apna pehle ka kaam khoye.
 
 ```sql
 BEGIN;
@@ -348,70 +351,72 @@ BEGIN;
 COMMIT; -- Step 1 and the corrected Step 2 are committed
 ```
 
-> `RELEASE SAVEPOINT` removes the savepoint (frees the tracking overhead) without rolling back. You can have multiple savepoints with different names within one transaction.
+> [!info]
+> `RELEASE SAVEPOINT` savepoint ko remove kar deta hai (tracking overhead free kar deta hai) bina rollback kiye. Ek transaction mein tum multiple savepoints alag-alag naam se rakh sakte ho.
 
 ---
 
 ## 🗄️ Cross-Database Default Isolation Levels
 
-Different databases choose different default isolation levels, reflecting their design philosophy and common use cases. This is a **very important** practical detail — two databases running the "same" SQL can behave differently under concurrency.
+Alag-alag databases alag default isolation levels choose karte hain, jo unki design philosophy aur common use cases ko reflect karta hai. Ye ek **bahut important** practical detail hai — do databases "same" SQL chalate hue bhi concurrency ke under alag behave kar sakte hain.
 
 | Database | Default Isolation Level | Notes |
 |---|---|---|
-| PostgreSQL | READ COMMITTED | Uses MVCC; phantom reads rare in practice due to snapshot behavior |
-| MySQL (InnoDB) | REPEATABLE READ | Gap locks prevent most phantom reads even at this level |
-| SQL Server | READ COMMITTED | Can optionally enable RCSI (snapshot-based READ COMMITTED) |
-| Oracle | READ COMMITTED | Uses MVCC; no dirty reads possible even at lowest level |
-| SQLite | SERIALIZABLE | Single-writer model; effectively serializable by default |
+| PostgreSQL | READ COMMITTED | MVCC use karta hai; snapshot behavior ki wajah se phantom reads practice mein rare hain |
+| MySQL (InnoDB) | REPEATABLE READ | Gap locks is level pe bhi zyadatar phantom reads prevent kar dete hain |
+| SQL Server | READ COMMITTED | Optionally RCSI (snapshot-based READ COMMITTED) enable kar sakte ho |
+| Oracle | READ COMMITTED | MVCC use karta hai; sabse lowest level pe bhi dirty reads possible nahi |
+| SQLite | SERIALIZABLE | Single-writer model; default se effectively serializable |
 
-> **Practical tip**: Always verify the isolation level when switching databases or porting applications. Code that works correctly on MySQL's REPEATABLE READ may behave unexpectedly on a READ COMMITTED database if it assumes repeated reads return identical values.
+> [!warning]
+> Practical tip: Jab bhi databases switch karo ya applications port karo, isolation level hamesha verify karo. Wo code jo MySQL ki REPEATABLE READ pe sahi chalta hai, wo READ COMMITTED database pe unexpectedly break ho sakta hai agar wo assume karta hai ki repeated reads identical values return karenge.
 
 ---
 
 ## 💡 Key Takeaways
 
-- A **transaction** groups multiple SQL operations into a single "all-or-nothing" unit of work.
+- Ek **transaction** multiple SQL operations ko ek single "all-or-nothing" unit of work mein group karta hai.
 
-- **Atomicity** ensures that if any part of a transaction fails, all changes are rolled back — no partial updates ever persist.
+- **Atomicity** ensure karta hai ki agar transaction ka koi bhi part fail ho, toh saare changes rollback ho jaayein — koi partial update kabhi persist nahi hota.
 
-- **Consistency** ensures the database always moves between valid states, never violating any defined constraints (PK, FK, NOT NULL, CHECK).
+- **Consistency** ensure karta hai ki database hamesha valid states ke beech move kare, kabhi bhi defined constraints (PK, FK, NOT NULL, CHECK) violate na kare.
 
-- **Isolation** controls how concurrent transactions see each other's work. The four levels — READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE — trade off safety for performance.
+- **Isolation** control karta hai ki concurrent transactions ek doosre ka kaam kaise dekhte hain. Char levels — READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE — safety aur performance ke beech trade-off karte hain.
 
-- **Durability** ensures committed data survives crashes, implemented via Write-Ahead Logging (WAL).
+- **Durability** ensure karta hai ki committed data crashes ke baad bhi survive kare, Write-Ahead Logging (WAL) ke through implement hota hai.
 
-- `COMMIT` makes changes permanent; `ROLLBACK` undoes all changes; `SAVEPOINT` creates mid-transaction checkpoints for partial rollbacks.
+- `COMMIT` changes ko permanent banata hai; `ROLLBACK` saare changes undo karta hai; `SAVEPOINT` mid-transaction checkpoints banata hai partial rollbacks ke liye.
 
-- Default isolation levels differ across databases: PostgreSQL and SQL Server use READ COMMITTED; MySQL InnoDB uses REPEATABLE READ.
+- Default isolation levels databases mein alag hote hain: PostgreSQL aur SQL Server READ COMMITTED use karte hain; MySQL InnoDB REPEATABLE READ use karta hai.
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding. Try to answer these before looking at the hints.
+Apni understanding test karo. Hints dekhne se pehle khud answer karne ki koshish karo.
 
 ---
 
 **Question 1**
 
-You are writing a database for an e-commerce checkout. The checkout process does three things:
-1. Deducts the item from inventory
-2. Charges the customer's card (via an external API call that can fail)
-3. Creates an order record
+Tum ek e-commerce checkout ke liye database likh rahe ho. Checkout process teen kaam karta hai:
+1. Inventory se item deduct karta hai
+2. Customer ka card charge karta hai (external API call ke through, jo fail ho sakti hai)
+3. Ek order record create karta hai
 
-The external payment API fails after step 1 completes. What ACID property ensures that the inventory deduction is automatically undone, and what SQL command triggers this undo?
+External payment API step 1 complete hone ke baad fail ho jaati hai. Kaunsi ACID property ensure karti hai ki inventory deduction automatically undo ho jaaye, aur kaunsa SQL command ye undo trigger karta hai?
 
 <details>
 <summary>Hint</summary>
 
-Think about which ACID property governs "all-or-nothing" behavior, and what happens when an error occurs mid-transaction.
+Socho kaunsi ACID property "all-or-nothing" behavior govern karti hai, aur transaction ke beech mein error aane pe kya hota hai.
 
 </details>
 
 <details>
 <summary>Answer</summary>
 
-**Atomicity** ensures all three steps succeed together or none take effect. When the payment API fails, the application (or the database on error) issues a `ROLLBACK`, which undoes the inventory deduction. The order record is never created either.
+**Atomicity** ensure karta hai ki teenon steps ek saath succeed karein ya koi bhi apply na ho. Jab payment API fail hoti hai, application (ya error pe database khud) `ROLLBACK` issue karta hai, jo inventory deduction ko undo kar deta hai. Order record bhi kabhi create nahi hota.
 
 </details>
 
@@ -419,27 +424,27 @@ Think about which ACID property governs "all-or-nothing" behavior, and what happ
 
 **Question 2**
 
-Two transactions are running at the same time:
+Do transactions same time pe chal rahe hain:
 
-- **Transaction A** reads a user's account balance, sees $1,000
-- **Transaction B** updates that balance to $750 and **commits**
-- **Transaction A** reads the balance again and now sees $750
+- **Transaction A** ek user ka account balance padhta hai, $1,000 dikhta hai
+- **Transaction B** us balance ko $750 update karta hai aur **commit** kar deta hai
+- **Transaction A** balance dobara padhta hai aur ab $750 dikhta hai
 
-Which read anomaly has occurred, and which isolation level would prevent it?
+Kaunsi read anomaly hui hai, aur kaunsa isolation level isse prevent karega?
 
 <details>
 <summary>Hint</summary>
 
-The key detail is that Transaction A read the same row twice and got two different values within the same transaction.
+Key detail ye hai ki Transaction A ne same row ko do baar padha aur ek hi transaction ke andar do alag values mili.
 
 </details>
 
 <details>
 <summary>Answer</summary>
 
-This is a **non-repeatable read**. Transaction A saw different values for the same row within a single transaction because Transaction B committed a change in between.
+Ye ek **non-repeatable read** hai. Transaction A ko same row ke liye alag-alag values dikhein, ek single transaction ke andar, kyunki Transaction B ne beech mein ek change commit kar diya.
 
-Setting the isolation level to **REPEATABLE READ** (or higher) would prevent this. At REPEATABLE READ, Transaction A is guaranteed to see the same value for any row it has already read, for the duration of its transaction.
+Isolation level ko **REPEATABLE READ** (ya usse zyada) set karne se ye prevent ho jaayega. REPEATABLE READ pe, Transaction A ko guarantee milti hai ki jo bhi row wo pehle padh chuka hai, uski poori transaction duration mein wahi value dikhegi.
 
 </details>
 
@@ -447,29 +452,29 @@ Setting the isolation level to **REPEATABLE READ** (or higher) would prevent thi
 
 **Question 3**
 
-A developer argues: "We don't need SERIALIZABLE isolation — it's too slow. We'll just use READ COMMITTED and it'll be fine." 
+Ek developer argue karta hai: "Humein SERIALIZABLE isolation ki zaroorat nahi hai — bahut slow hai. Hum bas READ COMMITTED use karenge, sab theek rahega."
 
-Describe a real scenario where READ COMMITTED isolation could produce a wrong result that SERIALIZABLE would prevent. What type of anomaly would occur?
+Ek real scenario describe karo jahan READ COMMITTED isolation galat result de sakta hai, jo SERIALIZABLE prevent kar deta. Kaunsi type ki anomaly hogi?
 
 <details>
 <summary>Hint</summary>
 
-Think about a transaction that needs to count rows and then make a decision based on that count — and another transaction inserting rows at the same time.
+Socho ek transaction jo rows count karke uss count ke basis pe decision leta hai — aur doosra transaction same time pe rows insert kar raha hai.
 
 </details>
 
 <details>
 <summary>Answer</summary>
 
-Consider a system that limits users to a maximum of 3 active orders. The logic is:
+Socho ek system jo users ko max 3 active orders tak limit karta hai. Logic ye hai:
 
-1. Transaction A: `SELECT COUNT(*) FROM orders WHERE user_id = 7` → returns 2 (under limit)
-2. Transaction B: `INSERT INTO orders ... WHERE user_id = 7` → commits (now 3 orders)
-3. Transaction A: proceeds to `INSERT` a new order → now user 7 has 4 orders, violating the limit
+1. Transaction A: `SELECT COUNT(*) FROM orders WHERE user_id = 7` → returns 2 (limit ke under)
+2. Transaction B: `INSERT INTO orders ... WHERE user_id = 7` → commits (ab 3 orders)
+3. Transaction A: proceed karke ek naya order `INSERT` karta hai → ab user 7 ke paas 4 orders hain, limit violate ho gayi
 
-This is a **phantom read** — Transaction A's count query returns different results if re-executed. At READ COMMITTED, Transaction A cannot see Transaction B's uncommitted insert at step 2, but once B commits, A's subsequent queries (or logic based on the earlier count) can be affected.
+Ye ek **phantom read** hai — Transaction A ki count query dobara execute karne pe alag result deti hai. READ COMMITTED pe, Transaction A step 2 pe Transaction B ka uncommitted insert nahi dekh sakta, lekin ek baar B commit ho jaaye, toh A ki subsequent queries (ya pehle wale count pe based logic) affect ho sakti hain.
 
-At **SERIALIZABLE**, the database ensures Transaction A's view of the `orders` table remains stable for the duration of its transaction (via range locks or predicate locking), preventing Transaction B from inserting rows that would affect A's query results until A commits.
+**SERIALIZABLE** pe, database ensure karta hai ki Transaction A ka `orders` table ka view uski transaction ki poori duration mein stable rahe (range locks ya predicate locking ke through), aur Transaction B ko aise rows insert karne se rokta hai jo A ke query results ko affect karein, jab tak A commit na ho jaaye.
 
 </details>
 

@@ -1,26 +1,22 @@
----
-tags: [deployment, kubernetes, eureka, gateway, feign, spring-cloud, stack]
-aliases: [Eureka on K8s, Gateway on K8s, Feign on K8s, Stack on K8s]
-stage: intermediate
----
+# Tumhara Stack (Eureka + Gateway + Feign + Security + JPA) Kubernetes Pe
 
-# Your Stack (Eureka + Gateway + Feign + Security + JPA) on Kubernetes
+> [!info] Ye note kis baare mein hai
+> Ye ek practical map hai *tumhare specific* tech stack ko — Spring Cloud (Eureka client + Spring Cloud Gateway + OpenFeign), Spring Security, Spring Data JPA — Kubernetes pe deploy karne ke liye. Jab ye sab technologies k8s se milti hain, toh kuch real gotchas aate hain. Ye note un sabko ek jagah collect karta hai.
 
-> [!info] What this note is
-> A practical map for deploying *your specific* tech stack — Spring Cloud (Eureka client + Spring Cloud Gateway + OpenFeign), Spring Security, Spring Data JPA — to Kubernetes. There are real gotchas when these technologies meet k8s; this note collects them in one place.
+## Sabse bada architectural sawaal
 
-## The big architectural question
+> [!warning] Eureka + Kubernetes — pehle ye padho
+> Kubernetes already **DNS ke through service discovery** deta hai (har Service ko ek naam milta hai jaise `orders-api.default.svc.cluster.local`). Eureka bhi bilkul yahi kaam karta hai, bas tumhare apps ke andar se. **Dono ko ek saath chalana duplicate kaam hai** — aur confusion ka common source bhi.
 
-> [!warning] Eureka + Kubernetes — read this first
-> Kubernetes already provides **service discovery via DNS** (every Service gets a name like `orders-api.default.svc.cluster.local`). Eureka does the same job from inside your apps. **Running both is duplicate work** — and a common source of confusion.
+> Do valid raaste hain:
+> 1. **Eureka rakho** — tumhara code `@LoadBalanced` / Feign logical names ke saath use karta hai. Eureka pods ko track karta hai. K8s sirf runtime hai. Ye tab acha hai jab team Spring Cloud achhe se jaanti ho, ya tum VMs se migrate kar rahe ho.
+> 2. **Eureka hatao, k8s DNS use karo** — `lb://orders-api` ko `http://orders-api` se replace karo. Simpler. K8s-native raasta.
 >
-> Two valid choices:
-> 1. **Keep Eureka** — your code uses `@LoadBalanced` / Feign with logical names. Eureka tracks pods. K8s is just the runtime. Good if your team knows Spring Cloud well, or you're migrating from VMs.
-> 2. **Drop Eureka, use k8s DNS** — replace `lb://orders-api` with `http://orders-api`. Simpler. The k8s-native path.
->
-> This note covers **option 1** (since it's your stack) but flags where option 2 would be cleaner.
+> Ye note **option 1** cover karta hai (kyunki ye tumhara stack hai), lekin jahan option 2 cleaner hota, wahan flag bhi karega.
 
-## Architecture overview
+## Architecture ka overview
+
+Socho ek Zomato jaisa system — customer (Client) app kholta hai, request Ingress (jaise Zomato ka load balancer) se hoti hui Gateway tak jaati hai. Gateway JWT check karta hai, phir Eureka se puchta hai "orders-service kahan hai bhai?", aur request forward kar deta hai. Orders-service ko agar users ka data chahiye toh woh Feign ke through users-service ko call karta hai — bilkul waise jaise Zomato ka order-service, restaurant-service ko internally call karta hai.
 
 ```mermaid
 flowchart TD
@@ -69,7 +65,7 @@ flowchart TD
 
 ## 1. Eureka Server on k8s
 
-Eureka itself is a Spring Boot app — but it has **state** (the registry) and clients keep heartbeating. Use a **StatefulSet** (not Deployment) so it gets a stable DNS name.
+Kya hota hai? Eureka khud bhi ek Spring Boot app hai — lekin iske paas **state** hoti hai (registry) aur clients isse continuously heartbeat bhejte rehte hain. Isliye normal **Deployment** nahi, **StatefulSet** use karo — taaki isko ek stable DNS naam mile, jaise ek fixed table number restaurant mein.
 
 ```yaml
 apiVersion: apps/v1
@@ -112,7 +108,7 @@ spec:
       targetPort: http
 ```
 
-Eureka server `application.yml`:
+Eureka server ka `application.yml`:
 
 ```yaml
 spring:
@@ -129,11 +125,11 @@ eureka:
 ```
 
 > [!tip] HA Eureka
-> For production, run 2-3 Eureka pods that **peer with each other** via the headless service DNS. Each pod sets `eureka.client.service-url.defaultZone` to all peers' URLs.
+> Production ke liye, 2-3 Eureka pods chalao jo headless service DNS ke through **ek dusre se peer** karein. Har pod apna `eureka.client.service-url.defaultZone` sab peers ke URLs pe set karega.
 
-## 2. Eureka Client config in your services
+## 2. Har service mein Eureka Client config
 
-Every service (Orders, Users, Gateway) is a Eureka client:
+Har service (Orders, Users, Gateway) ek Eureka client hai:
 
 ```yaml
 # application.yml in each service
@@ -153,7 +149,7 @@ eureka:
     lease-expiration-duration-in-seconds: 30
 ```
 
-ConfigMap providing the URL:
+URL dene wala ConfigMap:
 
 ```yaml
 apiVersion: v1
@@ -164,11 +160,11 @@ data:
 ```
 
 > [!warning] prefer-ip-address: true
-> Pod hostnames don't resolve cluster-wide. Pod IPs do (they're routable across the cluster). Without this, Feign calls fail with "Unknown host".
+> Pod hostnames cluster-wide resolve nahi hote. Pod IPs hoti hain (wo cluster ke across routable hoti hain). Ye flag na ho toh Feign calls "Unknown host" error ke saath fail hongi.
 
-## 3. Spring Cloud Gateway as the entry point
+## 3. Entry point ke roop mein Spring Cloud Gateway
 
-Your Gateway is just another Eureka client — it discovers services through Eureka and routes traffic.
+Tumhara Gateway bhi bas ek aur Eureka client hai — ye Eureka ke through services discover karta hai aur traffic route karta hai.
 
 ```yaml
 spring:
@@ -229,7 +225,7 @@ spec:
   ports: [{ port: 80, targetPort: http }]
 ```
 
-Then an **Ingress** points at `api-gateway` Service:
+Uske baad ek **Ingress**, `api-gateway` Service ki taraf point karta hai:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -256,9 +252,9 @@ spec:
 > [!tip] Public traffic flow
 > Internet → Ingress (TLS) → Gateway Service → Gateway pods → (Eureka lookup) → backend Service pods.
 
-## 4. Feign clients between services
+## 4. Services ke beech Feign clients
 
-Inside `orders-service`, calling `users-service`:
+`orders-service` ke andar, `users-service` ko call karna — bilkul waise jaise Swiggy ka order service, delivery-partner service ko internally call karta hai:
 
 ```java
 @FeignClient(name = "users-api")    // ← Eureka service name
@@ -268,7 +264,7 @@ public interface UsersClient {
 }
 ```
 
-Enable on the main class:
+Main class pe enable karo:
 
 ```java
 @SpringBootApplication
@@ -277,7 +273,7 @@ Enable on the main class:
 public class OrdersApplication { ... }
 ```
 
-Use it:
+Use karna:
 
 ```java
 @Service
@@ -292,9 +288,9 @@ public class OrderService {
 }
 ```
 
-### Propagating JWT through Feign
+### JWT ko Feign ke through propagate karna
 
-A common trap: the user hits Gateway with a JWT, Gateway forwards to Orders, Orders calls Users — but the JWT doesn't propagate. Add a `RequestInterceptor`:
+Ek common trap: user Gateway pe JWT ke saath hit karta hai, Gateway Orders ko forward karta hai, Orders phir Users ko call karta hai — lekin JWT propagate nahi hota. Iske liye ek `RequestInterceptor` add karo:
 
 ```java
 @Configuration
@@ -311,24 +307,24 @@ public class FeignAuthConfig {
 }
 ```
 
-Now Feign forwards the bearer token automatically. See [[04-JWT-with-Spring-Security]], [[07-OpenFeign]].
+Ab Feign automatically bearer token forward karega. Dekho [[04-JWT-with-Spring-Security]], [[07-OpenFeign]].
 
-## 5. Spring Security at the Gateway vs at each service
+## 5. Spring Security — Gateway pe vs har service pe
 
-Two patterns; pick one:
+Do patterns hain; ek pick karo:
 
-### Pattern A: Gateway authenticates, services trust the network
+### Pattern A: Gateway authenticate karta hai, services network pe trust karti hain
 
-- Gateway validates JWT, injects user info as headers (`X-User-Id`, `X-User-Roles`)
-- Backend services trust those headers and skip auth
-- **Requires NetworkPolicies** so only the Gateway can reach backends
-- Simpler services, more dangerous if perimeter fails
+- Gateway JWT validate karta hai, user info ko headers mein inject karta hai (`X-User-Id`, `X-User-Roles`)
+- Backend services un headers ko trust karti hain aur apna auth skip kar deti hain
+- **NetworkPolicies chahiye** taaki sirf Gateway hi backends tak pahunch sake
+- Services simple ho jaati hain, lekin agar perimeter fail ho gaya toh zyada dangerous hai
 
-### Pattern B: Every service validates JWT (defense in depth)
+### Pattern B: Har service JWT validate karti hai (defense in depth)
 
-- Gateway forwards the JWT
-- Each service has Spring Security configured as an **OAuth2 Resource Server**, validating the JWT
-- More CPU, but zero-trust
+- Gateway JWT forward karta hai
+- Har service mein Spring Security ek **OAuth2 Resource Server** ki tarah configure hoti hai, jo JWT validate karti hai
+- Zyada CPU lagta hai, lekin zero-trust approach hai
 
 ```java
 // each service
@@ -355,11 +351,11 @@ spring:
 ```
 
 > [!tip] Recommendation
-> Start with **Pattern B** — validating per-service is cheap, more secure, and survives misconfiguration of NetworkPolicies. See [[01-Spring-Security-Concepts]], [[08-OAuth2-Resource-Server]].
+> **Pattern B** se start karo — per-service validate karna sasta hai, zyada secure hai, aur agar NetworkPolicies galat configure ho jaayein tab bhi bach jaata hai. Dekho [[01-Spring-Security-Concepts]], [[08-OAuth2-Resource-Server]].
 
 ## 6. Spring Data JPA + k8s
 
-JPA itself doesn't change in k8s. The wiring does:
+JPA khud k8s mein change nahi hoti. Wiring change hoti hai:
 
 ```yaml
 # application.yml — env vars come from Secret
@@ -378,15 +374,15 @@ spring:
     baseline-on-migrate: true
 ```
 
-Key practices:
-- **Database per service** — Postgres pod (or a managed service like RDS) per microservice
-- **Migrations**: Flyway runs on app startup. Init container alternative for stricter control.
-- **Connection pool sizing**: `replicas × max-pool-size` should not exceed Postgres `max_connections`. With 3 replicas × 10 = 30 connections. Plan capacity.
-- **Don't bake DB creds into images** — always Secret-mounted env vars
+Key practices — in cheezon ko dhyan mein rakho:
+- **Database per service** — har microservice ke liye alag Postgres pod (ya RDS jaisi managed service). BigBasket ke alag-alag warehouses jaise, ek dusre ki inventory se independent
+- **Migrations**: Flyway app startup pe chalta hai. Stricter control chahiye toh init container use karo
+- **Connection pool sizing**: `replicas × max-pool-size`, Postgres ke `max_connections` se zyada nahi hona chahiye. 3 replicas × 10 = 30 connections. Capacity plan karo
+- **DB creds ko image mein bake mat karo** — hamesha Secret-mounted env vars use karo
 
-See [[01-JDBC-vs-JPA-vs-Hibernate]], [[07-Schema-Migration]], [[08-DataSource-Connection-Pool]].
+Dekho [[01-JDBC-vs-JPA-vs-Hibernate]], [[07-Schema-Migration]], [[08-DataSource-Connection-Pool]].
 
-## 7. Putting it all together — deployment order
+## 7. Sab kuch milaake — deployment order
 
 ```
 1. Postgres (StatefulSet or managed)
@@ -398,24 +394,24 @@ See [[01-JDBC-vs-JPA-vs-Hibernate]], [[07-Schema-Migration]], [[08-DataSource-Co
 7. Ingress
 ```
 
-If you use ArgoCD/Flux, define **sync waves** so they deploy in this order. Otherwise k8s starts everything at once and services retry until Eureka is up — usually fine, but startup is noisier.
+Agar tum ArgoCD/Flux use kar rahe ho, toh **sync waves** define karo taaki ye order maintained rahe. Warna k8s sab kuch ek saath start kar dega aur services Eureka up hone tak retry karti rahengi — usually theek hai, bas startup thoda noisy hota hai.
 
-## 8. Common stack-on-k8s gotchas
+## 8. Stack-on-k8s ke common gotchas
 
-> [!warning] Things that will bite you
-> 1. **Eureka cache lag** — when a pod dies, Eureka takes ~30-90s to evict it. Feign calls fail in that window. Mitigation: tune `lease-expiration-duration-in-seconds` lower; configure Resilience4j retry/circuit breaker. See [[08-Resilience4j]].
-> 2. **Pod IP changes** — a redeployed pod gets a new IP. With `prefer-ip-address: true` Eureka handles re-registration. Without it, stale entries break Feign calls.
-> 3. **Slow JVM startup vs probes** — always use a **startupProbe** (covered in [[05-Health-Checks-and-Readiness]]). Without it, k8s kills the pod before Spring finishes booting.
-> 4. **Gateway's reactive stack** — Spring Cloud Gateway is built on **WebFlux** (reactive). Don't add `spring-boot-starter-web` to it — they conflict and the app won't start. Use `spring-boot-starter-webflux` only.
-> 5. **Memory limits + JVM** — set `-XX:MaxRAMPercentage=75` so the JVM respects the cgroup limit. Without it, you'll see OOMKills.
-> 6. **JWT clock skew** — pods on different nodes may have small time drift. Allow `clock-skew: 60s` in Spring Security JWT config.
-> 7. **Logs from many pods** — `kubectl logs -l app=orders-api -f --max-log-requests=10` tails all replicas. For real life, ship to Loki/ELK and query there.
-> 8. **Eureka self-preservation** — in dev/test it triggers spuriously and refuses to evict dead pods. Disable: `eureka.server.enable-self-preservation: false`.
+> [!warning] Ye cheezein tumhe kaatengi
+> 1. **Eureka cache lag** — jab ek pod marta hai, Eureka usko evict karne mein ~30-90 second leta hai. Us window mein Feign calls fail hoti hain. Mitigation: `lease-expiration-duration-in-seconds` kam karo; Resilience4j retry/circuit breaker configure karo. Dekho [[08-Resilience4j]].
+> 2. **Pod IP badalna** — redeploy hone pe pod ko nayi IP milti hai. `prefer-ip-address: true` ke saath Eureka re-registration handle kar leta hai. Iske bina, stale entries Feign calls todti hain.
+> 3. **Slow JVM startup vs probes** — hamesha ek **startupProbe** use karo (details [[05-Health-Checks-and-Readiness]] mein hain). Iske bina, k8s Spring ke boot khatam hone se pehle hi pod kill kar dega.
+> 4. **Gateway ka reactive stack** — Spring Cloud Gateway **WebFlux** (reactive) pe based hai. Isme `spring-boot-starter-web` mat add karo — dono conflict karte hain aur app start hi nahi hoga. Sirf `spring-boot-starter-webflux` use karo.
+> 5. **Memory limits + JVM** — `-XX:MaxRAMPercentage=75` set karo taaki JVM cgroup limit ko respect kare. Nahi toh OOMKills dikhenge.
+> 6. **JWT clock skew** — alag-alag nodes pe pods mein thoda time drift ho sakta hai. Spring Security JWT config mein `clock-skew: 60s` allow karo.
+> 7. **Bahut saare pods ke logs** — `kubectl logs -l app=orders-api -f --max-log-requests=10` sab replicas ke logs tail karta hai. Real production mein, Loki/ELK pe ship karo aur wahan query karo.
+> 8. **Eureka self-preservation** — dev/test mein ye kabhi-kabhi spuriously trigger ho jaata hai aur dead pods evict karne se mana kar deta hai. Disable karo: `eureka.server.enable-self-preservation: false`.
 
-## 9. Should you actually use Eureka in k8s?
+## 9. Kya tumhe sach mein k8s mein Eureka use karna chahiye?
 
 > [!tip] Honest recommendation
-> If you're starting fresh on k8s, consider **Spring Cloud Kubernetes Discovery** instead. It uses k8s's native Service registry — no separate Eureka pods, no double bookkeeping. Your Feign clients still use logical names; the resolution just goes through k8s.
+> Agar tum k8s pe fresh start kar rahe ho, toh **Spring Cloud Kubernetes Discovery** consider karo. Ye k8s ki native Service registry use karta hai — alag se Eureka pods nahi chahiye, double bookkeeping nahi. Tumhare Feign clients phir bhi logical names use karte rahenge; bas resolution k8s ke through hoti hai.
 >
 > ```xml
 > <dependency>
@@ -424,28 +420,28 @@ If you use ArgoCD/Flux, define **sync waves** so they deploy in this order. Othe
 > </dependency>
 > ```
 >
-> But your stack already chose Eureka — fine. It works. Just understand the tradeoff so future-you can decide whether to migrate.
+> Lekin tumhara stack already Eureka choose kar chuka hai — koi baat nahi. Ye kaam karta hai. Bas tradeoff samajh lo taaki future mein tum khud decide kar sako migrate karna hai ya nahi.
 
-## 10. Local dev for this stack
+## 10. Is stack ke liye local dev
 
-You have several options ranked by complexity:
+Complexity ke hisaab se ranked kuch options hain:
 
 | Option | Setup | Faithfulness |
 |--------|-------|--------------|
-| **Run apps in IDE, Eureka in Docker** | `docker run -p 8761:8761 eureka-image`, IDE points at `localhost:8761` | High; fastest dev loop |
-| **docker-compose** | All services in one compose file | Higher; closer to k8s |
-| **kind / minikube** | Apply your real k8s manifests locally | Highest; matches prod |
-| **Tilt / Skaffold** | Auto-rebuild + redeploy on save | Highest; best DX |
+| **IDE mein apps, Docker mein Eureka** | `docker run -p 8761:8761 eureka-image`, IDE `localhost:8761` pe point karta hai | High; sabse fast dev loop |
+| **docker-compose** | Saari services ek compose file mein | Higher; k8s ke zyada kareeb |
+| **kind / minikube** | Apne real k8s manifests locally apply karo | Highest; prod se match karta hai |
+| **Tilt / Skaffold** | Save karte hi auto-rebuild + redeploy | Highest; best DX |
 
-For learning k8s, do `kind` + raw manifests. Then graduate to Tilt.
+k8s seekhne ke liye, `kind` + raw manifests se start karo. Phir Tilt pe graduate ho jaao.
 
-## What to read next
+## Aage kya padhna hai
 
-- [[08-Kubernetes-From-Scratch]] — k8s primer if any of this felt fast
+- [[08-Kubernetes-From-Scratch]] — agar ye sab fast laga toh k8s ka primer
 - [[03-Service-Discovery-Eureka]] — Eureka deep-dive
 - [[04-API-Gateway-Spring-Cloud-Gateway]] — Gateway routing/filters
 - [[07-OpenFeign]] — Feign config, error decoders, retries
-- [[08-Resilience4j]] — circuit breakers around Feign calls
+- [[08-Resilience4j]] — Feign calls ke around circuit breakers
 - [[02-Configuration-and-SecurityFilterChain]] — Spring Security 6 config
 - [[04-JWT-with-Spring-Security]] — JWT issuance & validation
 

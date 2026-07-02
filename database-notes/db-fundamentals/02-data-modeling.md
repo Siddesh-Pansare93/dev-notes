@@ -1,76 +1,76 @@
 # 📐 Chapter 2: Data Modeling and ER Diagrams
 
-> "A good data model is worth a thousand lines of code." — Every senior developer who has refactored a bad schema at 2am.
+> "A good data model is worth a thousand lines of code." — Har senior developer jisne 2am pe ek bekar schema refactor kiya ho.
 
 ---
 
-## 🗺️ What Is Data Modeling?
+## 🗺️ Data Modeling Hai Kya?
 
-Before you write a single line of SQL or touch a database tool, you need a **blueprint**. Data modeling is the process of designing that blueprint — deciding what data you need to store, how it's structured, and how different pieces of data relate to each other.
+Socho tumhe ek naya Zomato jaisa app banana hai. SQL likhne se pehle, database tool kholne se pehle, tumhe ek **blueprint** chahiye. Data modeling basically yehi process hai — decide karna ki kaunsa data store karna hai, woh kaise structured hoga, aur alag-alag pieces of data ek dusre se kaise related honge.
 
-Think of it like an architect's floor plan. You wouldn't build a house by just randomly pouring concrete — you plan where walls go, where doors open, how rooms connect. Data modeling does the same thing for your database.
+Isko ek architect ke floor plan jaisa socho. Ghar banate waqt koi random concrete nahi daalta — pehle plan hota hai ki walls kahan aayengi, doors kahan khulenge, rooms kaise connect honge. Data modeling database ke liye exactly yehi kaam karta hai.
 
-A good data model:
-- Eliminates redundancy (no storing the same thing in 10 places)
-- Keeps data consistent (no contradictions)
-- Makes querying intuitive and efficient
-- Makes future changes less painful
+Ek achha data model:
+- Redundancy khatam karta hai (same cheez 10 jagah store nahi hoti)
+- Data consistent rakhta hai (koi contradiction nahi)
+- Querying ko intuitive aur efficient banata hai
+- Future mein changes karna easy banata hai
 
-The visual language for expressing a data model is the **Entity-Relationship Diagram (ER Diagram)**.
+Data model ko express karne ki visual language hai **Entity-Relationship Diagram (ER Diagram)**.
 
 ---
 
-## 🧩 Entities: The "Things" in Your World
+## 🧩 Entities: Tumhari Duniya Ki "Cheezein"
 
-An **entity** is any distinct object or concept in your domain that you want to store information about. If you were building a blog, the meaningful "things" might be:
+**Entity** matlab koi bhi distinct object ya concept jisme tum apne domain mein information store karna chahte ho. Agar tum ek blog bana rahe ho, to meaningful "cheezein" kuch aisi hongi:
 
 | Entity | Real-World Meaning |
 |---|---|
-| `USER` | A person who has an account |
-| `POST` | An article or blog post written by a user |
-| `COMMENT` | A reply left on a post |
-| `TAG` | A keyword label like "javascript" or "tutorial" |
-| `CATEGORY` | A broad grouping like "Tech" or "Lifestyle" |
+| `USER` | Woh insaan jiska account hai |
+| `POST` | User ka likha hua article ya blog post |
+| `COMMENT` | Post pe kisi ka reply |
+| `TAG` | Ek keyword label jaise "javascript" ya "tutorial" |
+| `CATEGORY` | Ek broad grouping jaise "Tech" ya "Lifestyle" |
 
-In an ER diagram, entities are drawn as **rectangles**.
+ER diagram mein entities **rectangles** ki tarah draw ki jaati hain.
 
-> **Rule of thumb:** If you'd naturally say "I need to keep track of [X]", then [X] is probably an entity.
+> **Rule of thumb:** Agar tum naturally bolte ho "mujhe [X] track karna hai", to [X] probably ek entity hai.
 
 ---
 
-## 🏷️ Attributes: Properties of an Entity
+## 🏷️ Attributes: Entity Ki Properties
 
-Each entity has **attributes** — the individual pieces of information you store about it. For a `USER` entity, you might have:
+Har entity ke **attributes** hote hain — woh individual pieces of information jo tum uske baare mein store karte ho. `USER` entity ke liye:
 
-- `id` — a unique identifier (primary key)
-- `name` — the user's display name
+- `id` — ek unique identifier (primary key)
+- `name` — user ka display name
 - `email` — unique email address
-- `password_hash` — stored securely, never plain text
-- `created_at` — timestamp of account creation
+- `password_hash` — securely store hota hai, kabhi plain text mein nahi
+- `created_at` — account kab bana uska timestamp
 
-For a `POST` entity:
+`POST` entity ke liye:
 
 - `id` — unique identifier
-- `title` — the headline
-- `body` — the full content
-- `published_at` — when it went live (nullable if still a draft)
-- `user_id` — foreign key linking back to the author
+- `title` — headline
+- `body` — poora content
+- `published_at` — kab live hua (nullable agar abhi draft hai)
+- `user_id` — foreign key jo author ko point karti hai
 
-In ER diagrams, attributes are often shown as **ovals** connected to their entity (in classic Chen notation) or listed inside the entity rectangle (in Crow's Foot / IE notation — which is what most modern tools use).
+ER diagrams mein attributes ko **ovals** ki tarah dikhaya jaata hai jo entity se connected hote hain (classic Chen notation mein), ya entity rectangle ke andar list ki jaati hain (Crow's Foot / IE notation mein — jo aaj kal ke zyaadatar tools use karte hain).
 
 ---
 
-## 🔗 Relationships Between Entities
+## 🔗 Entities Ke Beech Relationships
 
-The power of a relational database is in the *relationships* between entities. There are three main types:
+Relational database ki asli power hi entities ke beech ke *relationships* mein hai. Teen main types hote hain:
 
 ### 1:1 — One-to-One
 
 **Example:** `USER` → `PROFILE`
 
-One user has exactly one profile. One profile belongs to exactly one user.
+Ek user ka exactly ek profile hota hai. Ek profile exactly ek user ka hota hai.
 
-This is fairly rare. It usually appears when you want to split a large table for performance or security reasons (e.g., keeping sensitive profile details separate from login info).
+Yeh kaafi rare hota hai. Usually tab dikhta hai jab tum ek badi table ko performance ya security ke liye split karna chahte ho (jaise sensitive profile details ko login info se alag rakhna).
 
 ```
 USER ——— PROFILE
@@ -80,34 +80,34 @@ USER ——— PROFILE
 
 **Example:** `USER` → `POSTS`
 
-One user can write many posts. But each post belongs to exactly one user.
+Ek user bahut saare posts likh sakta hai. Lekin har post exactly ek user ka hota hai.
 
-This is the most common relationship in any database. You implement it with a **foreign key** on the "many" side.
+Yeh kisi bhi database mein sabse common relationship hai. Isko implement karte ho "many" side pe ek **foreign key** rakhke — bilkul waise jaise Swiggy mein ek restaurant ke bahut saare orders hote hain, par ek order sirf ek restaurant se aata hai.
 
 ```
 USER ——<  POST
 ```
-*(The crow's foot symbol `<` means "many")*
+*(Crow's foot symbol `<` ka matlab hai "many")*
 
 ### M:N — Many-to-Many
 
 **Example:** `STUDENTS` ↔ `COURSES`
 
-One student can enroll in many courses. One course can have many students. Neither side is the "one".
+Ek student bahut saare courses le sakta hai. Ek course mein bahut saare students ho sakte hain. Yahan koi bhi side "one" nahi hai.
 
-You **cannot** implement this directly in a relational database. You need a **junction table** (also called a join table, bridge table, or associative table) in between:
+Isko relational database mein direct implement **nahi kar sakte**. Beech mein ek **junction table** (jise join table, bridge table, ya associative table bhi kehte hain) chahiye hoti hai:
 
 ```
 STUDENT ——< ENROLLMENT >—— COURSE
 ```
 
-The `ENROLLMENT` table holds foreign keys to both `STUDENT` and `COURSE`, and can also carry extra data about the relationship itself (like `enrolled_at` or `grade`).
+`ENROLLMENT` table `STUDENT` aur `COURSE` dono ki foreign keys rakhti hai, aur relationship ke baare mein extra data bhi carry kar sakti hai (jaise `enrolled_at` ya `grade`). Bilkul Ola-Uber jaise sochlo — ek driver multiple rides le sakta hai, ek rider multiple drivers ke saath ride kar sakta hai, aur beech mein ek `RIDE` table hoti hai jo dono ko connect karti hai aur fare, time jaisa extra data rakhti hai.
 
 ---
 
 ## 📊 ER Diagram Notation: Crow's Foot
 
-The most widely-used notation today is **Crow's Foot** (also called IE notation). Here's the legend:
+Aaj sabse zyaada use hone waali notation hai **Crow's Foot** (jise IE notation bhi kehte hain). Yeh raha legend:
 
 | Symbol | Meaning |
 |---|---|
@@ -116,72 +116,72 @@ The most widely-used notation today is **Crow's Foot** (also called IE notation)
 | `|<` | One or more (mandatory, many) |
 | `o<` | Zero or more (optional, many) |
 
-You read relationships from **both directions**. Take this example:
+Relationships ko **dono directions** se padho. Yeh example lo:
 
 ```
 USER ||--o{ POST : "writes"
 ```
 
-Read left to right: "One user writes zero or more posts."
-Read right to left: "Each post is written by exactly one user."
+Left se right padho: "Ek user zero ya usse zyaada posts likhta hai."
+Right se left padho: "Har post exactly ek user ne likha hai."
 
-The `||` on the USER side means "exactly one" — a post must have an author.
-The `o{` on the POST side means "zero or more" — a user might have written nothing yet.
+USER side pe `||` ka matlab hai "exactly one" — post ka ek author hona hi hona chahiye.
+POST side pe `o{` ka matlab hai "zero or more" — ho sakta hai user ne abhi tak kuch bhi na likha ho.
 
 ### Cardinality vs Optionality
 
-- **Cardinality** = the *maximum* (one vs. many) — shown by the crow's foot or single line
-- **Optionality** = the *minimum* (mandatory vs. optional) — shown by the `|` (mandatory) or `o` (optional) closest to the entity
+- **Cardinality** = *maximum* (one vs. many) — crow's foot ya single line se dikhaya jaata hai
+- **Optionality** = *minimum* (mandatory vs. optional) — `|` (mandatory) ya `o` (optional) se dikhaya jaata hai, jo entity ke sabse close hota hai
 
 ---
 
-## 🔍 How to Read an ER Diagram
+## 🔍 ER Diagram Kaise Padhein
 
-Follow this process every time:
+Har baar yeh process follow karo:
 
-1. **Identify the entities** — the rectangles
-2. **Read each relationship line** in both directions
-3. **Check the symbols** at each end for cardinality and optionality
-4. **Look at the label** on the line — it describes what the relationship means in plain English
-5. **Note foreign keys** — the "many" side always holds the foreign key
+1. **Entities identify karo** — rectangles
+2. Har relationship line ko **dono directions mein** padho
+3. Har end pe symbols check karo — cardinality aur optionality ke liye
+4. Line pe **label** dekho — yeh plain English mein relationship ka matlab batata hai
+5. **Foreign keys note karo** — "many" side hamesha foreign key rakhti hai
 
-Practice: Cover the labels and try to reconstruct the English sentence from the symbols alone. If you can do that fluently, you can read any ER diagram.
+Practice: Labels ko cover karke sirf symbols se English sentence banane ki koshish karo. Agar yeh fluently kar paate ho, to koi bhi ER diagram padh sakte ho.
 
 ---
 
-## 🏗️ Step-by-Step: Designing an ER Diagram for a Blog System
+## 🏗️ Step-by-Step: Blog System Ke Liye ER Diagram Design Karna
 
-Let's design a real system from scratch. Our blog platform needs:
+Chalo scratch se ek real system design karte hain. Humara blog platform mein chahiye:
 
-- Users who register and write content
-- Posts authored by users
-- Comments left by users on posts
-- Tags that can be applied to posts (a post can have many tags; a tag applies to many posts)
-- Categories that organize posts (a post belongs to one category)
+- Users jo register karke content likhte hain
+- Users ke authored posts
+- Users ke posts pe chhode gaye comments
+- Tags jo posts pe apply ho sakte hain (ek post ke many tags ho sakte hain; ek tag many posts pe apply ho sakta hai)
+- Categories jo posts ko organize karti hain (ek post ek hi category ka hota hai)
 
-**Step 1: List your entities**
+**Step 1: Apni entities list karo**
 `USER`, `POST`, `COMMENT`, `TAG`, `CATEGORY`
 
-**Step 2: Define attributes for each**
+**Step 2: Har ek ke attributes define karo**
 
 - `USER`: id, username, email, password_hash, created_at
 - `POST`: id, title, body, published_at, user_id (FK), category_id (FK)
 - `COMMENT`: id, body, created_at, user_id (FK), post_id (FK)
 - `TAG`: id, name, slug
 - `CATEGORY`: id, name, slug
-- `POST_TAG` (junction): post_id (FK), tag_id (FK) — this handles the M:N
+- `POST_TAG` (junction): post_id (FK), tag_id (FK) — yeh M:N ko handle karta hai
 
-**Step 3: Define the relationships**
+**Step 3: Relationships define karo**
 
 | Relationship | Type | Notes |
 |---|---|---|
-| USER writes POST | 1:N | A user can write many posts |
-| USER makes COMMENT | 1:N | A user can make many comments |
-| POST has COMMENT | 1:N | A post can have many comments |
-| POST tagged with TAG | M:N | Needs POST_TAG junction table |
-| POST belongs to CATEGORY | N:1 | Many posts share one category |
+| USER writes POST | 1:N | Ek user bahut saare posts likh sakta hai |
+| USER makes COMMENT | 1:N | Ek user bahut saare comments kar sakta hai |
+| POST has COMMENT | 1:N | Ek post ke bahut saare comments ho sakte hain |
+| POST tagged with TAG | M:N | POST_TAG junction table chahiye |
+| POST belongs to CATEGORY | N:1 | Bahut saare posts ek category share karte hain |
 
-**Step 4: Draw (or code) the diagram**
+**Step 4: Diagram draw karo (ya code karo)**
 
 ---
 
@@ -240,112 +240,113 @@ erDiagram
     TAG ||--o{ POST_TAG : "linked via"
 ```
 
-> **Note:** The `POST }o--o{ TAG` line is a shorthand in Mermaid for the M:N. In a real database, this is implemented through `POST_TAG`. Some diagrams show the junction table explicitly, others abbreviate it at the diagram level.
+> [!info]
+> `POST }o--o{ TAG` line Mermaid mein M:N ke liye ek shorthand hai. Real database mein isko `POST_TAG` ke through implement kiya jaata hai. Kuch diagrams junction table ko explicitly dikhate hain, kuch diagram level pe abbreviate kar dete hain.
 
 ---
 
-## ⚖️ Cardinality and Optionality: Mandatory vs Optional
+## ⚖️ Cardinality Aur Optionality: Mandatory vs Optional
 
-These two concepts often trip up beginners:
+Yeh do concepts beginners ko aksar confuse karte hain:
 
-**Mandatory (required)** — the relationship *must* exist.
-- A `COMMENT` must belong to a `POST`. A post_id cannot be null on a comment.
-- Shown with `||` (a single line touching the entity).
+**Mandatory (required)** — relationship *hona hi hona chahiye*.
+- Ek `COMMENT` ka `POST` se belong karna zaruri hai. Comment pe post_id null nahi ho sakta.
+- `||` se dikhaya jaata hai (entity ko touch karti ek single line).
 
-**Optional** — the relationship *may or may not* exist.
-- A `USER` might have zero posts (brand new account, hasn't written anything).
-- Shown with `o|` or `o{` (the circle represents "zero is possible").
+**Optional** — relationship *ho bhi sakta hai, nahi bhi*.
+- Ek `USER` ke zero posts ho sakte hain (naya account hai, abhi kuch likha hi nahi).
+- `o|` ya `o{` se dikhaya jaata hai (circle represent karta hai ki "zero possible hai").
 
-Getting this right matters when you design your tables — it determines which columns are `NOT NULL` and which can be `NULL`.
+Yeh sahi samajhna zaroori hai jab tum apni tables design karte ho — isi se decide hota hai kaunse columns `NOT NULL` honge aur kaunse `NULL` ho sakte hain.
 
 ---
 
 ## 👻 Weak Entities
 
-A **weak entity** is an entity that cannot be uniquely identified by its own attributes alone — it depends on another entity for its identity.
+**Weak entity** woh entity hoti hai jise apne khud ke attributes se uniquely identify nahi kiya ja sakta — uski identity kisi doosri entity pe depend karti hai.
 
-**Example:** Consider `ORDER_ITEM`. An order item only makes sense in the context of a specific `ORDER`. If the order is deleted, the order item has no meaning. Its primary key is a combination of its own sequence number *and* the `order_id` of the parent.
+**Example:** `ORDER_ITEM` ko socho. Ek order item tabhi meaningful hai jab woh kisi specific `ORDER` ke context mein ho. Agar order delete ho jaaye, to order item ka koi matlab nahi bachta. Iski primary key hoti hai uske apne sequence number aur parent ke `order_id` ka combination — jaise Swiggy pe ek order ke andar ke individual items sirf us order ke reference ke saath hi make sense karte hain.
 
 Weak entities:
-- Are shown with a double rectangle in classic notation
-- Always have a **mandatory** relationship to their "owner" entity (called the identifying entity)
-- Use a composite key (own attribute + parent's PK)
+- Classic notation mein double rectangle se dikhayi jaati hain
+- Apni "owner" entity (jise identifying entity kehte hain) ke saath hamesha ek **mandatory** relationship rakhti hain
+- Composite key use karti hain (apna attribute + parent ki PK)
 
-In practice, many developers use surrogate keys (auto-increment IDs) for everything, which technically makes every table "strong". But understanding weak entities helps you reason about real-world dependency.
+Practically, bahut saare developers har table ke liye surrogate keys (auto-increment IDs) use karte hain, jisse technically har table "strong" ban jaati hai. Par weak entities samajhna tumhe real-world dependency ke baare mein reason karna sikhata hai.
 
 ---
 
-## ❌ Common Mistakes in Data Modeling
+## ❌ Data Modeling Mein Common Mistakes
 
-### 1. Storing multiple values in one column
-Bad: `tags = "javascript,react,node"` as a string in a column.
-Good: A proper `TAG` table with a `POST_TAG` junction.
+### 1. Ek column mein multiple values store karna
+Bura: `tags = "javascript,react,node"` ek string ke column mein.
+Achha: Ek proper `TAG` table with `POST_TAG` junction.
 
-### 2. Missing the junction table for M:N
-Beginners try to add a `tags` array column on posts, or duplicate rows. Always use a junction table for many-to-many.
+### 2. M:N ke liye junction table miss karna
+Beginners posts pe `tags` array column add karte hain, ya rows duplicate kar dete hain. Many-to-many ke liye hamesha junction table use karo.
 
-### 3. Modeling too early without understanding the domain
-Talk to stakeholders (or re-read the requirements) before drawing. A model built on wrong assumptions costs more to fix later.
+### 3. Domain samjhe bina jaldi modeling karna
+Draw karne se pehle stakeholders se baat karo (ya requirements dobara padho). Galat assumptions pe bana model baad mein fix karna zyaada mehenga padta hai.
 
-### 4. Ignoring optionality
-Not specifying whether a relationship is optional or mandatory leads to `NULL` columns everywhere and inconsistent data.
+### 4. Optionality ignore karna
+Yeh specify na karna ki relationship optional hai ya mandatory, har jagah `NULL` columns aur inconsistent data laata hai.
 
-### 5. Using natural keys as primary keys
-Using email as a PK for `USER` seems smart — it's unique! But emails change. Always prefer a surrogate key (`id` auto-increment or UUID) as the PK, and put a `UNIQUE` constraint on email separately.
+### 5. Natural keys ko primary key banana
+Email ko `USER` ka PK banana smart lagta hai — woh unique to hai! Par emails change ho sakte hain. Hamesha surrogate key (`id` auto-increment ya UUID) ko PK banao, aur email pe alag se `UNIQUE` constraint lagao.
 
-### 6. Over-normalization (splitting too aggressively)
-Sometimes developers split data into so many tiny tables that simple queries require 8 JOINs. Balance normalization with practical query performance.
+### 6. Over-normalization (zyaada hi split karna)
+Kabhi kabhi developers data ko itni chhoti-chhoti tables mein split kar dete hain ki simple queries ke liye 8 JOINs chahiye ho jaate hain. Normalization aur practical query performance mein balance rakho.
 
-### 7. Forgetting timestamps
-Almost every table benefits from `created_at` and `updated_at`. Add them by default; removing them later is easy, adding them after-the-fact is annoying.
+### 7. Timestamps bhool jaana
+Almost har table ko `created_at` aur `updated_at` se fayda hota hai. Inhe default mein add karo — baad mein hatana easy hai, baad mein add karna painful.
 
 ---
 
 ## 🎯 Key Takeaways
 
-- **Data modeling** is designing your database structure *before* you build it — like an architectural blueprint.
-- **Entities** are the meaningful "things" in your domain (User, Post, Product).
-- **Attributes** are the properties of an entity (name, email, price).
-- The three relationship types are **1:1**, **1:N**, and **M:N** — and M:N always needs a junction table.
-- **Crow's Foot notation** uses `||`, `o|`, `|{`, `o{` to express cardinality and optionality.
-- Read every relationship **in both directions** to fully understand it.
-- **Weak entities** depend on a parent entity for their identity.
-- Common mistakes: storing CSV in a column, missing junction tables, ignoring nullability, and using mutable natural keys as PKs.
+- **Data modeling** matlab database build karne se *pehle* uska structure design karna — jaise ek architectural blueprint.
+- **Entities** tumhare domain ki meaningful "cheezein" hoti hain (User, Post, Product).
+- **Attributes** entity ki properties hoti hain (name, email, price).
+- Teen relationship types hain **1:1**, **1:N**, aur **M:N** — aur M:N ko hamesha junction table chahiye.
+- **Crow's Foot notation** `||`, `o|`, `|{`, `o{` use karke cardinality aur optionality express karta hai.
+- Har relationship ko **dono directions mein** padho taaki poori tarah samajh aaye.
+- **Weak entities** apni identity ke liye parent entity pe depend karti hain.
+- Common mistakes: column mein CSV store karna, junction tables miss karna, nullability ignore karna, aur mutable natural keys ko PK banana.
 
 ---
 
 ## 🧪 Quiz
 
-Test yourself before moving on:
+Aage badhne se pehle khud ko test karo:
 
-**Question 1:** You're designing a database for a library. A book can be checked out by many members over time, and a member can check out many books. What relationship type is this, and what do you need to implement it?
+**Question 1:** Tum ek library ke liye database design kar rahe ho. Ek book time ke saath bahut saare members ke through checkout ho sakti hai, aur ek member bahut saari books checkout kar sakta hai. Yeh kaunsa relationship type hai, aur isko implement karne ke liye kya chahiye?
 
 <details>
 <summary>Answer</summary>
 
-**Many-to-Many (M:N).** You need a junction table — typically called `CHECKOUT` or `LOAN` — with foreign keys to both `BOOK` and `MEMBER`, plus attributes like `checked_out_at` and `returned_at`.
+**Many-to-Many (M:N).** Tumhe ek junction table chahiye — usually `CHECKOUT` ya `LOAN` naam ki — jisme `BOOK` aur `MEMBER` dono ki foreign keys hon, plus `checked_out_at` aur `returned_at` jaise attributes.
 
 </details>
 
 ---
 
-**Question 2:** In Crow's Foot notation, what does `o{` mean at the end of a relationship line?
+**Question 2:** Crow's Foot notation mein, relationship line ke end pe `o{` ka kya matlab hota hai?
 
 <details>
 <summary>Answer</summary>
 
-It means **"zero or more"** — the relationship is **optional** (zero is allowed, shown by the `o`) and the cardinality is **many** (shown by the crow's foot `{`). Example: a user can have zero or more posts.
+Iska matlab hai **"zero or more"** — relationship **optional** hai (zero allowed hai, `o` se dikhaya jaata hai) aur cardinality **many** hai (crow's foot `{` se dikhayi jaati hai). Example: ek user ke zero ya usse zyaada posts ho sakte hain.
 
 </details>
 
 ---
 
-**Question 3:** You're building a school system. A `GRADE` record only makes sense if it belongs to a specific `STUDENT` and a specific `ENROLLMENT`. If the enrollment is deleted, the grade has no standalone meaning. What type of entity is `GRADE`?
+**Question 3:** Tum ek school system bana rahe ho. `GRADE` record tabhi meaningful hai jab woh kisi specific `STUDENT` aur specific `ENROLLMENT` se belong kare. Agar enrollment delete ho jaaye, to grade ka koi standalone matlab nahi bachta. `GRADE` kaunsi type ki entity hai?
 
 <details>
 <summary>Answer</summary>
 
-`GRADE` is a **weak entity**. It cannot be uniquely identified without referencing its parent entity (`ENROLLMENT` or `STUDENT`), and its existence depends on the parent. It uses a composite or dependent key.
+`GRADE` ek **weak entity** hai. Isko apne parent entity (`ENROLLMENT` ya `STUDENT`) ka reference liye bina uniquely identify nahi kiya ja sakta, aur iska existence parent pe depend karta hai. Yeh composite ya dependent key use karti hai.
 
 </details>
 

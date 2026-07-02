@@ -1,69 +1,72 @@
 # Introduction to SQL
 
-## What You Will Learn
+## Tum Kya Seekhoge?
 
-By the end of this chapter you will be able to explain what SQL is, understand its history and structure, set up a local database environment, and write your first simple statements. No prior database experience required.
-
----
-
-## What Is SQL?
-
-**SQL** stands for **Structured Query Language**. It is the universal language used to communicate with *relational databases* — software systems that store data in structured tables made of rows and columns (think of a well-organised spreadsheet, but far more powerful).
-
-SQL lets you:
-
-- **Create** the structure (tables, schemas) that holds your data
-- **Insert, update, and delete** data within those structures
-- **Query** data — ask questions like "give me all users who signed up in the last 30 days"
-- **Control access** — decide who can read or change what
-- **Manage transactions** — guarantee that a series of operations either fully succeeds or fully rolls back
-
-Almost every application that stores persistent data touches a relational database and, by extension, touches SQL. Learning SQL is one of the highest-return skills a developer can acquire.
+Is chapter ke end tak tumhe pata chal jayega ki SQL hai kya, iski history kya rahi, apne machine pe database kaise set up karte hain, aur pehla simple statement kaise likhte hain. Koi prior database experience chahiye nahi — bilkul zero se shuru kar rahe hain.
 
 ---
 
-## SQL Is Declarative
+## SQL Hai Kya Cheez?
 
-Most programming languages are **imperative** — you describe *how* to accomplish a task step by step:
+**SQL** ka matlab hai **Structured Query Language**. Ye ek universal language hai jisse hum *relational databases* se baat karte hain — matlab wo software systems jo data ko structured tables (rows aur columns) mein store karte hain. Socho ek bahut hi well-organised Excel sheet, bas usse kahin zyada powerful.
+
+SQL se tum ye sab kar sakte ho:
+
+- **Create** — apne data ka structure banao (tables, schemas)
+- **Insert, update, delete** — us structure ke andar data daalo, badlo, hatao
+- **Query** — sawaal poocho jaise "pichle 30 din mein jitne bhi users signup hue hain, unki list do"
+- **Access control** — decide karo kaun kya padh sakta hai, kaun kya change kar sakta hai
+- **Transactions manage karo** — guarantee do ki operations ka ek group ya to poora successful hoga, ya poora rollback ho jayega
+
+Almost har application jo data ko persist karti hai, wo kisi na kisi relational database ko touch karti hai — aur isliye SQL ko bhi. Yaani agar tumhe ek aisi skill seekhni hai jiska return sabse zyada ho, wo SQL hai.
+
+---
+
+## SQL Declarative Hai
+
+Zyadatar programming languages **imperative** hoti hain — tumhe step-by-step batana padta hai ki kaam *kaise* karna hai:
 
 ```python
-# Imperative: tell the computer HOW
+# Imperative: computer ko batao KAISE karna hai
 result = []
 for user in users:
     if user.age >= 18:
         result.append(user)
 ```
 
-SQL is **declarative** — you describe *what* you want and let the database engine figure out the most efficient way to retrieve it:
+SQL **declarative** hai — tum sirf batate ho *kya* chahiye, aur database engine khud figure out karta hai ki usko sabse efficient tareeke se kaise laana hai:
 
 ```sql
--- Declarative: tell the database WHAT you want
+-- Declarative: database ko batao KYA chahiye
 SELECT * FROM users WHERE age >= 18;
 ```
 
-The database's **query planner/optimiser** decides which indexes to use, in what order to scan tables, whether to parallelise work, and so on. You focus on the result, not the algorithm.
+Database ka **query planner/optimiser** decide karta hai ki kaunsa index use karna hai, tables ko kis order mein scan karna hai, kaam parallel mein hoga ya nahi, waghera waghera. Tumhara focus sirf result pe hota hai, algorithm pe nahi — jaise Zomato pe tum sirf "biryani chahiye" bolte ho, ye nahi ki "pehle kitchen A check karo, phir B, phir sort karo distance se."
 
 ---
 
-## A Brief History
+## Ek Chhoti Si History
 
-| Year | Event |
-|------|-------|
-| 1970 | Edgar F. Codd (IBM) publishes the relational model paper |
-| 1974 | IBM researchers develop SEQUEL (Structured English Query Language) |
-| 1979 | SEQUEL renamed SQL; first commercial product: Oracle v2 |
-| 1986 | ANSI publishes the first SQL standard (SQL-86) |
-| 1992 | SQL-92 — the foundation most databases still reference |
-| 1999 | SQL:1999 adds recursive queries, triggers, and more |
-| 2003+ | SQL:2003, SQL:2008, SQL:2011, SQL:2016, SQL:2023 — ongoing evolution |
+| Saal | Kya hua |
+|------|---------|
+| 1970 | Edgar F. Codd (IBM) ne relational model wala paper publish kiya |
+| 1974 | IBM researchers ne SEQUEL (Structured English Query Language) banaya |
+| 1979 | SEQUEL ka naam badalke SQL rakha gaya; pehla commercial product: Oracle v2 |
+| 1986 | ANSI ne pehla SQL standard (SQL-86) publish kiya |
+| 1992 | SQL-92 — aaj bhi zyadatar databases isi ko reference karte hain |
+| 1999 | SQL:1999 mein recursive queries, triggers, aur bahut kuch add hua |
+| 2003+ | SQL:2003, SQL:2008, SQL:2011, SQL:2016, SQL:2023 — evolution chalta hi raha |
 
-SQL has outlasted dozens of "SQL killers." It is over 50 years old and still the dominant data query language in the world.
+SQL ne dozens "SQL killers" ko dekh dekh ke retire hote dekha hai, khud abhi bhi zinda hai. 50 saal se zyada purana ho chuka hai aur aaj bhi duniya ki dominant data query language hai.
+
+> [!info]
+> Jaise UPI ne payment ke tareeke ko revolutionize kiya lekin underlying banking rails abhi bhi stable hain, waise hi SQL bhi decades se apni jagah pe tika hua hai — naye tools aate rehte hain (NoSQL, GraphQL) lekin SQL replace nahi hota.
 
 ---
 
-## SQL Sub-languages
+## SQL Ke Sub-languages
 
-SQL is divided into five sub-languages, each serving a distinct purpose.
+SQL ko paanch sub-languages mein baanta gaya hai, har ek ka apna specific kaam hai.
 
 ```mermaid
 graph TD
@@ -97,14 +100,14 @@ graph TD
 
 ### DDL — Data Definition Language
 
-DDL statements **define or change the structure** of a database. They operate on objects like tables, indexes, and schemas.
+**Kya hota hai?** DDL statements database ka **structure define ya change** karte hain. Ye tables, indexes, schemas jaise objects pe kaam karte hain.
 
-| Statement | Purpose |
-|-----------|---------|
-| `CREATE` | Create a new table, index, view, schema, etc. |
-| `ALTER` | Modify an existing object (add a column, rename, etc.) |
-| `DROP` | Permanently delete an object and all its data |
-| `TRUNCATE` | Remove all rows from a table (faster than DELETE; no row-by-row logging) |
+| Statement | Kaam |
+|-----------|------|
+| `CREATE` | Naya table, index, view, schema, waghera banao |
+| `ALTER` | Existing object ko modify karo (column add karo, rename karo, etc.) |
+| `DROP` | Object aur uska pura data permanently delete kar do |
+| `TRUNCATE` | Table ke saare rows hata do (DELETE se fast, kyunki row-by-row logging nahi hoti) |
 
 ```sql
 CREATE TABLE employees (
@@ -116,14 +119,14 @@ CREATE TABLE employees (
 
 ### DML — Data Manipulation Language
 
-DML statements **work with the data inside** tables.
+**Kya hota hai?** DML statements tables ke **andar ka data** handle karte hain.
 
-| Statement | Purpose |
-|-----------|---------|
-| `INSERT` | Add new rows |
-| `UPDATE` | Modify existing rows |
-| `DELETE` | Remove rows |
-| `MERGE` | Upsert — insert or update depending on whether a row exists |
+| Statement | Kaam |
+|-----------|------|
+| `INSERT` | Naye rows add karo |
+| `UPDATE` | Existing rows modify karo |
+| `DELETE` | Rows remove karo |
+| `MERGE` | Upsert — row exist karta hai to update, warna insert |
 
 ```sql
 INSERT INTO employees (id, name, age) VALUES (1, 'Alice', 30);
@@ -133,17 +136,17 @@ DELETE FROM employees WHERE id = 1;
 
 ### DQL — Data Query Language
 
-DQL has exactly one statement — the most important in SQL:
+DQL mein exactly ek hi statement hai — lekin SQL ka sabse important:
 
 ```sql
 SELECT name, age FROM employees WHERE age > 25 ORDER BY name;
 ```
 
-`SELECT` retrieves data. It is the statement you will write most often and the one with the richest set of clauses (`WHERE`, `JOIN`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`, etc.).
+`SELECT` data retrieve karta hai. Ye woh statement hai jo tum sabse zyada likhoge, aur iske paas sabse richest set of clauses hai (`WHERE`, `JOIN`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`, etc.).
 
 ### DCL — Data Control Language
 
-DCL controls **who can do what** in the database.
+**Kyun zaruri hai?** DCL control karta hai ki database mein **kaun kya kar sakta hai**. Socho ek Swiggy ke restaurant partner dashboard mein — kuch employees sirf orders dekh sakte hain, kuch menu edit kar sakte hain. DCL wahi permissions handle karta hai.
 
 ```sql
 GRANT SELECT, INSERT ON employees TO analyst_role;
@@ -152,48 +155,48 @@ REVOKE INSERT ON employees FROM analyst_role;
 
 ### TCL — Transaction Control Language
 
-TCL manages **transactions** — groups of statements that must all succeed or all fail together.
+**Kyun zaruri hai?** TCL **transactions** manage karta hai — statements ka woh group jinhe ya to sab succeed karna hai, ya sab fail. Jaise jab tum UPI se paisa transfer karte ho — tumhare account se paisa katega aur doosre ke account mein aayega, ye dono ek saath honge. Agar beech mein kuch fail ho jaaye, to poora transaction rollback ho jayega — half-completed transfer kabhi nahi hoga.
 
 ```sql
 BEGIN;
     UPDATE accounts SET balance = balance - 500 WHERE id = 1;
     UPDATE accounts SET balance = balance + 500 WHERE id = 2;
-COMMIT; -- Make it permanent
+COMMIT; -- Permanent kar do
 
--- If something goes wrong:
-ROLLBACK; -- Undo everything back to BEGIN
+-- Agar kuch galat ho jaaye:
+ROLLBACK; -- Sab kuch BEGIN tak wapas undo kar do
 ```
 
 ---
 
-## Setting Up a Local Database
+## Local Database Set Up Karna
 
-### Option 1 — SQLite (Zero Setup, Great for Learning)
+### Option 1 — SQLite (Zero Setup, Seekhne Ke Liye Best)
 
-SQLite is a file-based database. There is no server to install or configure.
+SQLite ek file-based database hai. Koi server install ya configure karne ki zarurat nahi.
 
-- Download the CLI from [sqlite.org/download.html](https://www.sqlite.org/download.html), or
-- Use it through DB Browser for SQLite ([sqlitebrowser.org](https://sqlitebrowser.org))
+- CLI download karo [sqlite.org/download.html](https://www.sqlite.org/download.html) se, ya
+- DB Browser for SQLite use karo ([sqlitebrowser.org](https://sqlitebrowser.org))
 
 ```bash
-# macOS / Linux — often pre-installed
+# macOS / Linux — usually pehle se hi installed hota hai
 sqlite3 mylearning.db
 
-# Windows — run the downloaded sqlite3.exe
+# Windows — downloaded sqlite3.exe run karo
 sqlite3.exe mylearning.db
 ```
 
-SQLite is perfect for learning SQL syntax. Its main limitation is that it lacks some advanced features (e.g., full `ALTER TABLE` support, stored procedures) that you will encounter in production databases.
+SQLite syntax seekhne ke liye perfect hai. Iski main limitation ye hai ki isme kuch advanced features (jaise full `ALTER TABLE` support, stored procedures) nahi milte jo tumhe production databases mein dikhenge.
 
-### Option 2 — PostgreSQL (Recommended for Real-World Skills)
+### Option 2 — PostgreSQL (Real-World Skills Ke Liye Recommended)
 
-PostgreSQL is free, open-source, standards-compliant, and used extensively in the industry. Learning on PostgreSQL means your skills transfer almost everywhere.
+PostgreSQL free hai, open-source hai, standards-compliant hai, aur industry mein bohot zyada use hota hai. Agar PostgreSQL pe seekhoge, to tumhari skills almost har jagah transfer ho jaayengi.
 
-**Install from the official site:**
+**Official site se install karo:**
 
-Download the installer from [postgresql.org/download](https://www.postgresql.org/download/) (available for Windows, macOS, Linux). The installer includes pgAdmin, a GUI tool.
+Installer download karo [postgresql.org/download](https://www.postgresql.org/download/) se (Windows, macOS, Linux sab ke liye available hai). Installer ke saath pgAdmin bhi aata hai, ek GUI tool.
 
-**Spin it up instantly with Docker (recommended for developers):**
+**Docker se instantly spin up karo (developers ke liye recommended):**
 
 ```bash
 docker run -d \
@@ -205,19 +208,19 @@ docker run -d \
   postgres:16
 ```
 
-Then connect with any PostgreSQL client:
+Phir kisi bhi PostgreSQL client se connect karo:
 
 ```bash
-# Using the psql CLI (inside the container)
+# psql CLI use karke (container ke andar)
 docker exec -it pg-learn psql -U admin -d learningdb
 
-# Or connect from your host machine
+# Ya apni host machine se connect karo
 psql -h localhost -p 5432 -U admin -d learningdb
 ```
 
 ### Option 3 — MySQL
 
-MySQL is widely used, especially in PHP / WordPress / legacy stacks.
+MySQL kaafi widely used hai, especially PHP / WordPress / legacy stacks mein.
 
 - **MAMP** (macOS): [mamp.info](https://www.mamp.info)
 - **XAMPP** (Windows / Linux / macOS): [apachefriends.org](https://www.apachefriends.org)
@@ -232,38 +235,38 @@ docker run -d \
   mysql:8
 ```
 
-### Which Should You Choose?
+### Kaunsa Choose Karo?
 
 | Goal | Recommended |
 |------|-------------|
-| Quickest possible start, no install | SQLite |
+| Sabse fast start, koi install nahi | SQLite |
 | Real-world skills, industry standard | PostgreSQL |
-| Working with legacy PHP / WordPress | MySQL |
+| Legacy PHP / WordPress ke saath kaam | MySQL |
 | Microsoft stack (.NET, Azure) | SQL Server (Developer Edition — free) |
 
 ---
 
 ## GUI Tools
 
-The command line is powerful but a GUI makes it much easier to explore data visually, especially when learning.
+Command line powerful hai, lekin ek GUI se data explore karna kaafi aasan ho jaata hai, especially jab tum seekh rahe ho.
 
 | Tool | Databases | Cost | Notes |
 |------|-----------|------|-------|
-| **DBeaver Community** | All major databases | Free | Best all-rounder; recommended starting point |
+| **DBeaver Community** | All major databases | Free | Best all-rounder; starting point ke liye recommended |
 | **TablePlus** | All major databases | Free tier / Paid | Clean macOS/Windows UI |
-| **pgAdmin 4** | PostgreSQL | Free | Official PostgreSQL GUI; powerful but verbose |
+| **pgAdmin 4** | PostgreSQL | Free | Official PostgreSQL GUI; powerful lekin thoda verbose |
 | **MySQL Workbench** | MySQL | Free | Official MySQL GUI |
-| **DB Browser for SQLite** | SQLite | Free | Simple, purpose-built for SQLite |
+| **DB Browser for SQLite** | SQLite | Free | Simple, SQLite ke liye hi bana hai |
 
-**Recommended for beginners:** DBeaver Community Edition — one tool that works with every database you are likely to encounter.
+**Beginners ke liye recommended:** DBeaver Community Edition — ek hi tool jo tumhe milne wale har database ke saath kaam karta hai.
 
 ---
 
-## SQL Syntax Basics
+## SQL Syntax Ke Basics
 
-### Case Insensitivity for Keywords
+### Keywords Case-Insensitive Hote Hain
 
-SQL keywords are case-insensitive. All of the following are identical:
+SQL keywords case-insensitive hote hain. Neeche di gayi teeno lines exactly same hain:
 
 ```sql
 SELECT name FROM users;
@@ -271,7 +274,7 @@ select name from users;
 Select Name From Users;
 ```
 
-**Convention:** write keywords in `UPPERCASE` and identifiers (table names, column names) in `lowercase_snake_case`. This makes queries easier to scan at a glance.
+**Convention:** keywords ko `UPPERCASE` mein likho aur identifiers (table names, column names) ko `lowercase_snake_case` mein. Isse query ek nazar mein padhna aasan ho jaata hai.
 
 ```sql
 -- Good convention
@@ -281,37 +284,37 @@ SELECT first_name, last_name FROM employees WHERE department_id = 5;
 ### Comments
 
 ```sql
--- This is a single-line comment (works in all databases)
+-- Ye ek single-line comment hai (sab databases mein chalta hai)
 
 /*
-   This is a
-   multi-line comment
+   Ye ek
+   multi-line comment hai
 */
 
-SELECT id, name -- inline comment at end of a line
+SELECT id, name -- line ke end mein inline comment
 FROM employees;
 ```
 
 ### Semicolons
 
-A semicolon `;` marks the end of a SQL statement. In interactive clients (psql, MySQL CLI), it tells the client to send and execute the statement. When running SQL from application code, the driver usually handles statement termination automatically, but including semicolons is still good practice.
+Semicolon `;` ek SQL statement ke end ko mark karta hai. Interactive clients (psql, MySQL CLI) mein ye batata hai ki statement ko send karke execute kar do. Jab application code se SQL run karte ho, driver usually statement termination khud handle kar leta hai, lekin phir bhi semicolon lagana good practice hai.
 
 ```sql
-SELECT * FROM users;   -- first statement
-SELECT * FROM orders;  -- second statement
+SELECT * FROM users;   -- pehla statement
+SELECT * FROM orders;  -- doosra statement
 ```
 
 ---
 
-## Database Differences to Know Early
+## Databases Ke Beech Ke Farak Jo Shuru Mein Hi Jaan Lo
 
-Most SQL syntax is portable across databases. However, a few things differ. Here are the most common early-learning gotchas:
+Zyadatar SQL syntax sab databases mein portable hai. Lekin kuch cheezein alag hoti hain. Neeche most common early-learning gotchas diye hain:
 
 ### String Data Types
 
 | Feature | PostgreSQL | MySQL | SQL Server | Oracle |
 |---------|-----------|-------|------------|--------|
-| Variable-length text | `VARCHAR(n)` or `TEXT` | `VARCHAR(n)` or `TEXT` | `VARCHAR(n)` or `NVARCHAR(n)` | `VARCHAR2(n)` |
+| Variable-length text | `VARCHAR(n)` ya `TEXT` | `VARCHAR(n)` ya `TEXT` | `VARCHAR(n)` ya `NVARCHAR(n)` | `VARCHAR2(n)` |
 | Unlimited text | `TEXT` | `LONGTEXT` | `VARCHAR(MAX)` | `CLOB` |
 
 ### Auto-incrementing Primary Keys
@@ -322,7 +325,7 @@ CREATE TABLE employees (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY
 );
 
--- PostgreSQL (older style, still very common)
+-- PostgreSQL (purana style, abhi bhi kaafi common)
 CREATE TABLE employees (
     id SERIAL PRIMARY KEY
 );
@@ -343,7 +346,7 @@ CREATE TABLE employees (
 );
 ```
 
-### Limiting Query Results
+### Query Results Limit Karna
 
 ```sql
 -- PostgreSQL / MySQL / SQLite
@@ -356,44 +359,47 @@ SELECT TOP 10 * FROM employees;
 SELECT * FROM employees FETCH FIRST 10 ROWS ONLY;
 ```
 
+> [!tip]
+> Ye syntax differences yaad rakhne ki zarurat nahi — bas ye samajh lo ki har database ka apna flavor hota hai. Jab bhi naye database pe kaam karo, uska documentation check kar lena.
+
 ---
 
 ## Key Takeaways
 
-- **SQL** is the standard language for communicating with relational databases. It is declarative — you describe the result you want, not the steps to get there.
-- SQL was invented at IBM in the 1970s and has been standardised by ANSI/ISO since 1986. It is one of the most durable technologies in computing.
-- SQL is divided into five sub-languages: **DDL** (structure), **DML** (data changes), **DQL** (queries), **DCL** (access control), and **TCL** (transactions).
-- For learning, start with **SQLite** (zero setup) or spin up **PostgreSQL** via Docker (closest to real-world usage).
-- Use **DBeaver Community Edition** as your GUI — it works with every major database for free.
-- SQL keywords are **case-insensitive** but convention is `UPPERCASE`. Statements end with a **semicolon**.
-- Core syntax is highly portable. Key differences between databases appear in data types, auto-increment syntax, and result limiting.
+- **SQL** relational databases se baat karne ki standard language hai. Ye declarative hai — tum result batate ho, steps nahi.
+- SQL 1970s mein IBM mein invent hua tha aur 1986 se ANSI/ISO ne isko standardise kiya hai. Computing ki sabse durable technologies mein se ek hai ye.
+- SQL paanch sub-languages mein divide hota hai: **DDL** (structure), **DML** (data changes), **DQL** (queries), **DCL** (access control), aur **TCL** (transactions).
+- Seekhne ke liye **SQLite** se start karo (zero setup) ya Docker ke through **PostgreSQL** spin up karo (real-world ke sabse kareeb).
+- GUI ke liye **DBeaver Community Edition** use karo — free hai aur har major database ke saath kaam karta hai.
+- SQL keywords **case-insensitive** hote hain lekin convention hai `UPPERCASE`. Statements **semicolon** se end hote hain.
+- Core syntax highly portable hai. Databases ke beech key differences data types, auto-increment syntax, aur result limiting mein dikhte hain.
 
 ---
 
 ## Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test kar lo.
 
-**1. SQL is described as a declarative language. What does this mean in practice?**
+**1. SQL ko declarative language kaha jaata hai. Iska practical matlab kya hai?**
 
-a) You must write an algorithm explaining how the database should find the data  
-b) You describe what data you want and the database figures out how to retrieve it  
-c) SQL programs are run line by line, top to bottom  
-d) Every SQL query is compiled to machine code before execution  
+a) Tumhe ek algorithm likhna padega jo batata hai database data kaise dhundhega
+b) Tum batate ho ki tumhe kya data chahiye, aur database khud figure out karta hai ki usko kaise retrieve karna hai
+c) SQL programs line-by-line, top se bottom run hote hain
+d) Har SQL query execution se pehle machine code mein compile hoti hai
 
-**2. Which SQL sub-language would you use to remove all rows from a table without deleting the table itself?**
+**2. Table ko delete kiye bina uske saare rows remove karne ke liye kaunsa SQL sub-language use karoge?**
 
-a) DCL — `REVOKE`  
-b) TCL — `ROLLBACK`  
-c) DDL — `TRUNCATE`  
-d) DML — `DELETE` or DDL — `TRUNCATE` (both work, but `TRUNCATE` is faster)  
+a) DCL — `REVOKE`
+b) TCL — `ROLLBACK`
+c) DDL — `TRUNCATE`
+d) DML — `DELETE` ya DDL — `TRUNCATE` (dono kaam karte hain, lekin `TRUNCATE` fast hai)
 
-**3. You are writing a SQL statement and accidentally type `select` in lowercase instead of `SELECT`. What happens?**
+**3. Tum SQL statement likh rahe ho aur galti se `SELECT` ki jagah lowercase mein `select` type kar dete ho. Kya hoga?**
 
-a) The database throws a syntax error  
-b) The statement runs correctly — SQL keywords are case-insensitive  
-c) The database treats it as an identifier (table name), not a keyword  
-d) Behaviour depends on the operating system  
+a) Database syntax error throw karega
+b) Statement sahi se run ho jayega — SQL keywords case-insensitive hote hain
+c) Database ise ek identifier (table name) samjhega, keyword nahi
+d) Behaviour operating system pe depend karta hai
 
 ---
 
@@ -401,6 +407,6 @@ d) Behaviour depends on the operating system
 
 ---
 
-## What Is Next?
+## Aage Kya Hai?
 
-In the next chapter you will create your first real table, insert data into it, and run your first `SELECT` queries — including filtering with `WHERE` and sorting with `ORDER BY`.
+Agle chapter mein tum apna pehla real table banaoge, usme data insert karoge, aur apni pehli `SELECT` queries run karoge — including `WHERE` se filtering aur `ORDER BY` se sorting.

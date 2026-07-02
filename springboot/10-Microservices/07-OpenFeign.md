@@ -1,23 +1,17 @@
----
-tags: [microservices, feign, http-client, spring-cloud]
-aliases: [Feign, OpenFeign]
-stage: advanced
----
-
 # OpenFeign
 
-> [!info] For the Express/TS dev
-> OpenFeign is "Spring Data Repository for HTTP." You declare an interface annotated like a controller; Spring synthesizes an HTTP client at runtime that calls the remote service. It removes boilerplate of `RestTemplate`/`WebClient` setup. Closest Node analog: a TypeScript-typed `axios` wrapper, but Feign is annotation-driven and integrates with discovery + circuit breakers automatically.
+> [!info] Express/TS wale dev ke liye
+> OpenFeign basically "Spring Data Repository, but for HTTP calls" hai. Jaise Spring Data mein tum sirf interface likhte ho aur Spring khud query implement kar deta hai, waise hi Feign mein tum ek interface likhte ho jo bilkul controller jaisa dikhta hai, aur Spring runtime pe uska HTTP client version bana deta hai jo actually remote service ko call karta hai. Isse `RestTemplate`/`WebClient` ka saara boilerplate gayab ho jaata hai. Node mein closest cheez? Ek TypeScript-typed `axios` wrapper — bas fark itna hai ki Feign annotation-driven hai aur discovery + circuit breaker jaisी cheezon ke saath automatically integrate ho jaata hai.
 
-## Concept
+## Kya hota hai?
 
-Without Feign:
+Socho tumhe `order-service` se `payment-service` ko call karna hai. Feign ke bina, tum kuch aisa likhoge:
 
 ```java
 String body = client.post().uri("/charge").body(req).retrieve().body(String.class);
 ```
 
-With Feign:
+Yeh kaam to karta hai, lekin har call ke liye URL, serialization, error handling — sab manually likhna padta hai. Ab dekho Feign ke saath yeh kitna clean ho jaata hai:
 
 ```java
 @FeignClient(name = "payment-service")
@@ -31,15 +25,20 @@ interface PaymentClient {
 var resp = payments.charge(new ChargeRequest(100));
 ```
 
-The interface looks like a controller. Spring generates a proxy that:
-- Resolves `payment-service` via discovery (Eureka/k8s) or direct URL.
-- Serializes/deserializes JSON.
-- Applies interceptors (auth headers, tracing).
-- Optionally retries / circuit-breaks via Resilience4j.
+Dekha? Yeh interface bilkul ek `@RestController` jaisa dikhta hai, bas farak itna hai ki yeh **client side** pe hai — matlab yeh define kar raha hai ki "main is service ko is tarah call karunga", server-side "main is request ko handle karunga" nahi. Spring is interface ko dekhkar background mein ek proxy class bana deta hai jo:
+
+- `payment-service` ko discovery (Eureka/Kubernetes) se resolve karta hai, ya phir direct URL use karta hai.
+- Request/response ko JSON mein serialize/deserialize karta hai.
+- Interceptors apply karta hai (auth headers, tracing).
+- Chahe to Resilience4j ke through retry/circuit-break bhi kar sakta hai.
+
+Zomato ke analogy se socho — jab tumhara `order-service`, `payment-service` ko call karta hai charge karne ke liye, waise hi jaise Zomato ka order-system, restaurant ke POS system ko "order confirm ho gaya" bolta hai. Feign us call ko itna simple bana deta hai ki lagta hai tum ek local function hi call kar rahe ho.
 
 ## Code example
 
 ### Setup
+
+Pehle dependency daalo:
 
 ```xml
 <dependency>
@@ -48,13 +47,17 @@ The interface looks like a controller. Spring generates a proxy that:
 </dependency>
 ```
 
+Aur main application class pe `@EnableFeignClients` lagao — yeh Spring ko bolta hai "bhai, is package mein jitne bhi `@FeignClient` interfaces hai, unke proxies bana de":
+
 ```java
 @SpringBootApplication
 @EnableFeignClients
 public class OrderServiceApp { /* ... */ }
 ```
 
-### Define a client
+### Client define karna
+
+Ab actual client interface likhte hai — bilkul controller jaisa syntax, bas idea reverse hai (yeh "call karne wala" hai, "handle karne wala" nahi):
 
 ```java
 @FeignClient(name = "payment-service", path = "/api/payments")
@@ -72,14 +75,14 @@ public interface PaymentClient {
 }
 ```
 
-DTOs:
+DTOs (records use karo, plain aur clean rehta hai):
 
 ```java
 public record ChargeRequest(int amount, String currency) {}
 public record ChargeResponse(String txnId, String status) {}
 ```
 
-Inject and use:
+Ab bas normal dependency injection se use karo — jaise tum koi bhi Spring bean use karte ho:
 
 ```java
 @Service
@@ -94,7 +97,11 @@ class OrderService {
 }
 ```
 
-### Pointing at a fixed URL (no discovery)
+Yahan `payments.charge(...)` call karte waqt tumhe bilkul nahi pata chalta ki background mein ek real HTTP request ja rahi hai. Bas ek method call jaisa lagta hai — yehi Feign ki khoobsurati hai.
+
+### Fixed URL pe point karna (bina discovery ke)
+
+Agar tumhare paas Eureka/k8s discovery nahi hai aur direct URL pe hit karna hai:
 
 ```yaml
 spring:
@@ -106,7 +113,7 @@ spring:
             url: http://payments.example.com
 ```
 
-Or:
+Ya phir annotation mein hi daal do:
 
 ```java
 @FeignClient(name = "payment", url = "${payment.base-url}")
@@ -115,26 +122,30 @@ public interface PaymentClient { /* ... */ }
 
 ### Auth headers — interceptor
 
+Real world mein har service-to-service call ke saath auth token bhejna padta hai (jaise UPI transactions mein har request ke saath signed token jaata hai). Feign mein iske liye `RequestInterceptor` hota hai:
+
 ```java
 @Configuration
 public class FeignConfig {
     @Bean
     public RequestInterceptor authInterceptor() {
         return template -> {
-            String token = currentRequestToken();   // pull from SecurityContext
+            String token = currentRequestToken();   // SecurityContext se nikaalo
             template.header("Authorization", "Bearer " + token);
         };
     }
 }
 ```
 
-This interceptor runs for every Feign call. To scope it to a specific client:
+Yeh interceptor **har** Feign call pe chalega. Agar sirf ek specific client ke liye chahiye, to scope kar sakte ho:
 
 ```java
 @FeignClient(name = "payment-service", configuration = PaymentFeignConfig.class)
 ```
 
 ### Custom error decoding
+
+Kya hota hai? Jab downstream service error return kare (400, 404, 503, etc.), Feign by default ek generic exception throw karta hai. Lekin tum apna custom mapping chahte ho — jaise 404 pe `NotFoundException`, 409 pe `ConflictException`. Iske liye `ErrorDecoder` implement karo:
 
 ```java
 @Component
@@ -154,9 +165,11 @@ public class FeignErrorDecoder implements ErrorDecoder {
 }
 ```
 
-`RetryableException` triggers Feign's built-in retry mechanism.
+`RetryableException` throw karne se Feign ka built-in retry mechanism trigger ho jaata hai — matlab yeh khud bata raha hai "bhai yeh error temporary hai, dobara try kar."
 
 ### Retries (built-in)
+
+Kyun zaruri hai? Network glitches ho sakte hai — ek retry se hi bahut sare transient failures fix ho jaate hai (jaise UPI payment fail hone pe app khud ek baar retry karta hai). Configure aise karo:
 
 ```yaml
 spring:
@@ -175,7 +188,7 @@ feign:
     maxAttempts: 3
 ```
 
-Or programmatic:
+Ya programmatically bhi bean bana sakte ho:
 
 ```java
 @Bean
@@ -186,6 +199,8 @@ Retryer retryer() {
 
 ### Circuit breaker integration
 
+Kya hota hai? Agar `payment-service` hi down hai, to baar-baar retry karna time waste karna hai — better hai ki circuit "open" ho jaaye aur seedha fallback response de. Yeh CRED ya Paytm jaisi apps mein bhi hota hai — agar payment gateway down hai to app turant "abhi try nahi kar sakte" bol deti hai, instead of hanging.
+
 ```yaml
 spring:
   cloud:
@@ -194,7 +209,7 @@ spring:
         enabled: true
 ```
 
-Then use Resilience4j config (see [[08-Resilience4j]]). Provide a fallback:
+Phir Resilience4j config use karo (dekho [[08-Resilience4j]]). Fallback provide karo:
 
 ```java
 @FeignClient(name = "payment-service", fallback = PaymentClientFallback.class)
@@ -210,9 +225,11 @@ class PaymentClientFallback implements PaymentClient {
 }
 ```
 
-When the breaker is open, the fallback runs.
+Jab breaker "open" state mein hota hai, tab yeh fallback method chalta hai — real call hi nahi jaata.
 
-### Logging requests/responses
+### Requests/responses log karna
+
+Debugging ke waqt kaafi useful — pura request/response dekh sakte ho:
 
 ```yaml
 logging:
@@ -226,7 +243,7 @@ feign:
         loggerLevel: full   # NONE, BASIC, HEADERS, FULL
 ```
 
-### File upload with Feign
+### File upload Feign ke saath
 
 ```java
 @FeignClient(name = "files", configuration = MultipartConfig.class)
@@ -236,9 +253,11 @@ interface FileClient {
 }
 ```
 
-Requires `feign-form` dependency.
+Iske liye `feign-form` dependency chahiye hoti hai.
 
 ## Express/Node comparison
+
+Tum jo Node mein manually karte ho, Feign woh sab annotation se kar deta hai:
 
 ```typescript
 // Hand-rolled axios client
@@ -255,7 +274,7 @@ const charge = (req: ChargeRequest) =>
   paymentClient.post<ChargeResponse>("/charge", req).then(r => r.data);
 ```
 
-Or with NestJS HTTP module + interfaces — closer in spirit.
+NestJS ka HTTP module + interfaces use karo to thoda closer feel aata hai spirit mein.
 
 | OpenFeign | Node |
 |-----------|------|
@@ -266,31 +285,37 @@ Or with NestJS HTTP module + interfaces — closer in spirit.
 | `fallback = X.class` | try/catch with default value |
 | Discovery integration | `consul-resolver` + axios |
 
-OpenFeign's killer feature is **declarative-ness** — you describe the API, Spring builds the client. Node typically requires more glue.
+OpenFeign ka sabse bada plus point hai **declarative-ness** — tum bas API describe karte ho, Spring khud client bana deta hai. Node mein aksar zyada glue code likhna padta hai yeh sab wire-up karne ke liye.
 
-## Gotchas
+## Gotchas — yeh dhyan rakhna
 
-> [!warning] Same-class self-call doesn't work
-> Same as `@Transactional` — the proxy is bypassed if you call a Feign method internally. Always inject the interface.
+> [!warning] Same-class self-call kaam nahi karta
+> Bilkul `@Transactional` jaisa issue — agar tum Feign method ko usi class ke andar se internally call karoge, to proxy bypass ho jaata hai aur Feign ki saari magic (retry, interceptor, circuit breaker) gayab ho jaati hai. Hamesha interface ko inject karke use karo, kabhi khud ke andar se method call mat karo.
 
-> [!warning] Don't reuse controller annotations literally
-> `@RequestMapping` works on Feign clients. But conditional annotations like `@CrossOrigin` don't — they're server-side concepts.
+> [!warning] Controller ke annotations blindly copy mat karo
+> `@RequestMapping` Feign clients pe kaam karta hai. Lekin `@CrossOrigin` jaise conditional annotations kaam nahi karenge — woh purely server-side concepts hai, client pe unka koi matlab nahi.
 
-> [!warning] Default Feign retries are quiet
-> By default Feign retries on `IOException` only — not on 5xx. To retry 5xx, throw `RetryableException` from your `ErrorDecoder`.
+> [!warning] Default Feign retries chup-chaap hote hai
+> By default Feign sirf `IOException` pe retry karta hai — 5xx errors pe nahi! Agar tumhe 5xx pe bhi retry chahiye, to apne `ErrorDecoder` se `RetryableException` throw karna hoga (jaisa upar dikhaya).
 
-> [!danger] Retries + non-idempotent operations
-> Retrying a `POST /charge` could double-charge. Either: (a) make the endpoint idempotent (idempotency keys), or (b) only retry idempotent methods. See [[../11-Messaging/05-Idempotency-and-Retries]].
+> [!danger] Retries + non-idempotent operations — bahut bada trap
+> `POST /charge` ko retry karna double-charge kar sakta hai! Socho customer ka paisa do baar kat jaaye sirf isliye ki network mein glitch aaya aur Feign ne retry kar diya. Iska solution: (a) endpoint ko idempotent banao (idempotency keys use karke — jaise UPI transactions mein unique transaction ID hota hai), ya (b) sirf idempotent methods (GET, PUT) ko hi retry karo. Detail ke liye dekho [[../11-Messaging/05-Idempotency-and-Retries]].
 
-> [!tip] Prefer Feign over `RestTemplate` for service-to-service
-> Less boilerplate, integrates with the Spring Cloud ecosystem (discovery, circuit breakers, tracing). For one-off external API calls, `RestClient` is fine.
+> [!tip] Service-to-service ke liye `RestTemplate` se Feign better hai
+> Kam boilerplate, aur Spring Cloud ecosystem (discovery, circuit breakers, tracing) ke saath seedha integrate ho jaata hai. Haan, agar koi one-off external API call karni hai (jaise kisi third-party API ko ek-do baar hit karna hai), to `RestClient` bhi theek hai — poora Feign setup overkill hoga.
 
-> [!tip] Generate Feign clients from OpenAPI specs
-> The `openapi-generator` Maven plugin can produce Feign interfaces from a spec — single source of truth for both sides.
+> [!tip] OpenAPI spec se Feign clients generate karo
+> `openapi-generator` Maven plugin ek OpenAPI spec se seedha Feign interfaces generate kar sakta hai. Isse client aur server dono ek hi source of truth follow karte hai — mismatch ka chance kam ho jaata hai.
 
-## Related
-- [[06-Inter-Service-Communication]]
-- [[03-Service-Discovery-Eureka]]
-- [[08-Resilience4j]]
-- [[09-Distributed-Tracing]]
-- [[../06-Web-REST/06-RestClient-and-WebClient|RestClient/WebClient]]
+## Key Takeaways
+
+- OpenFeign ek declarative HTTP client hai — tum interface describe karte ho (controller jaisa syntax), Spring runtime pe implementation generate kar deta hai.
+- `@EnableFeignClients` lagana zaruri hai warna Feign interfaces scan hi nahi honge.
+- Discovery (Eureka/k8s) ke through service name se resolve hota hai, ya fixed URL bhi de sakte ho.
+- `RequestInterceptor` se auth headers har call mein automatically add ho jaate hai.
+- `ErrorDecoder` se custom exceptions map kar sakte ho HTTP status codes ke basis pe.
+- Default retries sirf `IOException` pe hote hai — 5xx pe retry chahiye to `RetryableException` khud throw karo.
+- Circuit breaker + fallback combo se downstream failure ke waqt graceful degradation milta hai.
+- **Non-idempotent operations (jaise payment charge) ko retry karte waqt bahut savdhaan raho** — double-execution ka risk hota hai, idempotency keys use karo.
+- Self-call (same class ke andar Feign method call karna) proxy ko bypass kar deta hai — hamesha injected interface use karo.
+- Node ke comparison mein, Feign wahi kaam karta hai jo hand-rolled axios wrapper + interceptors + axios-retry milke karte hai, bas annotation-driven aur kam glue code ke saath.

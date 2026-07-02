@@ -1,28 +1,28 @@
 # 📦 Normalization
 
-> **Goal:** Learn how to organize database tables so data is clean, consistent, and efficient — no duplicates, no hidden traps.
+> **Goal:** Seekhna hai ki database tables ko organize kaise karein taaki data clean, consistent, aur efficient rahe — na duplicates, na hidden traps.
 
 ---
 
-## 🤔 What Is Normalization?
+## 🤔 Normalization Hai Kya?
 
-Normalization is the process of **structuring a relational database** to reduce data redundancy and improve data integrity. In plain English: it is about making sure every piece of information lives in exactly one place, and that your tables are organized logically.
+Normalization ek process hai **relational database ko structure karne** ka, taaki data redundancy kam ho aur data integrity badhe. Simple bhasha mein: iska matlab hai ki har piece of information exactly ek hi jagah rahe, aur tumhari tables logically organize ho.
 
-### The Closet Analogy
+### Almirah Wala Analogy
 
-Imagine you have a messy bedroom closet. Shirts, socks, and jackets are all thrown in together. Finding a specific shirt takes forever. If you buy a new shirt, you just throw it on top of the pile. If you want to throw out all red clothing, you have to dig through everything.
+Socho tumhara ek gandi almirah hai. Shirts, socks, jackets — sab kuch mix karke ek saath thoos diya hai. Ek specific shirt dhoondhne mein hi 10 minute lag jaate hain. Naya shirt aaya? Bas upar se daal do pile mein. Agar saare laal kapde nikalne hain, toh pura dhundhna padega.
 
-Now imagine you **organize that closet** — shirts on the left rack, sorted by color; socks in the top drawer; jackets on the right. Everything has a place. Adding a new shirt is easy. Finding red shirts takes two seconds.
+Ab socho tumne **us almirah ko organize kar diya** — shirts left rack pe color-wise, socks upar wale drawer mein, jackets right side. Har cheez ki apni jagah hai. Naya shirt daalna aasan, laal shirt dhoondhna 2 second ka kaam.
 
-Normalization does the same thing for your data. It gives every piece of information a logical, dedicated home.
+Normalization tumhare data ke saath yahi karta hai. Har piece of information ko ek logical, dedicated ghar deta hai.
 
 ---
 
-## 💣 The Problem with Unnormalized Data
+## 💣 Unnormalized Data Ka Problem
 
-Let us start with a real example. Imagine you are building an e-commerce app and you create one big `Orders` table to store everything.
+Chalo ek real example se shuru karte hain. Socho tum ek e-commerce app bana rahe ho aur ek hi bada `Orders` table bana diya jisme sab kuch daal diya.
 
-### The Messy "All-In-One" Orders Table
+### Gandi "All-In-One" Orders Table
 
 | order_id | customer_name | customer_email      | customer_city | product_ids  | product_names        | product_prices | order_date |
 |----------|---------------|---------------------|---------------|--------------|----------------------|----------------|------------|
@@ -30,58 +30,58 @@ Let us start with a real example. Imagine you are building an e-commerce app and
 | 1002     | Bob Smith     | bob@email.com       | Chicago       | P02          | Mouse                | 25             | 2024-01-16 |
 | 1003     | Alice Brown   | alice@email.com     | New York      | P03          | Keyboard             | 75             | 2024-01-18 |
 
-This looks fine at first glance. But it is hiding three serious problems.
+Pehli nazar mein toh sab theek lagta hai. Lekin ismein teen serious problems chhupi hain.
 
 ---
 
-### Problem 1: Redundancy (Wasted Space)
+### Problem 1: Redundancy (Space Waste)
 
-Alice's name, email, and city appear in **row 1 and row 3**. If Alice places 100 orders, her contact details are stored 100 times. This wastes storage and makes the data harder to trust — what if row 1 says "New York" but row 3 says "NY"? Which is correct?
+Alice ka naam, email, aur city **row 1 aur row 3** dono mein hai. Agar Alice 100 orders place kare, toh uska contact detail 100 baar store hoga. Isse storage waste hoti hai aur data pe bharosa karna mushkil ho jata hai — agar row 1 mein "New York" likha ho aur row 3 mein "NY", toh sahi kaunsa hai?
 
 ### Problem 2: Update Anomaly
 
-Alice moves to Boston. You have to update **every single row** that mentions Alice. If you miss even one row, your database now contains contradictory information. This is called an **update anomaly**.
+Alice Boston shift ho gayi. Ab tumhe **har us row ko update karna padega** jisme Alice ka naam hai. Ek bhi row miss ho gayi toh database mein contradictory information reh jayegi. Isko kehte hain **update anomaly**.
 
 ### Problem 3: Insert Anomaly
 
-You want to add a new product (Webcam, $89) to your catalog. But this table requires an `order_id` — what do you put there? You cannot insert a product without an order. This is an **insert anomaly**.
+Tumhe ek naya product (Webcam, $89) catalog mein add karna hai. Lekin is table mein `order_id` compulsory hai — usmein kya daaloge? Bina order ke product insert nahi kar sakte. Isko kehte hain **insert anomaly**.
 
 ### Problem 4: Delete Anomaly
 
-Order 1002 is the only order Bob has ever made. If you delete that order, you lose Bob's contact information entirely. This is a **delete anomaly** — deleting one thing accidentally destroys unrelated information.
+Order 1002 Bob ka sirf ek hi order hai. Agar tum us order ko delete kar do, toh Bob ki contact information bhi hamesha ke liye chali jayegi. Isko kehte hain **delete anomaly** — ek cheez delete karne se related-unrelated sab kuch destroy ho jata hai.
 
 ---
 
-## 🧱 The Normal Forms
+## 🧱 Normal Forms
 
-Normal forms are a series of rules. Each form builds on the previous one. Think of them as levels in a video game — you must complete level 1 before level 2.
+Normal forms rules ka ek series hain. Har form pichle form pe build hota hai. Inhe video game ke levels jaisa socho — level 1 clear kiye bina level 2 nahi khel sakte.
 
 ```
 Raw Data → 1NF → 2NF → 3NF → BCNF → 4NF
-          ↑ most common stopping point for production databases ↑
+          ↑ production databases ke liye sabse common stopping point ↑
 ```
 
 ---
 
 ## 1️⃣ First Normal Form (1NF)
 
-### The Rule
+### Rule Kya Hai?
 
-> Every cell must contain a **single atomic value**. No lists, no sets, no repeating groups in a single column.
+> Har cell mein **ek single atomic value** honi chahiye. No lists, no sets, ek column mein repeating groups nahi hone chahiye.
 
-"Atomic" means indivisible — like an atom. A cell should hold one value, not a comma-separated list of values.
+"Atomic" ka matlab hai indivisible — jaise ek atom. Ek cell mein ek hi value honi chahiye, comma-separated list nahi.
 
-### Violation Example
+### Violation Ka Example
 
-Look at our original table again:
+Wapas apni original table dekho:
 
 | order_id | product_ids | product_names  | product_prices |
 |----------|-------------|----------------|----------------|
 | 1001     | P01, P02    | Laptop, Mouse  | 999, 25        |
 
-The `product_ids`, `product_names`, and `product_prices` columns each hold **multiple values**. This breaks 1NF.
+`product_ids`, `product_names`, aur `product_prices` columns mein har ek **multiple values** hain. Ye 1NF todta hai.
 
-### BEFORE (violates 1NF)
+### BEFORE (1NF violate karta hai)
 
 ```mermaid
 erDiagram
@@ -97,9 +97,9 @@ erDiagram
     }
 ```
 
-### AFTER (satisfies 1NF)
+### AFTER (1NF satisfy karta hai)
 
-Split each product into its own row:
+Har product ko apni alag row de do:
 
 | order_id | customer_name | customer_email   | customer_city | product_id | product_name | product_price | order_date |
 |----------|---------------|------------------|---------------|------------|--------------|---------------|------------|
@@ -108,7 +108,7 @@ Split each product into its own row:
 | 1002     | Bob Smith     | bob@email.com    | Chicago       | P02        | Mouse        | 25            | 2024-01-16 |
 | 1003     | Alice Brown   | alice@email.com  | New York      | P03        | Keyboard     | 75            | 2024-01-18 |
 
-The **primary key** is now the combination of `(order_id, product_id)` — because one order can have multiple products.
+Ab **primary key** `(order_id, product_id)` ka combination ban gaya — kyunki ek order mein multiple products ho sakte hain.
 
 ```mermaid
 erDiagram
@@ -124,27 +124,27 @@ erDiagram
     }
 ```
 
-Now every cell has exactly one value. 1NF achieved. But we still have redundancy — Alice's details appear in multiple rows.
+Ab har cell mein exactly ek value hai. 1NF achieve ho gaya. Lekin redundancy abhi bhi hai — Alice ki details multiple rows mein repeat ho rahi hain.
 
 ---
 
 ## 2️⃣ Second Normal Form (2NF)
 
-### The Rule
+### Rule Kya Hai?
 
-> The table must be in 1NF, AND every **non-key column** must depend on the **entire** primary key — not just part of it.
+> Table 1NF mein honi chahiye, AUR har **non-key column** ko **poori** primary key pe depend karna chahiye — sirf uske ek part pe nahi.
 
-This only matters when your primary key is a **composite key** (made of two or more columns). If a column only depends on *part* of the composite key, that is a **partial dependency** — a violation of 2NF.
+Ye tab hi matter karta hai jab tumhari primary key ek **composite key** ho (do ya usse zyada columns se milkar bani ho). Agar koi column sirf composite key ke *ek part* pe depend kare, toh use kehte hain **partial dependency** — jo 2NF ka violation hai.
 
-### Violation Example
+### Violation Ka Example
 
-Our 1NF table has a composite primary key: `(order_id, product_id)`.
+Hamari 1NF table mein composite primary key hai: `(order_id, product_id)`.
 
-Ask yourself: does `customer_name` depend on both `order_id` AND `product_id`? No — it only depends on `order_id`. The customer is the same no matter which product they ordered. This is a partial dependency.
+Khud se poocho: kya `customer_name` order_id AUR product_id dono pe depend karta hai? Nahi — ye sirf `order_id` pe depend karta hai. Customer wahi rahega chahe koi bhi product order kare. Ye ek partial dependency hai.
 
-Similarly, `product_name` and `product_price` depend only on `product_id`, not on `order_id`.
+Isi tarah `product_name` aur `product_price` sirf `product_id` pe depend karte hain, `order_id` pe nahi.
 
-### Identifying the Dependencies
+### Dependencies Ko Pehchano
 
 ```
 (order_id, product_id) → order_date      ✅ full dependency
@@ -155,25 +155,25 @@ product_id             → product_name    ❌ partial dependency
 product_id             → product_price   ❌ partial dependency
 ```
 
-### BEFORE (violates 2NF)
+### BEFORE (2NF violate karta hai)
 
 ```mermaid
 erDiagram
     ORDERS_1NF {
         int order_id PK
         string product_id PK
-        string customer_name "depends only on order_id!"
-        string customer_email "depends only on order_id!"
-        string customer_city "depends only on order_id!"
-        string product_name "depends only on product_id!"
-        decimal product_price "depends only on product_id!"
+        string customer_name "sirf order_id pe depend karta hai!"
+        string customer_email "sirf order_id pe depend karta hai!"
+        string customer_city "sirf order_id pe depend karta hai!"
+        string product_name "sirf product_id pe depend karta hai!"
+        decimal product_price "sirf product_id pe depend karta hai!"
         date order_date
     }
 ```
 
-### AFTER (satisfies 2NF)
+### AFTER (2NF satisfy karta hai)
 
-Split the table into three separate tables, each with its own focused primary key:
+Table ko teen alag tables mein todo, har ek ki apni focused primary key ho:
 
 **Customers table:**
 
@@ -190,7 +190,7 @@ Split the table into three separate tables, each with its own focused primary ke
 | P02        | Mouse        | 25            |
 | P03        | Keyboard     | 75            |
 
-**Order Items table (the junction):**
+**Order Items table (junction wali):**
 
 | order_id | product_id | quantity | order_date |
 |----------|------------|----------|------------|
@@ -199,7 +199,7 @@ Split the table into three separate tables, each with its own focused primary ke
 | 1002     | P02        | 1        | 2024-01-16 |
 | 1003     | P03        | 1        | 2024-01-18 |
 
-> Note: We also need an `Orders` table to link customers to order_ids. We will add that in the diagram below.
+> Note: Customers ko order_ids se link karne ke liye `Orders` table bhi chahiye. Wo neeche diagram mein add karenge.
 
 ```mermaid
 erDiagram
@@ -230,36 +230,36 @@ erDiagram
     PRODUCTS ||--|{ ORDER_ITEMS : "included in"
 ```
 
-Now every column depends on its whole key. 2NF achieved.
+Ab har column apni poori key pe depend karta hai. 2NF achieve ho gaya.
 
 ---
 
 ## 3️⃣ Third Normal Form (3NF)
 
-### The Rule
+### Rule Kya Hai?
 
-> The table must be in 2NF, AND there must be **no transitive dependencies** — non-key columns must not depend on other non-key columns.
+> Table 2NF mein honi chahiye, AUR koi **transitive dependency** nahi honi chahiye — non-key columns ko doosre non-key columns pe depend nahi karna chahiye.
 
-A transitive dependency is when Column C depends on Column B, which depends on Column A (the key). C is only *indirectly* related to the key.
+Transitive dependency tab hoti hai jab Column C, Column B pe depend kare, aur Column B, Column A (key) pe depend kare. Toh C key se sirf *indirectly* related hai.
 
-### Violation Example
+### Violation Ka Example
 
-Look at the `Customers` table:
+`Customers` table ko dekho:
 
 | customer_id | customer_name | customer_email  | customer_city | zip_code | city_population |
 |-------------|---------------|-----------------|---------------|----------|-----------------|
 | C01         | Alice Brown   | alice@email.com | New York      | 10001    | 8336817         |
 | C02         | Bob Smith     | bob@email.com   | Chicago       | 60601    | 2696555         |
 
-Here, `city_population` depends on `customer_city`, not on `customer_id`. The dependency chain is:
+Yahan, `city_population` depend karta hai `customer_city` pe, `customer_id` pe nahi. Dependency chain kuch aisi hai:
 
 ```
 customer_id → customer_city → city_population
 ```
 
-`city_population` has a **transitive dependency** on the primary key through `customer_city`. This is a violation.
+`city_population` ki primary key ke saath **transitive dependency** hai, jo `customer_city` ke through aa rahi hai. Ye ek violation hai.
 
-### BEFORE (violates 3NF)
+### BEFORE (3NF violate karta hai)
 
 ```mermaid
 erDiagram
@@ -269,13 +269,13 @@ erDiagram
         string customer_email
         string customer_city
         string zip_code
-        int city_population "depends on city, not customer_id!"
+        int city_population "city pe depend karta hai, customer_id pe nahi!"
     }
 ```
 
-### AFTER (satisfies 3NF)
+### AFTER (3NF satisfy karta hai)
 
-Extract the transitively dependent columns into their own table:
+Transitively dependent columns ko apni alag table mein nikaal do:
 
 **Customers table:**
 
@@ -291,21 +291,21 @@ Extract the transitively dependent columns into their own table:
 | NYC     | New York  | 10001    | 8336817         |
 | CHI     | Chicago   | 60601    | 2696555         |
 
-Now every non-key column depends directly and only on the primary key of its table. 3NF achieved.
+Ab har non-key column apni table ki primary key pe directly aur sirf usi pe depend karta hai. 3NF achieve ho gaya.
 
 ---
 
 ## 🔬 Boyce-Codd Normal Form (BCNF)
 
-### The Rule
+### Rule Kya Hai?
 
-> A stricter version of 3NF. For every functional dependency `A → B`, A must be a **superkey** (a key that uniquely identifies a row).
+> Ye 3NF ka ek strict version hai. Har functional dependency `A → B` ke liye, A ko ek **superkey** hona chahiye (aisi key jo row ko uniquely identify kare).
 
-BCNF catches edge cases that 3NF misses — usually in tables with **multiple overlapping candidate keys**.
+BCNF un edge cases ko pakadta hai jo 3NF miss kar deta hai — usually un tables mein jahan **multiple overlapping candidate keys** hoti hain.
 
 ### Quick Example
 
-Imagine a `Course_Assignments` table:
+Socho ek `Course_Assignments` table hai:
 
 | student | course   | instructor |
 |---------|----------|------------|
@@ -313,23 +313,23 @@ Imagine a `Course_Assignments` table:
 | Bob     | Math     | Prof. Lee  |
 | Alice   | Physics  | Prof. Kim  |
 
-Rules: Each course has only one instructor. Each instructor teaches only one course.
+Rules: Har course ka sirf ek instructor hai. Har instructor sirf ek course padhata hai.
 
-Candidate keys: `(student, course)` or `(student, instructor)`.
+Candidate keys: `(student, course)` ya `(student, instructor)`.
 
-The dependency `course → instructor` exists, but `course` alone is not a superkey. This violates BCNF even though the table is in 3NF.
+Dependency `course → instructor` exist karti hai, lekin `course` akela superkey nahi hai. Ye BCNF violate karta hai, chahe table 3NF mein ho.
 
-**Fix:** Split into `Course_Instructors(course, instructor)` and `Student_Courses(student, course)`.
+**Fix:** Isko `Course_Instructors(course, instructor)` aur `Student_Courses(student, course)` mein split karo.
 
-In everyday practice, if your tables are well-designed at 3NF, BCNF violations are rare. Most production databases aim for 3NF and handle BCNF cases as they arise.
+Practically, agar tumhari tables 3NF mein achhe se design hui hain, toh BCNF violations rare hote hain. Zyadatar production databases 3NF target karte hain aur BCNF cases jab aaye tab handle kar lete hain.
 
 ---
 
 ## 🌐 Fourth Normal Form (4NF)
 
-### The Rule
+### Rule Kya Hai?
 
-> The table must be in BCNF, AND it must have **no multi-valued dependencies** — where one column independently determines multiple values in another column.
+> Table BCNF mein honi chahiye, AUR usmein **koi multi-valued dependency** nahi honi chahiye — jahan ek column independently doosre column mein multiple values determine kare.
 
 ### Quick Example
 
@@ -340,11 +340,11 @@ In everyday practice, if your tables are well-designed at 3NF, BCNF violations a
 | Alice    | SQL        | English  |
 | Alice    | SQL        | French   |
 
-Alice's skills and languages are **independent** of each other — they do not interact. Adding a new language requires duplicating all skill rows. This is a multi-valued dependency.
+Alice ke skills aur languages ek doosre se **independent** hain — inka aapas mein koi lena-dena nahi hai. Naya language add karne ke liye saare skill rows duplicate karne padenge. Ye ek multi-valued dependency hai.
 
-**Fix:** Split into `Employee_Skills(employee, skill)` and `Employee_Languages(employee, language)`.
+**Fix:** Isko `Employee_Skills(employee, skill)` aur `Employee_Languages(employee, language)` mein split karo.
 
-4NF is rarely a concern in typical business applications. It matters most in highly normalized analytical or scientific databases.
+4NF typical business applications mein kam hi matter karta hai. Ye zyada tar highly normalized analytical ya scientific databases mein important hota hai.
 
 ---
 
@@ -352,23 +352,23 @@ Alice's skills and languages are **independent** of each other — they do not i
 
 | Level | Full Name             | Rule                                                         | Common Violation Example                         | Fix                                              |
 |-------|-----------------------|--------------------------------------------------------------|--------------------------------------------------|--------------------------------------------------|
-| 1NF   | First Normal Form     | Atomic values only, no repeating groups                      | `product_ids = "P01, P02"` in one cell           | One row per product                              |
-| 2NF   | Second Normal Form    | No partial dependencies on a composite key                   | `customer_name` depends only on `order_id`       | Move customer data to a Customers table          |
-| 3NF   | Third Normal Form     | No transitive dependencies                                   | `city_population` depends on `city`, not the key | Move city data to a Cities table                 |
-| BCNF  | Boyce-Codd Normal Form| Every determinant must be a superkey                         | `course → instructor` where course is not a key  | Split into Course_Instructors and Student_Courses|
-| 4NF   | Fourth Normal Form    | No multi-valued dependencies                                 | Employee skills and languages cross-joined       | Split into separate skill and language tables    |
+| 1NF   | First Normal Form     | Sirf atomic values, koi repeating groups nahi                | `product_ids = "P01, P02"` ek hi cell mein        | Har product ki alag row                          |
+| 2NF   | Second Normal Form    | Composite key pe koi partial dependency nahi                 | `customer_name` sirf `order_id` pe depend karta hai | Customer data ko Customers table mein move karo  |
+| 3NF   | Third Normal Form     | Koi transitive dependency nahi                                | `city_population` city pe depend karta hai, key pe nahi | City data ko Cities table mein move karo   |
+| BCNF  | Boyce-Codd Normal Form| Har determinant superkey hona chahiye                         | `course → instructor` jahan course key nahi hai   | Course_Instructors aur Student_Courses mein split karo|
+| 4NF   | Fourth Normal Form    | Koi multi-valued dependency nahi                              | Employee skills aur languages cross-joined        | Alag skill aur language tables mein split karo    |
 
 ---
 
-## ⚡ Denormalization: Breaking the Rules on Purpose
+## ⚡ Denormalization: Rules Ko Jaan-Boojh Kar Todna
 
-Normalization is great for data integrity. But sometimes it works against you in performance-critical scenarios. **Denormalization** is the deliberate decision to reintroduce redundancy for speed.
+Data integrity ke liye normalization bahut badhiya hai. Lekin kabhi-kabhi performance-critical scenarios mein ye tumhare against kaam karta hai. **Denormalization** ek deliberate decision hai jisme speed ke liye redundancy wapas introduce ki jaati hai.
 
-### Why You Might Denormalize
+### Denormalize Kyun Karein?
 
-Consider this query: "Get all orders with customer name, product name, and quantity for the dashboard."
+Ye query socho: "Dashboard ke liye saare orders customer name, product name, aur quantity ke saath do."
 
-With a fully normalized schema, this requires joining 4 tables:
+Fully normalized schema mein, iske liye 4 tables join karne padenge:
 
 ```sql
 SELECT c.customer_name, p.product_name, oi.quantity, o.order_date
@@ -378,92 +378,92 @@ JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id;
 ```
 
-Joins are expensive. On a dashboard that runs this query a million times a day against a table with 50 million rows, this can be painfully slow.
+Joins expensive hoti hain. Agar dashboard ye query din mein lakh baar chalata hai, 5 crore rows wali table pe, toh ye kaafi slow ho sakta hai.
 
-A denormalized approach might pre-join the data into a single `order_summary` table:
+Ek denormalized approach mein data ko pre-join karke ek single `order_summary` table mein daal do:
 
 | order_id | customer_name | product_name | quantity | order_date |
 |----------|---------------|--------------|----------|------------|
 | 1001     | Alice Brown   | Laptop       | 1        | 2024-01-15 |
 | 1001     | Alice Brown   | Mouse        | 2        | 2024-01-15 |
 
-Now the dashboard query is a single table scan — blazing fast. The trade-off: if Alice changes her name, you have to update it in multiple rows.
+Ab dashboard query ek single table scan ban jaati hai — bahut fast. Trade-off ye hai: Alice apna naam change kare, toh tumhe multiple rows mein update karna padega.
 
 ### Common Denormalization Techniques
 
-- **Storing computed columns** — e.g., `total_order_price` instead of calculating it every time
-- **Duplicating frequently read columns** — e.g., storing `customer_name` in the orders table
-- **Pre-aggregated summary tables** — e.g., a `daily_sales_summary` table
-- **Flattened denormalized tables for reporting** — wide tables with all relevant data in one place
+- **Computed columns store karna** — jaise `total_order_price` ko har baar calculate karne ke bajaye store kar lo
+- **Frequently read columns duplicate karna** — jaise `customer_name` ko orders table mein bhi rakhna
+- **Pre-aggregated summary tables** — jaise ek `daily_sales_summary` table
+- **Flattened denormalized tables reporting ke liye** — wide tables jismein sara relevant data ek jagah ho
 
 ---
 
-## 🔀 When to Normalize vs. Denormalize
+## 🔀 Kab Normalize Karein Vs Kab Denormalize
 
-The answer depends heavily on what your database is doing.
+Iska jawaab bahut depend karta hai ki tumhara database kya kar raha hai.
 
-### OLTP (Online Transaction Processing) — Normalize
+### OLTP (Online Transaction Processing) — Normalize Karo
 
-OLTP systems power apps that handle real-time writes: placing an order, updating a profile, processing a payment. These systems:
+OLTP systems un apps ko power karte hain jo real-time writes handle karte hain: order place karna, profile update karna, payment process karna. Ye systems:
 
-- Write data frequently
-- Need data integrity (no anomalies)
-- Deal with many small transactions
-- Cannot afford duplicate data that gets out of sync
+- Data frequently write karte hain
+- Data integrity chahiye (koi anomalies nahi)
+- Bahut saare chhote transactions handle karte hain
+- Duplicate data afford nahi kar sakte jo out of sync ho jaaye
 
-**Verdict: Normalize to 3NF.** Data integrity is the priority. Your app will handle the joins.
+**Verdict: 3NF tak normalize karo.** Data integrity priority hai. Tumhara app joins handle kar lega.
 
 Examples: e-commerce platforms, banking systems, CRM tools.
 
-### OLAP (Online Analytical Processing) — Denormalize
+### OLAP (Online Analytical Processing) — Denormalize Karo
 
-OLAP systems power reporting and analytics: revenue dashboards, sales trends, business intelligence. These systems:
+OLAP systems reporting aur analytics ko power karte hain: revenue dashboards, sales trends, business intelligence. Ye systems:
 
-- Read data far more than they write it
-- Need fast query response on huge datasets
-- Often use star schemas or snowflake schemas
-- Tolerate some redundancy because data is updated in batch, not real-time
+- Write se kahin zyada read karte hain
+- Bade datasets pe fast query response chahiye
+- Aksar star schemas ya snowflake schemas use karte hain
+- Kuch redundancy tolerate kar lete hain kyunki data batch mein update hota hai, real-time mein nahi
 
-**Verdict: Denormalize deliberately.** Speed is the priority. Tools like data warehouses (Snowflake, BigQuery, Redshift) are built for this.
+**Verdict: Jaan-boojh kar denormalize karo.** Speed priority hai. Data warehouses jaise tools (Snowflake, BigQuery, Redshift) isi ke liye bane hain.
 
 Examples: analytics dashboards, reporting databases, machine learning feature stores.
 
-### The Decision Framework
+### Decision Framework
 
 ```
-Are writes frequent and integrity critical?
-  YES → Normalize (OLTP)
+Kya writes frequent hain aur integrity critical hai?
+  HAAN → Normalize karo (OLTP)
 
-Are reads dominant and performance is bottlenecked by joins?
-  YES → Consider denormalization (OLAP)
+Kya reads dominant hain aur performance joins ki wajah se bottleneck ho rahi hai?
+  HAAN → Denormalization consider karo (OLAP)
 
-Are you unsure?
-  → Start normalized. Denormalize only when you can measure a real performance problem.
+Sure nahi ho?
+  → Normalized se shuru karo. Denormalize sirf tab karo jab real performance problem measure kar sako.
 ```
 
-> "Premature optimization is the root of all evil." — Donald Knuth. Normalize first, denormalize when you have data proving you need to.
+> "Premature optimization is the root of all evil." — Donald Knuth. Pehle normalize karo, denormalize tab karo jab data proof de de ki zaroorat hai.
 
 ---
 
 ## 🔑 Key Takeaways
 
-1. **Normalization = removing redundancy.** Every piece of data lives in exactly one place.
+1. **Normalization = redundancy hataana.** Har piece of data exactly ek jagah rehta hai.
 
-2. **The normal forms build on each other.** 2NF requires 1NF. 3NF requires 2NF. You cannot skip levels.
+2. **Normal forms ek doosre pe build hote hain.** 2NF ke liye 1NF chahiye. 3NF ke liye 2NF chahiye. Levels skip nahi kar sakte.
 
-3. **1NF:** Atomic values only — no lists in a single cell.
+3. **1NF:** Sirf atomic values — ek cell mein lists nahi.
 
-4. **2NF:** Every non-key column depends on the WHOLE composite key — no partial dependencies.
+4. **2NF:** Har non-key column POORI composite key pe depend kare — koi partial dependencies nahi.
 
-5. **3NF:** No transitive dependencies — non-key columns must not depend on other non-key columns.
+5. **3NF:** Koi transitive dependencies nahi — non-key columns doosre non-key columns pe depend nahi karte.
 
-6. **BCNF and 4NF** handle edge cases. Most production databases target 3NF.
+6. **BCNF aur 4NF** edge cases handle karte hain. Zyadatar production databases 3NF target karte hain.
 
-7. **Denormalization is a tool, not a mistake.** It is a deliberate, measured trade-off for read performance.
+7. **Denormalization ek galti nahi, ek tool hai.** Ye read performance ke liye ek deliberate, measured trade-off hai.
 
-8. **OLTP databases prefer normalization.** OLAP/analytics databases often prefer denormalization.
+8. **OLTP databases normalization prefer karte hain.** OLAP/analytics databases aksar denormalization prefer karte hain.
 
-9. **When in doubt, normalize first.** Add redundancy only when you can prove it solves a real performance problem.
+9. **Doubt ho toh pehle normalize karo.** Redundancy tabhi add karo jab prove kar sako ki isse real performance problem solve hoti hai.
 
 ---
 
@@ -471,7 +471,7 @@ Are you unsure?
 
 **Question 1**
 
-You have the following table with primary key `employee_id`:
+Tumhare paas ye table hai, primary key `employee_id` ke saath:
 
 | employee_id | employee_name | department_id | department_name |
 |-------------|---------------|---------------|-----------------|
@@ -479,12 +479,12 @@ You have the following table with primary key `employee_id`:
 | E02         | Dave          | D01           | Engineering     |
 | E03         | Eve           | D02           | Marketing       |
 
-Which normal form does this violate, and why?
+Ye kaunsa normal form violate karta hai, aur kyun?
 
 <details>
-<summary>Show Answer</summary>
+<summary>Answer Dekho</summary>
 
-This violates **Third Normal Form (3NF)**. There is a transitive dependency: `employee_id → department_id → department_name`. The `department_name` depends on `department_id`, not directly on `employee_id`. Fix: move `department_id` and `department_name` into a separate `Departments` table.
+Ye **Third Normal Form (3NF)** violate karta hai. Ek transitive dependency hai: `employee_id → department_id → department_name`. `department_name`, `department_id` pe depend karta hai, `employee_id` pe directly nahi. Fix: `department_id` aur `department_name` ko alag `Departments` table mein move karo.
 
 </details>
 
@@ -492,12 +492,12 @@ This violates **Third Normal Form (3NF)**. There is a transitive dependency: `em
 
 **Question 2**
 
-A table has the composite primary key `(order_id, product_id)`. The column `order_date` depends only on `order_id`. Which normal form does this violate?
+Ek table ki composite primary key `(order_id, product_id)` hai. Column `order_date` sirf `order_id` pe depend karta hai. Ye kaunsa normal form violate karta hai?
 
 <details>
-<summary>Show Answer</summary>
+<summary>Answer Dekho</summary>
 
-This violates **Second Normal Form (2NF)**. `order_date` has a **partial dependency** — it depends only on `order_id`, which is just part of the composite key, not the whole key. Fix: move `order_date` to an `Orders` table where `order_id` is the sole primary key.
+Ye **Second Normal Form (2NF)** violate karta hai. `order_date` ki ek **partial dependency** hai — ye sirf `order_id` pe depend karta hai, jo composite key ka sirf ek part hai, poori key nahi. Fix: `order_date` ko ek `Orders` table mein move karo jahan `order_id` hi sole primary key ho.
 
 </details>
 
@@ -505,12 +505,12 @@ This violates **Second Normal Form (2NF)**. `order_date` has a **partial depende
 
 **Question 3**
 
-Your analytics dashboard is running a complex join across 5 tables and is too slow to load. A colleague suggests storing the pre-joined data in a single flat table. Is this a good idea? What is the trade-off?
+Tumhara analytics dashboard 5 tables ke across ek complex join chala raha hai aur load hone mein bahut time le raha hai. Ek colleague suggest karta hai ki pre-joined data ko ek single flat table mein store kar do. Kya ye achha idea hai? Trade-off kya hai?
 
 <details>
-<summary>Show Answer</summary>
+<summary>Answer Dekho</summary>
 
-Yes, this is **denormalization** — and it can be a good idea in an analytics/OLAP context where read performance is critical and writes are infrequent (usually batch updates). The trade-off is **redundancy and update complexity**: if the source data changes, the flat table must be refreshed. This is acceptable for dashboards that are refreshed on a schedule (e.g., nightly ETL). It would be a bad idea for a transactional system where data is written frequently and accuracy must be real-time.
+Haan, ye **denormalization** hai — aur ye ek achha idea ho sakta hai analytics/OLAP context mein jahan read performance critical hai aur writes infrequent hain (usually batch updates). Trade-off hai **redundancy aur update complexity**: agar source data change hota hai, toh flat table ko refresh karna padega. Ye acceptable hai un dashboards ke liye jo schedule pe refresh hote hain (jaise nightly ETL). Lekin ye bura idea hoga ek transactional system ke liye jahan data frequently likha jaata hai aur accuracy real-time honi chahiye.
 
 </details>
 

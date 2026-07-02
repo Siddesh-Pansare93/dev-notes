@@ -5,41 +5,41 @@
 
 ---
 
-## 🎯 What You Will Learn
+## 🎯 Kya Kya Seekhoge Is Chapter Mein
 
-- What a modifier is and why you need one
-- How to write and apply modifiers
-- The mysterious `_;` underscore placeholder
-- Stacking multiple modifiers on one function
-- Modifiers that accept parameters
-- The six most common patterns every Solidity developer uses
-- How OpenZeppelin saves you from writing this yourself
-- Why modifier position (`_;` before vs after) changes execution order
-- How modifiers differ from regular functions under the hood
+- Modifier kya hota hai aur iski zarurat kyun padti hai
+- Modifier kaise likhte hain aur function pe kaise lagate hain
+- Woh mysterious `_;` underscore placeholder
+- Ek function pe multiple modifiers ek saath stack karna
+- Modifiers jo parameters bhi le sakte hain
+- Six sabse common patterns jo har Solidity developer use karta hai
+- OpenZeppelin kaise tumhe khud se ye sab likhne se bacha leta hai
+- `_;` ki position (pehle vs baad mein) execution order kaise change karti hai
+- Modifiers actually functions se hood ke andar kaise alag hain
 
 ---
 
-## 🚪 What Is a Modifier? (The Bouncer Analogy)
+## 🚪 Modifier Hai Kya? (Bouncer Wali Analogy)
 
-Imagine a nightclub. Before you walk in, the bouncer checks three things: Are you on the guest list? Are you sober? Are you wearing shoes? Only if you pass all three checks do you get through the door.
+Socho ek nightclub hai. Andar jaane se pehle bouncer teen cheezein check karta hai: Tera naam guest list mein hai? Tu hosh mein hai? Tune shoes pehne hain? Teeno pass karne ke baad hi tujhe andar jaane diya jaata hai.
 
-A **modifier** in Solidity is exactly that bouncer. It is a reusable piece of code that runs **before** (or after, or both) a function body. Instead of copy-pasting the same `require` checks into every single function, you write the check once as a modifier and attach it to whichever functions need it.
+Solidity mein **modifier** bilkul yahi bouncer hai. Ye ek reusable piece of code hai jo function body ke **pehle** (ya baad mein, ya dono) run hota hai. Har function mein wahi `require` checks copy-paste karne ke bajaye, tum check ek baar modifier ke roop mein likhte ho aur jis-jis function ko zarurat hai usme attach kar dete ho.
 
-Without modifiers, your code looks like this:
+Modifiers ke bina, tumhara code aisa dikhega:
 
 ```solidity
 function pause() public {
-    require(msg.sender == owner, "Not the owner"); // repeated everywhere
+    require(msg.sender == owner, "Not the owner"); // har jagah repeat ho raha hai
     paused = true;
 }
 
 function addAdmin(address admin) public {
-    require(msg.sender == owner, "Not the owner"); // repeated again
+    require(msg.sender == owner, "Not the owner"); // fir se repeat
     admins[admin] = true;
 }
 ```
 
-With modifiers, it becomes:
+Modifiers ke saath, ye ban jaata hai:
 
 ```solidity
 function pause() public onlyOwner {
@@ -51,60 +51,60 @@ function addAdmin(address admin) public onlyOwner {
 }
 ```
 
-Clean, readable, and the check lives in one place.
+Saaf, readable, aur check ek hi jagah rehta hai — bilkul UPI ke ek hi PIN se saare bank accounts ke transactions verify hone jaisa. Ek jagah logic likha, sabne use kiya.
 
 ---
 
-## ✍️ Modifier Syntax
+## ✍️ Modifier Ka Syntax
 
 ```solidity
 modifier modifierName() {
-    // Code that runs BEFORE the function body
+    // Ye code function body se PEHLE chalega
     require(someCondition, "Error message");
-    _;  // <-- This is where the function body gets inserted
-    // Code here runs AFTER the function body
+    _;  // <-- Yahan function body insert hoga
+    // Ye code yahan function body ke BAAD chalega
 }
 ```
 
-To apply it, list the modifier name in the function signature:
+Isko apply karne ke liye, function signature mein modifier ka naam likh do:
 
 ```solidity
 function doSomething() public modifierName {
-    // This is the function body
+    // Ye function ka body hai
 }
 ```
 
 ---
 
-## 🔢 The Underscore `_;` — Placeholder for the Function Body
+## 🔢 Underscore `_;` — Function Body Ka Placeholder
 
-The `_;` (underscore-semicolon) is the most important — and most confusing — part of a modifier. It is a **placeholder** that tells Solidity: *"Insert the function body here."*
+`_;` (underscore-semicolon) modifier ka sabse important — aur sabse zyada confuse karne wala — part hai. Ye ek **placeholder** hai jo Solidity ko batata hai: *"Yahan function body insert kar do."*
 
-Think of it like a template:
+Isko ek template ki tarah socho:
 
 ```
-[modifier pre-code]
-[function body goes here where _; sits]
-[modifier post-code]
+[modifier ka pre-code]
+[function body yahan aayega, jahan _; likha hai]
+[modifier ka post-code]
 ```
 
-When Solidity compiles your contract, it takes the function body and literally pastes it where `_;` appears. That is why modifiers are said to **inline** code rather than call it (more on this in the last section).
+Jab Solidity tumhare contract ko compile karta hai, to function body ko literally uthake `_;` waali jagah paste kar deta hai. Isi wajah se kaha jaata hai ki modifiers code ko **inline** karte hain, call nahi karte (iske baare mein detail mein last section mein baat karenge).
 
 ```solidity
 modifier greetAndFarewell() {
     emit Greeting("Hello before function");
-    _;   // function body runs here
+    _;   // function body yahan run hoga
     emit Farewell("Goodbye after function");
 }
 ```
 
-If `_;` is missing, the function body **never executes**. If `_;` appears twice, the function body executes twice — a footgun to avoid.
+Agar `_;` missing hai, to function body **kabhi execute hi nahi hoga**. Agar `_;` do baar likha hai, to function body do baar execute hoga — ye ek footgun hai, isse bachna.
 
 ---
 
-## 🔀 Multiple Modifiers on One Function
+## 🔀 Ek Function Pe Multiple Modifiers
 
-You can stack modifiers by listing them in order after `public`/`external`:
+Tum `public`/`external` ke baad order mein modifiers list karke stack kar sakte ho:
 
 ```solidity
 function withdraw(uint256 amount)
@@ -118,7 +118,7 @@ function withdraw(uint256 amount)
 }
 ```
 
-**Execution order is left to right, then back out right to left.**
+**Execution order left se right jaata hai, phir wapas right se left aata hai.**
 
 ```
 onlyAdmin pre-code
@@ -132,13 +132,13 @@ onlyAdmin pre-code
 onlyAdmin post-code
 ```
 
-In practice, most modifiers only have pre-code (the `_;` is at the end), so the "back out" phase is empty. But when post-code exists — like logging — execution unwinds through the stack in reverse.
+Practically, zyada tar modifiers mein sirf pre-code hota hai (`_;` end mein hota hai), isliye "wapas bahar aane" waala phase empty hota hai. Lekin jab post-code hota hai — jaise logging — to execution stack se reverse order mein unwind hota hai. Bilkul Swiggy order ki tarah socho: pehle restaurant confirm karta hai, phir delivery partner assign hota hai, phir order deliver hota hai — aur agar kuch cancel hua to reverse order mein sab wapas rollback hota hai.
 
 ---
 
-## 🎛️ Modifiers with Parameters
+## 🎛️ Parameters Lene Waale Modifiers
 
-Modifiers can accept arguments just like functions:
+Modifiers bhi functions ki tarah arguments accept kar sakte hain:
 
 ```solidity
 modifier validAmount(uint256 amount) {
@@ -148,11 +148,11 @@ modifier validAmount(uint256 amount) {
 }
 ```
 
-You pass arguments at the call site:
+Call site pe arguments pass karte ho:
 
 ```solidity
 function deposit() public payable validAmount(msg.value) {
-    // msg.value has already been validated
+    // msg.value already validate ho chuka hai
 }
 
 function withdraw(uint256 amount) public validAmount(amount) {
@@ -160,13 +160,13 @@ function withdraw(uint256 amount) public validAmount(amount) {
 }
 ```
 
-The parameter name in the modifier (`amount`) is local to the modifier. It does not need to match the function parameter name — but it is good practice to keep them the same for readability.
+Modifier ke andar parameter ka naam (`amount`) sirf modifier ke andar local hota hai. Function ke parameter naam se match karna zaruri nahi — lekin readability ke liye dono same rakhna achi practice hai.
 
 ---
 
-## 🔥 The Full Demo Contract
+## 🔥 Poora Demo Contract
 
-Here is the complete example that showcases everything covered so far:
+Ye raha complete example jisme ab tak seekhi hui saari cheezein dikhayi gayi hain:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -207,7 +207,7 @@ contract ModifiersDemo {
     modifier hasMinBalance(uint256 minimum) {
         require(address(this).balance >= minimum, "Contract balance too low");
         _;
-        // Post-function code: runs AFTER the function body
+        // Post-function code: function body ke BAAD chalta hai
         emit BalanceChecked(address(this).balance);
     }
 
@@ -226,7 +226,7 @@ contract ModifiersDemo {
     }
 
     function deposit() public payable whenNotPaused validAmount(msg.value) {
-        // Deposits are accepted only when not paused and amount is valid
+        // Deposits sirf tab accept hote hain jab paused nahi hai aur amount valid hai
     }
 
     function withdraw(uint256 amount)
@@ -270,9 +270,9 @@ flowchart TD
 
 ---
 
-## 🏆 Common Patterns Every Solidity Developer Uses
+## 🏆 Common Patterns Jo Har Solidity Developer Use Karta Hai
 
-### 1. `onlyOwner` — The Most Common Modifier
+### 1. `onlyOwner` — Sabse Common Modifier
 
 ```solidity
 modifier onlyOwner() {
@@ -281,9 +281,9 @@ modifier onlyOwner() {
 }
 ```
 
-**When to use it:** Any administrative action — changing fees, upgrading addresses, pausing the contract, withdrawing funds.
+**Kab use karna hai:** Koi bhi administrative action — fees badalna, addresses upgrade karna, contract pause karna, funds withdraw karna. Socho ye tumhara Zomato admin panel hai — sirf restaurant owner hi menu edit kar sakta hai, customer nahi.
 
-**The pattern:** Set `owner` in the constructor to `msg.sender`. Optionally provide a `transferOwnership` function (also gated by `onlyOwner`).
+**Pattern kya hai:** Constructor mein `owner` ko `msg.sender` set karo. Optionally ek `transferOwnership` function bhi do (usko bhi `onlyOwner` se hi gate karo).
 
 ---
 
@@ -301,15 +301,15 @@ modifier whenPaused() {
 }
 ```
 
-**When to use it:** Any contract that needs an emergency stop — DeFi protocols, NFT sales, bridges. When something goes wrong, the owner can halt all user-facing functions instantly without deploying a new contract.
+**Kab use karna hai:** Jis bhi contract ko emergency stop chahiye — DeFi protocols, NFT sales, bridges. Jaise Paytm kabhi maintenance ke waqt payments temporarily band kar deta hai — agar kuch galat ho jaaye, to owner sabhi user-facing functions ko turant halt kar sakta hai, naya contract deploy kiye bina.
 
-**Pair with:** `pause()` and `unpause()` functions, both guarded by `onlyOwner`.
+**Pair kis ke saath karna hai:** `pause()` aur `unpause()` functions, dono `onlyOwner` se guard kiye hue.
 
 ---
 
 ### 3. `nonReentrant` — Reentrancy Guard (Critical Security!)
 
-Reentrancy is one of the most dangerous vulnerabilities in Solidity. It occurs when an external contract calls back into yours before your first execution finishes — famously exploited in the 2016 DAO hack that lost $60 million.
+Reentrancy Solidity ki sabse dangerous vulnerabilities mein se ek hai. Ye tab hota hai jab koi external contract tumhare contract ke first execution khatam hone se pehle hi wapas usme call kar deta hai — 2016 ke DAO hack mein isi se $60 million loot liya gaya tha.
 
 ```solidity
 uint256 private _status;
@@ -320,19 +320,21 @@ modifier nonReentrant() {
     require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
     _status = _ENTERED;
     _;
-    _status = _NOT_ENTERED;  // Reset AFTER function body
+    _status = _NOT_ENTERED;  // Function body ke BAAD reset hota hai
 }
 ```
 
-Notice that `_;` is **in the middle** here. The status is set to `_ENTERED` before the function runs, and reset to `_NOT_ENTERED` only after it finishes. If an attacker's contract tries to call back in during execution, the status is still `_ENTERED` and the transaction reverts.
+Dhyan do ki yahan `_;` **beech mein** hai. Status ko `_ENTERED` set kiya jaata hai function run hone se pehle, aur `_NOT_ENTERED` sirf function khatam hone ke baad reset hota hai. Agar koi attacker ka contract execution ke beech mein wapas call karne ki koshish kare, to status abhi bhi `_ENTERED` hoga aur transaction revert ho jaayega.
 
-**When to use it:** Any function that sends ETH or calls an external contract. Apply it liberally — it is cheap in gas.
+Socho jaise ek IRCTC ticket booking counter hai — jab tak ek ticket book nahi ho jaata, uska seat "locked" rehta hai. Koi doosra request usi seat ko beech mein grab nahi kar sakta.
+
+**Kab use karna hai:** Koi bhi function jo ETH bhejta hai ya external contract ko call karta hai. Isko liberally use karo — gas mein sasta padta hai.
 
 ---
 
 ### 4. `onlyRole` — Role-Based Access Control
 
-When `onlyOwner` is too blunt (one person controls everything), you want roles:
+Jab `onlyOwner` bahut blunt lagta hai (ek hi banda sab kuch control karta hai), tab tumhe roles chahiye:
 
 ```solidity
 mapping(bytes32 => mapping(address => bool)) private _roles;
@@ -351,7 +353,7 @@ function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
 }
 ```
 
-**When to use it:** Multi-stakeholder systems — an exchange may have separate minter, pauser, and upgrader roles controlled by different teams.
+**Kab use karna hai:** Multi-stakeholder systems mein — jaise ek exchange mein alag-alag teams alag roles control karti hain: koi minter, koi pauser, koi upgrader. Bilkul Flipkart ke seller dashboard jaisa — warehouse team ka access alag, finance team ka access alag.
 
 ---
 
@@ -368,13 +370,13 @@ function setRecipient(address recipient) public validAddress(recipient) {
 }
 ```
 
-**When to use it:** Anytime you store or transfer to an address provided by the caller. Sending ETH to `address(0)` burns it permanently.
+**Kab use karna hai:** Jab bhi tum caller se mile hue address ko store ya usme transfer karte ho. `address(0)` pe ETH bhejna matlab usko permanently jala dena — jaise galat UPI ID pe paise bhej dena jaha koi refund possible nahi.
 
 ---
 
-## 📦 OpenZeppelin: Don't Reinvent the Wheel
+## 📦 OpenZeppelin: Pahiya Dobara Mat Banao
 
-OpenZeppelin is the standard library of the Solidity ecosystem. It ships battle-tested, audited implementations of all the patterns above.
+OpenZeppelin Solidity ecosystem ki standard library hai. Ye upar diye gaye saare patterns ke battle-tested, audited implementations deta hai.
 
 ### Ownable
 
@@ -385,12 +387,12 @@ contract MyToken is Ownable {
     constructor() Ownable(msg.sender) {}
 
     function adminAction() public onlyOwner {
-        // onlyOwner is inherited — no need to write it yourself
+        // onlyOwner inherited hai — khud likhne ki zarurat nahi
     }
 }
 ```
 
-`Ownable` gives you `onlyOwner`, `owner()`, `transferOwnership()`, and `renounceOwnership()` for free.
+`Ownable` tumhe `onlyOwner`, `owner()`, `transferOwnership()`, aur `renounceOwnership()` free mein deta hai.
 
 ### AccessControl
 
@@ -406,7 +408,7 @@ contract MyContract is AccessControl {
     }
 
     function mint(address to) public onlyRole(MINTER_ROLE) {
-        // Only addresses with MINTER_ROLE can call this
+        // Sirf MINTER_ROLE waale addresses hi ise call kar sakte hain
     }
 }
 ```
@@ -418,92 +420,92 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract MyVault is ReentrancyGuard {
     function withdraw(uint256 amount) public nonReentrant {
-        // Safe from reentrancy attacks
+        // Reentrancy attacks se safe
     }
 }
 ```
 
-**Rule of thumb:** Always prefer OpenZeppelin's implementations over writing your own security-critical modifiers. Their code is audited by the best security researchers in the space.
+**Rule of thumb:** Production mein hamesha OpenZeppelin ke implementations use karo apne khud ke security-critical modifiers likhne ke bajaye. Unka code industry ke best security researchers ne audit kiya hai.
 
 ---
 
-## ⏱️ Before vs After: `_;` Position Matters
+## ⏱️ Pehle vs Baad Mein: `_;` Ki Position Matter Karti Hai
 
-Most modifiers place `_;` at the end, meaning all checks happen before the function body. But `_;` can appear anywhere — and its position defines when the function body runs.
+Zyada tar modifiers `_;` ko end mein rakhte hain, matlab saare checks function body se pehle hote hain. Lekin `_;` kahin bhi aa sakta hai — aur uski position decide karti hai ki function body kab run hoga.
 
 ```solidity
-// BEFORE only (most common)
+// SIRF BEFORE (sabse common)
 modifier checkBefore() {
     require(condition, "Failed");
-    _;                            // function body runs here, at the end
+    _;                            // function body yahan run hoga, end mein
 }
 
-// AFTER only (unusual but valid)
+// SIRF AFTER (unusual, lekin valid)
 modifier logAfter() {
-    _;                            // function body runs first
-    emit ActionLogged(msg.sender); // then this runs
+    _;                            // function body pehle run hoga
+    emit ActionLogged(msg.sender); // fir ye run hoga
 }
 
-// BEFORE and AFTER (sandwich pattern)
+// BEFORE aur AFTER dono (sandwich pattern)
 modifier timed() {
     uint256 start = block.timestamp;
-    _;                            // function body runs in the middle
+    _;                            // function body beech mein run hoga
     emit Duration(block.timestamp - start);
 }
 ```
 
-**The `nonReentrant` modifier uses the sandwich pattern** — it sets a lock before, runs the function, then clears the lock after. This is what makes it secure.
+**`nonReentrant` modifier sandwich pattern use karta hai** — pehle lock set karta hai, function run karwata hai, phir baad mein lock clear karta hai. Yahi cheez ise secure banati hai.
 
-**When would you use post-code?**
-- Emitting an event that reflects the state after the function ran
-- Recording timestamps of when an action completed
-- Cleanup logic (though this is rare — most cleanup goes inside the function)
+**Post-code kab use karoge?**
+- Aisa event emit karna jo function chalne ke baad ka state dikhaye
+- Kisi action ke complete hone ka timestamp record karna
+- Cleanup logic (halaanki ye rare hai — zyada tar cleanup function ke andar hi jaata hai)
 
 ---
 
-## 🔬 Modifiers Are NOT Functions
+## 🔬 Modifiers Functions Nahi Hote
 
-This is a subtle but important point for understanding gas and security.
+Ye ek subtle lekin important point hai gas aur security samajhne ke liye.
 
-When Solidity compiles a function with modifiers, it does **not** generate a separate function call. Instead, the modifier code is **inlined** — copy-pasted directly into the compiled bytecode of the function. There is no call frame, no CALL opcode, no stack push/pop for the modifier itself.
+Jab Solidity modifiers waale function ko compile karta hai, to woh **alag se function call generate nahi karta**. Uske bajaye, modifier ka code **inline** kar diya jaata hai — function ke compiled bytecode mein directly copy-paste ho jaata hai. Modifier ke liye koi separate call frame nahi hota, koi CALL opcode nahi, koi stack push/pop nahi.
 
-**What this means in practice:**
+**Practically iska matlab kya hai:**
 
 | Property | Modifier | Function |
 |---|---|---|
-| Separate call frame | No | Yes |
-| Can return a value | No | Yes |
-| Inlined by compiler | Yes | No |
-| Gas overhead of call | None | Small overhead |
-| Can be inherited | Yes | Yes |
-| Can override in child | Yes | Yes |
+| Separate call frame | Nahi | Haan |
+| Value return kar sakta hai | Nahi | Haan |
+| Compiler inline karta hai | Haan | Nahi |
+| Call ka gas overhead | Kuch nahi | Thoda overhead |
+| Inherit ho sakta hai | Haan | Haan |
+| Child mein override ho sakta hai | Haan | Haan |
 
-Because modifiers are inlined, the `_;` placeholder literally means "paste the function body here." This is why you cannot have `_;` in a regular function — it is modifier-only syntax.
+Chunki modifiers inline hote hain, `_;` placeholder ka literal matlab hota hai "function body yahan paste kar do." Isi wajah se regular function ke andar `_;` nahi likh sakte — ye sirf modifier-only syntax hai.
 
-**Practical implication:** If you have the same 5-line check in 10 functions via a modifier, the compiler generates 10 copies of those 5 lines in the bytecode. Code size grows, but there is no runtime call overhead. For very large modifiers used in many functions, this can increase deploy cost slightly.
+**Practical implication:** Agar tumhare paas same 5-line check ek modifier ke through 10 functions mein use ho raha hai, to compiler bytecode mein un 5 lines ki 10 copies generate karega. Code size badhega, lekin koi runtime call overhead nahi hoga. Bahut bade modifiers jo bahut saari jagah use hote hain, unke liye deploy cost thoda badh sakta hai.
 
 ---
 
 ## 💡 Key Takeaways
 
-- A **modifier** is a reusable code block that wraps a function — like a bouncer checking conditions before (or after) entry.
-- The **`_;`** placeholder is where the function body gets inlined. Its position controls execution order.
-- Modifiers execute **left to right** when stacked; post-code unwinds right to left.
-- Modifiers can **accept parameters** just like functions.
-- The six patterns to know: `onlyOwner`, `whenNotPaused`, `nonReentrant`, `onlyRole`, `validAddress`, and sandwich (before + after).
-- **Always use OpenZeppelin** for `Ownable`, `AccessControl`, and `ReentrancyGuard` in production — never roll your own security-critical code.
-- Modifiers are **inlined by the compiler**, not called — no separate call frame.
-- **`nonReentrant` is not optional** on any function that sends ETH or calls external contracts.
+- **Modifier** ek reusable code block hai jo function ko wrap karta hai — bilkul bouncer ki tarah jo entry se pehle (ya baad mein) conditions check karta hai.
+- **`_;`** placeholder wahi jagah hai jahan function body inline hoti hai. Iski position execution order control karti hai.
+- Stack kiye gaye modifiers **left se right** execute hote hain; post-code right se left unwind hota hai.
+- Modifiers **parameters accept** kar sakte hain, functions ki tarah.
+- Six patterns yaad rakhne waale: `onlyOwner`, `whenNotPaused`, `nonReentrant`, `onlyRole`, `validAddress`, aur sandwich (before + after).
+- **Production mein hamesha OpenZeppelin use karo** `Ownable`, `AccessControl`, aur `ReentrancyGuard` ke liye — apna security-critical code kabhi mat likho.
+- Modifiers compiler dwara **inline** kiye jaate hain, call nahi — koi separate call frame nahi hota.
+- **`nonReentrant` optional nahi hai** kisi bhi aise function pe jo ETH bhejta hai ya external contracts ko call karta hai.
 
 ---
 
 ## 📝 Quiz
 
-Test yourself before moving on.
+Aage badhne se pehle khud ko test kar lo.
 
 **Question 1**
 
-Given this modifier:
+Ye modifier diya gaya hai:
 
 ```solidity
 modifier sandwich() {
@@ -513,7 +515,7 @@ modifier sandwich() {
 }
 ```
 
-And this function:
+Aur ye function:
 
 ```solidity
 function doWork() public sandwich {
@@ -521,7 +523,7 @@ function doWork() public sandwich {
 }
 ```
 
-In what order are the events emitted when `doWork()` is called?
+Jab `doWork()` call hota hai, to events kis order mein emit honge?
 
 - A) Work, Before, After
 - B) Before, After, Work
@@ -533,7 +535,7 @@ In what order are the events emitted when `doWork()` is called?
 
 **C) Before, Work, After**
 
-The modifier runs `emit Before()`, then hits `_;` which inserts the function body (`emit Work()`), then continues to `emit After()`.
+Modifier pehle `emit Before()` run karta hai, phir `_;` pe pahunchta hai jahan function body (`emit Work()`) insert hoti hai, uske baad `emit After()` chalta hai.
 
 </details>
 
@@ -541,30 +543,30 @@ The modifier runs `emit Before()`, then hits `_;` which inserts the function bod
 
 **Question 2**
 
-What happens if you remove the `_;` from a modifier entirely?
+Agar tum modifier se `_;` ko poori tarah hata do to kya hoga?
 
 ```solidity
 modifier broken() {
     require(msg.sender == owner, "Not owner");
-    // No _; here
+    // Yahan _; nahi hai
 }
 
 function doSomething() public broken {
-    importantState = 42; // Does this execute?
+    importantState = 42; // Kya ye execute hoga?
 }
 ```
 
-- A) The function body still executes normally
-- B) The function body never executes — `importantState` is never set
-- C) Solidity throws a compile error
-- D) The modifier is ignored
+- A) Function body normally execute ho jaayega
+- B) Function body kabhi execute nahi hoga — `importantState` kabhi set nahi hoga
+- C) Solidity compile error dega
+- D) Modifier ignore ho jaayega
 
 <details>
 <summary>Answer</summary>
 
-**C) Solidity throws a compile error**
+**C) Solidity compile error dega**
 
-Solidity requires that every modifier contains exactly one `_;`. A modifier without `_;` will not compile. This is a safety mechanism — Solidity prevents you from accidentally writing a modifier that silently swallows the function body.
+Solidity ki requirement hai ki har modifier mein exactly ek `_;` ho. Bina `_;` waala modifier compile hi nahi hoga. Ye ek safety mechanism hai — Solidity tumhe accidentally aisa modifier likhne se rokta hai jo silently function body ko swallow kar le.
 
 </details>
 
@@ -572,7 +574,7 @@ Solidity requires that every modifier contains exactly one `_;`. A modifier with
 
 **Question 3**
 
-You are writing a `withdraw` function that sends ETH to the caller. Which modifiers should you apply, and in what order, to make it safe?
+Tum ek `withdraw` function likh rahe ho jo caller ko ETH bhejta hai. Isko safe banane ke liye kaunse modifiers, kis order mein apply karne chahiye?
 
 ```solidity
 function withdraw(uint256 amount) public /* ??? */ {
@@ -583,19 +585,19 @@ function withdraw(uint256 amount) public /* ??? */ {
 - A) `onlyOwner nonReentrant validAmount(amount)`
 - B) `nonReentrant onlyOwner validAmount(amount)`
 - C) `validAmount(amount) onlyOwner`
-- D) `onlyOwner` alone is sufficient
+- D) Sirf `onlyOwner` hi kaafi hai
 
 <details>
 <summary>Answer</summary>
 
-**A or B — both are correct**, though A is the more conventional order.
+**A ya B — dono sahi hain**, halaanki A zyada conventional order hai.
 
-The critical requirement is that **`nonReentrant` must be present** on any function that sends ETH. Without it, an attacker whose contract implements a `receive()` fallback can recursively drain the contract.
+Sabse critical requirement ye hai ki **`nonReentrant` zaruri hai** kisi bhi aise function pe jo ETH bhejta hai. Iske bina, ek attacker jiske contract mein `receive()` fallback implement hai, recursively contract ko drain kar sakta hai.
 
-`onlyOwner` restricts who can call it. `validAmount` ensures the request is sane. Order between these two matters for gas (fail early on the cheapest check), but both orderings are secure. What is **never** acceptable is D — `onlyOwner` alone does nothing to prevent a malicious owner from being exploited via reentrancy if the owner's key is compromised or if the owner is itself a contract.
+`onlyOwner` restrict karta hai ki kaun call kar sakta hai. `validAmount` ensure karta hai ki request sensible hai. In dono ke beech order gas ke liye matter karta hai (sabse sasta check pehle fail karwao), lekin dono orders secure hain. Jo kabhi bhi acceptable nahi hai woh hai D — sirf `onlyOwner` reentrancy se bilkul nahi bachata agar owner ki key compromise ho jaaye ya owner khud ek contract ho.
 
 </details>
 
 ---
 
-*Next Chapter: Events and Logging — How smart contracts communicate with the outside world.*
+*Next Chapter: Events and Logging — Smart contracts bahar ki duniya se kaise communicate karte hain.*

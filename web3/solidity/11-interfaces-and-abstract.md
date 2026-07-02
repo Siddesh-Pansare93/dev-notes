@@ -24,9 +24,9 @@
 
 ## 1. What Is an Interface?
 
-An **interface** in Solidity is like a **contract blueprint** — it tells you *what* functions a contract must have, but says nothing about *how* those functions work internally.
+Kya hota hai ek interface? Socho ek second ke liye — Zomato ka app khola, menu dekha. Menu mein likha hai "Butter Chicken - ₹350", "Paneer Tikka - ₹280". Tumhe pata hai kya order kar sakte ho, kya ingredients hain. Lekin kitchen mein actual mein kaise banta hai, kaunsa chef banata hai, kya recipe hai — woh tumhe pata nahi aur na hi tumhe fikar hai.
 
-Think of an interface as a **menu at a restaurant**. The menu lists what dishes are available and what ingredients they contain. You know what you can order. But you have no idea what happens in the kitchen — that is not your concern.
+**Interface** bilkul yehi karta hai Solidity mein — ye ek **blueprint** hai jo batata hai ki contract mein *kaunse* functions hone chahiye, lekin *kaise* kaam karte hain woh kuch nahi batata.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -39,41 +39,41 @@ interface IGreeter {
 }
 ```
 
-Notice what is missing: no function bodies, no curly braces with logic inside. Just clean signatures.
+Dekho kya missing hai — koi function body nahi, koi curly braces mein logic nahi. Bas clean signatures, jaise menu card mein sirf dish ka naam aur price hota hai.
 
 ---
 
 ## 2. The TV Remote Analogy
 
-Imagine you pick up a TV remote. You see buttons: **Power**, **Volume Up**, **Volume Down**, **Channel Up**, **Channel Down**.
+Ek TV remote uthao haath mein. Usme buttons dikhenge — **Power**, **Volume Up**, **Volume Down**, **Channel Up**, **Channel Down**.
 
-You know exactly what each button does. You press **Volume Up** and the volume increases. You do not need to know anything about the circuit board inside the remote, the infrared LED frequencies, or the TV's firmware. You just use the buttons.
+Tumhe exactly pata hai har button kya karega. Volume Up dabaoge to volume badhega. Tumhe ye jaanne ki zaroorat nahi ki remote ke andar circuit board kaisa hai, infrared LED ki frequency kya hai, ya TV ka firmware kaisa likha hai. Bas buttons use karo.
 
-An interface works the same way:
+Interface bhi exactly aise hi kaam karta hai:
 
 | TV Remote Concept | Solidity Equivalent |
 |---|---|
-| The buttons on the remote | Function signatures in the interface |
-| What each button does (behavior) | Function implementations in the contract |
-| The electronics inside the remote | Internal contract logic (hidden from you) |
-| You pressing buttons | Your contract calling the interface |
+| Remote pe buttons | Interface mein function signatures |
+| Button dabane pe kya hota hai (behavior) | Contract mein actual implementation |
+| Remote ke andar electronics | Contract ka internal logic (tumse hidden) |
+| Tum button press karte ho | Tumhara contract interface ko call karta hai |
 
-When your contract holds an interface reference, it can call those functions **without knowing anything about the code inside the target contract**. This is incredibly powerful when you want to interact with contracts deployed by other teams — like Uniswap, Aave, or any ERC-20 token.
+Jab tumhare contract ke paas kisi interface ka reference hota hai, woh un functions ko call kar sakta hai **bina ye jaane ki target contract ke andar code kaisa likha hai**. Ye tab kaam aata hai jab tumhe kisi doosri team ke deploy kiye hue contract se baat karni ho — jaise Uniswap, Aave, ya koi bhi ERC-20 token. Bilkul UPI jaisa — tumhe PhonePe ke internal code se matlab nahi, bas UPI protocol follow hota hai to payment ho jaata hai, chahe woh GPay ho ya Paytm.
 
 ---
 
 ## 3. Rules for Interfaces
 
-Interfaces have strict rules in Solidity. Break any of them and the compiler will reject your code.
+Interfaces ke kuch strict rules hote hain Solidity mein. Inme se koi bhi rule tod diya to compiler bol dega "nahi chalega bhai".
 
-### What interfaces CANNOT have:
-- State variables (no `uint256 public count;` inside an interface)
-- Constructors (no `constructor()` block)
-- Function implementations (no curly-brace bodies)
-- Any function visibility other than `external`
+### Interface mein ye NAHI ho sakta:
+- State variables (`uint256 public count;` jaisa kuch andar nahi likh sakte)
+- Constructor (`constructor()` block allowed nahi hai)
+- Function implementation (curly-brace mein body allowed nahi)
+- `external` ke alawa koi bhi visibility
 
-### What interfaces CAN have:
-- Function declarations (signatures only)
+### Interface mein ye ho sakta hai:
+- Function declarations (sirf signatures)
 - Events
 - Errors (custom errors)
 - Enums
@@ -104,13 +104,14 @@ interface IVault {
 }
 ```
 
-> **Quick Rule of Thumb:** If you can describe it as "this contract must be able to do X", that belongs in an interface. If you need to store data or share logic, you need an abstract contract or a base contract.
+> [!tip]
+> Simple trick yaad rakhne ke liye: agar tum kuch is tarah bol sakte ho — "is contract mein X karne ki capability honi chahiye" — to woh interface mein jaayega. Agar tumhe data store karna hai ya logic share karna hai, to tumhe abstract contract ya base contract chahiye.
 
 ---
 
 ## 4. Implementing an Interface
 
-To implement an interface, a contract uses the `is` keyword — the same syntax as inheritance, because implementing an interface is a form of inheritance.
+Interface ko implement karne ke liye contract `is` keyword use karta hai — bilkul wahi syntax jo inheritance mein use hota hai, kyunki interface implement karna bhi ek tarah ki inheritance hi hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -143,19 +144,19 @@ contract Bird is IAnimal {
 }
 ```
 
-If `Dog` forgot to implement `speak()`, the compiler would throw an error:
+Agar `Dog` `speak()` implement karna bhool jaata, to compiler seedha error de deta:
 
 ```
 TypeError: Contract "Dog" should be marked as abstract.
 ```
 
-This compile-time safety net is one of the biggest advantages of using interfaces.
+Ye compile-time safety net interfaces ka sabse bada fayda hai — TypeScript wale `implements` keyword se jo safety milti hai, wahi feeling.
 
 ---
 
 ## 5. Using Interfaces to Talk to Other Contracts
 
-This is where interfaces become truly powerful. Your contract can interact with **any deployed contract** that matches the interface — even contracts you did not write, even contracts deployed years ago by unknown developers.
+Ab asli maza yahan hai. Tumhara contract **kisi bhi deployed contract** se baat kar sakta hai jo interface se match karta ho — chahe woh contract tumne likha hi na ho, chahe saalon pehle kisi unknown developer ne deploy kiya ho.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -180,19 +181,19 @@ contract CounterCaller {
 }
 ```
 
-**How does this work under the hood?**
+**Ye kaam kaise karta hai andar se?**
 
-When you write `ICounter(counterAddress)`, you are telling Solidity: "Cast the address `counterAddress` into the `ICounter` type." Solidity does not actually verify that the contract at that address implements `ICounter`. It simply encodes the function call according to the ABI (Application Binary Interface) and sends it. If the target contract has no matching function, the call will revert.
+Jab tum `ICounter(counterAddress)` likhte ho, to Solidity ko keh rahe ho: "`counterAddress` ko `ICounter` type mein cast kar do." Solidity actual mein verify nahi karta ki uss address pe deploy hua contract sach mein `ICounter` implement karta hai ya nahi. Woh bas ABI (Application Binary Interface) ke hisaab se function call encode karta hai aur bhej deta hai. Agar target contract mein matching function nahi mila, to call revert ho jaayega.
 
-This is why interfaces are sometimes called **"ABI shortcuts"** — they let you generate correct function call encodings without having the full contract source code.
+Isiliye interfaces ko kabhi-kabhi **"ABI shortcuts"** bola jaata hai — inse tum sahi function call encoding generate kar sakte ho bina target contract ka poora source code haath mein liye.
 
 ---
 
 ## 6. The IERC20 Interface — The Real Deal
 
-ERC-20 is the token standard that powers almost every fungible token in the Ethereum ecosystem — USDC, DAI, LINK, UNI, and thousands more. The **IERC20 interface** defines the exact functions and events every ERC-20 token must implement.
+ERC-20 woh token standard hai jo Ethereum ecosystem ke almost har fungible token ko chalata hai — USDC, DAI, LINK, UNI, aur hazaron aur tokens. **IERC20 interface** define karta hai ki har ERC-20 token mein exactly kaunse functions aur events hone chahiye.
 
-Here is the full, official IERC20 interface:
+Ye raha official IERC20 interface, poora ka poora:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -258,15 +259,15 @@ interface IERC20 {
 }
 ```
 
-Every single ERC-20 token — regardless of who built it — exposes these exact 6 functions and 2 events. This means your contract can interact with **any ERC-20 token** using just this interface.
+Har ek ERC-20 token — chahe kisi ne bhi banaya ho — ye exact 6 functions aur 2 events expose karta hai. Iska matlab hai tumhara contract **kisi bhi ERC-20 token** ke saath interact kar sakta hai sirf isi interface ka use karke. Bilkul waise jaise har UPI app QR code scan kar sakta hai — chahe woh QR PhonePe ka generate kiya ho ya Paytm ka, standard same hai to sab kaam karta hai.
 
 ---
 
 ## 7. Calling External Contracts via Interface (DeFi Power Move)
 
-This is the pattern that makes DeFi composable. Protocols like Uniswap, Aave, and Compound interact with arbitrary ERC-20 tokens without hardcoding specific token addresses. They just use the IERC20 interface.
+Kyun zaruri hai ye pattern? Kyunki yehi cheez DeFi ko composable banati hai. Uniswap, Aave, Compound jaise protocols kisi bhi arbitrary ERC-20 token ke saath interact karte hain bina specific token addresses hardcode kiye. Woh bas IERC20 interface use karte hain.
 
-Here is a practical example — a token swapper that works with ANY ERC-20 pair:
+Ye raha ek practical example — ek token swapper jo KISI BHI ERC-20 pair ke saath kaam karta hai:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -344,20 +345,20 @@ contract TokenSwapper {
 }
 ```
 
-**The approve-then-transferFrom pattern** is fundamental in DeFi:
+**Approve-then-transferFrom pattern** DeFi ka backbone hai — samjho isse Swiggy ke wallet jaisa:
 
-1. User calls `token.approve(dexAddress, 1000)` — gives the DEX permission to spend 1000 tokens
-2. User calls `dex.swapTokens(...)` — the DEX internally calls `token.transferFrom(user, dex, 1000)`
+1. User `token.approve(dexAddress, 1000)` call karta hai — DEX ko permission deta hai ki woh 1000 tokens spend kar sake, bilkul jaise tum Swiggy Money wallet ko auto-debit ke liye pehle se ek limit set karte ho
+2. User `dex.swapTokens(...)` call karta hai — DEX andar hi andar `token.transferFrom(user, dex, 1000)` call kar leta hai
 
-Your contract never holds the user's private keys. It only acts within the limits of what the user approved. This is the ERC-20 trust model.
+Tumhara contract kabhi bhi user ki private keys apne paas nahi rakhta. Woh sirf utna hi kar sakta hai jitna user ne approve kiya. Yehi hai ERC-20 ka trust model — bilkul UPI mandate jaisa, jitni limit set ki utna hi auto-debit hoga.
 
 ---
 
 ## 8. Interface Checks: ERC-165 and supportsInterface
 
-How does a contract know whether another contract actually implements a specific interface? The answer is **ERC-165**, a standard for introspection.
+Ek contract ko kaise pata chale ki doosra contract sach mein ek specific interface implement karta hai ya nahi? Iska jawab hai **ERC-165**, jo introspection ka standard hai.
 
-ERC-165 defines a single function:
+ERC-165 ek single function define karta hai:
 
 ```solidity
 interface IERC165 {
@@ -372,7 +373,7 @@ interface IERC165 {
 }
 ```
 
-A contract that supports ERC-165 must implement `supportsInterface` and return `true` for its own interface IDs.
+Jo contract ERC-165 support karta hai, usse `supportsInterface` implement karna hi padega aur apni khud ki interface IDs ke liye `true` return karna hoga.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -415,20 +416,20 @@ contract SafeCaller {
 }
 ```
 
-ERC-165 is widely used in **NFT standards** (ERC-721, ERC-1155) so that marketplaces and wallets can detect what type of token they are dealing with before interacting.
+ERC-165 ka use bahut zyada hota hai **NFT standards** (ERC-721, ERC-1155) mein, taaki marketplaces aur wallets ye check kar sakein ki kis type ka token hai — interact karne se pehle. Jaise Flipkart pe order karne se pehle check karte ho ki seller COD accept karta hai ya nahi.
 
 ---
 
 ## 9. Abstract Contracts
 
-An **abstract contract** sits between a full interface and a fully deployed contract. It can have:
+**Abstract contract** kya hota hai? Ye ek full interface aur ek fully deployed contract ke beech mein baithta hai. Isme ye sab ho sakta hai:
 
 - State variables
-- A constructor
+- Constructor
 - Fully implemented functions
-- Unimplemented (abstract) functions that subclasses must implement
+- Unimplemented (abstract) functions jo subclasses ko implement karne hi padenge
 
-The `abstract` keyword signals that this contract is **not meant to be deployed directly** — it is a base that others build upon.
+`abstract` keyword signal karta hai ki ye contract **directly deploy karne ke liye nahi hai** — ye ek base hai jispe doosre contracts build karte hain. Bilkul OYO ka base template jaisa — sabhi hotels ke liye common cheezein (booking flow, check-in logic) fixed hain, lekin har hotel apna khud ka room-type detail bhar sakta hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -504,39 +505,39 @@ contract TokenPayment is Payment {
 }
 ```
 
-Notice how `ETHPayment` and `TokenPayment` share the same `owner` state, the same `onlyOwner` modifier, and the same `getBalance()` function — all defined once in the abstract base. The only difference is *how* payment is processed.
+Dekho kaise `ETHPayment` aur `TokenPayment` dono same `owner` state, same `onlyOwner` modifier, aur same `getBalance()` function share kar rahe hain — sab kuch ek hi jagah, abstract base mein define hua hai. Farak sirf itna hai ki payment *kaise* process hota hai.
 
 ---
 
 ## 10. Abstract vs Interface — When to Use What
 
-This decision is a common source of confusion for beginners. Here is a clear breakdown:
+Ye confusion beginners ke liye bahut common hai. Chalo clear kar dete hain:
 
 | Feature | Interface | Abstract Contract |
 |---|---|---|
-| State variables | No | Yes |
-| Constructor | No | Yes |
-| Implemented functions | No | Yes |
-| Unimplemented functions | Yes (all) | Yes (at least one) |
-| Multiple inheritance | Yes (easy) | Yes (careful with conflicts) |
-| Deployment | Cannot be deployed | Cannot be deployed |
-| Primary use case | Define a standard API | Share common logic + enforce overrides |
+| State variables | Nahi | Haan |
+| Constructor | Nahi | Haan |
+| Implemented functions | Nahi | Haan |
+| Unimplemented functions | Haan (sab) | Haan (kam se kam ek) |
+| Multiple inheritance | Haan (easy) | Haan (conflicts se dhyan rakho) |
+| Deployment | Deploy nahi kar sakte | Deploy nahi kar sakte |
+| Primary use case | Ek standard API define karna | Common logic share karna + overrides enforce karna |
 
-**Use an interface when:**
-- You want to define a standard that many unrelated contracts will implement (ERC-20, ERC-721)
-- You want to call an external contract without needing its source code
-- You need lightweight type-checking with minimal coupling
-- Multiple unrelated contracts need to "promise" certain behavior
+**Interface tab use karo jab:**
+- Tumhe ek aisa standard define karna ho jo bahut saare unrelated contracts implement karenge (ERC-20, ERC-721)
+- Tumhe kisi external contract ko call karna ho bina uska source code liye
+- Tumhe lightweight type-checking chahiye minimal coupling ke saath
+- Multiple unrelated contracts ko ek certain behavior "promise" karna ho
 
-**Use an abstract contract when:**
-- You want to share actual logic (state variables, helper functions, modifiers) between related contracts
-- You have a family of contracts that are variations of the same thing (ETHPayment, TokenPayment)
-- You need a constructor with shared initialization logic
-- Think of it as a template with some blanks to fill in
+**Abstract contract tab use karo jab:**
+- Tumhe actual logic share karna ho (state variables, helper functions, modifiers) related contracts ke beech
+- Tumhare paas contracts ka ek family ho jo same cheez ke variations hain (ETHPayment, TokenPayment)
+- Tumhe shared initialization logic ke saath ek constructor chahiye
+- Socho isse ek template ki tarah jisme kuch blanks fill karne baaki hain
 
 **Real-world rule of thumb:**
-- `interface` = standard/protocol (what contracts can do)
-- `abstract` = base class/template (how related contracts share code)
+- `interface` = standard/protocol (contracts kya kar sakte hain)
+- `abstract` = base class/template (related contracts kaise code share karte hain)
 
 ---
 
@@ -584,47 +585,47 @@ graph TD
 ```
 
 **Legend:**
-- Blue = Interfaces (no implementation)
+- Blue = Interfaces (koi implementation nahi)
 - Orange = Abstract contracts (partial implementation)
 - Green = Concrete contracts (fully deployable)
-- Purple = Caller contracts (consumers of interfaces)
+- Purple = Caller contracts (interfaces ke consumers)
 
 ---
 
 ## 12. Key Takeaways
 
-- **Interfaces define "what"** — a list of functions a contract must expose, with no implementation details. Think of them as a promise a contract makes to the outside world.
+- **Interfaces "what" define karte hain** — functions ki ek list jo contract ko expose karni hi hongi, bina implementation details ke. Inhe ek promise samjho jo contract bahar ki duniya se karta hai.
 
-- **Abstract contracts define "what + some how"** — they can include state variables, constructors, and shared logic, but leave at least one function for subclasses to implement.
+- **Abstract contracts "what + kuch how" define karte hain** — inme state variables, constructors, aur shared logic ho sakta hai, lekin kam se kam ek function subclasses ke liye implement karne ke liye chhod dete hain.
 
-- **Interfaces enable interoperability** — because any contract implementing the same interface can be used interchangeably, you can write code that works with tokens, NFTs, or protocols deployed by anyone.
+- **Interfaces interoperability enable karte hain** — kyunki same interface implement karne wala koi bhi contract interchangeably use ho sakta hai, tum aisa code likh sakte ho jo kisi ke bhi deploy kiye tokens, NFTs, ya protocols ke saath kaam kare.
 
-- **The ERC-20 standard is just an interface** — IERC20 is what makes it possible for one DEX to trade thousands of different tokens using identical code.
+- **ERC-20 standard khud ek interface hi hai** — IERC20 hi hai jo ek DEX ko hazaron alag-alag tokens trade karne deta hai identical code use karke.
 
-- **The approve + transferFrom pattern** is the canonical way ERC-20 contracts allow third-party contracts to move tokens on a user's behalf, without custody.
+- **Approve + transferFrom pattern** hi wo canonical tareeka hai jisse ERC-20 contracts third-party contracts ko user ke behalf pe tokens move karne dete hain, bina custody liye.
 
-- **ERC-165's supportsInterface** gives contracts a way to advertise their capabilities, enabling safe runtime checks before making calls.
+- **ERC-165 ka supportsInterface** contracts ko apni capabilities advertise karne ka tareeka deta hai, jisse safe runtime checks possible hote hain calls karne se pehle.
 
-- **You cannot deploy an interface or abstract contract** — they are building blocks, not standalone products.
+- **Tum interface ya abstract contract deploy nahi kar sakte** — ye building blocks hain, standalone products nahi.
 
-- **All interface functions must be `external`** — they represent the public-facing API of a contract, not internal helpers.
+- **Interface ke sabhi functions `external` hone chahiye** — ye contract ka public-facing API represent karte hain, koi internal helper nahi.
 
 ---
 
 ## 13. Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni understanding test kar lo.
 
 ---
 
 **Question 1**
 
-You want to write a contract that can interact with any ERC-20 token deployed on Ethereum — tokens you did not write and whose source code you do not have. What Solidity feature makes this possible, and what do you need to know about the target contract to use it?
+Tumhe ek contract likhna hai jo Ethereum pe deploy hua kisi bhi ERC-20 token ke saath interact kar sake — tokens jo tumne likhe nahi aur jinka source code tumhare paas nahi hai. Solidity ki kaunsi feature ye possible banati hai, aur target contract ke baare mein tumhe kya jaanna zaruri hai use karne ke liye?
 
 <details>
 <summary>Answer</summary>
 
-You use an **interface** (`IERC20`). You only need to know the function signatures (names, parameter types, return types) of the functions you want to call — you do not need the contract's source code or any internal logic. You cast the token's deployed address to the `IERC20` interface type and call functions on it. If the contract does not implement those functions, the call will revert at runtime, but you will not get a compile-time error.
+Tum ek **interface** (`IERC20`) use karoge. Tumhe sirf un functions ke signatures (naam, parameter types, return types) jaanne hain jo call karne hain — contract ka source code ya koi internal logic jaanne ki zaroorat nahi. Tum token ke deployed address ko `IERC20` interface type mein cast karte ho aur uspe functions call karte ho. Agar contract un functions ko implement nahi karta, to call runtime pe revert ho jaayegi, lekin compile-time pe error nahi milega.
 
 </details>
 
@@ -632,14 +633,14 @@ You use an **interface** (`IERC20`). You only need to know the function signatur
 
 **Question 2**
 
-What is the key difference between an abstract contract and an interface? Give one example where you would prefer an abstract contract over an interface.
+Abstract contract aur interface mein sabse bada farak kya hai? Ek example do jahan tum interface ke bajaye abstract contract prefer karoge.
 
 <details>
 <summary>Answer</summary>
 
-An **interface** has no state variables, no constructor, and no implemented functions — only function signatures. An **abstract contract** can have all of those; it just must have at least one unimplemented (`virtual`) function.
+**Interface** mein koi state variables nahi hote, koi constructor nahi hota, aur koi implemented function nahi hota — sirf function signatures. **Abstract contract** mein ye sab ho sakta hai; bas kam se kam ek unimplemented (`virtual`) function hona chahiye.
 
-You would prefer an abstract contract when multiple related contracts need to share state and logic. For example, if you have `ETHPayment` and `TokenPayment` that both need an `owner` variable and an `onlyOwner` modifier, you put those in an abstract `Payment` contract. With an interface, you would have to duplicate that code in every subclass.
+Tum abstract contract tab prefer karoge jab multiple related contracts ko state aur logic share karna ho. Jaise agar tumhare paas `ETHPayment` aur `TokenPayment` hain jinhe dono ko `owner` variable aur `onlyOwner` modifier chahiye, to tum unhe ek abstract `Payment` contract mein daal doge. Interface ke saath, tumhe har subclass mein woh code duplicate karna padta.
 
 </details>
 
@@ -647,14 +648,14 @@ You would prefer an abstract contract when multiple related contracts need to sh
 
 **Question 3**
 
-A user wants to use your DeFi contract to swap their USDC tokens. They call your `swapTokens` function but it reverts with "Insufficient allowance — call approve() first". What must the user do before calling your contract, and why does this two-step process exist?
+Ek user tumhare DeFi contract se apne USDC tokens swap karna chahta hai. Woh tumhara `swapTokens` function call karta hai lekin ye "Insufficient allowance — call approve() first" bolke revert ho jaata hai. User ko tumhara contract call karne se pehle kya karna chahiye, aur ye two-step process kyun exist karta hai?
 
 <details>
 <summary>Answer</summary>
 
-The user must call `USDC.approve(yourContractAddress, amount)` on the USDC token contract first. This tells the USDC contract to record that your contract is allowed to move up to `amount` tokens on the user's behalf.
+User ko pehle USDC token contract pe `USDC.approve(yourContractAddress, amount)` call karna hoga. Isse USDC contract ko pata chalta hai ki tumhara contract user ke behalf pe `amount` tak ke tokens move kar sakta hai.
 
-The two-step process exists because of the ERC-20 design: token contracts only move tokens when instructed by the token owner (via `transfer`) or by an approved spender (via `transferFrom`). Your swap contract needs to use `transferFrom` to pull tokens from the user, but the token contract will reject that call unless the user has explicitly approved your contract. This ensures no contract can drain a user's tokens without their prior explicit permission — it is a fundamental security boundary in the ERC-20 standard.
+Ye two-step process ERC-20 ke design ki wajah se exist karta hai: token contracts sirf tabhi tokens move karte hain jab token owner khud instruct kare (`transfer` ke through) ya koi approved spender instruct kare (`transferFrom` ke through). Tumhare swap contract ko user se tokens pull karne ke liye `transferFrom` use karna padta hai, lekin token contract us call ko reject kar dega jab tak user ne explicitly tumhare contract ko approve nahi kiya. Isse ye ensure hota hai ki koi bhi contract user ki prior explicit permission ke bina uske tokens drain nahi kar sakta — ye ERC-20 standard ka ek fundamental security boundary hai.
 
 </details>
 

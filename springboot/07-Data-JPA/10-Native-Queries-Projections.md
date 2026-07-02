@@ -1,17 +1,11 @@
----
-tags: [data-jpa, query, projection, native-sql]
-aliases: [Native Query, Projection, DTO Projection, Tuple]
-stage: intermediate
----
-
 # Native Queries & Projections
 
-> [!info] For the Express/TS dev
-> Sometimes you need raw SQL — for performance, vendor-specific features (window functions, `LATERAL`, JSONB ops), or because the JPQL escapes you. Spring Data lets you drop to native SQL inline. **Projections** are the JPA way to say "I only want these columns" — equivalent to Prisma's `select`. Combined, they're the fastest way to read data without touching the persistence context.
+> [!info] Express/TS wale dev ke liye
+> Kabhi kabhi tumhe raw SQL chahiye hi hota hai — performance ke liye, vendor-specific features (window functions, `LATERAL`, JSONB ops) ke liye, ya phir JPQL se kaam nahi banta. Spring Data tumhe seedha native SQL likhne deta hai. **Projections** JPA ka tarika hai ye bolne ka "mujhe sirf ye columns chahiye" — bilkul Prisma ke `select` jaisa. Dono ko mila do, aur ye data padhne ka sabse fast tarika ban jaata hai, persistence context ko chhue bina.
 
-## Concept / How it works
+## Concept / Ye kaam kaise karta hai
 
-Three dimensions:
+Socho teen alag-alag knobs hain jinhe tum ghuma sakte ho:
 
 | Dimension | Choice |
 | --- | --- |
@@ -19,9 +13,17 @@ Three dimensions:
 | Return shape | Entity / DTO / interface projection / `Tuple` / primitives |
 | Mechanism | Spring Data method / `@Query` / `EntityManager` / `JdbcClient` |
 
+Matlab — tum decide karte ho: query kaunsi language mein likhni hai, result kis shape mein wapas chahiye, aur us result ko fetch karne ka mechanism kya hoga. Ye teeno independent choices hain, aur inka combination hi tumhara final query design banata hai.
+
+## Kyun zaruri hai?
+
+JPQL (Java Persistence Query Language) powerful hai, lekin har database ke apne special tricks hote hain — PostgreSQL ka JSONB, window functions, CTEs, `LATERAL` joins. JPQL in sabko support nahi karta kyuki wo database-agnostic hai. Aur agar tumhe pura `User` entity nahi chahiye, sirf `id` aur `email` chahiye, toh poora entity load karna waste hai — extra memory, extra columns fetch, aur persistence context mein unnecessary tracking. Yahi do problems solve karte hain **native queries** (raw SQL likhne ki azaadi) aur **projections** (sirf zaruri columns fetch karna).
+
 ## Code example
 
 ### Native query
+
+Jab JPQL kaafi nahi, seedha SQL likh do — bas `nativeQuery = true` lagana mat bhoolna:
 
 ```java
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -50,7 +52,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 }
 ```
 
-### Interface-based projection (the cleanest approach)
+Isko Express/Prisma ke `$queryRaw` jaisa samjho — tum database ke exact SQL dialect mein likh rahe ho, Spring Data usse pass-through karke result deta hai.
+
+### Interface-based projection (sabse clean approach)
+
+Ye Prisma ke `select: { id: true, email: true }` ka JPA version hai — bas ek interface banao jisme wahi getters ho jo tumhe chahiye:
 
 ```java
 public interface UserView {
@@ -69,9 +75,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 }
 ```
 
-Hibernate sees the interface, generates a SELECT only for the requested columns. **No entity instantiation, no persistence context cost.**
+Hibernate is interface ko dekhkar samajh jaata hai ki tumhe kaunse columns chahiye, aur SELECT statement mein sirf wahi columns maangta hai. **Poora entity instantiate nahi hota, persistence context ka overhead bhi nahi lagta.** `getDisplayName()` jaisa derived field bhi bana sakte ho SpEL expression se — bilkul waise jaise tum TypeScript mein ek computed getter likhte ho.
+
+> [!tip] Kya hota hai peeche se?
+> Hibernate ek dynamic proxy banata hai jo interface implement karta hai, aur query result se directly values fill kar deta hai. Isliye ye "closed projection" (sirf declared fields) ya "open projection" (SpEL wali) ho sakta hai.
 
 ### Class/record projection (constructor expression)
+
+Agar tumhe strongly-typed DTO chahiye jisme aggregation bhi ho (jaise order count), toh JPQL ka constructor expression use karo:
 
 ```java
 public record UserSummary(Long id, String email, String fullName, long orderCount) {}
@@ -84,9 +95,11 @@ public record UserSummary(Long id, String email, String fullName, long orderCoun
 List<UserSummary> summaries();
 ```
 
-Note: package + class name MUST be fully qualified. Records work fine.
+Yaad rakho: package + class name **fully qualified** hona chahiye JPQL ke `new` expression mein — sirf `UserSummary` nahi chalega, `com.example.user.UserSummary` likhna padega. Records bilkul fine chalte hain, kyuki Java records ke pass proper constructor hota hi hai.
 
-### Native + DTO mapping (with `@SqlResultSetMapping`)
+### Native + DTO mapping (`@SqlResultSetMapping` ke saath)
+
+Jab query native SQL mein ho, lekin result ko clean DTO mein map karna ho, toh `@SqlResultSetMapping` + `@ConstructorResult` ka combo use hota hai. Thoda verbose hai, lekin reusable hai:
 
 ```java
 @Entity
@@ -118,7 +131,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 }
 ```
 
+Yahan `@NamedNativeQuery` entity ke upar define hoti hai (Order class ke saath attach), aur repository sirf uska naam refer karta hai. Column names exactly wahi hone chahiye jo SQL mein alias diye hain (`month`, `revenue`).
+
 ### Tuple — dynamic result rows
+
+Kabhi tumhe fixed DTO banana bhi zaroorat nahi lagti — bas ad-hoc columns chahiye hote hain. Wahan `Tuple` kaam aata hai:
 
 ```java
 @Query("SELECT u.id AS id, u.email AS email, COUNT(o) AS orderCount " +
@@ -134,7 +151,11 @@ for (Tuple t : rows) {
 }
 ```
 
-### `JdbcClient` — when JPA isn't worth it
+Ye thoda JavaScript ke plain object jaisa feel deta hai — koi fixed type nahi, bas alias se value nikal lo. Lekin isme type-safety kam hai isliye production code mein interface projection ya record DTO better rehta hai.
+
+### `JdbcClient` — jab JPA ki zaroorat hi nahi
+
+Reports aur analytics queries ke liye JPA ka poora overhead (entity mapping, persistence context, dirty checking) chahiye hi nahi hota. Wahan Spring ka naya `JdbcClient` use karo — plain JDBC jaisa simple, lekin thoda modern syntax ke saath:
 
 ```java
 @Repository
@@ -159,9 +180,11 @@ public class ReportingDao {
 }
 ```
 
-No persistence context, no proxies, no surprises. Good for reports.
+Yahan koi persistence context nahi hai, koi proxy nahi hai, koi surprise nahi hai — bas ResultSet se manually row-by-row map kar rahe ho. Bade dashboard/reporting queries ke liye ye best choice hai kyuki ismein JPA ka koi baggage nahi.
 
-## When to pick each
+## Kaunsa approach kab pick karein?
+
+Zomato ki analogy se socho: order detail page pe poori order entity chahiye (relations ke saath) — toh normal repository method use karo. Lekin agar tum ek admin dashboard bana rahe ho jisme sirf "restaurant name + total orders count" dikhana hai lakhon rows mein se, toh wahan projection ya `JdbcClient` use karoge — poori entity load karna bewajah slow hoga.
 
 | Need | Use |
 | --- | --- |
@@ -188,6 +211,8 @@ const rows = await prisma.$queryRaw<MonthRev[]>`
 `;
 ```
 
+Prisma ke concepts JPA mein aise map hote hain:
+
 | Prisma | JPA / Spring Data |
 | --- | --- |
 | `select: {...}` | Interface projection / record DTO |
@@ -195,28 +220,28 @@ const rows = await prisma.$queryRaw<MonthRev[]>`
 | `$queryRawUnsafe` | `EntityManager.createNativeQuery` |
 | Tagged-template typed result | `@SqlResultSetMapping` + `@ConstructorResult` |
 
-## Gotchas
+## Gotchas — ye galtiyan sab karte hain
 
-> [!warning] Native query + `Pageable` requires `countQuery`
-> Spring Data can't auto-derive a COUNT for native SQL. Provide it.
+> [!warning] Native query + `Pageable` ko `countQuery` chahiye hi chahiye
+> Spring Data JPQL ke liye khud COUNT query bana leta hai, lekin native SQL ke liye nahi bana sakta (kyuki SQL parse nahi kar sakta). Tumhe explicitly `countQuery` dena hi padega, warna exception milega.
 
-> [!warning] Interface projections + nested associations need joins in your `@Query`
-> Otherwise Hibernate fires N+1 to load each association.
+> [!warning] Interface projections + nested associations ko `@Query` mein joins chahiye
+> Agar tumne projection interface mein `getOrders()` jaisa nested association access kiya bina proper join ke, toh Hibernate har row ke liye alag query fire karega — matlab N+1 problem wahi wapas aa gayi jisse bachne ke liye tumne projection use kiya tha.
 
-> [!warning] Native queries don't update the persistence context
-> A native UPDATE bypasses Hibernate's first-level cache. Already-loaded entities show stale data. `em.clear()` if mixing.
+> [!warning] Native queries persistence context ko update nahi karti
+> Agar tumne native `UPDATE` chalaya, toh Hibernate ka first-level cache (persistence context) ko pata hi nahi chalega. Pehle se load ki hui entities stale data dikhati rahengi. Agar dono mila rahe ho toh `em.clear()` call karo taaki cache reset ho jaaye.
 
-> [!warning] DTO projections must MATCH the constructor exactly
-> `new UserSummary(u.id, u.email)` — order, types, count all matter. Errors are at runtime.
+> [!warning] DTO projections ka constructor EXACTLY match hona chahiye
+> `new UserSummary(u.id, u.email)` mein order, types, count sab kuch match karna zaroori hai jo actual record/class constructor mein hai. Agar mismatch hai toh compile time pe nahi, **runtime** pe error milega — isliye careful rehna.
 
-> [!warning] PostgreSQL `RETURNING` won't work via `@Modifying @Query`
-> Spring Data treats the call as void/int. Use `EntityManager` + `createNativeQuery(...).getResultList()` if you need it.
+> [!warning] PostgreSQL ka `RETURNING` `@Modifying @Query` se kaam nahi karega
+> Spring Data `@Modifying` query ko void ya int return type maan leta hai (affected rows count). Agar tumhe `RETURNING` clause ka actual data chahiye, toh `EntityManager` use karo aur `createNativeQuery(...).getResultList()` call karo.
 
-> [!tip] Profile, don't guess
-> Enable `hibernate.generate_statistics` and look at the actual queries before deciding to drop to native SQL.
+> [!tip] Guess mat karo, profile karo
+> `hibernate.generate_statistics` enable karo aur dekho actual mein kaunsi queries fire ho rahi hain, kitni baar ho rahi hain — usके baad decide karo ki native SQL pe jaana zaroori hai ya nahi. Bina data ke optimization karna time waste hai.
 
 > [!tip] Records + Java text blocks = readable queries
-> Triple-quoted strings + record DTOs make modern JPA code surprisingly nice.
+> Triple-quoted text blocks (`"""..."""`) aur record DTOs ka combo modern JPA code ko surprisingly clean bana deta hai — SQL formatting bhi maintain hoti hai aur DTO bhi ek-line mein define ho jaata hai.
 
 ## Related
 

@@ -1,56 +1,56 @@
-# 🔐 Database Security — Users, Roles, Permissions, and SQL Injection
+# 🔐 Database Security — Users, Roles, Permissions, aur SQL Injection
 
-## What You Will Learn
+## Is Chapter Mein Kya Seekhoge
 
-By the end of this chapter you will understand how databases control who can access what data, how SQL Injection attacks work and how to prevent them, how to store passwords safely, how to encrypt sensitive columns, and how to audit database activity. Security is not an afterthought — it is something you design in from day one.
-
----
-
-## 🧭 Why Database Security Matters
-
-A database often contains the most valuable assets a company owns: user credentials, payment information, medical records, and business secrets. A single misconfiguration or careless query can expose every row to an attacker. In 2021 alone, data breaches cost an average of USD 4.24 million per incident (IBM Cost of a Data Breach Report).
-
-The good news is that the core security model of relational databases is remarkably consistent across vendors and relatively straightforward to learn.
+Is chapter ke end tak tumhe samajh aa jayega ki databases kaise decide karte hain "kisko kya access milega", SQL Injection attacks kaise hote hain aur unse kaise bachein, passwords ko safely kaise store karein, sensitive columns ko encrypt kaise karein, aur database activity ko audit kaise karein. Security koi baad mein sochne wali cheez nahi hai — ye din 1 se hi design karni padti hai. Jaise Zomato apna payment system security-first design karta hai, waise hi tumhara database bhi.
 
 ---
 
-## 👤 Authentication and Authorization
+## 🧭 Database Security Itni Zaruri Kyun Hai?
 
-**Authentication** answers "Who are you?" — verifying an identity with credentials.  
-**Authorization** answers "What are you allowed to do?" — checking permissions after identity is confirmed.
+Socho — ek database mein company ka sabse valuable asset pada hota hai: user credentials, payment info, medical records, business secrets. Ek chhoti si galti ya careless query, aur poora data attacker ke haath mein. 2021 mein IBM ki report ke mutabik, ek data breach ka average cost tha USD 4.24 million — matlab ek chhoti si mistake, karodon ka nuksaan.
 
-Databases enforce both layers natively.
+Achhi baat ye hai ki relational databases ka security model har vendor (Postgres, MySQL, SQL Server, Oracle) mein kaafi consistent hai — ek baar samajh liya, toh sabme kaam aayega.
 
 ---
 
-### Creating Database Users
+## 👤 Authentication aur Authorization
 
-Every person or application that connects to a database does so as a **database user** (sometimes called a login). Each vendor has its own syntax.
+**Authentication** ka matlab hai — "Tum ho kaun?" — jaise Paytm login karte waqt password ya OTP se identity confirm hoti hai.
+**Authorization** ka matlab hai — "Tumhe kya karne ki permission hai?" — identity confirm hone ke baad, kya tum sirf apna wallet dekh sakte ho ya admin panel bhi access kar sakte ho.
+
+Database dono layers ko natively handle karta hai.
+
+---
+
+### Database Users Banana
+
+Har person ya application jo database se connect hota hai, wo ek **database user** (kabhi-kabhi "login" bhi kehte hain) ke roop mein connect hota hai. Har vendor ka apna syntax hai.
 
 ```sql
 -- PostgreSQL
 CREATE USER app_user WITH PASSWORD 'str0ng_p@ss!';
 
--- Or use CREATE ROLE (more flexible — roles can also log in)
+-- Ya CREATE ROLE use karo (zyada flexible — roles login bhi kar sakte hain)
 CREATE ROLE app_user WITH LOGIN PASSWORD 'str0ng_p@ss!';
 ```
 
 ```sql
 -- MySQL
--- The host part restricts WHERE the user can connect from.
--- '%' means "any host"; '127.0.0.1' means localhost only.
+-- Host part decide karta hai ki user KAHAN se connect kar sakta hai.
+-- '%' matlab "kisi bhi host se"; '127.0.0.1' matlab sirf localhost se.
 CREATE USER 'app_user'@'%' IDENTIFIED BY 'str0ng_p@ss!';
 
--- Restrict to localhost (recommended for app servers on the same machine)
+-- Sirf localhost tak restrict karo (recommended jab app server aur DB same machine pe ho)
 CREATE USER 'app_user'@'127.0.0.1' IDENTIFIED BY 'str0ng_p@ss!';
 ```
 
 ```sql
--- SQL Server (two-step: a server-level LOGIN, then a database-level USER)
--- Step 1 — create the login at the server level
+-- SQL Server (do steps mein hota hai: pehle server-level LOGIN, phir database-level USER)
+-- Step 1 — server level pe login banao
 CREATE LOGIN app_login WITH PASSWORD = 'str0ng_p@ss!';
 
--- Step 2 — inside the target database, map a user to that login
+-- Step 2 — target database ke andar, us login ko user se map karo
 USE my_database;
 CREATE USER app_user FOR LOGIN app_login;
 ```
@@ -58,38 +58,38 @@ CREATE USER app_user FOR LOGIN app_login;
 ```sql
 -- Oracle
 CREATE USER app_user IDENTIFIED BY str0ng_p@ss;
--- New users need at minimum the CREATE SESSION privilege to connect
+-- Naye users ko connect karne ke liye minimum CREATE SESSION privilege chahiye
 GRANT CREATE SESSION TO app_user;
 ```
 
-> **Tip:** Use strong, randomly-generated passwords for every database account. Store them in a secret manager (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault) rather than plain text config files.
+> **Tip:** Har database account ke liye strong, randomly-generated password use karo. Inhe kabhi plain text config file mein mat rakho — secret manager use karo (AWS Secrets Manager, HashiCorp Vault, Azure Key Vault), jaise tum apna ATM PIN kisi diary mein nahi likhte.
 
 ---
 
-### Roles — Grouping Permissions
+### Roles — Permissions Ko Group Karna
 
-Granting dozens of individual permissions to every user is error-prone and hard to audit. **Roles** are named collections of permissions. Grant the role; every user who holds it inherits its permissions.
+Har user ko individually dus-dus permissions dena error-prone hai aur audit karna mushkil. **Roles** ek named collection hote hain permissions ka. Role ko grant karo, aur jis-jis user ke paas wo role hai, use automatically saari permissions mil jaati hain — bilkul jaise Swiggy mein "Delivery Partner" role ke saath specific set of app-permissions bandhi hoti hain, har naye rider ko alag se define nahi karna padta.
 
 ```sql
--- PostgreSQL — create a role (no login), grant permissions to it,
--- then assign the role to a user
+-- PostgreSQL — ek role banao (login ke bina), usko permissions do,
+-- phir role ko user ko assign kardo
 CREATE ROLE readonly_role;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_role;
 GRANT readonly_role TO app_user;
 ```
 
 ```sql
--- MySQL — MySQL uses roles starting from version 8.0
+-- MySQL — roles version 8.0 se available hain
 CREATE ROLE 'readonly_role';
 GRANT SELECT ON my_database.* TO 'readonly_role';
 GRANT 'readonly_role' TO 'app_user'@'%';
--- Activate roles in the session (or set as default)
+-- Session mein roles activate karo (ya default set karo)
 SET DEFAULT ROLE 'readonly_role' TO 'app_user'@'%';
 ```
 
 ```sql
--- SQL Server — built-in fixed roles exist (db_datareader, db_datawriter, etc.)
--- You can also create custom roles
+-- SQL Server — built-in fixed roles already exist (db_datareader, db_datawriter, etc.)
+-- Custom roles bhi bana sakte ho
 CREATE ROLE ReadOnlyRole;
 GRANT SELECT ON dbo.users TO ReadOnlyRole;
 ALTER ROLE ReadOnlyRole ADD MEMBER app_user;
@@ -104,35 +104,35 @@ GRANT readonly_role TO app_user;
 
 ---
 
-### GRANT and REVOKE
+### GRANT aur REVOKE
 
-`GRANT` gives a permission; `REVOKE` takes it away.
+`GRANT` permission deta hai; `REVOKE` use waapas le leta hai.
 
 **Common privilege types:**
 
-| Privilege | What it allows |
+| Privilege | Ye kya allow karta hai |
 |-----------|----------------|
-| `SELECT` | Read rows |
-| `INSERT` | Add rows |
-| `UPDATE` | Modify rows |
-| `DELETE` | Remove rows |
-| `EXECUTE` | Run a stored procedure or function |
-| `ALL PRIVILEGES` | Everything above (and more) |
+| `SELECT` | Rows read karna |
+| `INSERT` | Rows add karna |
+| `UPDATE` | Rows modify karna |
+| `DELETE` | Rows remove karna |
+| `EXECUTE` | Stored procedure ya function run karna |
+| `ALL PRIVILEGES` | Upar wala sab (aur usse zyada) |
 
-**Grant examples that work the same across all major databases:**
+**Grant examples jo saari major databases mein same tarike se kaam karte hain:**
 
 ```sql
--- Allow a user to read one specific table
+-- User ko ek specific table read karne do
 GRANT SELECT ON orders TO app_user;
 
--- Allow a user to read and write one table
+-- User ko ek table read aur write karne do
 GRANT SELECT, INSERT, UPDATE, DELETE ON orders TO app_user;
 
--- Grant all privileges on a table
+-- Ek table pe saari privileges grant karo
 GRANT ALL PRIVILEGES ON orders TO app_user;
 ```
 
-**Database-level grants differ slightly:**
+**Database-level grants thoda alag hote hain:**
 
 ```sql
 -- PostgreSQL
@@ -142,19 +142,19 @@ GRANT CONNECT ON DATABASE my_database TO app_user;
 -- MySQL
 GRANT ALL PRIVILEGES ON my_database.* TO 'admin_user'@'%';
 GRANT SELECT ON my_database.* TO 'app_user'@'%';
-FLUSH PRIVILEGES;  -- MySQL requires this to apply changes immediately
+FLUSH PRIVILEGES;  -- MySQL mein changes turant apply karne ke liye ye zaruri hai
 
--- SQL Server — use database roles or schema permissions instead
+-- SQL Server — database roles ya schema permissions use karo instead
 GRANT SELECT ON SCHEMA::dbo TO app_user;
 
 -- Oracle
 GRANT CREATE SESSION, SELECT ANY TABLE TO admin_user;
 ```
 
-**Revoking permissions:**
+**Permissions revoke karna:**
 
 ```sql
--- Works the same across all databases
+-- Sab databases mein same tarike se kaam karta hai
 REVOKE SELECT ON orders FROM app_user;
 REVOKE ALL PRIVILEGES ON orders FROM app_user;
 ```
@@ -163,55 +163,55 @@ REVOKE ALL PRIVILEGES ON orders FROM app_user;
 
 ### 🛡️ Principle of Least Privilege
 
-> **Rule:** Grant every user or application only the exact permissions it needs — nothing more.
+> **Rule:** Har user ya application ko sirf utni hi permission do jitni use zaruri hai — usse ek bhi zyada nahi.
 
-Your web application almost certainly does not need to `DROP TABLE`, `CREATE USER`, or `GRANT` permissions. Create a dedicated app user and give it only what your queries actually require:
+Tumhari web application ko almost kabhi bhi `DROP TABLE`, `CREATE USER`, ya `GRANT` permissions ki zarurat nahi padti. Ek dedicated app user banao aur use sirf wahi do jo tumhari queries actually maangti hain:
 
 ```sql
--- PostgreSQL example: a read-write app user that cannot alter the schema
+-- PostgreSQL example: ek read-write app user jo schema alter nahi kar sakta
 CREATE USER webapp WITH PASSWORD 'randomly-generated-secret';
 GRANT CONNECT ON DATABASE shopdb TO webapp;
 GRANT USAGE ON SCHEMA public TO webapp;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE orders, products, customers TO webapp;
--- webapp cannot DROP tables, CREATE roles, or access system tables
+-- webapp tables DROP nahi kar sakta, roles CREATE nahi kar sakta, ya system tables access nahi kar sakta
 ```
 
-Separate your users by role:
+Apne users ko role ke hisaab se alag-alag rakho — jaise ek company mein delivery boy, warehouse manager, aur owner ke alag-alag access levels hote hain:
 
 | User | Purpose | Permissions |
 |------|---------|-------------|
-| `webapp` | Application runtime | SELECT, INSERT, UPDATE, DELETE on app tables |
-| `readonly` | Reporting / analytics | SELECT only |
-| `migrations` | Schema changes at deploy time | DDL (CREATE, ALTER, DROP) |
-| `dba` | Human administrator | SUPERUSER / DBA (used rarely) |
+| `webapp` | Application runtime | App tables pe SELECT, INSERT, UPDATE, DELETE |
+| `readonly` | Reporting / analytics | Sirf SELECT |
+| `migrations` | Deploy time pe schema changes | DDL (CREATE, ALTER, DROP) |
+| `dba` | Human administrator | SUPERUSER / DBA (bahut kam use hota hai) |
 
 ---
 
 ### 🔒 Row-Level Security (RLS)
 
-Standard table-level grants are all-or-nothing: a user can either read the whole `orders` table or none of it. **Row-Level Security** lets you add a filter so each user sees only the rows they own.
+Normal table-level grants all-or-nothing hote hain: ek user ya toh poori `orders` table read kar sakta hai, ya bilkul nahi. **Row-Level Security** tumhe ek filter add karne deta hai taaki har user sirf apni khud ki rows dekh sake — bilkul jaise Swiggy app mein tum sirf apna order history dekh sakte ho, kisi aur customer ka nahi.
 
 **PostgreSQL — CREATE POLICY**
 
 ```sql
--- 1. Enable RLS on the table
+-- 1. Table pe RLS enable karo
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
--- 2. Create a policy: users can only see their own orders
+-- 2. Ek policy banao: users sirf apne khud ke orders dekh sakein
 CREATE POLICY user_orders_policy
   ON orders
   FOR SELECT
   USING (user_id = current_setting('app.current_user_id')::INTEGER);
 
--- 3. The app sets the user context at the start of each session/transaction
+-- 3. App har session/transaction ki shuruaat mein user context set karta hai
 SET app.current_user_id = 42;
-SELECT * FROM orders;  -- Returns only rows where user_id = 42
+SELECT * FROM orders;  -- Sirf wahi rows return karega jaha user_id = 42
 ```
 
 **SQL Server — Security Policy with an Inline Table-Valued Function**
 
 ```sql
--- 1. Create a filter predicate function
+-- 1. Ek filter predicate function banao
 CREATE FUNCTION dbo.fn_user_order_filter(@user_id INT)
 RETURNS TABLE
 WITH SCHEMABINDING
@@ -219,27 +219,27 @@ AS
 RETURN
   SELECT 1 AS result WHERE @user_id = CAST(SESSION_CONTEXT(N'user_id') AS INT);
 
--- 2. Create a security policy that applies it
+-- 2. Ek security policy banao jo isko apply kare
 CREATE SECURITY POLICY OrderFilter
   ADD FILTER PREDICATE dbo.fn_user_order_filter(user_id) ON dbo.orders
   WITH (STATE = ON);
 ```
 
-**MySQL — No built-in RLS**
+**MySQL — Built-in RLS Nahi Hai**
 
-MySQL does not have native row-level security. Two common workarounds:
+MySQL mein native row-level security nahi hai. Do common workarounds hain:
 
-1. **Views** — create a view per user class that hard-codes the filter:
+1. **Views** — har user class ke liye ek view banao jisme filter hard-code ho:
    ```sql
    CREATE VIEW my_orders AS
      SELECT * FROM orders WHERE user_id = CURRENT_USER_ID();
    ```
-2. **Application logic** — always append `WHERE user_id = ?` to every query and use a parameterized query (see the SQL Injection section below).
+2. **Application logic** — har query ke saath hamesha `WHERE user_id = ?` append karo aur parameterized query use karo (neeche SQL Injection section dekho).
 
 **Oracle — Virtual Private Database (VPD)**
 
 ```sql
--- 1. Create a policy function that returns a WHERE clause string
+-- 1. Ek policy function banao jo WHERE clause string return kare
 CREATE OR REPLACE FUNCTION user_order_filter(
   schema_name IN VARCHAR2,
   table_name  IN VARCHAR2
@@ -248,7 +248,7 @@ BEGIN
   RETURN 'user_id = SYS_CONTEXT(''userenv'', ''client_identifier'')';
 END;
 
--- 2. Apply the policy to the table
+-- 2. Table pe policy apply karo
 DBMS_RLS.ADD_POLICY(
   object_schema  => 'HR',
   object_name    => 'ORDERS',
@@ -262,39 +262,39 @@ DBMS_RLS.ADD_POLICY(
 
 ### 🔗 Connection Security: SSL/TLS
 
-Always encrypt the connection between your application and the database. Without it, credentials and query results travel in plain text over the network.
+Apni application aur database ke beech connection ko hamesha encrypt karo. Agar nahi kiya, toh credentials aur query results network pe plain text mein travel karte hain — koi bhi beech mein baithkar padh sakta hai, jaise unlocked WhatsApp message.
 
-- **PostgreSQL:** Set `ssl = on` in `postgresql.conf`. Clients use `sslmode=require` (or `verify-full`) in the connection string.
-- **MySQL:** Enable `require_secure_transport = ON` in `my.cnf`. Clients add `ssl-mode=REQUIRED`.
-- **SQL Server:** Enable "Force Encryption" in SQL Server Configuration Manager.
-- **Oracle:** Use Oracle Native Network Encryption or Oracle Advanced Security (TLS/SSL).
+- **PostgreSQL:** `postgresql.conf` mein `ssl = on` set karo. Clients connection string mein `sslmode=require` (ya `verify-full`) use karein.
+- **MySQL:** `my.cnf` mein `require_secure_transport = ON` enable karo. Clients `ssl-mode=REQUIRED` add karein.
+- **SQL Server:** SQL Server Configuration Manager mein "Force Encryption" enable karo.
+- **Oracle:** Oracle Native Network Encryption ya Oracle Advanced Security (TLS/SSL) use karo.
 
 Connection string examples:
 
 ```bash
-# PostgreSQL — enforce SSL
+# PostgreSQL — SSL enforce karo
 postgresql://app_user:password@db.example.com:5432/shopdb?sslmode=require
 
-# MySQL — enforce SSL
+# MySQL — SSL enforce karo
 mysql://app_user:password@db.example.com:3306/shopdb?ssl=true
 ```
 
-> Never disable SSL/TLS enforcement just because it is "internal" traffic. Attackers who gain network access can still sniff unencrypted connections.
+> SSL/TLS enforcement ko kabhi bhi disable mat karo, ye sochkar ki traffic "internal" hai. Jo attacker network access le chuka hai, wo unencrypted connections aasani se sniff kar sakta hai.
 
 ---
 
-## 💉 SQL Injection — The Most Common Web Vulnerability
+## 💉 SQL Injection — Sabse Common Web Vulnerability
 
-SQL Injection (SQLi) consistently tops the OWASP Top 10 list of web application security risks. It happens when user-supplied input is concatenated directly into a SQL string, letting an attacker inject arbitrary SQL commands.
+SQL Injection (SQLi) consistently OWASP Top 10 list mein top pe rehta hai web application security risks ka. Ye tab hota hai jab user-supplied input directly ek SQL string mein concatenate kar diya jaata hai, jisse attacker arbitrary SQL commands inject kar sake.
 
 ---
 
-### A Vivid Example
+### Ek Zabardast Example
 
-Imagine a login form. The naïve backend code looks like this:
+Socho ek login form hai. Naïve backend code kuch aisa dikhta hai:
 
 ```python
-# VULNERABLE — NEVER do this
+# VULNERABLE — Ye KABHI mat karo
 username = request.form['username']
 password = request.form['password']
 
@@ -302,49 +302,49 @@ query = "SELECT * FROM users WHERE username = '" + username + "' AND password = 
 db.execute(query)
 ```
 
-A normal user types `alice` and `secret123`. The query becomes:
+Ek normal user `alice` aur `secret123` type karta hai. Query ye ban jaati hai:
 
 ```sql
 SELECT * FROM users WHERE username = 'alice' AND password = 'secret123'
 ```
 
-An attacker types the username `admin'--` and anything as the password. The query becomes:
+Lekin ek attacker username mein `admin'--` type karta hai aur password mein kuch bhi. Query ye ban jaati hai:
 
 ```sql
 SELECT * FROM users WHERE username = 'admin'--' AND password = 'anything'
 ```
 
-The `--` is a SQL comment. Everything after it — including the password check — is ignored. The attacker logs in as `admin` without knowing the password.
+`--` ek SQL comment hai. Uske baad sab kuch — password check bhi — ignore ho jaata hai. Attacker `admin` ban ke login kar leta hai, password jaane bina hi. Jaise koi tumhare ghar ka main lock crack kiye bina hi seedhe peeche wale darwaze se andar ghus jaaye.
 
-**Even more destructive:** an attacker could enter:
+**Aur bhi zyada destructive:** attacker ye enter kar sakta hai:
 
 ```
 '; DROP TABLE users; --
 ```
 
-Producing:
+Jo ye query banati hai:
 
 ```sql
 SELECT * FROM users WHERE username = ''; DROP TABLE users; --' AND password = '...'
 ```
 
-Depending on the database driver, this deletes the entire `users` table in one request.
+Database driver ke hisaab se, ye ek hi request mein poori `users` table delete kar sakta hai. Socho — ek din tumhara pura customer database gayab, sirf ek chhoti si input field ki wajah se.
 
 ---
 
-### How to Prevent: Parameterized Queries / Prepared Statements
+### Bachne Ka Tarika: Parameterized Queries / Prepared Statements
 
-The fix is to **never concatenate user input into SQL strings**. Instead, use **parameterized queries** (also called prepared statements). The database driver separates the SQL structure from the data — user input can never be interpreted as SQL commands.
+Fix simple hai — **user input ko kabhi SQL strings mein concatenate mat karo**. Iske bajaye **parameterized queries** (jinhe prepared statements bhi kehte hain) use karo. Database driver SQL structure ko data se alag rakhta hai — user input kabhi bhi SQL command ke roop mein interpret nahi ho sakta.
 
 **Python — psycopg2 (PostgreSQL)**
 
 ```python
 import psycopg2
 
-# VULNERABLE (never do this)
+# VULNERABLE (ye kabhi mat karo)
 query = f"SELECT * FROM users WHERE username = '{username}'"
 
-# SAFE — use %s placeholders, pass values as a tuple
+# SAFE — %s placeholders use karo, values ko tuple ke roop mein pass karo
 cursor.execute(
     "SELECT * FROM users WHERE username = %s AND password = %s",
     (username, password)
@@ -360,7 +360,7 @@ const pool = new Pool();
 // VULNERABLE
 const query = `SELECT * FROM users WHERE username = '${username}'`;
 
-// SAFE — use $1, $2, ... placeholders
+// SAFE — $1, $2, ... placeholders use karo
 const result = await pool.query(
   'SELECT * FROM users WHERE username = $1 AND password_hash = $2',
   [username, passwordHash]
@@ -383,32 +383,32 @@ pstmt.setString(2, passwordHash);
 ResultSet rs = pstmt.executeQuery();
 ```
 
-**The rule is simple:** the SQL template (with placeholders) is always a hard-coded string in your source code. User data flows in only through the bind parameters — never baked into the string itself.
+**Rule simple hai:** SQL template (placeholders ke saath) hamesha tumhare source code mein ek hard-coded string hoti hai. User data sirf bind parameters ke through andar aata hai — kabhi bhi string mein directly bake nahi hota.
 
 ---
 
 ### Second-Order SQL Injection
 
-First-order injection happens immediately when input hits the database. **Second-order** injection is subtler: the attacker stores a malicious payload in the database during one request, and it fires when retrieved and used in a subsequent query — often in an admin operation where the developer assumed the data was already "safe."
+First-order injection turant hoti hai jab input database tak pahunchta hai. **Second-order** injection thodi subtle hoti hai: attacker ek request mein malicious payload database mein store kar deta hai, aur ye tab fire hoti hai jab wo data baad mein retrieve hokar kisi doosri query mein use hota hai — often ek admin operation mein, jahan developer ne assume kar liya tha ki data pehle se hi "safe" hai.
 
 **Example flow:**
 
-1. Attacker registers with username: `admin'--`
-2. The registration query is parameterized — no injection yet. The value is stored safely.
-3. Later, an admin screen runs:
+1. Attacker register karta hai username: `admin'--` ke saath
+2. Registration query parameterized hai — abhi tak koi injection nahi. Value safely store ho jaati hai.
+3. Baad mein, ek admin screen ye run karti hai:
    ```python
-   # Developer forgot parameterization here because "data came from our DB"
+   # Developer yahan parameterization bhool gaya kyunki "data toh hamare DB se hi aaya"
    query = "UPDATE users SET role = 'user' WHERE username = '" + row['username'] + "'"
    ```
-4. The malicious username is now injected into this new query.
+4. Malicious username ab is naye query mein inject ho jaata hai.
 
-**Defence:** Use parameterized queries everywhere, not just at input boundaries. Treat all data as untrusted, regardless of where it came from.
+**Bachaav:** Parameterized queries hamesha use karo, sirf input boundaries pe nahi. Har data ko untrusted samjho, chahe wo kahi se bhi aaya ho — jaise ek trusted vendor se aaya raw material bhi quality check ke bina factory mein nahi jaata.
 
 ---
 
 ### Stored Procedure Injection
 
-Stored procedures are not automatically safe. If a procedure builds dynamic SQL internally using string concatenation, it is just as vulnerable:
+Stored procedures automatically safe nahi hote. Agar koi procedure andar hi string concatenation se dynamic SQL banata hai, toh wo bhi utna hi vulnerable hai:
 
 ```sql
 -- VULNERABLE stored procedure (SQL Server)
@@ -417,11 +417,11 @@ AS
 BEGIN
   DECLARE @sql NVARCHAR(500);
   SET @sql = 'SELECT * FROM users WHERE username = ''' + @username + '''';
-  EXEC(@sql);  -- Injected here!
+  EXEC(@sql);  -- Yahan inject ho gaya!
 END;
 ```
 
-**Safe version — use sp_executesql with parameters:**
+**Safe version — sp_executesql with parameters use karo:**
 
 ```sql
 -- SAFE stored procedure (SQL Server)
@@ -441,77 +441,77 @@ CREATE OR REPLACE FUNCTION search_users(p_username TEXT)
 RETURNS SETOF users AS $$
 DECLARE
 BEGIN
-  -- SAFE: USING clause binds parameters separately
+  -- SAFE: USING clause parameters ko alag se bind karta hai
   RETURN QUERY EXECUTE 'SELECT * FROM users WHERE username = $1'
     USING p_username;
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-> For the definitive reference, see the [OWASP SQL Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html).
+> Definitive reference ke liye, [OWASP SQL Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html) dekho.
 
 ---
 
 ## 🔑 Encryption
 
-### Hashing Passwords — Never Store Plain Text
+### Passwords Ko Hash Karna — Plain Text Kabhi Store Mat Karo
 
-If your `users` table contains plain-text passwords and an attacker reads your database, every single user account is compromised instantly. The solution is to **hash** passwords before storing them using a slow, salted hashing algorithm designed for passwords.
+Agar tumhari `users` table mein plain-text passwords pade hain aur attacker tumhara database padh leta hai, toh ek jhatke mein har user account compromise ho jaata hai. Solution ye hai ki passwords ko store karne se pehle **hash** karo, using ek slow, salted hashing algorithm jo specifically passwords ke liye banaya gaya hai.
 
-**Use bcrypt, Argon2, or scrypt at the application level:**
+**Application level pe bcrypt, Argon2, ya scrypt use karo:**
 
 ```python
-# Python — using bcrypt
+# Python — bcrypt use karke
 import bcrypt
 
-# When a user registers:
+# Jab user register karta hai:
 password = b"user_plaintext_password"
 hashed = bcrypt.hashpw(password, bcrypt.gensalt(rounds=12))
-# Store `hashed` in the database — it looks like:
+# `hashed` ko database mein store karo — ye kuch aisa dikhta hai:
 # $2b$12$EXAMPLEhashstring...
 
-# When a user logs in:
+# Jab user login karta hai:
 entered = b"user_plaintext_password"
 if bcrypt.checkpw(entered, hashed_from_db):
     print("Login successful")
 ```
 
 ```javascript
-// Node.js — using bcrypt
+// Node.js — bcrypt use karke
 const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 12;
 
-// On registration
+// Registration pe
 const hash = await bcrypt.hash(plaintextPassword, SALT_ROUNDS);
-// Store hash in DB
+// Hash ko DB mein store karo
 
-// On login
+// Login pe
 const match = await bcrypt.compare(plaintextPassword, hashFromDB);
 if (match) { /* authenticated */ }
 ```
 
-> **Never** use MD5 or SHA-1/SHA-256 alone for passwords. They are fast hash functions — an attacker with a GPU can crack billions of MD5 hashes per second. bcrypt is intentionally slow and includes a cost factor you can increase as hardware gets faster.
+> Passwords ke liye **kabhi** MD5 ya SHA-1/SHA-256 akela use mat karo. Ye fast hash functions hain — GPU wala attacker billions of MD5 hashes per second crack kar sakta hai. bcrypt jaan-boojh kar slow hai aur ek cost factor deta hai jise hardware improve hone ke saath badha sakte ho.
 
 ---
 
-### Encrypting Columns
+### Columns Ko Encrypt Karna
 
-Sometimes you must store sensitive data (PII, credit card numbers, health records) in an encrypted form so that even if someone dumps the raw table they cannot read it.
+Kabhi-kabhi tumhe sensitive data (PII, credit card numbers, health records) ko encrypted form mein store karna padta hai, taaki agar koi raw table dump bhi kar le, tab bhi wo use padh na sake.
 
 **PostgreSQL — pgcrypto extension**
 
 ```sql
--- Enable the extension once per database
+-- Extension ko ek baar database ke liye enable karo
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Insert encrypted data
+-- Encrypted data insert karo
 INSERT INTO patients (name, ssn_encrypted)
 VALUES (
   'Jane Doe',
   pgp_sym_encrypt('123-45-6789', 'your-encryption-key')
 );
 
--- Read and decrypt
+-- Read aur decrypt karo
 SELECT name, pgp_sym_decrypt(ssn_encrypted, 'your-encryption-key') AS ssn
 FROM patients;
 ```
@@ -519,81 +519,81 @@ FROM patients;
 **MySQL — AES_ENCRYPT / AES_DECRYPT**
 
 ```sql
--- Encrypt on insert (key should come from application config, not hardcoded)
+-- Insert pe encrypt karo (key application config se aani chahiye, hardcode mat karo)
 INSERT INTO patients (name, ssn_encrypted)
 VALUES (
   'Jane Doe',
   AES_ENCRYPT('123-45-6789', 'your-encryption-key')
 );
 
--- Decrypt on read
+-- Read pe decrypt karo
 SELECT name, AES_DECRYPT(ssn_encrypted, 'your-encryption-key') AS ssn
 FROM patients;
 ```
 
-> Column-level encryption protects specific fields but adds query overhead and means you generally cannot use `WHERE` clauses on encrypted columns without decrypting first. Plan your schema accordingly.
+> Column-level encryption specific fields ko protect karta hai lekin query overhead add karta hai, aur generally isse tum encrypted columns pe direct `WHERE` clause use nahi kar sakte, jab tak decrypt na karo. Apna schema uske hisaab se plan karo.
 
 ---
 
 ### Transparent Data Encryption (TDE)
 
-TDE encrypts the entire database at rest — the data files on disk, backups, and log files are all encrypted. It is transparent to the application (queries work normally) and protects against someone physically stealing the storage media.
+TDE poori database ko rest mein encrypt kar deta hai — disk pe data files, backups, aur log files sab encrypted hote hain. Ye application ke liye transparent hai (queries normally kaam karti hain) aur protect karta hai us scenario se jaha koi physically storage media chura le.
 
 **SQL Server**
 
 ```sql
--- 1. Create a master key
+-- 1. Master key banao
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'master-key-password';
 
--- 2. Create a certificate
+-- 2. Certificate banao
 CREATE CERTIFICATE TDECert WITH SUBJECT = 'TDE Certificate';
 
--- 3. Create a database encryption key
+-- 3. Database encryption key banao
 USE my_database;
 CREATE DATABASE ENCRYPTION KEY
   WITH ALGORITHM = AES_256
   ENCRYPTION BY SERVER CERTIFICATE TDECert;
 
--- 4. Enable encryption
+-- 4. Encryption enable karo
 ALTER DATABASE my_database SET ENCRYPTION ON;
 ```
 
 **Oracle — Advanced Security Option (ASO)**
 
 ```sql
--- Enable TDE tablespace encryption (Oracle 12c+)
+-- TDE tablespace encryption enable karo (Oracle 12c+)
 ALTER TABLESPACE users ENCRYPTION ONLINE ENCRYPT;
 ```
 
-**PostgreSQL** does not have built-in TDE as of PostgreSQL 16, but you can:
-- Use **filesystem-level encryption** (dm-crypt / LUKS on Linux)
-- Use **cloud provider managed encryption** (AWS RDS, Google Cloud SQL)
-- Patches and extensions like PGCRYPTO for column-level encryption
+**PostgreSQL** mein PostgreSQL 16 tak built-in TDE nahi hai, lekin tum ye kar sakte ho:
+- **Filesystem-level encryption** use karo (Linux pe dm-crypt / LUKS)
+- **Cloud provider managed encryption** use karo (AWS RDS, Google Cloud SQL)
+- Column-level encryption ke liye PGCRYPTO jaise patches/extensions
 
-**MySQL / MariaDB** — InnoDB supports tablespace encryption (enabled at the storage engine level with `innodb_encrypt_tables`).
+**MySQL / MariaDB** — InnoDB tablespace encryption support karta hai (storage engine level pe `innodb_encrypt_tables` se enable hota hai).
 
 ---
 
-## 📋 Auditing — Know What Happened
+## 📋 Auditing — Pata Ho Kya Hua Tha
 
-Auditing means recording who did what and when. This is essential for compliance (GDPR, HIPAA, SOC 2), forensic investigation after a breach, and detecting anomalous behaviour.
+Auditing ka matlab hai record karna ki kisne kya kiya aur kab kiya. Ye compliance ke liye zaruri hai (GDPR, HIPAA, SOC 2), breach ke baad forensic investigation ke liye, aur anomalous behaviour detect karne ke liye — bilkul jaise CRED apne transactions ka detailed log rakhta hai taaki koi bhi suspicious activity turant pakdi ja sake.
 
 ---
 
 ### General Query Logging
 
-All major databases can log queries, but doing so for every single statement on a busy production server is expensive. Use selective logging or a dedicated audit extension instead.
+Saari major databases queries log kar sakti hain, lekin busy production server pe har single statement log karna expensive hai. Selective logging ya ek dedicated audit extension use karo.
 
-**PostgreSQL — enable statement logging in postgresql.conf**
+**PostgreSQL — postgresql.conf mein statement logging enable karo**
 
 ```ini
-# Log all queries (only on dev — too noisy for prod)
+# Saari queries log karo (sirf dev pe — prod ke liye bahut noisy hai)
 log_statement = 'all'
 
-# Log only slow queries (> 1 second) — safer for prod
+# Sirf slow queries log karo (> 1 second) — prod ke liye safe
 log_min_duration_statement = 1000
 
-# Log connections
+# Connections log karo
 log_connections = on
 log_disconnections = on
 ```
@@ -601,11 +601,11 @@ log_disconnections = on
 **MySQL**
 
 ```sql
--- Enable general query log (not for production)
+-- General query log enable karo (production ke liye nahi)
 SET GLOBAL general_log = 'ON';
 SET GLOBAL general_log_file = '/var/log/mysql/general.log';
 
--- Enable slow query log (production-safe)
+-- Slow query log enable karo (production-safe)
 SET GLOBAL slow_query_log = 'ON';
 SET GLOBAL long_query_time = 1;  -- seconds
 ```
@@ -614,53 +614,53 @@ SET GLOBAL long_query_time = 1;  -- seconds
 
 ### pgaudit — Fine-Grained Audit Logging (PostgreSQL)
 
-The `pgaudit` extension gives you structured, detailed audit logs that comply with regulatory requirements. It logs DDL, DML, and role changes separately.
+`pgaudit` extension tumhe structured, detailed audit logs deta hai jo regulatory requirements comply karte hain. Ye DDL, DML, aur role changes ko alag-alag log karta hai.
 
 ```bash
-# Install (Debian/Ubuntu)
+# Install karo (Debian/Ubuntu)
 sudo apt install postgresql-16-pgaudit
 ```
 
 ```ini
 # postgresql.conf
 shared_preload_libraries = 'pgaudit'
-pgaudit.log = 'write, ddl'   # Log INSERT/UPDATE/DELETE and schema changes
-pgaudit.log_catalog = off    # Reduce noise from system catalog queries
+pgaudit.log = 'write, ddl'   # INSERT/UPDATE/DELETE aur schema changes log karo
+pgaudit.log_catalog = off    # System catalog queries se noise kam karo
 ```
 
 ```sql
--- Or set audit rules for a specific role
+-- Ya ek specific role ke liye audit rules set karo
 ALTER ROLE sensitive_user SET pgaudit.log = 'all';
 ```
 
-Log entries include: timestamp, user, database, object, command type, and the full statement — everything you need for an audit trail.
+Log entries mein ye sab hota hai: timestamp, user, database, object, command type, aur full statement — audit trail ke liye jo kuch bhi chahiye, sab kuch.
 
 **SQL Server — SQL Server Audit**
 
 ```sql
--- Create a server audit (writes to a file)
+-- Ek server audit banao (file mein likhta hai)
 CREATE SERVER AUDIT MyAudit
   TO FILE (FILEPATH = 'C:\Audits\');
 
--- Create a database audit specification
+-- Ek database audit specification banao
 CREATE DATABASE AUDIT SPECIFICATION MyDbAudit
   FOR SERVER AUDIT MyAudit
   ADD (SELECT ON dbo.users BY public),
   ADD (INSERT ON dbo.orders BY public)
   WITH (STATE = ON);
 
--- Enable the server audit
+-- Server audit enable karo
 ALTER SERVER AUDIT MyAudit WITH (STATE = ON);
 ```
 
 **Oracle — Unified Auditing (12c+)**
 
 ```sql
--- Create an audit policy
+-- Ek audit policy banao
 CREATE AUDIT POLICY orders_access_policy
   ACTIONS SELECT ON hr.orders, INSERT ON hr.orders;
 
--- Enable it
+-- Enable karo
 AUDIT POLICY orders_access_policy;
 ```
 
@@ -668,18 +668,16 @@ AUDIT POLICY orders_access_policy;
 
 ## ✅ Key Takeaways
 
-| Topic | What to Remember |
-|-------|-----------------|
-| Users and roles | Always create dedicated application users; never connect as a superuser/root |
-| Least privilege | Grant only what each user actually needs; review and revoke regularly |
-| Row-level security | Built-in in PostgreSQL and SQL Server; use views or app logic in MySQL |
-| SSL/TLS | Always encrypt connections between app and database |
-| SQL Injection | Never concatenate user input into SQL — always use parameterized queries |
-| Second-order SQLi | Parameterize every query, not just input boundaries |
-| Password storage | Use bcrypt/Argon2; never store plain text or fast hashes like MD5 |
-| Column encryption | pgcrypto (PostgreSQL), AES_ENCRYPT (MySQL) for sensitive fields |
-| TDE | Protects data at rest on disk; supported natively in SQL Server and Oracle |
-| Auditing | Use pgaudit (PostgreSQL) or built-in audit objects (SQL Server, Oracle) for compliance |
+- **Users aur roles**: Hamesha dedicated application users banao; kabhi bhi superuser/root ke roop mein connect mat karo.
+- **Least privilege**: Har user ko sirf wahi do jo use actually chahiye; regularly review aur revoke karo.
+- **Row-level security**: PostgreSQL aur SQL Server mein built-in hai; MySQL mein views ya app logic use karo.
+- **SSL/TLS**: App aur database ke beech connection hamesha encrypt karo.
+- **SQL Injection**: User input ko kabhi SQL mein concatenate mat karo — hamesha parameterized queries use karo.
+- **Second-order SQLi**: Har query ko parameterize karo, sirf input boundaries pe nahi.
+- **Password storage**: bcrypt/Argon2 use karo; plain text ya MD5 jaisi fast hashes kabhi mat use karo.
+- **Column encryption**: Sensitive fields ke liye pgcrypto (PostgreSQL), AES_ENCRYPT (MySQL) use karo.
+- **TDE**: Disk pe data ko rest mein protect karta hai; SQL Server aur Oracle mein natively supported hai.
+- **Auditing**: Compliance ke liye pgaudit (PostgreSQL) ya built-in audit objects (SQL Server, Oracle) use karo.
 
 ---
 
@@ -687,31 +685,31 @@ AUDIT POLICY orders_access_policy;
 
 **Question 1**
 
-A developer writes this code in a web application:
+Ek developer web application mein ye code likhta hai:
 
 ```python
 user_input = request.args.get('id')
 query = "SELECT * FROM products WHERE id = " + user_input
 ```
 
-a) What type of vulnerability does this introduce?  
-b) An attacker sends `id=1 OR 1=1`. What does the resulting query look like, and what is the effect?  
-c) Rewrite this code using parameterized queries in Python (psycopg2 style).
+a) Ye kaunsi vulnerability introduce karta hai?
+b) Ek attacker `id=1 OR 1=1` bhejta hai. Resulting query kaisi dikhegi, aur iska effect kya hoga?
+c) Is code ko Python (psycopg2 style) mein parameterized queries use karke rewrite karo.
 
 ---
 
 **Question 2**
 
-Your company is building a multi-tenant SaaS application. Each customer should only be able to see their own rows in the `invoices` table, which has a `tenant_id` column. You are using PostgreSQL.
+Tumhari company ek multi-tenant SaaS application bana rahi hai. Har customer ko sirf apni khud ki rows dikhni chahiye `invoices` table mein, jisme ek `tenant_id` column hai. Tum PostgreSQL use kar rahe ho.
 
-a) Which PostgreSQL feature would you use to enforce this at the database level?  
-b) Write the SQL to enable that feature on `invoices` and create a policy that restricts each connection to its own `tenant_id` (use a session-level setting called `app.tenant_id`).
+a) Isko database level pe enforce karne ke liye tum kaunsa PostgreSQL feature use karoge?
+b) `invoices` pe us feature ko enable karne ka SQL likho aur ek policy banao jo har connection ko sirf uske apne `tenant_id` tak restrict kare (session-level setting `app.tenant_id` naam ki use karo).
 
 ---
 
 **Question 3**
 
-Your DBA shows you this `users` table:
+Tumhara DBA tumhe ye `users` table dikhata hai:
 
 ```
 id | username | password
@@ -720,10 +718,10 @@ id | username | password
 2  | bob      | p@ssword
 ```
 
-a) What is critically wrong with this design?  
-b) What algorithm should you use instead, and at which layer (database or application)?  
-c) If you switch to proper password hashing, can two users with the same plain-text password end up with the same stored value? Why or why not?
+a) Is design mein critically kya galat hai?
+b) Iske bajaye kaunsa algorithm use karna chahiye, aur kis layer pe (database ya application)?
+c) Agar tum proper password hashing pe switch karte ho, toh kya same plain-text password wale do users ka stored value bhi same ho sakta hai? Kyun ya kyun nahi?
 
 ---
 
-> **Answers are in the companion answer key (`14-security-answers.md`). Try the questions yourself first!**
+> **Answers companion answer key mein hain (`14-security-answers.md`). Pehle khud try karo!**

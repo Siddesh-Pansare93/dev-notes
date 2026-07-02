@@ -1,62 +1,64 @@
 # 13. JSON in SQL Databases
 
-> **Prerequisite:** You should be comfortable with basic `SELECT`, `INSERT`, `UPDATE`, and table design before reading this chapter.
+> **Prerequisite:** Basic `SELECT`, `INSERT`, `UPDATE` aur table design ka thoda idea hona chahiye, tabhi ye chapter maza dega.
 
 ---
 
-## 🤔 Why Store JSON Inside a Relational Database?
+## 🤔 Relational Database Ke Andar JSON Kyun Rakhein?
 
-Relational databases are built around a rigid structure: every row has the same columns, every column has a fixed type. That works brilliantly for orders, invoices, and user accounts — data where the shape is well-known and stable.
+Socho relational database ek strict Excel sheet jaisa hai — har row mein same columns, har column ka fixed type. Orders, invoices, user accounts jaise data ke liye ye perfect hai kyunki shape fix hai, kabhi nahi badalta.
 
-But modern applications deal with data that doesn't fit neatly into columns:
+Lekin real-world apps mein aisa data bhi aata hai jo columns mein fit hi nahi hota:
 
-- A product catalogue where every category has different attributes (a book has an ISBN, a shirt has a size and color, a laptop has a CPU and RAM)
-- User preferences that vary wildly per user
-- Webhook payloads or event logs arriving from external systems
-- Feature flags or configuration blobs attached to records
+- Ek product catalogue jahan har category ke attributes alag hain (book ka ISBN hota hai, shirt ka size-color, laptop ka CPU-RAM)
+- User preferences jo har user ke hisaab se bahut alag hoti hain
+- Webhook payloads ya event logs jo external systems se aate hain
+- Feature flags ya config blobs jo records ke saath attach hote hain
 
-You have two classic options: create dozens of nullable columns (messy), or split into many related tables (lots of joins). JSON gives you a third path: **store the flexible part as a JSON document, keep the structured part as regular columns**.
+Ab tumhare paas do purane options hain: dus-dus nullable columns bana do (ganda lagta hai), ya phir bahut saari related tables bana ke joins karo (bahut zyada joins). JSON tumhe teesra rasta deta hai: **flexible part ko JSON document mein store karo, aur structured part ko normal columns mein rakho**.
 
-### The Core Benefits
+### Core Fayde
 
-| Benefit | Explanation |
+Zomato ka example lo — order table mein `order_id`, `restaurant_id`, `total_amount` fix columns hain. Lekin "customisations" (extra cheese, spice level, no onion) har order mein alag ho sakti hain — ye JSON mein daal do.
+
+| Fayda | Explanation |
 |---|---|
-| **Flexibility** | Add new keys to the JSON without an `ALTER TABLE` migration |
-| **Fewer joins** | Embed related data (e.g. address inside a user row) instead of a separate table |
-| **Semi-structured data** | Handles data where the shape varies per row |
-| **Single source of truth** | Keep everything in one DB instead of mixing SQL + a separate document store |
+| **Flexibility** | Naye keys JSON mein add kar sakte ho bina `ALTER TABLE` migration ke |
+| **Kam joins** | Related data ko embed kar do (jaise address user row ke andar) alag table banane ke bajaye |
+| **Semi-structured data** | Jahan har row ka shape alag ho, wahan kaam aata hai |
+| **Single source of truth** | Sab kuch ek hi DB mein rakho, alag se document store mix karne ki zarurat nahi |
 
-> **Golden rule:** JSON is a tool, not a replacement for good relational design. Use it for the *variable* parts of a row; use regular columns for the *stable, queryable* parts.
+> **Golden rule:** JSON ek tool hai, good relational design ka replacement nahi. Row ke *variable* parts ke liye JSON use karo; *stable, query-hone-wale* parts ke liye normal columns hi rakho.
 
 ---
 
-## 🗃️ JSON vs JSONB — The PostgreSQL Distinction
+## 🗃️ JSON vs JSONB — PostgreSQL Ka Farak
 
-PostgreSQL offers **two** JSON column types. This is one of the most important decisions you'll make:
+PostgreSQL mein **do** JSON column types milte hain. Ye decision bahut important hai:
 
 | Feature | `JSON` | `JSONB` |
 |---|---|---|
-| Storage format | Plain text (exactly as you typed it) | Binary (parsed, decomposed) |
-| Preserves whitespace | Yes | No |
-| Preserves key order | Yes | No (sorted internally) |
-| Duplicate keys | Keeps last one silently... actually keeps all | Keeps last value per key |
-| Write speed | Slightly faster (no parsing) | Slightly slower (parses on write) |
-| Read/query speed | **Slow** (re-parses text every time) | **Fast** (already parsed) |
-| Indexing | Not supported | Supports GIN index |
-| Operators (`@>`, `?`, etc.) | Not supported | **Supported** |
+| Storage format | Plain text (jaisa tumne likha waisa hi) | Binary (parsed, decompose hua) |
+| Whitespace preserve karta hai | Haan | Nahi |
+| Key order preserve karta hai | Haan | Nahi (internally sort ho jata hai) |
+| Duplicate keys | Sab keep karta hai silently | Har key ka sirf last value rakhta hai |
+| Write speed | Thodi fast (parsing nahi hoti) | Thodi slow (write pe parse hota hai) |
+| Read/query speed | **Slow** (har baar text re-parse hota hai) | **Fast** (already parsed hai) |
+| Indexing | Support nahi hai | GIN index support karta hai |
+| Operators (`@>`, `?`, etc.) | Support nahi | **Support hai** |
 
-**Use `JSONB` in almost every real-world scenario.** The only reason to use `JSON` is if you need to preserve the exact byte-for-byte text of the original document (e.g., auditing what was sent by a client).
+**Almost har real-world case mein `JSONB` hi use karo.** `JSON` tabhi lena jab tumhe original document ka byte-for-byte exact text preserve karna ho (jaise client ne kya bheja tha, uska audit rakhna ho).
 
 ```sql
--- PostgreSQL: creating a table with JSONB
+-- PostgreSQL: JSONB ke saath table banana
 CREATE TABLE users (
     id        SERIAL PRIMARY KEY,
     name      TEXT NOT NULL,
     email     TEXT NOT NULL,
-    data      JSONB          -- flexible metadata lives here
+    data      JSONB          -- flexible metadata yahan rahega
 );
 
--- Inserting JSON data
+-- JSON data insert karna
 INSERT INTO users (name, email, data) VALUES (
     'Priya Sharma',
     'priya@example.com',
@@ -66,101 +68,101 @@ INSERT INTO users (name, email, data) VALUES (
 
 ---
 
-## 🐘 PostgreSQL — JSON Operators and Functions
+## 🐘 PostgreSQL — JSON Operators Aur Functions
 
-PostgreSQL has the richest JSON support of any major relational database. Here is the complete toolkit:
+PostgreSQL ka JSON support sabse best hai kisi bhi major relational database mein. Poora toolkit dekho:
 
 ### Extraction Operators
 
 ```sql
--- -> returns JSON (useful when the result is an object or array)
+-- -> JSON return karta hai (jab result object ya array ho tab useful)
 SELECT data -> 'role' FROM users;
--- Result: "admin"  (a JSON string — note the quotes)
+-- Result: "admin"  (ye JSON string hai — quotes note karo)
 
--- ->> returns TEXT (most common for simple values)
+-- ->> TEXT return karta hai (simple values ke liye sabse common)
 SELECT data ->> 'role' FROM users;
--- Result: admin  (plain text, no quotes)
+-- Result: admin  (plain text, koi quotes nahi)
 
--- Nested path with #> (returns JSON)
+-- Nested path #> se (JSON return karta hai)
 SELECT data #> '{notifications, email}' FROM users;
 -- Result: true
 
--- Nested path with #>> (returns TEXT)
+-- Nested path #>> se (TEXT return karta hai)
 SELECT data #>> '{notifications, email}' FROM users;
--- Result: true  (as text)
+-- Result: true  (text ke roop mein)
 
--- Array element by index (0-based)
--- Suppose data = '{"tags": ["sql", "backend", "api"]}'
+-- Array element index se (0-based)
+-- Maan lo data = '{"tags": ["sql", "backend", "api"]}'
 SELECT data -> 'tags' -> 0 FROM users;
 -- Result: "sql"
 ```
 
-### Existence and Containment Operators (JSONB only)
+### Existence Aur Containment Operators (Sirf JSONB)
 
 ```sql
--- ? checks if a top-level key exists
+-- ? check karta hai ki top-level key exist karti hai ya nahi
 SELECT * FROM users WHERE data ? 'role';
 
--- @> checks containment: "does this JSONB contain that subset?"
+-- @> containment check karta hai: "kya ye JSONB us subset ko contain karta hai?"
 SELECT * FROM users WHERE data @> '{"role": "admin"}';
 
--- <@ is the reverse containment check
+-- <@ reverse containment check hai
 SELECT * FROM users WHERE '{"role": "admin"}' <@ data;
 
--- ?| checks if ANY of these keys exist
+-- ?| check karta hai ki in mein se KOI EK key exist karti hai
 SELECT * FROM users WHERE data ?| ARRAY['role', 'permissions'];
 
--- ?& checks if ALL of these keys exist
+-- ?& check karta hai ki SAARI keys exist karti hain
 SELECT * FROM users WHERE data ?& ARRAY['role', 'theme'];
 ```
 
 ### Useful Functions
 
 ```sql
--- jsonb_object_keys: list all top-level keys
+-- jsonb_object_keys: saari top-level keys list karo
 SELECT jsonb_object_keys(data) FROM users WHERE id = 1;
 
--- jsonb_array_elements: expand a JSON array into rows
+-- jsonb_array_elements: JSON array ko rows mein expand karo
 SELECT jsonb_array_elements(data -> 'tags') AS tag FROM users WHERE id = 1;
 
--- jsonb_set: update a value inside JSONB
+-- jsonb_set: JSONB ke andar ek value update karo
 UPDATE users
 SET data = jsonb_set(data, '{theme}', '"light"')
 WHERE id = 1;
 
--- Remove a key with the - operator
+-- - operator se key remove karo
 UPDATE users
 SET data = data - 'theme'
 WHERE id = 1;
 
--- Merge two JSONB objects with ||
+-- || se do JSONB objects merge karo
 UPDATE users
 SET data = data || '{"verified": true}'
 WHERE id = 1;
 ```
 
-### GIN Index — Making JSONB Queries Fast
+### GIN Index — JSONB Queries Ko Fast Banana
 
-Without an index, every JSONB query does a full table scan. A GIN (Generalized Inverted Index) index fixes this:
+Bina index ke, har JSONB query full table scan karti hai. GIN (Generalized Inverted Index) index ye problem fix karta hai — jaise Swiggy pe restaurant search ke liye index hota hai taaki har baar poori list scan na karni pade:
 
 ```sql
--- Index the entire JSONB column (supports ?, ?|, ?&, @>)
+-- Poore JSONB column ko index karo (?, ?|, ?&, @> support karta hai)
 CREATE INDEX idx_users_data ON users USING gin(data);
 
--- Index a specific path (more targeted, smaller index)
+-- Ek specific path ko index karo (zyada targeted, chhota index)
 CREATE INDEX idx_users_role ON users USING gin((data -> 'role'));
 ```
 
-After creating the GIN index, queries like `WHERE data @> '{"role": "admin"}'` become very fast even on millions of rows.
+GIN index banane ke baad, `WHERE data @> '{"role": "admin"}'` jaisi queries lakhon rows pe bhi bahut fast ho jaati hain.
 
 ---
 
 ## 🐬 MySQL — JSON Support (5.7+)
 
-MySQL added native JSON support in version 5.7. The column type is simply `JSON`, and MySQL validates that the value is well-formed on insert.
+MySQL ne version 5.7 mein native JSON support add kiya. Column type simply `JSON` hai, aur insert pe MySQL check karta hai ki value well-formed hai ya nahi.
 
 ```sql
--- Creating a table with a JSON column
+-- JSON column ke saath table banana
 CREATE TABLE users (
     id    INT AUTO_INCREMENT PRIMARY KEY,
     name  VARCHAR(100) NOT NULL,
@@ -168,7 +170,7 @@ CREATE TABLE users (
     data  JSON
 );
 
--- Inserting
+-- Insert karna
 INSERT INTO users (name, email, data) VALUES (
     'Priya Sharma',
     'priya@example.com',
@@ -176,19 +178,19 @@ INSERT INTO users (name, email, data) VALUES (
 );
 ```
 
-### Extracting Values
+### Values Extract Karna
 
 ```sql
--- JSON_EXTRACT — returns a JSON value
+-- JSON_EXTRACT — ek JSON value return karta hai
 SELECT JSON_EXTRACT(data, '$.role') FROM users;
--- Result: "admin"  (with quotes — it's JSON)
+-- Result: "admin"  (quotes ke saath — kyunki ye JSON hai)
 
--- Inline shorthand operator -> (same as JSON_EXTRACT)
+-- Inline shorthand operator -> (JSON_EXTRACT jaisa hi)
 SELECT data->'$.role' FROM users;
 
--- ->> shorthand (unquotes, returns plain text)
+-- ->> shorthand (unquote karta hai, plain text deta hai)
 SELECT data->>'$.role' FROM users;
--- Result: admin  (no quotes)
+-- Result: admin  (quotes nahi)
 
 -- Nested path
 SELECT data->>'$.notifications.email' FROM users;
@@ -197,79 +199,79 @@ SELECT data->>'$.notifications.email' FROM users;
 SELECT data->>'$.tags[0]' FROM users;
 ```
 
-### Modifying JSON Values
+### JSON Values Modify Karna
 
 ```sql
--- JSON_SET: insert or replace a value
+-- JSON_SET: value insert ya replace karo
 UPDATE users
 SET data = JSON_SET(data, '$.theme', 'light')
 WHERE id = 1;
 
--- JSON_INSERT: insert only if path doesn't exist
+-- JSON_INSERT: sirf tab insert karo jab path exist na kare
 UPDATE users
 SET data = JSON_INSERT(data, '$.verified', true)
 WHERE id = 1;
 
--- JSON_REMOVE: delete a path
+-- JSON_REMOVE: path delete karo
 UPDATE users
 SET data = JSON_REMOVE(data, '$.theme')
 WHERE id = 1;
 
--- JSON_REPLACE: replace only if path exists (no-op otherwise)
+-- JSON_REPLACE: sirf tab replace karo jab path exist kare (warna kuch nahi hoga)
 UPDATE users
 SET data = JSON_REPLACE(data, '$.role', 'viewer')
 WHERE id = 1;
 ```
 
-### Checking Containment
+### Containment Check Karna
 
 ```sql
 -- JSON_CONTAINS(target, candidate, path)
 SELECT * FROM users
 WHERE JSON_CONTAINS(data, '"admin"', '$.role');
 
--- JSON_CONTAINS_PATH checks if a path exists
+-- JSON_CONTAINS_PATH check karta hai ki path exist karta hai ya nahi
 SELECT * FROM users
 WHERE JSON_CONTAINS_PATH(data, 'one', '$.notifications.email');
 ```
 
-### Indexing in MySQL — Generated Columns
+### MySQL Mein Indexing — Generated Columns
 
-MySQL does not support indexing a JSON column directly. The workaround is a **generated column**:
+MySQL directly JSON column ko index karne nahi deta. Workaround hai **generated column**:
 
 ```sql
--- Add a virtual or stored generated column
+-- Ek virtual ya stored generated column add karo
 ALTER TABLE users
     ADD COLUMN role VARCHAR(50)
         GENERATED ALWAYS AS (data->>'$.role') STORED;
 
--- Now index the generated column like any regular column
+-- Ab generated column ko normal column ki tarah index karo
 CREATE INDEX idx_users_role ON users(role);
 
--- Queries on the generated column use the index automatically
+-- Generated column pe queries automatically index use karengi
 SELECT * FROM users WHERE role = 'admin';
 ```
 
-`STORED` materialises the value on disk (faster reads, more storage). `VIRTUAL` computes on the fly (no extra storage, slower reads).
+`STORED` value ko disk pe materialise karta hai (reads fast, storage zyada lagta hai). `VIRTUAL` on-the-fly compute karta hai (extra storage nahi, reads thodi slow).
 
 ---
 
-## 🪟 SQL Server — JSON Without a Native Type
+## 🪟 SQL Server — Bina Native Type Ke JSON
 
-SQL Server (2016+) does not have a dedicated JSON column type. JSON documents are stored in `NVARCHAR(MAX)` columns. SQL Server instead provides a set of functions that understand JSON-formatted strings.
+SQL Server (2016+) mein dedicated JSON column type nahi hai. JSON documents `NVARCHAR(MAX)` columns mein store hote hain. SQL Server iske badle functions ka set deta hai jo JSON-formatted strings ko samajhte hain.
 
 ```sql
--- Creating a table (JSON stored as NVARCHAR)
+-- Table banana (JSON NVARCHAR mein store hoga)
 CREATE TABLE users (
     id    INT IDENTITY PRIMARY KEY,
     name  NVARCHAR(100) NOT NULL,
     email NVARCHAR(150) NOT NULL,
     data  NVARCHAR(MAX)
         CONSTRAINT chk_users_data CHECK (ISJSON(data) = 1)
-        -- The CHECK constraint ensures the value is valid JSON
+        -- CHECK constraint ensure karta hai ki value valid JSON hai
 );
 
--- Inserting
+-- Insert karna
 INSERT INTO users (name, email, data) VALUES (
     'Priya Sharma',
     'priya@example.com',
@@ -277,14 +279,14 @@ INSERT INTO users (name, email, data) VALUES (
 );
 ```
 
-### Extracting Values
+### Values Extract Karna
 
 ```sql
--- JSON_VALUE: extracts a scalar value as NVARCHAR
+-- JSON_VALUE: scalar value ko NVARCHAR ke roop mein extract karta hai
 SELECT JSON_VALUE(data, '$.role') FROM users;
 -- Result: admin
 
--- JSON_QUERY: extracts an object or array (returns JSON fragment)
+-- JSON_QUERY: object ya array extract karta hai (JSON fragment return karta hai)
 SELECT JSON_QUERY(data, '$.notifications') FROM users;
 -- Result: {"email": true, "sms": false}
 
@@ -292,12 +294,12 @@ SELECT JSON_QUERY(data, '$.notifications') FROM users;
 SELECT JSON_VALUE(data, '$.notifications.email') FROM users;
 ```
 
-### Expanding JSON to Rows — OPENJSON
+### JSON Ko Rows Mein Expand Karna — OPENJSON
 
-`OPENJSON` is SQL Server's killer feature — it turns a JSON array into a relational result set:
+`OPENJSON` SQL Server ki killer feature hai — ye JSON array ko relational result set mein badal deta hai:
 
 ```sql
--- Suppose you have a JSON array of orders
+-- Maan lo tumhare paas orders ka JSON array hai
 DECLARE @orders NVARCHAR(MAX) = '[
     {"id": 1, "product": "Laptop", "qty": 2},
     {"id": 2, "product": "Mouse",  "qty": 5}
@@ -310,18 +312,18 @@ WITH (
     product NVARCHAR(50) '$.product',
     qty     INT          '$.qty'
 );
--- Returns a proper table with columns id, product, qty
+-- id, product, qty columns wali proper table return karta hai
 ```
 
-### Converting SQL Results to JSON — FOR JSON
+### SQL Results Ko JSON Mein Convert Karna — FOR JSON
 
 ```sql
--- FOR JSON AUTO: SQL Server infers the structure
+-- FOR JSON AUTO: SQL Server khud structure figure out karta hai
 SELECT id, name, email
 FROM users
 FOR JSON AUTO;
 
--- FOR JSON PATH: you control the output shape
+-- FOR JSON PATH: tum output shape control karte ho
 SELECT
     id          AS 'user.id',
     name        AS 'user.name',
@@ -330,10 +332,10 @@ FROM users
 FOR JSON PATH, ROOT('users');
 ```
 
-### Modifying JSON in SQL Server
+### SQL Server Mein JSON Modify Karna
 
 ```sql
--- JSON_MODIFY: update a value
+-- JSON_MODIFY: value update karo
 UPDATE users
 SET data = JSON_MODIFY(data, '$.theme', 'light')
 WHERE id = 1;
@@ -343,10 +345,10 @@ WHERE id = 1;
 
 ## 🔶 Oracle — JSON Support (12c+)
 
-Oracle Database 12c introduced JSON support, expanded significantly in 21c. Like SQL Server, Oracle stores JSON in standard column types (`VARCHAR2`, `CLOB`, or `BLOB`) with an `IS JSON` constraint to enforce validity. Oracle 21c added a native `JSON` data type.
+Oracle Database 12c mein JSON support aaya, aur 21c mein aur expand hua. SQL Server ki tarah, Oracle bhi JSON ko standard column types (`VARCHAR2`, `CLOB`, ya `BLOB`) mein store karta hai `IS JSON` constraint ke saath validity enforce karne ke liye. Oracle 21c ne native `JSON` data type add kiya.
 
 ```sql
--- Oracle: enforce valid JSON with IS JSON constraint
+-- Oracle: IS JSON constraint se valid JSON enforce karna
 CREATE TABLE users (
     id    NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name  VARCHAR2(100) NOT NULL,
@@ -354,13 +356,13 @@ CREATE TABLE users (
     data  CLOB CONSTRAINT chk_users_json CHECK (data IS JSON)
 );
 
--- Extracting a scalar value
+-- Scalar value extract karna
 SELECT JSON_VALUE(data, '$.role') FROM users;
 
--- Extracting an object or array
+-- Object ya array extract karna
 SELECT JSON_QUERY(data, '$.notifications') FROM users;
 
--- JSON_TABLE: the Oracle equivalent of OPENJSON — turns JSON into rows
+-- JSON_TABLE: Oracle ka OPENJSON equivalent — JSON ko rows mein badalta hai
 SELECT jt.*
 FROM users,
      JSON_TABLE(data, '$'
@@ -371,7 +373,7 @@ FROM users,
      ) jt;
 ```
 
-Oracle 21c also supports a dot-notation shorthand:
+Oracle 21c dot-notation shorthand bhi support karta hai:
 
 ```sql
 -- Oracle 21c simplified dot notation
@@ -384,15 +386,15 @@ SELECT u.data.role FROM users u;
 
 | Feature | PostgreSQL | MySQL 5.7+ | SQL Server 2016+ | Oracle 12c+ |
 |---|---|---|---|---|
-| Native JSON type | `JSON`, `JSONB` | `JSON` | No (use `NVARCHAR`) | `CLOB`/`JSON` (21c) |
+| Native JSON type | `JSON`, `JSONB` | `JSON` | Nahi (use `NVARCHAR`) | `CLOB`/`JSON` (21c) |
 | Validity enforcement | Type-level | Type-level | `ISJSON()` check | `IS JSON` constraint |
-| Extract scalar | `->>` | `->>'$.path'` | `JSON_VALUE()` | `JSON_VALUE()` |
-| Extract object/array | `->` | `JSON_EXTRACT()` | `JSON_QUERY()` | `JSON_QUERY()` |
+| Scalar extract | `->>` | `->>'$.path'` | `JSON_VALUE()` | `JSON_VALUE()` |
+| Object/array extract | `->` | `JSON_EXTRACT()` | `JSON_QUERY()` | `JSON_QUERY()` |
 | Path syntax | `'key'` / `'{a,b}'` | `'$.key'` | `'$.key'` | `'$.key'` |
-| Expand array to rows | `jsonb_array_elements()` | `JSON_TABLE()` (8.0) | `OPENJSON()` | `JSON_TABLE()` |
-| Direct indexing | GIN on JSONB | Not supported | Not supported | Function-based index |
+| Array ko rows mein expand | `jsonb_array_elements()` | `JSON_TABLE()` (8.0) | `OPENJSON()` | `JSON_TABLE()` |
+| Direct indexing | GIN on JSONB | Support nahi | Support nahi | Function-based index |
 | Indexing workaround | — | Generated column | Computed column | Virtual column |
-| Update value | `jsonb_set()` | `JSON_SET()` | `JSON_MODIFY()` | `JSON_MERGEPATCH()` |
+| Value update | `jsonb_set()` | `JSON_SET()` | `JSON_MODIFY()` | `JSON_MERGEPATCH()` |
 
 ---
 
@@ -400,7 +402,7 @@ SELECT u.data.role FROM users u;
 
 ### Example 1 — User Preferences
 
-Store per-user UI settings without a separate preferences table.
+Har user ki UI settings ke liye alag preferences table na banao, JSON mein hi rakh do.
 
 ```sql
 -- PostgreSQL
@@ -414,10 +416,10 @@ INSERT INTO users (email, preferences) VALUES
 ('priya@example.com', '{"theme": "dark", "language": "en", "timezone": "Asia/Kolkata"}'),
 ('alex@example.com',  '{"theme": "light", "language": "fr", "timezone": "Europe/Paris"}');
 
--- Find all users who prefer dark theme
+-- Un sab users ko dhoondo jo dark theme prefer karte hain
 SELECT email FROM users WHERE preferences @> '{"theme": "dark"}';
 
--- Update a single preference without touching the rest
+-- Baaki sab kuch touch kiye bina sirf ek preference update karo
 UPDATE users
 SET preferences = jsonb_set(preferences, '{timezone}', '"UTC"')
 WHERE email = 'priya@example.com';
@@ -425,7 +427,7 @@ WHERE email = 'priya@example.com';
 
 ### Example 2 — Product Metadata (Variable Attributes)
 
-Different product categories have different attributes. JSON handles this cleanly.
+Flipkart ki tarah socho — electronics ka attribute hai RAM/CPU, clothing ka attribute hai size/color. Alag-alag category ke alag attributes hote hain, aur JSON isko cleanly handle karta hai.
 
 ```sql
 -- PostgreSQL
@@ -442,19 +444,19 @@ INSERT INTO products (name, price, category, attrs) VALUES
 ('Classic Tee',      29.99, 'clothing',    '{"sizes": ["S","M","L","XL"], "color": "navy"}'),
 ('SQL Mastery Book', 49.99, 'books',       '{"isbn": "978-3-16-148410-0", "pages": 512, "edition": 3}');
 
--- Find all electronics with at least 16 GB RAM
+-- Kam se kam 16 GB RAM wale saare electronics dhoondo
 SELECT name, price
 FROM products
 WHERE category = 'electronics'
   AND (attrs->>'ram_gb')::INT >= 16;
 
--- Create a GIN index to speed up attribute searches
+-- Attribute searches fast karne ke liye GIN index banao
 CREATE INDEX idx_products_attrs ON products USING gin(attrs);
 ```
 
 ### Example 3 — Event Payloads / Audit Log
 
-Webhook events and audit logs often arrive as arbitrary JSON blobs. Store them verbatim and query what you need.
+Webhook events aur audit logs aksar arbitrary JSON blobs ke roop mein aate hain — jaise Paytm ya Razorpay se payment webhook. Unhe as-it-is store karo aur jo chahiye wahi query karo.
 
 ```sql
 -- PostgreSQL
@@ -471,7 +473,7 @@ INSERT INTO events (source, event_type, payload) VALUES
 ('github',  'push',              '{"ref": "refs/heads/main", "commits": 3, "repo": "myapp"}'),
 ('sendgrid','email.delivered',   '{"to": "user@example.com", "subject": "Welcome!"}');
 
--- Find all failed Stripe payments in the last 7 days
+-- Pichle 7 dino ke saare failed Stripe payments dhoondo
 SELECT received_at, payload->>'customer' AS customer
 FROM events
 WHERE source = 'stripe'
@@ -481,42 +483,42 @@ WHERE source = 'stripe'
 
 ---
 
-## ⚖️ When to Use JSON in SQL vs. a Separate NoSQL Database
+## ⚖️ SQL Mein JSON Kab Use Karein vs. Alag NoSQL Database
 
-JSON in SQL is not always the right tool. Here is a practical decision guide:
+SQL mein JSON hamesha sahi tool nahi hota. Ek practical decision guide dekho:
 
-| Situation | Use JSON in SQL | Use a Dedicated NoSQL DB |
+| Situation | SQL Mein JSON Use Karo | Dedicated NoSQL DB Use Karo |
 |---|---|---|
-| Most of the data is relational, with occasional flexible fields | Yes | No |
-| You need ACID transactions across JSON and relational data | Yes | Complex |
-| The JSON schema changes rarely | Yes | Yes |
-| You need full-text search inside JSON at scale | Marginal | Yes (Elasticsearch) |
-| The entire data model is document-centric | No | Yes (MongoDB) |
-| You need horizontal write scaling across many servers | No | Yes |
-| Team already operates one SQL DB | Yes — keep it simple | Only if justified |
+| Zyada data relational hai, kabhi-kabhi flexible fields hain | Haan | Nahi |
+| JSON aur relational data ke beech ACID transactions chahiye | Haan | Complex ho jayega |
+| JSON schema rarely change hota hai | Haan | Haan |
+| JSON ke andar large scale full-text search chahiye | Marginal | Haan (Elasticsearch) |
+| Poora data model hi document-centric hai | Nahi | Haan (MongoDB) |
+| Bahut saare servers pe horizontal write scaling chahiye | Nahi | Haan |
+| Team already ek hi SQL DB operate karti hai | Haan — simple rakho | Sirf tabhi jab justified ho |
 
-**The hybrid sweet spot:** Use a relational table with regular indexed columns for the fields you filter on most, and a JSONB/JSON column for everything else. You get relational integrity, ACID compliance, and the flexibility of a document store in one system.
+**Hybrid sweet spot:** Jin fields pe sabse zyada filter karte ho unke liye regular indexed columns use karo, aur baaki sab ke liye JSONB/JSON column. Isse tumhe ek hi system mein relational integrity, ACID compliance, aur document store jaisi flexibility — teeno mil jaate hain.
 
 ---
 
 ## 🔑 Key Takeaways
 
-- **JSON in SQL** is a pragmatic escape hatch for semi-structured, variable, or schema-light data — not a replacement for proper relational design.
-- **PostgreSQL's JSONB** is the gold standard: binary storage, full operator support, GIN indexes. If you have a choice, use PostgreSQL for JSON-heavy workloads.
-- **MySQL** uses a `JSON` type with `$` dollar-sign path syntax. Indexing requires generating a virtual column from the JSON value.
-- **SQL Server** stores JSON as `NVARCHAR(MAX)` and provides `JSON_VALUE()`, `JSON_QUERY()`, and the powerful `OPENJSON()` / `FOR JSON` pair.
-- **Oracle** uses `IS JSON` constraints on `CLOB` or `VARCHAR2`; Oracle 21c adds a native `JSON` type. `JSON_TABLE()` expands documents to rows.
-- Always index what you filter on: GIN index in PostgreSQL, generated column index in MySQL, computed column in SQL Server.
-- Keep **stable, frequently queried fields as real columns** and relegate **variable, rarely queried metadata to JSON**. That hybrid design gives you the best of both worlds.
+- **SQL mein JSON** semi-structured, variable, ya schema-light data ke liye ek pragmatic escape hatch hai — proper relational design ka replacement nahi.
+- **PostgreSQL ka JSONB** gold standard hai: binary storage, full operator support, GIN indexes. Agar choice ho, to JSON-heavy workloads ke liye PostgreSQL hi choose karo.
+- **MySQL** `JSON` type use karta hai `$` dollar-sign path syntax ke saath. Indexing ke liye JSON value se ek virtual column generate karna padta hai.
+- **SQL Server** JSON ko `NVARCHAR(MAX)` mein store karta hai aur `JSON_VALUE()`, `JSON_QUERY()`, aur powerful `OPENJSON()` / `FOR JSON` pair deta hai.
+- **Oracle** `CLOB` ya `VARCHAR2` pe `IS JSON` constraints use karta hai; Oracle 21c ek native `JSON` type bhi deta hai. `JSON_TABLE()` documents ko rows mein expand karta hai.
+- Jis pe filter karte ho usko hamesha index karo: PostgreSQL mein GIN index, MySQL mein generated column index, SQL Server mein computed column.
+- **Stable, frequently-queried fields ko real columns** rakho aur **variable, rarely-queried metadata ko JSON** mein daalo. Ye hybrid design tumhe dono duniya ka best deta hai.
 
 ---
 
 ## 🧠 Quiz
 
-Test yourself before moving on.
+Aage badhne se pehle khud ko test kar lo.
 
 **Question 1**
-You are using PostgreSQL. You have a `products` table with a `JSONB` column called `attrs`. You want to find all products where `attrs` contains the key-value pair `"in_stock": true`. Which query is correct?
+Tum PostgreSQL use kar rahe ho. Tumhare paas `products` table hai jisme `JSONB` column hai `attrs`. Tumhe wo saare products dhoondne hain jinke `attrs` mein key-value pair `"in_stock": true` present hai. Konsi query sahi hai?
 
 - A) `SELECT * FROM products WHERE attrs -> 'in_stock' = true;`
 - B) `SELECT * FROM products WHERE attrs @> '{"in_stock": true}';`
@@ -526,14 +528,14 @@ You are using PostgreSQL. You have a `products` table with a `JSONB` column call
 <details>
 <summary>Answer</summary>
 
-**B** is correct. The `@>` containment operator checks whether the JSONB column contains the given JSON subset. Option A compares a JSON value to a boolean without casting. Option C extracts as text but compares to a boolean. Option D checks key existence, not value equality.
+**B** sahi hai. `@>` containment operator check karta hai ki JSONB column diye gaye JSON subset ko contain karta hai ya nahi. Option A ek JSON value ko boolean se bina cast kiye compare kar raha hai. Option C text ke roop mein extract karta hai lekin boolean se compare karta hai. Option D sirf key existence check karta hai, value equality nahi.
 
 </details>
 
 ---
 
 **Question 2**
-You are using MySQL 8. You have a `users` table with a `JSON` column called `data`. Which statement correctly creates an index that speeds up queries filtering on `data->>'$.role'`?
+Tum MySQL 8 use kar rahe ho. Tumhare paas `users` table hai jisme `JSON` column hai `data`. Konsa statement sahi tarike se ek index create karta hai jo `data->>'$.role'` pe filter karne wali queries ko fast banaye?
 
 - A) `CREATE INDEX idx_role ON users USING gin(data);`
 - B) `ALTER TABLE users ADD INDEX idx_role ((data->>'$.role'));`
@@ -543,24 +545,24 @@ You are using MySQL 8. You have a `users` table with a `JSON` column called `dat
 <details>
 <summary>Answer</summary>
 
-**C** is correct. MySQL does not allow direct indexing on a JSON column or expression in older versions; the standard approach is to create a generated (virtual or stored) column that extracts the value, then index that column. Option A uses PostgreSQL syntax. Option B is supported in MySQL 8.0.13+ as a functional index, but option C is more widely compatible and explicit. Option D is invalid syntax.
+**C** sahi hai. Purane MySQL versions mein JSON column ya expression ko directly index karne ki permission nahi hai; standard approach hai ek generated (virtual ya stored) column banana jo value extract kare, aur phir usi column ko index karna. Option A PostgreSQL syntax use kar raha hai. Option B MySQL 8.0.13+ mein functional index ke roop mein supported hai, lekin option C zyada widely compatible aur explicit hai. Option D invalid syntax hai.
 
 </details>
 
 ---
 
 **Question 3**
-You are designing a schema for an e-commerce platform in PostgreSQL. You have product records. Some fields (`name`, `price`, `category`) are queried in every filter. Dozens of other fields (colour, size, material, wattage, ISBN, etc.) vary by category. What is the best approach?
+Tum ek e-commerce platform ka schema PostgreSQL mein design kar rahe ho. Tumhare paas product records hain. Kuch fields (`name`, `price`, `category`) har filter mein query hoti hain. Dusre bahut saare fields (colour, size, material, wattage, ISBN, etc.) category ke hisaab se vary karte hain. Best approach kya hai?
 
-- A) Store everything in a single JSONB column.
-- B) Create a separate table for every category with its own columns.
-- C) Store `name`, `price`, `category` as regular columns with indexes, and store the variable attributes in a JSONB column with a GIN index.
-- D) Move the entire product catalogue to MongoDB and join it into PostgreSQL at query time.
+- A) Sab kuch ek single JSONB column mein store karo.
+- B) Har category ke liye alag table banao apne khud ke columns ke saath.
+- C) `name`, `price`, `category` ko regular columns bana ke index karo, aur variable attributes ko GIN index wale JSONB column mein store karo.
+- D) Poora product catalogue MongoDB mein move kar do aur query time pe PostgreSQL mein join karo.
 
 <details>
 <summary>Answer</summary>
 
-**C** is correct. This is the hybrid approach: regular columns handle the stable, frequently filtered fields efficiently (with B-tree indexes), while JSONB handles the variable, schema-light attributes (with a GIN index for containment queries). Option A loses the ability to index and filter efficiently on core fields. Option B leads to schema explosion and complex migrations. Option D introduces a multi-database architecture that adds operational complexity without clear benefit here.
+**C** sahi hai. Ye hybrid approach hai: regular columns stable, frequently-filtered fields ko efficiently handle karte hain (B-tree indexes ke saath), jabki JSONB variable, schema-light attributes ko handle karta hai (containment queries ke liye GIN index ke saath). Option A core fields pe efficiently index aur filter karne ki capability kho deta hai. Option B schema explosion aur complex migrations ki taraf le jaata hai. Option D ek multi-database architecture introduce karta hai jo bina kisi clear benefit ke operational complexity badha deta hai.
 
 </details>
 

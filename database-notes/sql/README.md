@@ -1,45 +1,47 @@
 # SQL Mastery
 
-A comprehensive, from-scratch guide to SQL that takes you from writing your first `SELECT` statement to mastering window functions, transactions, security, and the subtle dialect differences between PostgreSQL, MySQL, SQL Server, and Oracle. Written for developers who want real, production-applicable skills — not just toy examples.
+Socho ek second ke liye — tumhara pura app, chahe woh Zomato jaisa order-tracking system ho ya CRED jaisa payment app, ultimately data pe hi chal raha hai. Aur woh data kahan store hota hai? Database mein. Aur database se baat karne ki language kya hai? **SQL**.
+
+Ye guide tumhe scratch se le jayegi — pehla `SELECT` likhne se lekar window functions, transactions, security, aur PostgreSQL/MySQL/SQL Server/Oracle ke beech ke subtle dialect differences tak. Yeh koi toy-example wali kitaab nahi hai — jo bhi seekhoge, production mein direct use kar paoge.
 
 ## Table of Contents
 
 ### Part 1 — Foundations
 
-- [01. Introduction to SQL](./01-introduction.md) — What SQL is, its history, sub-languages (DDL/DML/DQL/DCL/TCL), and setting up a local database
-- [02. Creating Tables](./02-creating-tables.md) — DDL, data types, primary keys, constraints, and schema design basics
-- [03. DML: INSERT, UPDATE, DELETE](./03-dml-insert-update-delete.md) — Writing and modifying data; MERGE / upsert patterns
-- [04. SELECT and Querying](./04-select-querying.md) — The full SELECT statement: columns, aliases, ORDER BY, LIMIT, DISTINCT
+- [01. Introduction to SQL](./01-introduction.md) — SQL kya hai, iski history, sub-languages (DDL/DML/DQL/DCL/TCL), aur local database set up karna
+- [02. Creating Tables](./02-creating-tables.md) — DDL, data types, primary keys, constraints, aur schema design ke basics
+- [03. DML: INSERT, UPDATE, DELETE](./03-dml-insert-update-delete.md) — Data likhna aur modify karna; MERGE / upsert patterns
+- [04. SELECT and Querying](./04-select-querying.md) — Poora SELECT statement: columns, aliases, ORDER BY, LIMIT, DISTINCT
 - [05. Filtering with WHERE](./05-filtering-where.md) — Comparison operators, BETWEEN, IN, LIKE, IS NULL, logical operators
 
 ### Part 2 — Core Query Patterns
 
-- [06. Joins](./06-joins.md) — INNER, LEFT, RIGHT, FULL OUTER, CROSS, and self-joins with visual diagrams
-- [07. Aggregations](./07-aggregations.md) — GROUP BY, HAVING, COUNT/SUM/AVG/MIN/MAX, and grouping sets
-- [08. Subqueries](./08-subqueries.md) — Scalar, correlated, and table subqueries; EXISTS vs IN; when to use each
+- [06. Joins](./06-joins.md) — INNER, LEFT, RIGHT, FULL OUTER, CROSS, aur self-joins, visual diagrams ke saath
+- [07. Aggregations](./07-aggregations.md) — GROUP BY, HAVING, COUNT/SUM/AVG/MIN/MAX, aur grouping sets
+- [08. Subqueries](./08-subqueries.md) — Scalar, correlated, aur table subqueries; EXISTS vs IN; kab kya use karna hai
 
 ### Part 3 — Programmability and Performance
 
-- [09. Views, Stored Procedures, and Functions](./09-views-procedures-functions.md) — Encapsulating logic; materialized views; when to use each abstraction
-- [10. Triggers](./10-triggers.md) — BEFORE/AFTER triggers, use cases, and pitfalls to avoid
-- [11. Indexes and Performance](./11-indexes-and-performance.md) — B-Tree, composite, partial, and covering indexes; EXPLAIN/EXPLAIN ANALYZE; query planning
+- [09. Views, Stored Procedures, and Functions](./09-views-procedures-functions.md) — Logic ko encapsulate karna; materialized views; kab kaunsa abstraction use karein
+- [10. Triggers](./10-triggers.md) — BEFORE/AFTER triggers, use cases, aur avoid karne wale pitfalls
+- [11. Indexes and Performance](./11-indexes-and-performance.md) — B-Tree, composite, partial, aur covering indexes; EXPLAIN/EXPLAIN ANALYZE; query planning
 - [12. CTEs and Window Functions](./12-cte-window-functions.md) — WITH clauses, recursive CTEs, ROW_NUMBER/RANK/DENSE_RANK, LAG/LEAD, running totals, moving averages
 
 ### Part 4 — Advanced Topics
 
-- [13. JSON in SQL](./13-json-in-sql.md) — Storing and querying JSON data; JSONB in PostgreSQL; JSON functions across databases
-- [14. Security](./14-security.md) — GRANT/REVOKE, roles, row-level security, SQL injection defense
+- [13. JSON in SQL](./13-json-in-sql.md) — JSON data store aur query karna; PostgreSQL mein JSONB; alag-alag databases ke JSON functions
+- [14. Security](./14-security.md) — GRANT/REVOKE, roles, row-level security, SQL injection se bachna
 - [15. Transactions and Locking](./15-transactions-locking.md) — ACID properties, isolation levels, deadlocks, optimistic vs pessimistic locking
-- [16. Full-Text Search and Advanced Features](./16-advanced-features.md) — Full-text search, arrays, ranges, extensions, and lateral joins (PostgreSQL-focused)
-- [17. Database Comparison: PostgreSQL vs MySQL vs SQL Server vs Oracle](./17-database-comparison.md) — Side-by-side syntax reference, feature matrix, and when to pick each engine
+- [16. Full-Text Search and Advanced Features](./16-advanced-features.md) — Full-text search, arrays, ranges, extensions, aur lateral joins (PostgreSQL-focused)
+- [17. Database Comparison: PostgreSQL vs MySQL vs SQL Server vs Oracle](./17-database-comparison.md) — Side-by-side syntax reference, feature matrix, aur kab kaunsa engine choose karein
 
 ---
 
 ## Learning Path
 
-### Beginner — Build a solid foundation
+### Beginner — Ek solid foundation banao
 
-Work through these chapters in order. By the end you will be able to read and write the SQL used in most day-to-day application development.
+Ye chapters order mein padhna. Iske end tak tum wahi SQL confidently likh aur padh paoge jo day-to-day application development mein use hoti hai.
 
 1. Introduction to SQL (Ch. 01)
 2. Creating Tables (Ch. 02)
@@ -50,18 +52,18 @@ Work through these chapters in order. By the end you will be able to read and wr
 7. Aggregations (Ch. 07)
 8. Subqueries (Ch. 08)
 
-### Intermediate — Level up to production SQL
+### Intermediate — Production-level SQL tak level up karo
 
-These chapters cover the patterns used in real applications and data pipelines.
+Ye chapters wahi patterns cover karte hain jo real applications aur data pipelines mein use hote hain.
 
 9. Views, Stored Procedures, and Functions (Ch. 09)
 10. Triggers (Ch. 10)
 11. Indexes and Performance (Ch. 11)
 12. CTEs and Window Functions (Ch. 12)
 
-### Advanced — Expert-level and database-specific knowledge
+### Advanced — Expert-level aur database-specific knowledge
 
-Tackle these once you are comfortable with the intermediate material. Each chapter is largely standalone.
+Inhe tab tackle karo jab intermediate material mein comfortable ho jao. Har chapter zyada tar standalone hai.
 
 13. JSON in SQL (Ch. 13)
 14. Security (Ch. 14)
@@ -71,39 +73,39 @@ Tackle these once you are comfortable with the intermediate material. Each chapt
 
 ---
 
-## What You'll Learn
+## Tum Kya Seekhoge
 
-- Write confident `SELECT` queries with joins, filters, aggregations, and subqueries
-- Design normalized schemas with appropriate data types, constraints, and foreign keys
-- Insert, update, and delete data safely, including upsert patterns
-- Use views, stored procedures, and user-defined functions to encapsulate reusable logic
-- Create and maintain indexes to dramatically speed up slow queries
-- Read and interpret `EXPLAIN` / `EXPLAIN ANALYZE` output to diagnose query plans
-- Write CTEs to break complex queries into readable, debuggable steps
-- Use window functions (ROW_NUMBER, RANK, LAG, LEAD, running SUM) for analytics
-- Understand ACID guarantees and choose the right transaction isolation level
-- Protect your database with roles, grants, row-level security, and parameterized queries
-- Query and store JSON documents inside relational tables
-- Navigate dialect differences between PostgreSQL, MySQL, SQL Server, and Oracle
+- Joins, filters, aggregations aur subqueries ke saath confident `SELECT` queries likhna
+- Sahi data types, constraints, aur foreign keys ke saath normalized schemas design karna
+- Data safely insert, update, aur delete karna — upsert patterns samet
+- Views, stored procedures, aur user-defined functions se reusable logic encapsulate karna
+- Indexes create aur maintain karna taaki slow queries dramatically fast ho jayein
+- `EXPLAIN` / `EXPLAIN ANALYZE` output padh kar query plans diagnose karna (jaise Swiggy backend team apne slow order-search query ko debug karti hogi)
+- CTEs likhna taaki complex queries readable aur debuggable steps mein toot jayein
+- Window functions (ROW_NUMBER, RANK, LAG, LEAD, running SUM) use karke analytics nikalna
+- ACID guarantees samajhna aur sahi transaction isolation level choose karna
+- Roles, grants, row-level security, aur parameterized queries se apna database protect karna
+- Relational tables ke andar JSON documents query aur store karna
+- PostgreSQL, MySQL, SQL Server, aur Oracle ke dialect differences navigate karna
 
 ---
 
 ## Prerequisites
 
-- Basic comfort with any programming language (you do not need to be an expert)
-- Familiarity with the concept of tables and rows (spreadsheet-level understanding is enough)
-- A database to run examples against — the introduction chapter walks you through setting one up in under five minutes
+- Kisi bhi programming language mein basic comfort (expert hona zaruri nahi)
+- Tables aur rows ka concept pata ho (spreadsheet-level samajh kaafi hai)
+- Ek database jahan examples run kar sako — introduction chapter mein tumhe five minute se kam mein setup karke dikhaya gaya hai
 
 ---
 
-## How to Use This Guide
+## Is Guide Ko Kaise Use Karein
 
-1. **Run every example.** Reading SQL without running it builds much less intuition than seeing a real result set. Use SQLite for zero-setup, or spin up PostgreSQL with Docker as shown in Chapter 01.
-2. **Follow the beginner path first, even if you have some SQL experience.** Later chapters assume vocabulary and patterns introduced in earlier ones.
-3. **Do the quizzes.** Each chapter ends with 2-3 multiple-choice questions that catch the subtleties most people gloss over on a first read.
-4. **Use Chapter 17 as a reference.** Once you are comfortable with the concepts, bookmark the database comparison chapter — it is the fastest way to translate syntax when you switch between engines.
-5. **Modify the examples.** Change a WHERE clause, add a column, break a query intentionally. The fastest way to understand what a query does is to see how it fails when you push it in the wrong direction.
+1. **Har example run karo.** SQL ko sirf padhna aur usse actually run karke result set dekhna — dono mein zameen-aasman ka farak hai. Zero-setup ke liye SQLite use karo, ya Chapter 01 mein dikhaye gaye tarike se Docker pe PostgreSQL spin up kar lo.
+2. **Pehle beginner path follow karo, chahe tumhe thoda SQL experience ho.** Baad ke chapters pehle wale chapters ka vocabulary aur patterns assume karte hain.
+3. **Quizzes zaroor karo.** Har chapter ke end mein 2-3 multiple-choice questions hain jo unn subtleties ko pakadte hain jo log pehli baar padhte waqt miss kar dete hain.
+4. **Chapter 17 ko reference ki tarah use karo.** Jab concepts comfortable ho jayein, database comparison chapter bookmark kar lo — engines switch karte waqt syntax translate karne ka sabse fast tarika yahi hai.
+5. **Examples ko modify karo.** WHERE clause change karo, column add karo, jaan-bujh kar query break karo. Query kya karti hai samajhne ka sabse fast tarika hai use galat direction mein push karke dekhna ki woh kaise fail hoti hai.
 
 ---
 
-SQL has been the dominant language for working with data for over 50 years — and the investment you make here will pay dividends across every stack, every framework, and every job title you encounter. Let's get started.
+SQL pichhle 50+ saalon se data ke saath kaam karne ki dominant language rahi hai — aur yahan jo investment karoge, woh har stack, har framework, aur har job title mein dividend dega. Chalo shuru karte hain.

@@ -1,4 +1,4 @@
-# 👁️ Views, Stored Procedures, and Functions
+# 👁️ Views, Stored Procedures, aur Functions
 
 > **Chapter 9** — SQL for Beginners Series
 
@@ -6,72 +6,76 @@
 
 ## 📋 Table of Contents
 
-1. [What Are Views?](#1-what-are-views)
-2. [Creating, Querying, and Dropping Views](#2-creating-querying-and-dropping-views)
+1. [Views Kya Hote Hain?](#1-views-kya-hote-hain)
+2. [View Banana, Query Karna, aur Drop Karna](#2-view-banana-query-karna-aur-drop-karna)
 3. [Updatable Views](#3-updatable-views)
 4. [WITH CHECK OPTION](#4-with-check-option)
 5. [Materialized Views](#5-materialized-views)
-6. [What Are Stored Procedures?](#6-what-are-stored-procedures)
-7. [Stored Procedure Syntax by Database](#7-stored-procedure-syntax-by-database)
-8. [IN, OUT, and INOUT Parameters](#8-in-out-and-inout-parameters)
-9. [Calling Stored Procedures](#9-calling-stored-procedures)
+6. [Stored Procedures Kya Hote Hain?](#6-stored-procedures-kya-hote-hain)
+7. [Har Database Mein Stored Procedure Syntax](#7-har-database-mein-stored-procedure-syntax)
+8. [IN, OUT, aur INOUT Parameters](#8-in-out-aur-inout-parameters)
+9. [Stored Procedures Ko Call Karna](#9-stored-procedures-ko-call-karna)
 10. [User-Defined Functions (UDFs)](#10-user-defined-functions-udfs)
-11. [The Same Example Across All Four Databases](#11-the-same-example-across-all-four-databases)
-12. [Procedures vs. Application Code — When to Use Which](#12-procedures-vs-application-code--when-to-use-which)
+11. [Chaaron Databases Mein Same Example](#11-chaaron-databases-mein-same-example)
+12. [Procedures vs Application Code — Kab Kya Use Karein](#12-procedures-vs-application-code--kab-kya-use-karein)
 13. [Key Takeaways](#key-takeaways)
 14. [Quiz](#quiz)
 
 ---
 
-## 1. 👁️ What Are Views?
+## 1. 👁️ Views Kya Hote Hain?
 
-A **view** is a saved SELECT query that the database treats exactly like a table. You give your query a name, and from that point on you can query it as if rows actually live there — even though no data is stored separately (for standard views).
+Socho tumne ek complicated SELECT query likhi — kaafi JOINs, kaafi conditions — aur ab har baar wahi query baar-baar type karna padta hai. Boring hai na? Yahin pe **view** kaam aata hai.
 
-Think of a view as a window into your data:
+Ek **view** basically ek saved SELECT query hai jisko database ek table ki tarah treat karta hai. Ek naam de do apni query ko, aur uske baad tum usse bilkul table jaise query kar sakte ho — jaise data wahin store ho, jab ki asal mein (normal views ke case mein) alag se koi data store nahi hota.
 
-- The underlying tables hold the real data.
-- The view is the window — it shows a particular arrangement of that data every time you look through it.
+View ko socho ek **khidki (window)** ki tarah:
 
-### Why use views?
+- Underlying tables mein asli data padha hai.
+- View sirf ek khidki hai — jab bhi tum us khidki se dekhoge, data ka ek particular arrangement dikhega.
+
+### Views kyun use karte hain?
 
 | Reason | Explanation |
 |--------|-------------|
-| **Simplicity** | Hide complex JOINs behind a clean name |
-| **Security** | Expose only certain columns to certain users |
-| **Consistency** | Enforce a single definition of a business concept (e.g., "active users") |
-| **Abstraction** | Change the underlying table structure without breaking application queries |
+| **Simplicity** | Complex JOINs ko ek clean naam ke peeche chhupa do |
+| **Security** | Sirf kuch columns hi certain users ko dikhao |
+| **Consistency** | Ek business concept (jaise "active users") ki ek hi definition sabke liye |
+| **Abstraction** | Underlying table structure change karo bina application queries todhe |
 
-Suppose you have `users` and `posts` tables and you frequently join them. Instead of writing the same JOIN every time, you save it as a view called `user_post_summary`.
+Maan lo tumhare paas `users` aur `posts` tables hain, aur tum baar-baar inko join karte ho. Har baar wahi JOIN likhne ki jagah, ek view bana do jiska naam ho `user_post_summary` — bas.
 
 ---
 
-## 2. 🔧 Creating, Querying, and Dropping Views
+## 2. 🔧 View Banana, Query Karna, aur Drop Karna
 
-The core syntax is identical across all major databases.
+Core syntax sabhi major databases mein same hai — yahan koi drama nahi.
 
 ```sql
--- Create a view
+-- View banao
 CREATE VIEW view_name AS
 SELECT column1, column2, ...
 FROM table_name
 WHERE condition;
 
--- Query a view (just like a table)
+-- View ko query karo (bilkul table jaisa)
 SELECT * FROM view_name;
 SELECT column1 FROM view_name WHERE condition;
 
--- Drop a view
+-- View drop karo
 DROP VIEW view_name;
 
--- Replace/update a view definition (recreate it)
+-- View definition replace/update karo (recreate karke)
 CREATE OR REPLACE VIEW view_name AS
 SELECT ...;
 ```
 
-> **Note:** `CREATE OR REPLACE VIEW` works in PostgreSQL, MySQL, and Oracle.
-> In SQL Server, use `ALTER VIEW view_name AS SELECT ...;`
+> **Note:** `CREATE OR REPLACE VIEW` PostgreSQL, MySQL, aur Oracle mein chalta hai.
+> SQL Server mein `ALTER VIEW view_name AS SELECT ...;` use karo.
 
 ### Practical example
+
+Socho Zomato jaisi app hai — `users` aur `posts` (yaani reviews) tables hain, aur tumhe baar-baar active users ke posts dekhne hain.
 
 ```sql
 -- Underlying tables
@@ -89,25 +93,25 @@ FROM users u
 JOIN posts p ON p.user_id = u.id
 WHERE u.is_active = 1;
 
--- Now use it anywhere
+-- Ab isko kahin bhi use karo
 SELECT user_name, COUNT(post_id) AS total_posts
 FROM active_user_posts
 GROUP BY user_name
 ORDER BY total_posts DESC;
 ```
 
-Every time this SELECT runs, the database executes the underlying JOIN fresh — you always see current data.
+Har baar jab ye SELECT chalta hai, database underlying JOIN ko fresh execute karta hai — matlab tumhe hamesha current, live data hi dikhega.
 
 ---
 
 ## 3. ✏️ Updatable Views
 
-You can sometimes run `INSERT`, `UPDATE`, or `DELETE` directly on a view, and the change flows through to the underlying table. This works when the view meets all of the following conditions:
+Kya hota hai? Kabhi-kabhi tum view pe directly `INSERT`, `UPDATE`, ya `DELETE` chala sakte ho, aur change underlying table tak pahunch jaata hai. Ye tab hi kaam karta hai jab view in saari conditions ko follow kare:
 
-- It selects from **exactly one base table**.
-- It does **not** use `DISTINCT`, `GROUP BY`, `HAVING`, `UNION`, or aggregate functions.
-- It does **not** use subqueries in the SELECT list.
-- It includes enough columns to satisfy any `NOT NULL` constraints on the base table.
+- Woh sirf **ek hi base table** se select karta ho.
+- `DISTINCT`, `GROUP BY`, `HAVING`, `UNION`, ya aggregate functions use na kare.
+- SELECT list mein subqueries na ho.
+- Base table ke `NOT NULL` constraints satisfy karne ke liye kaafi columns include kare.
 
 ```sql
 CREATE VIEW active_users AS
@@ -115,23 +119,25 @@ SELECT id, name, email
 FROM users
 WHERE is_active = 1;
 
--- This UPDATE flows through to the users table
+-- Ye UPDATE seedhe users table tak pahunch jaata hai
 UPDATE active_users
 SET name = 'Alice Smith'
 WHERE id = 42;
 
--- This INSERT adds a row directly to users
+-- Ye INSERT bhi users table mein directly row add karta hai
 INSERT INTO active_users (id, name, email)
 VALUES (99, 'Bob Jones', 'bob@example.com');
 ```
 
-When a view is **not** updatable (complex JOINs, aggregates, etc.), the database raises an error if you try to write through it. In that case, use `INSTEAD OF` triggers (SQL Server / Oracle) to intercept writes on a non-updatable view.
+Jab view **updatable nahi** hota (complex JOINs, aggregates, waghera), toh database error de deta hai agar tum uske through likhne ki koshish karo. Us case mein `INSTEAD OF` triggers use karo (SQL Server / Oracle) taaki non-updatable view pe writes ko intercept kiya ja sake.
 
 ---
 
 ## 4. ✅ WITH CHECK OPTION
 
-`WITH CHECK OPTION` is a safety guard on updatable views. It refuses any INSERT or UPDATE that would make the new row invisible through the view's own WHERE clause.
+`WITH CHECK OPTION` ek safety guard hai updatable views pe. Ye kisi bhi INSERT ya UPDATE ko reject kar deta hai jo naye row ko view ke apne WHERE clause se invisible bana de.
+
+Socho CRED jaisi app mein sirf "VIP" users hi dikhne chahiye ek particular list mein — agar koi unhe "Standard" mein downgrade kar de, toh woh list se gayab ho jaana chahiye, aur `WITH CHECK OPTION` isi ko enforce karta hai — silently gayab hone ki jagah error deke rok deta hai.
 
 ```sql
 CREATE VIEW active_users AS
@@ -140,22 +146,22 @@ FROM users
 WHERE is_active = 1
 WITH CHECK OPTION;
 
--- This fails: the inserted row has is_active = 0, so it would
--- immediately disappear from the view — the CHECK prevents it.
+-- Ye fail hoga: insert kiya gaya row is_active = 0 rakhta hai,
+-- toh woh turant view se gayab ho jaata — CHECK isko rokta hai.
 INSERT INTO active_users (id, name, email, is_active)
 VALUES (100, 'Ghost User', 'ghost@example.com', 0);
 -- ERROR: new row violates check option for view "active_users"
 ```
 
-This is especially useful when views are used to enforce business rules (e.g., "only active users can be edited through this interface").
+Ye especially useful hai jab views ka use business rules enforce karne ke liye ho raha ho (jaise "sirf active users hi is interface se edit ho sakte hain").
 
 ---
 
 ## 5. 🗄️ Materialized Views
 
-A standard view recalculates its query every time you query it. A **materialized view** pre-computes the result and stores it physically on disk — like a cached snapshot. Queries against it are fast because no JOIN or aggregation runs at query time; you refresh the snapshot on a schedule or on demand.
+**Kyun zaruri hai?** Normal view har baar apni query fresh se recalculate karta hai. Ek **materialized view** result ko pre-compute karke disk pe physically store kar leta hai — jaise ek cached snapshot. Isliye queries fast chalti hain kyunki query time pe koi JOIN ya aggregation nahi chalta; tum snapshot ko schedule pe ya on-demand refresh karte ho.
 
-The concept is the same everywhere, but the syntax and feature set differ significantly:
+Concept sab jagah same hai, lekin syntax aur feature set kaafi alag hai:
 
 ### PostgreSQL
 
@@ -168,13 +174,13 @@ SELECT
 FROM orders
 GROUP BY 1;
 
--- Query (reads the snapshot, not live data)
+-- Query (ye snapshot padhta hai, live data nahi)
 SELECT * FROM monthly_sales;
 
--- Refresh the snapshot manually
+-- Snapshot ko manually refresh karo
 REFRESH MATERIALIZED VIEW monthly_sales;
 
--- Refresh without locking reads (PostgreSQL 9.4+)
+-- Bina reads lock kiye refresh karo (PostgreSQL 9.4+)
 REFRESH MATERIALIZED VIEW CONCURRENTLY monthly_sales;
 
 -- Drop
@@ -183,16 +189,16 @@ DROP MATERIALIZED VIEW monthly_sales;
 
 ### MySQL
 
-MySQL has no native materialized views. The common workaround is a regular table plus a scheduled event:
+MySQL mein native materialized views nahi hote. Common workaround hai — ek normal table plus ek scheduled event.
 
 ```sql
--- Step 1: Create a plain table to hold the pre-computed data
+-- Step 1: Pre-computed data rakhne ke liye ek plain table banao
 CREATE TABLE monthly_sales_cache (
     month        DATE,
     total_sales  DECIMAL(15,2)
 );
 
--- Step 2: Create a stored procedure to refresh it
+-- Step 2: Isko refresh karne ke liye stored procedure banao
 DELIMITER //
 CREATE PROCEDURE refresh_monthly_sales()
 BEGIN
@@ -206,7 +212,7 @@ BEGIN
 END //
 DELIMITER ;
 
--- Step 3: Schedule automatic refresh every day at midnight
+-- Step 3: Har raat midnight pe automatic refresh schedule karo
 CREATE EVENT refresh_sales_cache
 ON SCHEDULE EVERY 1 DAY STARTS '2026-01-01 00:00:00'
 DO CALL refresh_monthly_sales();
@@ -214,30 +220,30 @@ DO CALL refresh_monthly_sales();
 
 ### SQL Server — Indexed Views
 
-SQL Server calls them **Indexed Views**. You create a regular view with `SCHEMABINDING`, then add a unique clustered index, which forces the database to materialize and maintain the result automatically.
+SQL Server inko **Indexed Views** bolta hai. Tum ek normal view banao `SCHEMABINDING` ke saath, phir ek unique clustered index add karo, jo database ko result materialize karke automatically maintain karne pe majboor kar deta hai.
 
 ```sql
--- The view must use SCHEMABINDING
+-- View mein SCHEMABINDING zaruri hai
 CREATE VIEW dbo.monthly_sales
 WITH SCHEMABINDING AS
 SELECT
     DATEFROMPARTS(YEAR(order_date), MONTH(order_date), 1) AS month,
     SUM(amount)   AS total_sales,
-    COUNT_BIG(*)  AS row_count    -- required for indexed views
+    COUNT_BIG(*)  AS row_count    -- indexed views ke liye zaruri hai
 FROM dbo.orders
 GROUP BY DATEFROMPARTS(YEAR(order_date), MONTH(order_date), 1);
 
--- Adding this index materializes the view
+-- Ye index add karne se view materialize ho jaata hai
 CREATE UNIQUE CLUSTERED INDEX IX_monthly_sales
 ON dbo.monthly_sales (month);
 ```
 
-SQL Server updates the materialized data automatically whenever the base table changes — there is no manual REFRESH step.
+SQL Server materialized data ko automatically update kar deta hai jab bhi base table change hoti hai — manual REFRESH step ki zarurat hi nahi.
 
 ### Oracle
 
 ```sql
--- Create with automatic refresh on commit
+-- Commit hote hi automatic refresh ke saath create karo
 CREATE MATERIALIZED VIEW monthly_sales
 REFRESH FAST ON COMMIT AS
 SELECT
@@ -246,7 +252,7 @@ SELECT
 FROM orders
 GROUP BY TRUNC(order_date, 'MM');
 
--- Or refresh on a schedule (complete refresh every day)
+-- Ya schedule pe refresh karo (har din complete refresh)
 CREATE MATERIALIZED VIEW monthly_sales
 REFRESH COMPLETE
 START WITH SYSDATE
@@ -261,37 +267,39 @@ GROUP BY TRUNC(order_date, 'MM');
 EXEC DBMS_MVIEW.REFRESH('monthly_sales', 'C');
 ```
 
-### Materialized Views Quick Comparison
+### Materialized Views — Quick Comparison
 
 | Feature | PostgreSQL | MySQL | SQL Server | Oracle |
 |---------|-----------|-------|------------|--------|
-| Native support | Yes | No | Indexed Views | Yes |
+| Native support | Haan | Nahi | Indexed Views | Haan |
 | Manual refresh | `REFRESH MATERIALIZED VIEW` | `CALL procedure` | N/A (auto) | `DBMS_MVIEW.REFRESH` |
-| Auto refresh | No (use pg_cron) | Via Events | Yes (auto) | Yes (on commit / schedule) |
-| Concurrent reads during refresh | Yes (`CONCURRENTLY`) | Always | Always | Yes |
+| Auto refresh | Nahi (pg_cron use karo) | Events ke through | Haan (auto) | Haan (commit / schedule pe) |
+| Refresh ke dauran concurrent reads | Haan (`CONCURRENTLY`) | Hamesha | Hamesha | Haan |
 
 ---
 
-## 6. 📦 What Are Stored Procedures?
+## 6. 📦 Stored Procedures Kya Hote Hain?
 
-A **stored procedure** is a named block of SQL logic saved inside the database itself. Instead of sending multiple SQL statements over the network from your application, you call one procedure name and the database engine runs all the logic server-side.
+Ek **stored procedure** SQL logic ka ek naamed block hai jo database ke andar hi save hota hai. Application se multiple SQL statements network pe bhejne ki jagah, tum bas ek procedure ka naam call karte ho aur database engine saara logic server-side hi run kar deta hai.
 
-### Why use stored procedures?
+**Kyun zaruri hai?**
 
-- **Performance** — logic runs close to the data; reduces network round-trips.
-- **Reusability** — write once, call from any application or user.
-- **Security** — grant `EXECUTE` on the procedure without granting direct table access.
-- **Encapsulation** — business rules live in one place, not scattered across applications.
+- **Performance** — logic data ke paas hi chalta hai; network round-trips kam hote hain.
+- **Reusability** — ek baar likho, kisi bhi application ya user se call karo.
+- **Security** — procedure pe `EXECUTE` grant karo, direct table access diye bina.
+- **Encapsulation** — business rules ek jagah rehte hain, applications mein bikhre hue nahi.
+
+Socho IRCTC jaisa system — ticket booking ka poora logic (seat check, payment, confirmation) ek stored procedure mein hai, aur website, mobile app, aur agent portal — teeno usi ek procedure ko call karte hain. Logic ek jagah, use kahin se bhi.
 
 ---
 
-## 7. 🗃️ Stored Procedure Syntax by Database
+## 7. 🗃️ Har Database Mein Stored Procedure Syntax
 
-This is where databases diverge the most. Each has its own procedural language and syntax rules.
+Yahan pe databases sabse zyada alag ho jaate hain. Har ek ki apni procedural language aur syntax rules hain.
 
 ### PostgreSQL — `CREATE FUNCTION` with PL/pgSQL
 
-PostgreSQL uses `CREATE FUNCTION` for both functions and procedures (procedures were added in PG 11 via `CREATE PROCEDURE`, but functions with `VOID` return type were the traditional approach).
+PostgreSQL `CREATE FUNCTION` ka use karta hai functions aur procedures dono ke liye (procedures PG 11 mein `CREATE PROCEDURE` ke through aaye, lekin `VOID` return type wale functions traditional approach the).
 
 ```sql
 -- PostgreSQL
@@ -304,13 +312,13 @@ BEGIN
 END;
 $$;
 
--- Call it
+-- Call karo
 SELECT greet_user('Alice');
 ```
 
 ### MySQL — `CREATE PROCEDURE` with `DELIMITER`
 
-MySQL uses `DELIMITER` to temporarily change the statement terminator, because the procedure body contains semicolons that would otherwise end the `CREATE` statement early.
+MySQL `DELIMITER` use karta hai statement terminator ko temporarily change karne ke liye, kyunki procedure body mein semicolons hote hain jo warna `CREATE` statement ko jaldi khatam kar dete.
 
 ```sql
 -- MySQL
@@ -321,7 +329,7 @@ BEGIN
 END //
 DELIMITER ;
 
--- Call it
+-- Call karo
 CALL greet_user('Alice');
 ```
 
@@ -337,9 +345,9 @@ BEGIN
     SELECT 'Hello, ' + @p_name + '!' AS greeting;
 END;
 
--- Call it
+-- Call karo
 EXEC greet_user @p_name = 'Alice';
--- or: EXECUTE greet_user 'Alice';
+-- ya: EXECUTE greet_user 'Alice';
 ```
 
 ### Oracle — `CREATE PROCEDURE` with PL/SQL
@@ -353,9 +361,9 @@ BEGIN
 END;
 /
 
--- Call it
+-- Call karo
 EXEC greet_user('Alice');
--- or inside a PL/SQL block:
+-- ya PL/SQL block ke andar:
 BEGIN
     greet_user('Alice');
 END;
@@ -364,18 +372,18 @@ END;
 
 ---
 
-## 8. 🔄 IN, OUT, and INOUT Parameters
+## 8. 🔄 IN, OUT, aur INOUT Parameters
 
-All major databases support three parameter modes:
+Saare major databases teen parameter modes support karte hain:
 
 | Mode | Direction | Description |
 |------|-----------|-------------|
-| `IN` | Caller → Procedure | Read-only input value (default in most DBs) |
-| `OUT` | Procedure → Caller | The procedure writes a result back |
-| `INOUT` | Both ways | Caller passes a value; procedure can modify and return it |
+| `IN` | Caller → Procedure | Read-only input value (zyada databases mein default) |
+| `OUT` | Procedure → Caller | Procedure result wapas likh deta hai |
+| `INOUT` | Dono taraf | Caller value pass karta hai; procedure usko modify karke return kar sakta hai |
 
 ```sql
--- PostgreSQL example with OUT parameter
+-- PostgreSQL example — OUT parameter ke saath
 CREATE OR REPLACE FUNCTION get_user_count(
     OUT p_count INT
 )
@@ -390,7 +398,7 @@ SELECT get_user_count();
 ```
 
 ```sql
--- MySQL example with OUT parameter
+-- MySQL example — OUT parameter ke saath
 DELIMITER //
 CREATE PROCEDURE get_user_count(OUT p_count INT)
 BEGIN
@@ -399,11 +407,11 @@ END //
 DELIMITER ;
 
 CALL get_user_count(@total);
-SELECT @total;   -- read the OUT value from a session variable
+SELECT @total;   -- OUT value ko session variable se padho
 ```
 
 ```sql
--- SQL Server example with OUTPUT parameter
+-- SQL Server example — OUTPUT parameter ke saath
 CREATE OR ALTER PROCEDURE get_user_count
     @p_count INT OUTPUT
 AS
@@ -417,7 +425,7 @@ SELECT @total;
 ```
 
 ```sql
--- Oracle example with OUT parameter
+-- Oracle example — OUT parameter ke saath
 CREATE OR REPLACE PROCEDURE get_user_count(p_count OUT NUMBER)
 AS
 BEGIN
@@ -436,22 +444,22 @@ END;
 
 ---
 
-## 9. 📞 Calling Stored Procedures
+## 9. 📞 Stored Procedures Ko Call Karna
 
 | Database | Keyword | Example |
 |----------|---------|---------|
-| PostgreSQL | `SELECT` (for functions) / `CALL` (PG 11+ procedures) | `CALL my_proc(arg);` or `SELECT my_func(arg);` |
+| PostgreSQL | `SELECT` (functions ke liye) / `CALL` (PG 11+ procedures) | `CALL my_proc(arg);` ya `SELECT my_func(arg);` |
 | MySQL | `CALL` | `CALL my_proc(arg);` |
-| SQL Server | `EXEC` or `EXECUTE` | `EXEC my_proc @param = val;` |
+| SQL Server | `EXEC` ya `EXECUTE` | `EXEC my_proc @param = val;` |
 | Oracle | `EXEC` (SQL*Plus) / `BEGIN...END` block | `EXEC my_proc(arg);` |
 
 ---
 
 ## 10. ⚙️ User-Defined Functions (UDFs)
 
-Unlike stored procedures, **functions** must return a value and can be used directly inside SQL expressions (`SELECT`, `WHERE`, `JOIN ON`, etc.). Procedures cannot.
+Stored procedures ke ulat, **functions** ko hamesha ek value return karni hoti hai aur inko directly SQL expressions ke andar use kiya ja sakta hai (`SELECT`, `WHERE`, `JOIN ON`, waghera). Procedures ye nahi kar sakte.
 
-### Scalar Functions — return a single value
+### Scalar Functions — ek single value return karte hain
 
 ```sql
 -- PostgreSQL
@@ -501,9 +509,9 @@ END;
 /
 ```
 
-### Table-Valued Functions — return a result set (PostgreSQL and SQL Server)
+### Table-Valued Functions — ek pura result set return karte hain (PostgreSQL aur SQL Server)
 
-These functions return a full table of rows, not a single scalar value. They are powerful for encapsulating complex queries that you want to reuse inline.
+Ye functions ek single scalar value nahi, balki rows ka pura table return karte hain. Complex queries ko encapsulate karke inline reuse karne ke liye ye kaafi powerful hain.
 
 ```sql
 -- PostgreSQL: RETURNS TABLE
@@ -516,7 +524,7 @@ AS $$
     WHERE country = p_country;
 $$;
 
--- Use like a table
+-- Table jaisa use karo
 SELECT * FROM users_in_country('Canada');
 ```
 
@@ -531,17 +539,17 @@ RETURN (
     WHERE country = @country
 );
 
--- Use like a table
+-- Table jaisa use karo
 SELECT * FROM dbo.users_in_country('Canada');
 ```
 
-> MySQL and Oracle support table-valued functions with more verbose syntax (using pipelined functions in Oracle or temporary tables in MySQL), but they are less commonly used in those platforms.
+> MySQL aur Oracle bhi table-valued functions support karte hain, par thode zyada verbose syntax ke saath (Oracle mein pipelined functions, MySQL mein temporary tables) — is wajah se in platforms pe ye kam common hain.
 
 ---
 
-## 11. 🔁 The Same Example Across All Four Databases
+## 11. 🔁 Chaaron Databases Mein Same Example
 
-**Goal:** A reusable routine that accepts a user ID and returns that user's name along with their total post count.
+**Goal:** Ek reusable routine jo ek user ID leta hai aur us user ka naam plus uske total posts ka count return karta hai.
 
 ### PostgreSQL
 
@@ -605,7 +613,7 @@ RETURN (
 -- Usage
 SELECT * FROM dbo.get_user_with_post_count(42);
 
--- Alternatively, as a stored procedure:
+-- Ya, stored procedure ki tarah:
 CREATE OR ALTER PROCEDURE dbo.get_user_with_post_count
     @user_id INT
 AS
@@ -626,7 +634,7 @@ EXEC dbo.get_user_with_post_count @user_id = 42;
 ### Oracle
 
 ```sql
--- Oracle: function returning a SYS_REFCURSOR
+-- Oracle: SYS_REFCURSOR return karne wala function
 CREATE OR REPLACE FUNCTION get_user_with_post_count(p_user_id NUMBER)
 RETURN SYS_REFCURSOR
 AS
@@ -644,7 +652,7 @@ BEGIN
 END;
 /
 
--- Usage (from an application or PL/SQL block)
+-- Usage (application ya PL/SQL block se)
 DECLARE
     v_cursor SYS_REFCURSOR;
     v_name   VARCHAR2(200);
@@ -660,55 +668,57 @@ END;
 
 ---
 
-## 12. ⚖️ Procedures vs. Application Code — When to Use Which
+## 12. ⚖️ Procedures vs Application Code — Kab Kya Use Karein
 
-This is one of the most debated topics in backend development. Here is a practical breakdown:
+Backend development mein ye sabse zyada debate ho ne wala topic hai. Chalo ek practical breakdown karte hain.
 
-### Use stored procedures or functions when:
+### Stored procedures ya functions kab use karein:
 
-| Situation | Why it helps |
+| Situation | Kyun help karta hai |
 |-----------|-------------|
-| **Batch data processing** | Processing millions of rows inside the DB avoids sending all that data over the network |
-| **Enforcing business rules centrally** | Multiple apps (web, mobile, batch) share one canonical implementation |
-| **Fine-grained security** | Grant `EXECUTE` on a procedure; deny direct `SELECT/UPDATE` on the table |
-| **Complex multi-step transactions** | Keep all steps atomic inside a single DB session |
-| **Reporting and scheduled jobs** | DB-native scheduling (MySQL Events, Oracle DBMS_SCHEDULER) pairs naturally |
+| **Batch data processing** | Lakhon rows ko DB ke andar process karna network pe saara data bhejne se bachata hai |
+| **Business rules centrally enforce karna** | Multiple apps (web, mobile, batch) sab ek hi canonical implementation share karte hain |
+| **Fine-grained security** | Procedure pe `EXECUTE` grant karo; table pe direct `SELECT/UPDATE` deny karo |
+| **Complex multi-step transactions** | Saare steps ek hi DB session ke andar atomic rakhna |
+| **Reporting aur scheduled jobs** | DB-native scheduling (MySQL Events, Oracle DBMS_SCHEDULER) naturally fit hoti hai |
 
-### Use application code when:
+### Application code kab use karein:
 
-| Situation | Why it helps |
+| Situation | Kyun help karta hai |
 |-----------|-------------|
-| **Rapid iteration** | Deploying a Python/Node/Java change is easier than a schema migration |
-| **Version control and code review** | Stored procedures are harder to diff and review than application code |
-| **Unit testing** | Application logic is far easier to test in isolation |
-| **Logic involving external services** | Calling an API, sending email, or reading a file — not possible inside SQL |
-| **Complex conditional flows** | Modern languages handle branching, loops, and error handling more cleanly |
-| **Team expertise** | Most backend developers are more comfortable in their app language |
+| **Rapid iteration** | Python/Node/Java mein change deploy karna schema migration se aasan hai |
+| **Version control aur code review** | Stored procedures ko diff aur review karna application code se zyada mushkil hai |
+| **Unit testing** | Application logic ko isolation mein test karna kaafi aasan hai |
+| **External services wala logic** | API call karna, email bhejna, file padhna — ye SQL ke andar possible nahi |
+| **Complex conditional flows** | Modern languages branching, loops, aur error handling ko zyada cleanly handle karti hain |
+| **Team expertise** | Zyada tar backend developers apni app language mein zyada comfortable hote hain |
 
-**Rule of thumb:** Keep SQL in the database for what SQL is best at — set-based data operations. Keep business logic in your application for what programming languages are best at — control flow, external integrations, and testability.
+**Rule of thumb:** SQL ko database mein rakho uske liye jisme SQL best hai — set-based data operations. Business logic ko application mein rakho uske liye jisme programming languages best hain — control flow, external integrations, aur testability.
+
+Socho Swiggy jaisa system: order place hote hi inventory deduct karna aur transaction log karna — ye pure set-based operation hai, isliye ek stored procedure mein achha fit baithta hai. Par restaurant ko notify karna ya SMS bhejna — ye application layer ka kaam hai, kyunki SQL external APIs ko call nahi kar sakta.
 
 ---
 
 ## 🔑 Key Takeaways
 
-- A **view** is a named SELECT query stored in the database. It behaves like a table but reads live data every time it is queried.
-- Views can be **updatable** (writes flow to the underlying table) when they are simple enough — no JOINs, aggregates, or DISTINCT.
-- `WITH CHECK OPTION` prevents inserts or updates that would make a row invisible through the view's own filter.
-- **Materialized views** store the query result physically for fast reads. PostgreSQL and Oracle support them natively; SQL Server uses Indexed Views; MySQL requires a manual workaround.
-- **Stored procedures** save server-side logic with a name. Their syntax varies greatly: PostgreSQL uses PL/pgSQL, MySQL uses `DELIMITER`, SQL Server uses T-SQL, and Oracle uses PL/SQL.
-- Parameters come in three modes: `IN` (input), `OUT` (output), and `INOUT` (both). SQL Server uses the `OUTPUT` keyword instead of `OUT`.
-- **User-defined functions** must return a value and can be embedded in SQL expressions. Scalar functions return one value; table-valued functions return rows.
-- Use stored procedures for batch operations, security boundaries, and multi-app shared logic. Use application code for business logic that benefits from version control, testing, and external integrations.
+- **View** ek named SELECT query hai jo database mein store hoti hai. Ye table jaisa behave karta hai lekin har baar query karne pe live data padhta hai.
+- Views **updatable** ho sakte hain (writes underlying table tak pahunchte hain) jab woh kaafi simple ho — koi JOINs, aggregates, ya DISTINCT nahi.
+- `WITH CHECK OPTION` un inserts ya updates ko rokta hai jo row ko view ke apne filter se invisible bana dein.
+- **Materialized views** query result ko physically store karte hain fast reads ke liye. PostgreSQL aur Oracle inhe natively support karte hain; SQL Server Indexed Views use karta hai; MySQL ko manual workaround chahiye.
+- **Stored procedures** server-side logic ko ek naam ke saath save karte hain. Inka syntax kaafi alag hota hai: PostgreSQL PL/pgSQL use karta hai, MySQL `DELIMITER` use karta hai, SQL Server T-SQL use karta hai, aur Oracle PL/SQL use karta hai.
+- Parameters teen modes mein aate hain: `IN` (input), `OUT` (output), aur `INOUT` (dono). SQL Server `OUT` ki jagah `OUTPUT` keyword use karta hai.
+- **User-defined functions** ko value return karni hi hoti hai aur inhe SQL expressions ke andar embed kiya ja sakta hai. Scalar functions ek value return karte hain; table-valued functions rows return karte hain.
+- Stored procedures use karo batch operations, security boundaries, aur multi-app shared logic ke liye. Application code use karo us business logic ke liye jisko version control, testing, aur external integrations se fayda ho.
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni understanding check kar lo.
 
 **Question 1**
 
-You create this view:
+Tumne ye view banaya:
 
 ```sql
 CREATE VIEW vip_users AS
@@ -718,18 +728,18 @@ WHERE spending_tier = 'VIP'
 WITH CHECK OPTION;
 ```
 
-A developer runs:
+Ek developer ye chalata hai:
 
 ```sql
 UPDATE vip_users SET spending_tier = 'Standard' WHERE id = 7;
 ```
 
-What happens, and why?
+Kya hoga, aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-The UPDATE is **rejected** with an error. The `WITH CHECK OPTION` clause prevents any modification that would cause the updated row to no longer satisfy the view's `WHERE spending_tier = 'VIP'` condition. After the update, the row would have `spending_tier = 'Standard'`, which means it would disappear from the view — exactly what `WITH CHECK OPTION` is designed to block.
+UPDATE **reject** ho jaayega ek error ke saath. `WITH CHECK OPTION` clause kisi bhi aisi modification ko rokta hai jo updated row ko view ke `WHERE spending_tier = 'VIP'` condition se bahar nikal de. Update ke baad, row ka `spending_tier = 'Standard'` ho jaayega, matlab woh view se gayab ho jaayega — aur yehi exactly hai jo `WITH CHECK OPTION` rokne ke liye design kiya gaya hai.
 
 </details>
 
@@ -737,17 +747,17 @@ The UPDATE is **rejected** with an error. The `WITH CHECK OPTION` clause prevent
 
 **Question 2**
 
-Your team is debating where to put this logic: "When a user places an order, deduct the item quantity from inventory and log the transaction." Should this go in a stored procedure or in the application layer? What factors should drive your decision?
+Tumhari team ye discuss kar rahi hai ki ye logic kahan rakha jaaye: "Jab user order place kare, inventory se item quantity deduct karo aur transaction log karo." Kya ye stored procedure mein jaana chahiye ya application layer mein? Decision lete waqt kaunse factors dhyan mein rakhne chahiye?
 
 <details>
 <summary>Answer</summary>
 
-There is no single right answer, but the key factors are:
+Iska koi single right answer nahi hai, lekin key factors ye hain:
 
-- **For a stored procedure:** The logic is purely set-based (UPDATE inventory, INSERT log). It benefits from atomicity within a single DB transaction. If multiple applications (web, mobile app, batch importer) all place orders, centralizing the logic in a procedure prevents duplication.
-- **For the application layer:** If you need to call external services (e.g., notify a warehouse API, send a confirmation email), a stored procedure cannot do this. Application code is also easier to unit-test, version-control, and deploy incrementally.
+- **Stored procedure ke favor mein:** Ye logic purely set-based hai (UPDATE inventory, INSERT log). Isko ek single DB transaction ke andar atomicity ka fayda milta hai. Agar multiple applications (web, mobile app, batch importer) sab orders place karte hain, toh logic ko ek procedure mein centralize karna duplication rokta hai.
+- **Application layer ke favor mein:** Agar tumhe external services call karni hain (jaise warehouse API ko notify karna, confirmation email bhejna), toh stored procedure ye nahi kar sakta. Application code unit-test, version-control, aur incrementally deploy karna bhi zyada aasan hai.
 
-A common real-world compromise: handle the data mutation (deduct inventory + log) in a transaction in the application layer, and potentially call a stored procedure for the actual SQL work while keeping orchestration and external calls in application code.
+Ek common real-world compromise: data mutation (inventory deduct + log) ko application layer ke transaction mein handle karo, aur asal SQL work ke liye potentially ek stored procedure call karo, jab ki orchestration aur external calls application code mein hi rakho.
 
 </details>
 
@@ -755,15 +765,15 @@ A common real-world compromise: handle the data mutation (deduct inventory + log
 
 **Question 3**
 
-You want a fast summary report showing total sales per product category, queried hundreds of times per hour. The underlying sales data changes only once per hour (batch import). Which database object is the best fit, and how would you set it up in PostgreSQL?
+Tumhe ek fast summary report chahiye jo har product category ka total sales dikhaye, jise hazaron baar per hour query kiya jaata hai. Underlying sales data sirf ek baar per hour change hota hai (batch import). Kaunsa database object best fit hai, aur PostgreSQL mein isko kaise set up karoge?
 
 <details>
 <summary>Answer</summary>
 
-A **materialized view** is the best fit. Since data changes only once per hour, there is no need to re-run the aggregation on every query. Store the pre-computed result and refresh it after each batch import.
+**Materialized view** yahan best fit hai. Kyunki data sirf ek baar per hour change hota hai, har query pe aggregation re-run karne ki zarurat nahi. Pre-computed result store karo aur har batch import ke baad refresh kar do.
 
 ```sql
--- Create the materialized view
+-- Materialized view banao
 CREATE MATERIALIZED VIEW category_sales_summary AS
 SELECT
     p.category,
@@ -772,14 +782,14 @@ FROM order_items oi
 JOIN products p ON p.id = oi.product_id
 GROUP BY p.category;
 
--- After each hourly batch import, refresh it:
+-- Har hourly batch import ke baad, isko refresh karo:
 REFRESH MATERIALIZED VIEW CONCURRENTLY category_sales_summary;
 
--- All report queries now hit the snapshot, not the raw tables:
+-- Ab saari report queries snapshot pe hit karengi, raw tables pe nahi:
 SELECT * FROM category_sales_summary ORDER BY total_sales DESC;
 ```
 
-`CONCURRENTLY` allows reads to continue while the refresh runs (requires a unique index on the materialized view).
+`CONCURRENTLY` reads ko refresh ke dauran bhi chalne deta hai (iske liye materialized view pe ek unique index chahiye).
 
 </details>
 

@@ -1,26 +1,26 @@
-# 📝 Chapter 3: Inserting, Updating, and Deleting Data (DML)
+# 📝 Chapter 3: Data Insert, Update, Delete Karna (DML)
 
-> **Level:** Beginner | **Estimated reading time:** ~25 minutes  
+> **Level:** Beginner | **Padhne ka time:** ~25 minutes  
 > **Prerequisites:** Chapter 1 (SQL Basics), Chapter 2 (SELECT queries)
 
 ---
 
-## 🗺️ What You Will Learn
+## 🗺️ Is Chapter Mein Kya Seekhoge?
 
-Data Manipulation Language (DML) is the part of SQL that lets you **change** what is inside a database. While `SELECT` reads data, DML writes it. By the end of this chapter you will be able to:
+Data Manipulation Language (DML) SQL ka woh hissa hai jisse tum database ke andar ka data **change** kar sakte ho. `SELECT` sirf data padhta hai, lekin DML usse likhta hai — insert karta hai, update karta hai, delete karta hai. Chapter khatam hone tak tum yeh sab kar paoge:
 
-- Add new rows with `INSERT INTO`
-- Modify existing rows with `UPDATE`
-- Remove rows with `DELETE` and `TRUNCATE`
-- Handle the "insert or update" scenario with UPSERT
-- Retrieve the rows you just changed with `RETURNING` / `OUTPUT`
-- Avoid the single most catastrophic SQL mistake a developer can make
+- `INSERT INTO` se naye rows add karna
+- `UPDATE` se existing rows modify karna
+- `DELETE` aur `TRUNCATE` se rows remove karna
+- "Insert karo ya update karo" wala scenario handle karna — UPSERT
+- Jo rows abhi change kiye, unhe wapas `RETURNING` / `OUTPUT` se le aana
+- Sabse bada SQL disaster jo ek developer kar sakta hai, uss se bachna
 
 ---
 
-## 🏪 Our Running Example
+## 🏪 Hamara Running Example
 
-Throughout this chapter we will work with a small e-commerce schema:
+Poore chapter mein hum ek chhota sa e-commerce schema use karenge — socho tumhara apna mini Flipkart backend:
 
 ```sql
 -- products table
@@ -55,24 +55,24 @@ CREATE TABLE order_archive (
 
 ---
 
-## ➕ INSERT INTO — Adding Rows
+## ➕ INSERT INTO — Naye Rows Add Karna
 
 ### Single Row Insert
 
-The most basic form inserts exactly one row. Syntax is identical across all major databases:
+Kya hota hai? Sabse basic form ek baar mein exactly ek row insert karta hai. Syntax sabhi major databases mein same hai:
 
 ```sql
 INSERT INTO products (product_id, name, price, stock)
 VALUES (1, 'Wireless Mouse', 29.99, 150);
 ```
 
-**Tips for beginners:**
-- Always list the column names explicitly. Relying on column order is fragile — someone adding a column later will break your INSERT.
-- Columns not listed (like `is_active`) will receive their `DEFAULT` value or `NULL`.
+**Beginners ke liye tips:**
+- Hamesha column names explicitly likho. Column order pe bharosa mat karo — kal ko koi naya column add kar de, tumhara INSERT tut jayega.
+- Jo columns list nahi kiye (jaise `is_active`), unko unka `DEFAULT` value ya `NULL` mil jayega.
 
 ### Multiple Row Insert
 
-You can insert several rows in a single statement. This is far more efficient than running one INSERT per row:
+Kyun zaruri hai? Ek hi statement mein kayi rows insert kar sakte ho — yeh ek-ek row ke liye alag INSERT chalane se kaafi zyada efficient hai:
 
 ```sql
 INSERT INTO products (product_id, name, price, stock)
@@ -82,13 +82,13 @@ VALUES
     (4, 'Monitor Stand',       49.99, 60);
 ```
 
-This syntax works the same in PostgreSQL, MySQL, SQL Server (2008+), and Oracle (18c+).
+Yeh syntax PostgreSQL, MySQL, SQL Server (2008+), aur Oracle (18c+) — sabme same tarah kaam karta hai.
 
 ---
 
-## 📋 INSERT INTO ... SELECT — Copying Rows from Another Table
+## 📋 INSERT INTO ... SELECT — Doosre Table Se Rows Copy Karna
 
-You can use a `SELECT` statement as the source of an `INSERT`. This is perfect for archiving, migrating, or cloning data:
+Kya hota hai? Tum `SELECT` statement ko `INSERT` ka source bana sakte ho. Yeh archiving, migration, ya data clone karne ke liye perfect hai:
 
 ```sql
 -- Archive all completed orders into order_archive
@@ -98,13 +98,13 @@ FROM   orders
 WHERE  status = 'completed';
 ```
 
-The column count and data types of the `SELECT` result must match the target column list. The `SELECT` can be as complex as you like — it can include `JOIN`s, `WHERE` filters, computed columns, and aggregations.
+`SELECT` result ke columns ki count aur data types target column list se match honi chahiye. `SELECT` jitna complex chahe utna ho sakta hai — usme `JOIN`s, `WHERE` filters, computed columns, aggregations sab kuch daal sakte ho.
 
 ---
 
-## 🔄 UPSERT — Insert or Update If It Already Exists
+## 🔄 UPSERT — Insert Karo, Ya Agar Already Exist Kare To Update Karo
 
-A very common real-world need: "Insert this row, but if the primary key already exists, update the existing row instead." This is called an **UPSERT** (update + insert). Each database handles it differently.
+Socho ek real-world scenario: "Yeh row insert kar do, lekin agar primary key already exist karti hai, to naya row insert karne ke bajaye existing row ko update kar do." Isse **UPSERT** (update + insert) kehte hain. Har database iske liye alag approach use karta hai — bilkul waise hi jaise Swiggy aur Zomato dono food deliver karte hain lekin app ka flow alag hai.
 
 ### PostgreSQL — ON CONFLICT DO UPDATE
 
@@ -118,7 +118,7 @@ DO UPDATE SET
     stock = EXCLUDED.stock;
 ```
 
-`EXCLUDED` is a special table that holds the values you tried to insert. You can also use `ON CONFLICT DO NOTHING` to silently ignore duplicates.
+`EXCLUDED` ek special table hai jo tumne jo values insert karne ki koshish ki thi, unhe hold karta hai. `ON CONFLICT DO NOTHING` bhi use kar sakte ho agar duplicate ko chupchap ignore karna ho.
 
 ### MySQL — ON DUPLICATE KEY UPDATE
 
@@ -131,11 +131,11 @@ ON DUPLICATE KEY UPDATE
     stock = VALUES(stock);
 ```
 
-`VALUES(col)` refers to the value that was in the attempted INSERT.
+`VALUES(col)` uss value ko refer karta hai jo tumne INSERT mein try ki thi.
 
 ### SQL Server — MERGE Statement
 
-SQL Server uses a more verbose but powerful `MERGE` statement:
+SQL Server thoda verbose lekin powerful `MERGE` statement use karta hai:
 
 ```sql
 -- SQL Server
@@ -153,7 +153,7 @@ WHEN NOT MATCHED THEN
 
 ### Oracle — MERGE Statement
 
-Oracle's `MERGE` syntax is nearly identical to SQL Server's:
+Oracle ka `MERGE` syntax SQL Server jaisa hi hai:
 
 ```sql
 -- Oracle
@@ -179,7 +179,7 @@ WHEN NOT MATCHED THEN
 
 ---
 
-## ✏️ UPDATE — Modifying Existing Rows
+## ✏️ UPDATE — Existing Rows Modify Karna
 
 ### Basic UPDATE
 
@@ -190,7 +190,7 @@ SET    price = price * 1.10
 WHERE  product_id = 2;
 ```
 
-### Updating Multiple Columns at Once
+### Ek Saath Multiple Columns Update Karna
 
 ```sql
 -- Mark an order as shipped and record the time
@@ -200,9 +200,9 @@ SET    status     = 'shipped',
 WHERE  order_id = 1042;
 ```
 
-You can update as many columns as you like in one `SET` clause — just separate them with commas.
+Ek `SET` clause mein jitne chahe utne columns update kar sakte ho — bas comma se separate karo.
 
-### Conditional Update with a Subquery
+### Subquery Ke Saath Conditional Update
 
 ```sql
 -- Give a 15% discount to all products that have never been ordered
@@ -215,11 +215,11 @@ WHERE  product_id NOT IN (
 
 ---
 
-## ☠️ The Deadly WHERE Clause Mistake
+## ☠️ WHERE Clause Wali Sabse Khatarnak Galti
 
-> **This is the most important warning in this entire chapter.**
+> **Yeh is poore chapter ki sabse important warning hai.**
 
-Running `UPDATE` or `DELETE` **without a `WHERE` clause` affects every single row in the table. There is no undo button in most production systems.
+`UPDATE` ya `DELETE` ko **bina `WHERE` clause ke** chalana table ke har ek row ko affect karta hai. Zyadatar production systems mein koi "undo" button nahi hota — yeh CRED pe accidentally saara balance transfer karne jaisa hai, wapas nahi aata.
 
 ```sql
 -- DISASTER: updates price for ALL products, not just one
@@ -232,10 +232,10 @@ SET   price = 0.01
 WHERE product_id = 7;
 ```
 
-**Defensive habits to build right now:**
-1. Always write the `WHERE` clause first, before the `SET` clause, and run a `SELECT` with that same `WHERE` to confirm which rows are affected.
-2. Wrap destructive statements in a transaction so you can `ROLLBACK` if something goes wrong (covered in Chapter 5).
-3. In production, request a confirmation count before committing.
+**Yeh defensive habits abhi se banao:**
+1. Hamesha `WHERE` clause pehle likho, `SET` clause se pehle, aur same `WHERE` ke saath ek `SELECT` chalao yeh confirm karne ke liye ki kaunse rows affect honge.
+2. Destructive statements ko transaction mein wrap karo taaki kuch galat ho to `ROLLBACK` kar sako (Chapter 5 mein cover karenge).
+3. Production mein commit karne se pehle affected rows ka confirmation count maango.
 
 ```sql
 -- Step 1: Check what you are about to change
@@ -249,11 +249,11 @@ WHERE  stock < 5;
 
 ---
 
-## 🔗 UPDATE with JOIN — Cross-Database Differences
+## 🔗 UPDATE with JOIN — Database Ke Hisaab Se Farak
 
-Sometimes you need to update rows in one table using values from another table. The syntax diverges significantly here.
+Kabhi kabhi tumhe ek table ke rows ko doosre table ki values use karke update karna padta hai. Yahan syntax database-wise kaafi alag ho jaata hai.
 
-**Scenario:** When a product's price changes, update any pending orders to reflect a new `notes` column.
+**Scenario:** Jab kisi product ki price change ho, to uske pending orders ka `status` update karo yeh batane ke liye ki price update ho gayi.
 
 ### PostgreSQL — FROM clause
 
@@ -290,9 +290,9 @@ WHERE  p.price > 50
 AND    o.status = 'pending';
 ```
 
-### Oracle — Correlated Subquery (most portable)
+### Oracle — Correlated Subquery (sabse portable)
 
-Oracle does not support `FROM` or `JOIN` directly in `UPDATE`. Use a correlated subquery or a `MERGE`:
+Oracle `UPDATE` mein directly `FROM` ya `JOIN` support nahi karta. Correlated subquery ya `MERGE` use karo:
 
 ```sql
 -- Oracle
@@ -309,7 +309,7 @@ AND    EXISTS (
 
 ---
 
-## 🗑️ DELETE FROM — Removing Rows
+## 🗑️ DELETE FROM — Rows Remove Karna
 
 ### Basic DELETE
 
@@ -323,11 +323,11 @@ DELETE FROM orders
 WHERE created_at < CURRENT_DATE - INTERVAL '2 years';
 ```
 
-> **Reminder:** Always include a `WHERE` clause. `DELETE FROM orders;` with no filter wipes the entire table.
+> **Yaad rakho:** Hamesha `WHERE` clause include karo. `DELETE FROM orders;` bina filter ke poora table saaf kar deta hai.
 
-### Soft Delete — A Real-World Pattern
+### Soft Delete — Ek Real-World Pattern
 
-In most applications you never truly delete rows — you hide them by flipping a flag. This preserves audit history and allows recovery:
+Kya hota hai? Zyadatar applications mein tum rows ko kabhi truly delete nahi karte — bas ek flag flip karke unhe chhupa dete ho. Isse audit history bachi rehti hai aur recovery bhi possible hoti hai — bilkul Swiggy jaise ek restaurant ko "inactive" kar dena, delete nahi karna:
 
 ```sql
 -- Instead of hard-deleting, mark as inactive
@@ -339,11 +339,11 @@ WHERE  product_id = 9;
 SELECT * FROM products WHERE is_active = TRUE;
 ```
 
-This pattern is called a **soft delete** and is used by virtually every serious production application.
+Isko **soft delete** kehte hain aur virtually har serious production application isi pattern ko use karti hai.
 
 ### DELETE with JOIN
 
-Deleting rows in one table based on a condition in another table.
+Ek table ke rows delete karna, doosre table ki condition ke basis pe.
 
 ```sql
 -- PostgreSQL
@@ -384,32 +384,32 @@ WHERE EXISTS (
 
 ## ⚡ TRUNCATE vs DELETE
 
-Both remove rows, but they behave very differently:
+Dono rows remove karte hain, lekin behave bahut alag tarike se karte hain.
 
 | Feature | `DELETE` | `TRUNCATE` |
 |---|---|---|
-| Removes rows | One at a time (logged) | All at once (minimally logged) |
-| Speed on large tables | Slow | Very fast |
+| Rows kaise remove hote hain | Ek-ek karke (logged) | Sab ek saath (minimally logged) |
+| Bade tables pe speed | Slow | Bahut fast |
 | WHERE clause | Supported | Not supported |
-| Resets AUTO_INCREMENT / IDENTITY | No | Yes (usually) |
-| Can be rolled back | Yes (inside a transaction) | Depends on DB* |
-| Fires row-level triggers | Yes | Usually no |
-| Can truncate tables with FK references | No | No (must disable FKs first) |
+| AUTO_INCREMENT / IDENTITY reset | Nahi | Haan (usually) |
+| Rollback ho sakta hai | Haan (transaction ke andar) | Depends on DB* |
+| Row-level triggers fire hote hain | Haan | Usually nahi |
+| FK reference wale tables truncate ho sakte hain | Nahi | Nahi (pehle FK disable karna padega) |
 
-*PostgreSQL and SQL Server allow `TRUNCATE` inside a transaction. MySQL does not — it auto-commits.
+*PostgreSQL aur SQL Server `TRUNCATE` ko transaction ke andar allow karte hain. MySQL nahi karta — woh auto-commit kar deta hai.
 
 ```sql
 -- Wipe ALL rows from the table and reset the identity counter
 TRUNCATE TABLE order_archive;
 ```
 
-**Rule of thumb:** Use `TRUNCATE` only when you intentionally want to empty the entire table — for example, clearing a staging or temp table between ETL runs. For anything else, use `DELETE`.
+**Rule of thumb:** `TRUNCATE` sirf tab use karo jab tum jaan-boojh kar poora table khali karna chahte ho — jaise staging ya temp table ko ETL runs ke beech mein clear karna. Baaki har cheez ke liye `DELETE` use karo.
 
 ---
 
-## 🔁 RETURNING / OUTPUT — Getting Changed Rows Back
+## 🔁 RETURNING / OUTPUT — Changed Rows Wapas Paana
 
-A powerful feature: after inserting, updating, or deleting rows, you often need to know which rows were affected — for example, to get a newly generated ID or log what was deleted.
+Kyun zaruri hai? Ek powerful feature: rows insert, update, ya delete karne ke baad, aksar tumhe pata hona chahiye ki kaunse rows affect hue — jaise naya generated ID lena, ya jo delete hua uska log rakhna.
 
 ### PostgreSQL and Oracle — RETURNING clause
 
@@ -433,7 +433,7 @@ RETURNING order_id, customer_id;
 
 ### SQL Server — OUTPUT clause
 
-SQL Server uses `OUTPUT` and exposes two pseudo-tables: `INSERTED` (new values) and `DELETED` (old values):
+SQL Server `OUTPUT` use karta hai aur do pseudo-tables expose karta hai: `INSERTED` (naya values) aur `DELETED` (purana values):
 
 ```sql
 -- SQL Server: INSERT with OUTPUT
@@ -455,9 +455,9 @@ OUTPUT DELETED.order_id, DELETED.status
 WHERE  status = 'cancelled';
 ```
 
-### MySQL — No Native RETURNING
+### MySQL — Native RETURNING Nahi Hai
 
-MySQL does not have a `RETURNING` clause. The common workarounds:
+MySQL mein `RETURNING` clause nahi hota. Common workarounds:
 
 ```sql
 -- MySQL: For INSERT, use LAST_INSERT_ID() for auto-increment PKs
@@ -485,7 +485,9 @@ DELETE FROM orders WHERE status = 'cancelled';
 
 ## 🛒 Real-World Examples
 
-### Example 1: Processing an E-Commerce Order
+### Example 1: E-Commerce Order Process Karna
+
+Socho tum apna khud ka mini Amazon/Flipkart order flow bana rahe ho:
 
 ```sql
 -- Step 1: Create the order
@@ -507,7 +509,7 @@ AND EXISTS (
 );
 ```
 
-### Example 2: Bulk Price Update from a Pricing Table
+### Example 2: Pricing Table Se Bulk Price Update
 
 ```sql
 -- A separate table holds the new prices approved by the pricing team
@@ -520,7 +522,7 @@ FROM   pricing_updates AS pu
 WHERE  p.product_id = pu.product_id;
 ```
 
-### Example 3: Soft Delete Discontinued Products and Archive Their Orders
+### Example 3: Discontinued Products Ko Soft Delete Karo Aur Unke Orders Archive Karo
 
 ```sql
 -- 1. Soft-delete the products
@@ -545,35 +547,35 @@ AND    status = 'pending';
 
 ## 💡 Key Takeaways
 
-- `INSERT INTO ... VALUES (...)` adds rows. List column names explicitly — never rely on column order.
-- `INSERT INTO ... SELECT ...` copies rows from another table or query result.
-- UPSERT syntax differs by database: `ON CONFLICT` (PostgreSQL), `ON DUPLICATE KEY UPDATE` (MySQL), `MERGE` (SQL Server, Oracle).
-- `UPDATE` modifies existing rows. **Always include a `WHERE` clause unless you genuinely mean to update every row.**
-- `UPDATE ... FROM / JOIN` lets you update using data from another table — syntax varies by database.
-- `DELETE FROM` removes rows. **Always include a `WHERE` clause.** Prefer soft deletes (a flag column) in real applications.
-- `TRUNCATE` removes all rows instantly, resets identity counters, and cannot always be rolled back — use it only for wiping entire tables (staging/temp tables).
-- `RETURNING` (PostgreSQL/Oracle) and `OUTPUT` (SQL Server) let you capture the rows you just changed. MySQL requires a separate `SELECT`.
+- `INSERT INTO ... VALUES (...)` naye rows add karta hai. Column names explicitly likho — kabhi bhi column order pe bharosa mat karo.
+- `INSERT INTO ... SELECT ...` doosre table ya query result se rows copy karta hai.
+- UPSERT syntax har database mein alag hai: `ON CONFLICT` (PostgreSQL), `ON DUPLICATE KEY UPDATE` (MySQL), `MERGE` (SQL Server, Oracle).
+- `UPDATE` existing rows modify karta hai. **Hamesha `WHERE` clause include karo, jab tak tum genuinely har row update nahi karna chahte.**
+- `UPDATE ... FROM / JOIN` tumhe doosre table ke data se update karne deta hai — syntax database ke hisaab se badalta hai.
+- `DELETE FROM` rows remove karta hai. **Hamesha `WHERE` clause include karo.** Real applications mein soft deletes (flag column) prefer karo.
+- `TRUNCATE` saare rows instantly hata deta hai, identity counters reset kar deta hai, aur hamesha rollback nahi ho sakta — sirf poora table wipe karne ke liye use karo (staging/temp tables).
+- `RETURNING` (PostgreSQL/Oracle) aur `OUTPUT` (SQL Server) tumhe abhi change kiye gaye rows capture karne dete hain. MySQL mein alag `SELECT` chalana padta hai.
 
 ---
 
 ## ❓ Quiz
 
-Test your understanding before moving to the next chapter.
+Agle chapter pe jaane se pehle apni understanding test kar lo.
 
 **Question 1**
 
-You run the following statement on your production orders table:
+Tumne apne production orders table pe yeh statement chala diya:
 
 ```sql
 UPDATE orders SET status = 'cancelled';
 ```
 
-What happens, and how should this have been written?
+Kya hoga, aur yeh sahi tarike se kaise likha jaana chahiye tha?
 
 <details>
 <summary>Show answer</summary>
 
-Every single row in the `orders` table is updated to `status = 'cancelled'` — regardless of its current state. This is almost certainly not what was intended. The correct form requires a `WHERE` clause to target only specific rows, for example:
+`orders` table ka har ek row `status = 'cancelled'` mein update ho jayega — chahe uska current state kuch bhi ho. Yeh almost certainly intended nahi tha. Sahi form mein `WHERE` clause honi chahiye jo sirf specific rows ko target kare, jaise:
 
 ```sql
 UPDATE orders
@@ -581,7 +583,7 @@ SET    status = 'cancelled'
 WHERE  order_id = 505;
 ```
 
-Always verify the affected rows with a `SELECT` using the same `WHERE` condition before running an UPDATE or DELETE.
+Hamesha UPDATE ya DELETE chalane se pehle same `WHERE` condition ke saath ek `SELECT` chala kar affected rows verify kar lo.
 
 </details>
 
@@ -589,16 +591,16 @@ Always verify the affected rows with a `SELECT` using the same `WHERE` condition
 
 **Question 2**
 
-What is the difference between `DELETE FROM orders;` and `TRUNCATE TABLE orders;`? When would you choose one over the other?
+`DELETE FROM orders;` aur `TRUNCATE TABLE orders;` mein kya farak hai? Kab kaunsa use karoge?
 
 <details>
 <summary>Show answer</summary>
 
-- `DELETE FROM orders;` removes rows one by one, logs each deletion, fires triggers, and can be rolled back inside a transaction. It is slow on large tables but supports a `WHERE` clause.
-- `TRUNCATE TABLE orders;` removes all rows at once with minimal logging, resets identity/auto-increment counters, and is much faster. It cannot be rolled back in MySQL and does not fire row-level triggers.
+- `DELETE FROM orders;` rows ko ek-ek karke remove karta hai, har deletion log karta hai, triggers fire karta hai, aur transaction ke andar rollback ho sakta hai. Bade tables pe slow hai lekin `WHERE` clause support karta hai.
+- `TRUNCATE TABLE orders;` saare rows ek saath minimal logging ke saath remove kar deta hai, identity/auto-increment counters reset kar deta hai, aur kaafi zyada fast hai. MySQL mein yeh rollback nahi ho sakta aur row-level triggers fire nahi karta.
 
-**Choose `DELETE`** when you need to remove specific rows, need trigger support, or might need to roll back.  
-**Choose `TRUNCATE`** only when you want to completely empty an entire table (e.g., a staging table between ETL runs) and speed matters.
+**`DELETE` choose karo** jab specific rows remove karne hon, trigger support chahiye ho, ya rollback ki zaroorat pad sakti ho.  
+**`TRUNCATE` choose karo** sirf tab jab poora table completely empty karna ho (jaise ETL runs ke beech staging table) aur speed matter karti ho.
 
 </details>
 
@@ -606,7 +608,7 @@ What is the difference between `DELETE FROM orders;` and `TRUNCATE TABLE orders;
 
 **Question 3**
 
-You are using PostgreSQL. You want to insert a new product, but if a product with the same `product_id` already exists, you want to update its `price` and `stock` instead. Write the SQL statement.
+Tum PostgreSQL use kar rahe ho. Tumhe naya product insert karna hai, lekin agar same `product_id` wala product already exist karta hai, to uska `price` aur `stock` update karna hai instead. SQL statement likho.
 
 <details>
 <summary>Show answer</summary>
@@ -620,15 +622,15 @@ DO UPDATE SET
     stock = EXCLUDED.stock;
 ```
 
-`EXCLUDED` refers to the row that was attempted to be inserted but conflicted. This is PostgreSQL's UPSERT syntax. MySQL would use `ON DUPLICATE KEY UPDATE`, and SQL Server / Oracle would use a `MERGE` statement.
+`EXCLUDED` uss row ko refer karta hai jo insert karne ki koshish ki gayi thi lekin conflict ho gayi. Yeh PostgreSQL ka UPSERT syntax hai. MySQL `ON DUPLICATE KEY UPDATE` use karega, aur SQL Server / Oracle `MERGE` statement use karenge.
 
 </details>
 
 ---
 
-## 🔜 What's Next
+## 🔜 Aage Kya Hai
 
-In Chapter 4 we will explore **Filtering, Sorting, and Aggregating** — learning to slice and summarize data with `WHERE`, `GROUP BY`, `HAVING`, and aggregate functions like `COUNT`, `SUM`, and `AVG`.
+Chapter 4 mein hum explore karenge **Filtering, Sorting, aur Aggregating** — `WHERE`, `GROUP BY`, `HAVING`, aur `COUNT`, `SUM`, `AVG` jaise aggregate functions se data ko slice aur summarize karna seekhenge.
 
 ---
 

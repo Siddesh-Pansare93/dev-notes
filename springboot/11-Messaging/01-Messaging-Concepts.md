@@ -1,56 +1,64 @@
----
-tags: [messaging, concepts, kafka, rabbitmq]
-aliases: [Messaging, Async, Brokers]
-stage: advanced
----
-
 # Messaging Concepts
 
-> [!info] For the Express/TS dev
-> If you've used `bullmq` (Redis-backed jobs), `kafkajs`, or RabbitMQ from Node — same ideas. The Java side has Spring AMQP (RabbitMQ), Spring Kafka, JMS for ActiveMQ, and Spring Cloud Stream as a unifying abstraction. This note is the conceptual foundation for picking and using the right one.
+> [!info] Express/TS dev ke liye
+> Agar tumne `bullmq` (Redis-backed jobs), `kafkajs`, ya RabbitMQ Node se use kiya hai — same hi ideas hain, bas naam alag hain. Java side pe Spring AMQP (RabbitMQ), Spring Kafka, JMS (ActiveMQ ke liye), aur Spring Cloud Stream (sabko ek chhata ke neeche laane wala abstraction) hote hain. Yeh note tumhara conceptual foundation hai — sahi broker chunne aur use karne ke liye.
 
 ## Concept
 
-### Why messaging at all
+### Messaging kyun zaruri hai
 
-Sync HTTP couples caller availability to callee availability. Messaging decouples them: the broker stores messages until consumers can process them. Benefits:
+Socho tum Zomato pe order karte ho. Agar restaurant ko order confirm karne ke liye tumhe wahin khade rehna pade jab tak khana ban na jaye — bohot ajeeb system hoga na? Sync HTTP bhi wahi karta hai: caller tab tak wait karta hai jab tak callee (jisko call kiya) jawab na de. Dono ek doosre ki availability pe depend karte hain — agar ek down hai, doosra bhi phas jaata hai.
 
-- **Decoupling** — producer doesn't know consumers.
-- **Buffering** — bursts handled by broker; consumers process at their pace.
-- **Fan-out** — one event, many handlers.
-- **Replayability** (some brokers) — debugging, rebuilding read models.
-- **Resilience** — consumer down ≠ data lost.
+Messaging is coupling ko todta hai. Ek beech ka broker (jaise Kafka ya RabbitMQ) messages ko store kar leta hai, jab tak consumer unhe process karne ke liye ready na ho. Bilkul Zomato ke order queue jaisa — restaurant ek saath 50 orders le sakta hai, kitchen apni speed se banaega, customer ko turant "order received" mil jaata hai.
+
+Fayde:
+
+- **Decoupling** — producer (order lene wala) ko pata bhi nahi hota consumer (kitchen, delivery, notification service) kaun hai ya kitne hain.
+- **Buffering** — Swiggy pe Friday raat ko ek saath 10,000 orders aa jaayein? Broker sab absorb kar leta hai, consumers apni pace se process karte hain.
+- **Fan-out** — ek event, kai handlers. Order place hua → email jaayega, SMS jaayega, inventory update hoga, analytics track hoga — sab alag-alag services ek hi event sun ke apna kaam karti hain.
+- **Replayability** (kuch brokers mein) — debugging ke liye ya read models rebuild karne ke liye purane messages phir se chala sakte ho.
+- **Resilience** — consumer down hai? Koi baat nahi, data broker mein safe hai. Consumer wapas aake process kar lega.
 
 ### Queue vs Topic
 
+**Kya hota hai?** Queue aur Topic, dono message deliver karne ke do alag tareeke hain.
+
 | | Queue | Topic |
 |---|-------|-------|
-| Routing | One message → one consumer (work distribution) | One message → all subscribed consumers (broadcast) |
+| Routing | Ek message → ek hi consumer (kaam baatna) | Ek message → sab subscribed consumers (broadcast) |
 | Use case | Job processing, load balancing | Event broadcasting, fan-out |
 | Examples | RabbitMQ work queue, SQS | Kafka topic, Pub/Sub topic, RabbitMQ fanout exchange |
 
-In Kafka, "topic" is the only concept — but consumer **groups** turn a topic into a queue (each message goes to one consumer per group).
+Socho ek **queue** IRCTC ke ticket booking counter jaisi hai — jitne bhi log line mein khade hain (consumers), ek ticket (message) sirf ek hi banda process karega. Doosre free honge tabhi agla message uthaayenge.
+
+Ek **topic** newspaper delivery jaisa hai — jitne bhi subscribers hain, sabko wahi newspaper (message) mil jaata hai.
+
+Kafka mein sirf "topic" hi concept hota hai — lekin consumer **groups** ek topic ko queue jaisa bana dete hain (har group ke andar ek message sirf ek hi consumer ko jaata hai, lekin alag groups ko independently milta hai).
 
 ### Push vs Pull
 
-- **Push** (RabbitMQ default) — broker hands messages to consumers as they arrive.
-- **Pull** (Kafka) — consumers ask the broker for messages at their own pace.
+- **Push** (RabbitMQ default) — broker khud consumer ko message thama deta hai jaise hi woh aata hai. Jaise Swiggy delivery boy tumhe seedha ghar pe deliver kar deta hai.
+- **Pull** (Kafka) — consumer khud broker se puchta hai "bhai koi naya message hai kya?" apni marzi se, apni speed se. Jaise tum khud restaurant se pickup karne jaate ho apni convenience pe.
 
-Pull is more resilient (consumer controls flow); push is lower-latency.
+Pull zyada resilient hai (consumer apni flow control khud karta hai); push mein latency kam hoti hai.
 
 ### Delivery guarantees
 
+**Kya guarantee milti hai ki message deliver hoga?**
+
 | Guarantee | Behavior |
 |-----------|----------|
-| **At-most-once** | Send-and-forget. May lose messages. Rare in practice. |
-| **At-least-once** | Retried until acknowledged. **May duplicate.** Default for most brokers. |
-| **Exactly-once** | At-least-once + idempotent processing on the consumer. |
+| **At-most-once** | Bhej diya aur bhool gaye. Message kho bhi sakta hai. Practically kam use hota hai. |
+| **At-least-once** | Jab tak acknowledge na ho, retry hota rehta hai. **Duplicate ho sakta hai.** Zyadatar brokers ka default. |
+| **Exactly-once** | At-least-once + consumer side pe idempotent processing. |
 
-> [!warning] **Exactly-once delivery is a marketing term.** What's achievable is at-least-once delivery + exactly-once *processing* (your handler being idempotent). See [[05-Idempotency-and-Retries]].
+> [!warning] **"Exactly-once delivery" ek marketing term hai.** Real mein jo possible hai woh hai at-least-once delivery + exactly-once *processing* (matlab tumhara handler idempotent ho, same message do baar aaye toh bhi result same rahe). Dekho [[05-Idempotency-and-Retries]].
 
 ### Acknowledgements
 
-A consumer must **ack** a message after processing. Until ack, the broker keeps it. If the consumer crashes mid-process, the message is redelivered.
+**Ack kya hota hai?** Consumer ko message process karne ke baad broker ko batana padta hai "haan bhai, ho gaya kaam" — isse **ack** kehte hain. Jab tak ack nahi aata, broker message ko apne paas rakhta hai. Agar consumer process karte waqt crash ho jaaye, message dobara deliver hoga.
+
+Bilkul UPI transaction jaisa — jab tak bank se confirmation (ack) nahi aata, transaction "pending" dikhta hai, aur agar beech mein kuch fail ho jaaye, retry hota hai.
 
 ```
 Broker      Consumer
@@ -60,25 +68,29 @@ Broker      Consumer
   │ delete   │
 ```
 
-If `ack` doesn't arrive within a timeout (or consumer dies): redelivered.
+Agar `ack` timeout ke andar nahi aata (ya consumer mar jaata hai): message phir se deliver hoga.
 
-> [!danger] Auto-ack = at-most-once
-> `acks = "auto"` in many libraries means "ack on receipt, before processing." Crash mid-process → message lost. Always ack **after** processing.
+> [!danger] Auto-ack matlab at-most-once
+> Kai libraries mein `acks = "auto"` ka matlab hota hai "message milte hi ack kar do, process karne se pehle." Agar beech processing mein crash ho gaya — message gaya hamesha ke liye. Hamesha process **karne ke baad** hi ack karo.
 
 ### Ordering
 
-- **Partition/queue ordering** — within a single Kafka partition or RabbitMQ queue, messages are FIFO.
-- **Cross-partition** — no global order. Use a partition key (e.g. `userId`) to route related messages to the same partition.
+**Order maintain kaise hota hai?**
+
+- **Partition/queue ordering** — ek single Kafka partition ya RabbitMQ queue ke andar, messages FIFO order mein aate hain (jo pehle gaya, wahi pehle process hoga).
+- **Cross-partition** — poore system mein koi global order guarantee nahi hai. Isliye partition key use karo (jaise `userId`) taaki related messages same partition pe jaayein.
+
+Socho IRCTC ka PNR status — ek user ke saare updates order mein aane chahiye (booking → confirm → chart prepared). Agar sab alag partitions mein bikhar gaye, toh order guarantee tootiin sakta hai. Isliye `userId` ko key banao.
 
 ### Backpressure
 
-Consumer slower than producer? Broker buffers up to its limit, then:
-- RabbitMQ: blocks producer or rejects.
-- Kafka: producer keeps publishing; consumer falls behind. Track **consumer lag** as an SLO.
+Consumer, producer se slow hai toh kya hoga? Broker apni limit tak buffer karega, uske baad:
+- RabbitMQ: producer ko block kar dega ya reject kar dega.
+- Kafka: producer publish karta rahega; consumer peeche reh jaayega. Isliye **consumer lag** ko ek SLO ki tarah track karo — jaise Swiggy delivery ETA track karta hai ki kitne orders pending hain.
 
 ## Code example
 
-### A simple producer / consumer (Kafka)
+### Ek simple producer / consumer (Kafka)
 
 ```java
 // Producer
@@ -111,30 +123,36 @@ class OrderEventListener {
 }
 ```
 
-### Kafka vs RabbitMQ at a glance
+Yahan dekho — `OrderController` order save karte hi Kafka pe `OrderPlaced` event daal deta hai aur turant response de deta hai. Email bhejna, isse totally decoupled hai — email service apni marzi se, apni speed se, alag service mein event sunke process karti hai. Agar email service down bhi ho, order placement pe koi asar nahi padta.
+
+### Kafka vs RabbitMQ ek nazar mein
+
+**Konsa broker kab use karein?**
 
 | | Kafka | RabbitMQ |
 |---|-------|----------|
 | Model | Distributed log, partitioned topics | Queues + exchanges (smart routing) |
-| Retention | Days/weeks; replayable | Until consumed |
-| Throughput | Very high (millions/sec) | High (tens of thousands/sec) |
+| Retention | Din/hafte tak; replay kar sakte ho | Consume hone tak hi |
+| Throughput | Bohot high (millions/sec) | High (tens of thousands/sec) |
 | Latency | ~10ms | ~1ms |
-| Routing | By partition key | Rich (direct, topic, fanout, headers) |
+| Routing | Partition key ke through | Rich (direct, topic, fanout, headers) |
 | Ordering | Per partition | Per queue |
-| Use case | Event streaming, log of facts | Task queues, request/reply, complex routing |
+| Use case | Event streaming, facts ka log | Task queues, request/reply, complex routing |
 
 **Rule of thumb:**
-- Stream of events, replay needed, high volume → Kafka.
-- Tasks/jobs, complex routing, request/reply → RabbitMQ.
+- Events ka stream chahiye, replay chahiye, high volume hai → **Kafka** lo. Jaise CRED ya Flipkart ka pura order-history/analytics pipeline.
+- Tasks/jobs process karne hain, complex routing chahiye, request/reply pattern hai → **RabbitMQ** lo. Jaise OYO ka booking confirmation workflow jisme alag-alag steps pe alag routing chahiye.
 
 ### Message types
 
-- **Command** — "do this" — typically directed at one consumer (queue).
-- **Event** — "this happened" — typically broadcast (topic), past-tense.
-- **Document** — pure data transfer.
-- **Reply** — response to a request (correlation ID).
+Socho teen tarah ke messages hote hain, jaise Swiggy app mein teen tarah ke notifications:
 
-Naming: `OrderPlaced` (event), `ChargeCard` (command). Don't mix in one channel.
+- **Command** — "yeh karo" — typically ek hi consumer ke liye directed hota hai (queue). Jaise "restaurant ko order bhejo."
+- **Event** — "yeh ho gaya" — typically broadcast hota hai (topic), past-tense mein. Jaise "OrderPlaced" — order place ho chuka hai, ab jisko bhi interest hai woh sun le.
+- **Document** — sirf data transfer, koi action implied nahi.
+- **Reply** — kisi request ka response (correlation ID ke saath match hota hai).
+
+Naming convention: `OrderPlaced` (event — already ho chuka), `ChargeCard` (command — abhi karna hai). Ek hi channel mein command aur event ko mat mix karo — confusion hoga.
 
 ### Partition keys (Kafka)
 
@@ -143,9 +161,9 @@ kafka.send("orders.placed", order.customerId().toString(), event);
 //          topic           ^ key — same key → same partition
 ```
 
-All events for one customer land on one partition → ordered. Different customers spread across partitions → parallelism.
+Ek customer ke saare events ek hi partition pe jaate hain → order maintained rehta hai. Alag-alag customers alag partitions mein bant jaate hain → parallelism milta hai.
 
-> [!warning] Hot partition: if 90% of traffic is one customer, one partition gets all the load. Pick keys with care.
+> [!warning] Hot partition ka khatra: agar 90% traffic ek hi customer ka hai (jaise koi bada bulk buyer), toh ek hi partition sara load le lega aur baaki idle rahenge. Key soch samajh ke choose karo.
 
 ## Express/Node comparison
 
@@ -155,30 +173,30 @@ All events for one customer land on one partition → ordered. Different custome
 | RabbitMQ client | Spring AMQP | `amqplib` |
 | Job queue (Redis) | Spring Data Redis + custom | `bullmq` |
 | Pub/Sub abstraction | Spring Cloud Stream | NestJS `@MessagePattern` |
-| At-least-once + idempotency | manual | manual |
+| At-least-once + idempotency | manual karna padta hai | manual karna padta hai |
 | Outbox pattern | Spring + Debezium | same |
 
-Both ecosystems use the **same brokers** — the libraries differ; the principles don't.
+Dono ecosystems mein **same hi brokers** use hote hain — sirf libraries alag hain, underlying principles same hi rehte hain. Toh agar tumne `bullmq` samajh liya, Spring Kafka/AMQP samajhna easy hoga — bas syntax alag lagega.
 
 ## Gotchas
 
-> [!danger] Don't think "message sent = work done"
-> The producer's success means it's *in the broker*. Until consumed and ack'd, nothing's actually happened. Design for that gap.
+> [!danger] "Message bhej diya matlab kaam ho gaya" — yeh sochna mat
+> Producer ka success sirf itna matlab rakhta hai ki message *broker mein pahuch gaya*. Jab tak consume aur ack nahi hota, actual kaam kuch bhi nahi hua. Design karte waqt is gap ko dhyan mein rakho.
 
-> [!warning] Don't share queues across teams as APIs
-> A queue is an internal implementation detail. Publishing/consuming format changes without coordination breaks consumers silently. Treat events as published API contracts.
+> [!warning] Queues ko teams ke beech API ki tarah share mat karo
+> Queue ek internal implementation detail hai. Agar publish/consume ka format bina coordination ke change ho gaya, consumers silently break ho jaayenge. Events ko published API contracts ki tarah treat karo.
 
 > [!warning] Schema evolution
-> "I added a field" — old consumers break? Use Avro/Protobuf with a schema registry, or stick to backward-compatible JSON (additive changes only).
+> "Maine bas ek field add kiya" — lekin purane consumers break ho gaye toh? Avro/Protobuf with schema registry use karo, ya sirf backward-compatible JSON changes karo (sirf additive changes, kabhi kuch remove/rename mat karo).
 
 > [!warning] Poison messages
-> A consumer keeps failing on a malformed message → infinite redeliveries → DLQ time. See [[06-Dead-Letter-Queues]].
+> Ek consumer ek hi malformed message pe baar-baar fail ho raha hai → infinite redeliveries → ab DLQ (Dead Letter Queue) ka time aa gaya. Dekho [[06-Dead-Letter-Queues]].
 
 > [!warning] Transactional pitfalls
-> See [[../10-Microservices/11-Outbox-Pattern]]. Don't publish in the same transaction as a DB write — use the outbox.
+> Dekho [[../10-Microservices/11-Outbox-Pattern]]. DB write ke saath same transaction mein publish mat karo — outbox pattern use karo.
 
-> [!tip] Treat events as immutable facts
-> "OrderPlaced(orderId=123, total=$50)" — don't mutate after publishing. New facts go in new events.
+> [!tip] Events ko immutable facts ki tarah treat karo
+> "OrderPlaced(orderId=123, total=$50)" — publish karne ke baad ise mutate mat karo. Naye facts ke liye naye events banao.
 
 ## Related
 - [[02-Spring-AMQP-RabbitMQ]]

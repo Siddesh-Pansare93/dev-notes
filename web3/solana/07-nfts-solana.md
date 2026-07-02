@@ -1,32 +1,32 @@
 # NFTs on Solana — Metaplex Standard
 
-> **Who this is for:** Developers who understand Solana accounts and tokens and now want to build, mint, or trade NFTs on Solana. No NFT experience needed.
+> **Ye kiske liye hai:** Wo developers jo Solana accounts aur tokens samajh chuke hain, aur ab NFTs build, mint, ya trade karna chahte hain Solana pe. Pehle se NFT experience zaruri nahi hai.
 
 ---
 
-## 🎨 What Even Is an NFT?
+## 🎨 NFT Hota Kya Hai?
 
-Think of a vinyl record. Every copy of an album sounds the same — fungible, interchangeable. But what if there was only one signed copy in the world, with a certificate of authenticity attached? That is an NFT. Non-Fungible Token. One-of-a-kind, provably scarce, and ownership recorded on-chain.
+Ek vinyl record socho. Album ki har copy same sound karti hai — fungible, ek doosre se replace ho sakti hai. Lekin agar duniya mein sirf ek hi signed copy ho, authenticity certificate ke saath attached? Wahi hai NFT. Non-Fungible Token. One-of-a-kind, provably rare, aur ownership on-chain record hoti hai.
 
-On Ethereum you hear about ERC-721. On Solana, NFTs follow the **Metaplex standard** — a set of programs and conventions the entire ecosystem agreed to use. If you want to launch an NFT collection on Solana, you will use Metaplex. Full stop. Magic Eden, Tensor, every major Solana marketplace reads Metaplex accounts.
+Ethereum pe tumne ERC-721 ka naam suna hoga. Solana pe, NFTs **Metaplex standard** follow karte hain — ek set of programs aur conventions jise poori ecosystem ne agree kiya hai use karne ke liye. Agar tumhe Solana pe NFT collection launch karna hai, toh Metaplex hi use karoge. Full stop. Magic Eden, Tensor, har major Solana marketplace Metaplex accounts hi read karta hai.
 
 ---
 
-## 🏗️ How Solana NFTs Work Under the Hood
+## 🏗️ Solana NFTs Andar Se Kaise Kaam Karte Hain
 
-### Analogy: A safety deposit box with a label
+### Analogy: Ek locker jispe label laga ho
 
-Imagine a bank vault. Inside is exactly one coin (supply = 1). The coin has no cents (decimals = 0). Glued to the vault door is a laminated card with the NFT's name, image URL, and ownership details. That laminated card is the **metadata account**.
+Ek bank vault socho. Andar exactly ek coin hai (supply = 1). Coin mein cents nahi hote (decimals = 0). Vault ke darwaze pe ek laminated card chipka hai jispe NFT ka naam, image URL, aur ownership details likhi hain. Wahi laminated card hai **metadata account**.
 
-Solana NFTs are built on top of the **SPL Token program** (the same program that handles fungible tokens), with one special twist: the mint is configured so only one token can ever exist.
+Solana NFTs **SPL Token program** (wahi program jo fungible tokens handle karta hai) ke upar banaye jaate hain, ek special twist ke saath: mint aisi configure hoti hai ki sirf ek hi token kabhi exist kar sake.
 
-### The three accounts that make every Solana NFT
+### Teen accounts jo har Solana NFT banate hain
 
-| Account | What it is | Stores |
+| Account | Kya hai | Kya store karta hai |
 |---|---|---|
-| **Mint Account** | The token's definition | supply=1, decimals=0, mint authority |
-| **Token Account** | The owner's "wallet slot" for this NFT | Balance (always 1 if owned) |
-| **Metadata Account** | Metaplex PDA attached to the mint | Name, symbol, URI, creators, royalties, collection |
+| **Mint Account** | Token ki definition | supply=1, decimals=0, mint authority |
+| **Token Account** | Owner ka "wallet slot" is NFT ke liye | Balance (hamesha 1 agar owned hai) |
+| **Metadata Account** | Mint se attached Metaplex PDA | Name, symbol, URI, creators, royalties, collection |
 
 ```mermaid
 graph TD
@@ -56,69 +56,69 @@ graph TD
     style W fill:#37474f,color:#fff
 ```
 
-After the NFT is minted, the **mint authority is set to null**. This means nobody — not even the creator — can mint a second token from that mint. Supply is permanently frozen at 1. That is what makes it non-fungible.
+NFT mint hone ke baad, **mint authority ko null set kar diya jaata hai**. Iska matlab — koi bhi, creator bhi nahi, us mint se doosra token mint nahi kar sakta. Supply permanently 1 pe freeze ho jaati hai. Yahi cheez use non-fungible banati hai.
 
 ---
 
-## 📋 Metaplex Protocol — The Standard Everyone Uses
+## 📋 Metaplex Protocol — Wo Standard Jo Sab Use Karte Hain
 
-Metaplex is not a company in the traditional sense. It is an open-source protocol — a set of Solana programs — that define what an NFT looks like on Solana. The two most important pieces are:
+Metaplex traditional sense mein koi company nahi hai. Ye ek open-source protocol hai — Solana programs ka ek set — jo define karta hai ki Solana pe NFT dikhta kaisa hai. Do sabse important pieces hain:
 
-1. **Token Metadata Program** — stores NFT metadata on-chain as PDAs
-2. **Candy Machine** — the "vending machine" for launching NFT collections
+1. **Token Metadata Program** — NFT metadata ko on-chain PDAs ke roop mein store karta hai
+2. **Candy Machine** — NFT collections launch karne ke liye "vending machine"
 
-### Why Metaplex and not roll-your-own?
+### Metaplex kyun, khud ka standard kyun nahi?
 
-Because every wallet, every marketplace, every indexer on Solana reads Metaplex accounts. If you build a custom NFT standard, no one will display your art. You would have to convince Magic Eden, Phantom, and dozens of other teams to support your custom format. Metaplex already did that work.
+Kyunki Solana pe har wallet, har marketplace, har indexer Metaplex accounts hi read karta hai. Agar tum apna custom NFT standard banaoge, koi tumhari art display nahi karega. Tumhe Magic Eden, Phantom, aur dusri dus teams ko convince karna padega apna custom format support karne ke liye. Metaplex ne wo kaam pehle hi kar diya hai.
 
 ---
 
-## 📦 NFT Metadata Account Structure
+## 📦 NFT Metadata Account Ka Structure
 
-### Analogy: A passport
+### Analogy: Ek passport
 
-A passport is not the person, but it describes them. It has their name, photo (URI to image), nationality (collection), and an official stamp (verified creators). The Metadata account is the NFT's passport.
+Passport wo insaan nahi hota, lekin usko describe karta hai. Usme naam, photo (image ka URI), nationality (collection), aur ek official stamp (verified creators) hota hai. Metadata account NFT ka passport hai.
 
-Here is what the on-chain metadata account holds:
+Ye raha on-chain metadata account mein kya hota hai:
 
 ```
 Metadata Account (PDA)
 ├── key                    // Account type discriminator
-├── update_authority       // Who can update this metadata
-├── mint                   // The associated mint account
+├── update_authority       // Kaun is metadata ko update kar sakta hai
+├── mint                   // Associated mint account
 ├── name                   // "Cool Cat #4269" (max 32 chars)
 ├── symbol                 // "COOL" (max 10 chars)
 ├── uri                    // "https://arweave.net/..." (max 200 chars)
 ├── seller_fee_basis_points // 500 = 5% royalty
-├── creators[]             // Array of creators with share %
+├── creators[]             // Creators ka array with share %
 │   ├── address
-│   ├── verified           // Must sign to verify
-│   └── share              // % of royalties, sum must = 100
+│   ├── verified           // Sign karna zaruri hai verify karne ke liye
+│   └── share              // Royalties ka %, sum 100 hona chahiye
 ├── collection             // Optional: parent collection NFT
-│   ├── key                // Mint address of collection NFT
-│   └── verified           // true if officially verified
+│   ├── key                // Collection NFT ka mint address
+│   └── verified           // true agar officially verified hai
 ├── uses                   // Optional: consumable NFTs
 └── token_standard         // NonFungible, FungibleAsset, etc.
 ```
 
 ### sellerFeeBasisPoints — Royalties
 
-Basis points are hundredths of a percent. 100 basis points = 1%. So:
+Basis points ek percent ke hundredths hote hain. 100 basis points = 1%. Toh:
 - 250 = 2.5%
 - 500 = 5%
 - 1000 = 10%
 
-When an NFT sells on a marketplace, the marketplace is supposed to send `sellerFeeBasisPoints / 10000 * sale_price` to the creators array. The word "supposed to" is doing heavy lifting here — we will revisit this in the royalties section.
+Jab NFT marketplace pe bikta hai, marketplace ko `sellerFeeBasisPoints / 10000 * sale_price` creators array ko bhejna "supposed to" hota hai. Ye "supposed to" wala word bahut heavy lifting kar raha hai — royalties wale section mein isko dobara dekhenge.
 
 ---
 
-## 🌐 Off-Chain Metadata — The URI Field
+## 🌐 Off-Chain Metadata — Ye URI Field
 
-### Analogy: A QR code on a product
+### Analogy: Product pe laga QR code
 
-The metadata account on-chain stores a URI (a URL). That URL points to a JSON file stored off-chain on IPFS or Arweave. This JSON contains the actual image URL, description, and traits. It is like a QR code — small on-chain, rich content off-chain.
+Metadata account on-chain ek URI (URL) store karta hai. Wo URL ek JSON file ki taraf point karta hai jo off-chain IPFS ya Arweave pe stored hoti hai. Is JSON mein actual image URL, description, aur traits hote hain. Ye bilkul QR code jaisa hai — on-chain chhota, off-chain rich content.
 
-**Why not store image on-chain?** Because storing 1MB of image data on Solana would cost thousands of SOL in rent. We store the minimal pointer on-chain and the rich content cheaply off-chain.
+**Image on-chain kyun nahi store karte?** Kyunki Solana pe 1MB image data store karna hazaaron SOL ka rent le lega. Hum minimal pointer on-chain rakhte hain aur rich content off-chain sasti jagah pe.
 
 ### Standard off-chain JSON (Metaplex standard):
 
@@ -152,27 +152,27 @@ The metadata account on-chain stores a URI (a URL). That URL points to a JSON fi
 
 | Feature | IPFS | Arweave |
 |---|---|---|
-| **Cost** | Free (but needs pinning service) | Pay once, stored forever |
-| **Permanence** | Files can disappear if unpinned | Guaranteed permanent storage |
-| **Speed** | Variable (depends on peers) | Consistent via Arweave gateway |
-| **Preferred for NFTs** | Less common now | Industry standard for NFTs |
-| **Service** | Pinata, NFT.Storage | Bundlr (now Irys), Shadow Drive |
+| **Cost** | Free (par pinning service chahiye) | Ek baar pay karo, forever store hota hai |
+| **Permanence** | Files disappear ho sakti hain agar unpin ho jaayein | Guaranteed permanent storage |
+| **Speed** | Variable (peers pe depend karta hai) | Consistent, Arweave gateway ke through |
+| **NFTs ke liye preferred** | Ab kam common | NFTs ke liye industry standard |
+| **Service** | Pinata, NFT.Storage | Bundlr (ab Irys), Shadow Drive |
 
-**Recommendation:** Use Arweave for production NFTs. Files are permanent. You pay once upfront. IPFS is fine for testing.
+**Recommendation:** Production NFTs ke liye Arweave use karo. Files permanent rehti hain. Upfront ek baar pay karte ho. Testing ke liye IPFS bhi theek hai.
 
 ---
 
-## 🗂️ NFT Collections — Parent and Child NFTs
+## 🗂️ NFT Collections — Parent aur Child NFTs
 
-### Analogy: A book series
+### Analogy: Ek book series
 
-Imagine Harry Potter books. Each book is unique (different story, different number). But they all belong to the "Harry Potter" series. The series itself is represented by a publisher's record. In Metaplex, a **Collection NFT** is that publisher's record.
+Harry Potter books socho. Har book unique hai (alag story, alag number). Lekin sab "Harry Potter" series ka part hain. Series khud ek publisher ke record se represent hota hai. Metaplex mein, **Collection NFT** wahi publisher ka record hai.
 
-### How collections work
+### Collections kaise kaam karte hain
 
-1. You mint a special NFT called the **Collection NFT** (it has `collectionDetails` set, marking it as a parent)
-2. Each NFT in your collection has a `collection` field pointing to the Collection NFT's mint address
-3. To verify an NFT as part of a collection, the **collection update authority** must sign a transaction — this sets `collection.verified = true`
+1. Tum ek special NFT mint karte ho jise **Collection NFT** kehte hain (isme `collectionDetails` set hota hai, ye mark karte hue ki ye parent hai)
+2. Tumhare collection ka har NFT ek `collection` field rakhta hai jo Collection NFT ke mint address ki taraf point karta hai
+3. Kisi NFT ko collection ka part verify karne ke liye, **collection update authority** ko transaction sign karna padta hai — isse `collection.verified = true` ho jaata hai
 
 ```mermaid
 graph TD
@@ -192,41 +192,41 @@ graph TD
     style NFT3 fill:#b71c1c,color:#fff
 ```
 
-**Why does verified matter?** Marketplaces like Magic Eden filter NFTs by verified collection membership. An unverified NFT will not appear in your collection's floor price. Scammers could add your collection's mint address to their NFT's `collection.key` — but `verified = false` exposes them immediately.
+**Verified kyun matter karta hai?** Magic Eden jaisi marketplaces NFTs ko verified collection membership se filter karti hain. Ek unverified NFT tumhare collection ki floor price mein nahi dikhega. Scammers tumhare collection ka mint address apne NFT ke `collection.key` mein daal sakte hain — lekin `verified = false` unko turant expose kar deta hai.
 
 ---
 
-## 🍬 Candy Machine v3 — Launch Your Collection
+## 🍬 Candy Machine v3 — Apna Collection Launch Karo
 
-### Analogy: A gumball machine
+### Analogy: Ek gumball machine
 
-You load a gumball machine with 10,000 gumballs. Customers pay 25 cents and get a random gumball. They do not know which color they will get until they turn the knob. Candy Machine is exactly this — you load 10,000 NFTs, set a price, and users mint randomly (or in order).
+Tum ek gumball machine mein 10,000 gumballs bhar dete ho. Customers 25 cents dete hain aur ek random gumball paate hain. Unko pata nahi hota kaunsa color milega jab tak knob ghumaate nahi. Candy Machine bilkul yahi hai — tum 10,000 NFTs load karte ho, price set karte ho, aur users random (ya order mein) mint karte hain.
 
-Candy Machine v3 (CM3) is Metaplex's solution for launching large NFT collections with:
-- **Guards** — configurable rules for minting (price, dates, allowlists)
-- **Groups** — different mint phases (whitelist phase, public phase)
+Candy Machine v3 (CM3) Metaplex ka solution hai bade NFT collections launch karne ke liye, in cheezon ke saath:
+- **Guards** — minting ke liye configurable rules (price, dates, allowlists)
+- **Groups** — alag mint phases (whitelist phase, public phase)
 - **Bot protection** — built-in defenses
 
-### Guards — Rules for Minting
+### Guards — Minting Ke Rules
 
-Guards are like bouncers at a club. Each guard checks one condition before allowing a mint:
+Guards ek club ke bouncers jaise hain. Har guard mint allow karne se pehle ek condition check karta hai:
 
-| Guard | What it does |
+| Guard | Kya karta hai |
 |---|---|
-| `solPayment` | Charge SOL to mint |
-| `tokenPayment` | Charge SPL token to mint |
-| `startDate` | No minting before this timestamp |
-| `endDate` | No minting after this timestamp |
-| `allowList` | Only wallets on a Merkle tree allowlist can mint |
-| `mintLimit` | Each wallet can only mint N times |
-| `nftGate` | Must hold a specific NFT to mint |
-| `addressGate` | Only one specific wallet can mint |
-| `freezeSolPayment` | SOL held in escrow, released after freeze period |
-| `botTax` | Failed mints still cost a small fee (punishes bots) |
+| `solPayment` | Mint karne ke liye SOL charge karta hai |
+| `tokenPayment` | Mint karne ke liye SPL token charge karta hai |
+| `startDate` | Is timestamp se pehle minting nahi |
+| `endDate` | Is timestamp ke baad minting nahi |
+| `allowList` | Sirf Merkle tree allowlist pe present wallets hi mint kar sakti hain |
+| `mintLimit` | Har wallet sirf N baar mint kar sakti hai |
+| `nftGate` | Mint karne ke liye ek specific NFT hold karna zaruri hai |
+| `addressGate` | Sirf ek specific wallet mint kar sakti hai |
+| `freezeSolPayment` | SOL escrow mein hold hota hai, freeze period ke baad release hota hai |
+| `botTax` | Failed mints ka bhi thoda fee lagta hai (bots ko punish karne ke liye) |
 
 ### Groups — Phased Launches
 
-Groups let you run sequential or parallel mint phases. A common pattern:
+Groups tumhe sequential ya parallel mint phases run karne dete hain. Ek common pattern:
 
 ```
 Phase 1 (Whitelist): 
@@ -241,11 +241,11 @@ Phase 2 (Public):
 
 ---
 
-## 💻 Creating an NFT with Metaplex Umi (JavaScript)
+## 💻 Metaplex Umi Se NFT Banana (JavaScript)
 
-### What is Umi?
+### Umi Hai Kya?
 
-Umi is Metaplex's modern JavaScript framework for interacting with Solana. Think of it as an adapter layer — you plug in a wallet, a connection, and then call clean functions like `createNft()` instead of manually building raw transactions.
+Umi Metaplex ka modern JavaScript framework hai Solana ke saath interact karne ke liye. Isko ek adapter layer samjho — tum ek wallet plug in karte ho, ek connection, aur phir clean functions call karte ho jaise `createNft()`, raw transactions manually banane ki bajaye.
 
 ### Setup
 
@@ -256,7 +256,7 @@ npm install @metaplex-foundation/umi \
             @metaplex-foundation/umi-uploader-irys
 ```
 
-### Creating a Single NFT
+### Ek Single NFT Banana
 
 ```typescript
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
@@ -272,20 +272,20 @@ import {
 } from "@metaplex-foundation/umi";
 import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
 
-// 1. Create a Umi instance pointed at devnet
+// 1. Devnet pe point karta hua ek Umi instance banao
 const umi = createUmi("https://api.devnet.solana.com")
   .use(mplTokenMetadata())
   .use(irysUploader());
 
-// 2. Load your wallet (the creator / payer)
+// 2. Apna wallet load karo (creator / payer)
 const creatorKeypair = umi.eddsa.createKeypairFromSecretKey(
   new Uint8Array(JSON.parse(process.env.WALLET_SECRET_KEY!))
 );
 umi.use(keypairIdentity(creatorKeypair));
 
-// 3. Upload off-chain metadata to Arweave via Irys
+// 3. Off-chain metadata Arweave pe upload karo Irys ke through
 const imageUri = await umi.uploader.uploadFile(
-  // pass a File or Buffer of your image
+  // apni image ka File ya Buffer pass karo
   await fetch("./my-nft-image.png").then((r) => r.blob())
 );
 
@@ -303,14 +303,14 @@ const metadataUri = await umi.uploader.uploadJson({
   },
 });
 
-// 4. Generate a new keypair to be the mint account
+// 4. Mint account banne ke liye naya keypair generate karo
 const mint = generateSigner(umi);
 
-// 5. Create the NFT on-chain
+// 5. On-chain NFT create karo
 await createNft(umi, {
-  mint,                              // new mint keypair
+  mint,                              // naya mint keypair
   name: "My First NFT",
-  uri: metadataUri,                  // points to Arweave JSON
+  uri: metadataUri,                  // Arweave JSON ki taraf point karta hai
   sellerFeeBasisPoints: percentAmount(5), // 5% royalty
   creators: [
     {
@@ -319,18 +319,18 @@ await createNft(umi, {
       share: 100,
     },
   ],
-  isMutable: true,                   // allow future metadata updates
+  isMutable: true,                   // future mein metadata update karne dega
 }).sendAndConfirm(umi);
 
 console.log("NFT Mint Address:", mint.publicKey);
 
-// 6. Fetch and verify the created NFT
+// 6. Create hua NFT fetch aur verify karo
 const asset = await fetchDigitalAsset(umi, mint.publicKey);
 console.log("Name:", asset.metadata.name);
 console.log("URI:", asset.metadata.uri);
 ```
 
-### Creating an NFT Collection
+### Ek NFT Collection Banana
 
 ```typescript
 import {
@@ -341,19 +341,19 @@ import {
 } from "@metaplex-foundation/mpl-token-metadata";
 import { generateSigner, percentAmount } from "@metaplex-foundation/umi";
 
-// Step 1: Create the Collection NFT (the parent)
+// Step 1: Collection NFT (parent) banao
 const collectionMint = generateSigner(umi);
 
 await createCollectionNft(umi, {
   mint: collectionMint,
   name: "Cool Cats Collection",
   symbol: "COOL",
-  uri: collectionMetadataUri,   // upload separately like above
+  uri: collectionMetadataUri,   // upar wale jaisa alag se upload karo
   sellerFeeBasisPoints: percentAmount(5),
-  isCollection: true,           // marks this as a collection parent
+  isCollection: true,           // ise collection parent mark karta hai
 }).sendAndConfirm(umi);
 
-// Step 2: Create an NFT that belongs to the collection
+// Step 2: Ek NFT banao jo collection ka part ho
 const nftMint = generateSigner(umi);
 
 await createNft(umi, {
@@ -363,16 +363,16 @@ await createNft(umi, {
   sellerFeeBasisPoints: percentAmount(5),
   collection: {
     key: collectionMint.publicKey,
-    verified: false,             // not verified yet
+    verified: false,             // abhi verify nahi hua
   },
 }).sendAndConfirm(umi);
 
-// Step 3: Verify the NFT as part of the collection
-//         (collection update authority must sign)
+// Step 3: NFT ko collection ke part ke roop mein verify karo
+//         (collection update authority ko sign karna padega)
 await verifyCollectionV1(umi, {
   metadata: findMetadataPda(umi, { mint: nftMint.publicKey }),
   collectionMint: collectionMint.publicKey,
-  authority: umi.identity,      // must be collection update authority
+  authority: umi.identity,      // collection update authority hona chahiye
 }).sendAndConfirm(umi);
 
 console.log("NFT verified as part of collection!");
@@ -380,44 +380,44 @@ console.log("NFT verified as part of collection!");
 
 ---
 
-## 💰 NFT Royalties — The Ongoing Debate
+## 💰 NFT Royalties — Ye Chalti Rehne Wali Bahas
 
-### Analogy: A musician's streaming royalty
+### Analogy: Musician ki streaming royalty
 
-When a musician sells a song, they get paid once. But streaming platforms pay them every time someone plays it. NFT royalties work similarly — creators receive a percentage every time the NFT resells on a marketplace.
+Jab ek musician gaana bechta hai, usko ek baar payment milti hai. Lekin streaming platforms har baar play hone pe usko pay karte hain. NFT royalties bhi kuch aisa hi kaam karti hain — creators ko har baar jab NFT resell hoti hai marketplace pe, ek percentage milta hai.
 
-The `sellerFeeBasisPoints` field sets the intended royalty. But here is the catch: **royalties on Solana are not enforced at the protocol level**. They are enforced by marketplace convention. If a marketplace chooses to skip paying royalties, the creator cannot stop them.
+`sellerFeeBasisPoints` field intended royalty set karta hai. Lekin catch ye hai: **Solana pe royalties protocol level pe enforce nahi hoti**. Ye marketplace convention se enforce hoti hain. Agar koi marketplace royalty pay karne ka skip kar de, creator use rok nahi sakta.
 
-### The royalty wars
+### Royalty wars
 
-In 2022-2023, zero-royalty marketplaces launched on Solana. Many creators saw royalty income drop dramatically. Metaplex responded with **Programmable NFTs (pNFTs)** — a new token standard that can enforce rules in transfer hooks. But adoption has been uneven.
+2022-2023 mein, Solana pe zero-royalty marketplaces launch hui. Bahut se creators ne apni royalty income dramatically girte dekhi. Metaplex ne isका jawab diya **Programmable NFTs (pNFTs)** se — ek naya token standard jo transfer hooks mein rules enforce kar sakta hai. Lekin adoption uneven raha hai.
 
 | Standard | Royalty Enforcement | Flexibility | Adoption |
 |---|---|---|---|
-| Original NFT | None (marketplace voluntary) | High | Widespread |
-| pNFT | Programmable, can enforce | Lower (more complex transfers) | Partial |
-| cNFT | None | Cheapest option | Growing |
+| Original NFT | None (marketplace ki marzi) | High | Widespread |
+| pNFT | Programmable, enforce kar sakta hai | Kam (transfers zyada complex) | Partial |
+| cNFT | None | Sabse sasta option | Growing |
 
 ---
 
-## 🌿 Compressed NFTs (cNFTs) — NFTs for the Masses
+## 🌿 Compressed NFTs (cNFTs) — Masses Ke Liye NFTs
 
-### Analogy: A library catalog vs. a filing cabinet
+### Analogy: Library catalog vs filing cabinet
 
-Traditional NFTs are like filing cabinets — each NFT is a full folder with its own space. Compressed NFTs are like a library catalog — the actual content is stored in a compact ledger, and you use a receipt (proof) to prove your entry is in the catalog.
+Traditional NFTs filing cabinets jaise hain — har NFT ka apna full folder aur apni space hoti hai. Compressed NFTs library catalog jaise hain — actual content ek compact ledger mein store hota hai, aur tum ek receipt (proof) use karte ho ye prove karne ke liye ki tumhari entry catalog mein hai.
 
-cNFTs use **state compression** — specifically a **Concurrent Merkle Tree** — to store millions of NFT records in a single on-chain account, reducing costs by 1000x or more.
+cNFTs **state compression** use karte hain — specifically ek **Concurrent Merkle Tree** — lakhon NFT records ko ek single on-chain account mein store karne ke liye, jisse cost 1000x ya usse zyada kam ho jaati hai.
 
-### The math speaks for itself
+### Math khud bol raha hai
 
-| NFT Type | Cost to mint 10,000 NFTs |
+| NFT Type | 10,000 NFTs Mint Karne Ki Cost |
 |---|---|
 | Traditional NFT | ~200 SOL |
 | Compressed NFT (cNFT) | ~0.2 SOL |
 
-That is a 1000x cost reduction.
+Ye 1000x cost reduction hai.
 
-### How Concurrent Merkle Trees work (simply)
+### Concurrent Merkle Trees Kaise Kaam Karte Hain (Simply)
 
 ```mermaid
 graph TD
@@ -443,9 +443,9 @@ graph TD
     style N2 fill:#4527a0,color:#fff
 ```
 
-Instead of each NFT being its own on-chain account, only the **root hash** of the Merkle tree lives on-chain. Each NFT is a **leaf** in the tree. To prove you own an NFT, you provide a **proof path** — a list of sibling hashes from your leaf up to the root.
+Har NFT ka apna alag on-chain account hone ki bajaye, sirf Merkle tree ka **root hash** on-chain rehta hai. Har NFT tree mein ek **leaf** hota hai. Tumhare paas NFT hai ye prove karne ke liye, tum ek **proof path** deni padti hai — apne leaf se root tak sibling hashes ki ek list.
 
-### Creating cNFTs with Umi
+### Umi Se cNFTs Banana
 
 ```typescript
 import {
@@ -461,19 +461,19 @@ import {
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 
 const umi = createUmi("https://api.devnet.solana.com")
-  .use(mplBubblegum()); // Bubblegum is the Metaplex program for cNFTs
+  .use(mplBubblegum()); // Bubblegum hi cNFTs ke liye Metaplex program hai
 
-// Step 1: Create the Merkle tree (pay once for storage capacity)
+// Step 1: Merkle tree banao (storage capacity ke liye ek baar pay karo)
 const merkleTree = generateSigner(umi);
 
 await createTree(umi, {
   merkleTree,
   maxDepth: 14,         // 2^14 = 16,384 leaves (NFTs)
-  maxBufferSize: 64,    // concurrent changes supported
-  canopyDepth: 10,      // cached proof nodes (reduces tx size)
+  maxBufferSize: 64,    // concurrent changes support hoti hain
+  canopyDepth: 10,      // cached proof nodes (tx size kam karta hai)
 }).sendAndConfirm(umi);
 
-// Step 2: Mint a compressed NFT into the tree
+// Step 2: Tree mein ek compressed NFT mint karo
 await mintV1(umi, {
   leafOwner: umi.identity.publicKey,
   merkleTree: merkleTree.publicKey,
@@ -495,7 +495,7 @@ await mintV1(umi, {
 console.log("cNFT minted into tree:", merkleTree.publicKey);
 ```
 
-### Merkle Tree sizing guide
+### Merkle Tree Sizing Guide
 
 | maxDepth | Max NFTs | Canopy Depth | Approx. Tree Cost |
 |---|---|---|---|
@@ -503,37 +503,37 @@ console.log("cNFT minted into tree:", merkleTree.publicKey);
 | 20 | 1,048,576 | 14 | ~1.5 SOL |
 | 24 | 16,777,216 | 17 | ~6 SOL |
 
-**canopyDepth** caches part of the proof on-chain, making transfer transactions smaller and cheaper. Higher canopy = smaller proofs = cheaper transfers, but the tree itself costs more upfront.
+**canopyDepth** proof ka kuch part on-chain cache kar leta hai, jisse transfer transactions chhoti aur sasti ho jaati hain. Zyada canopy = chhoti proofs = sasti transfers, lekin tree khud upfront zyada mehnga padta hai.
 
-### When to use cNFTs vs regular NFTs
+### cNFTs Kab Use Karein vs Regular NFTs
 
 | Use Case | Regular NFT | cNFT |
 |---|---|---|
 | 1-of-1 art | Best | Overkill |
 | 10,000 PFP collection | Viable | Strongly preferred |
-| 1M+ game items | Impractical | Only viable option |
-| Need complex royalty rules | pNFT | Not supported yet |
-| DeFi composability (lending) | Works | Limited support |
-| Airdrop to millions of users | Impossible cost | Purpose-built for this |
+| 1M+ game items | Impractical | Sirf yahi viable option hai |
+| Complex royalty rules chahiye | pNFT | Abhi support nahi |
+| DeFi composability (lending) | Kaam karta hai | Limited support |
+| Millions users ko airdrop | Impossible cost | Isi ke liye purpose-built hai |
 
 ---
 
-## 🏪 Marketplaces — Magic Eden and the Ecosystem
+## 🏪 Marketplaces — Magic Eden Aur Ecosystem
 
 ### Magic Eden
 
-Magic Eden is the dominant NFT marketplace on Solana. When you launch a collection, Magic Eden is where most volume flows. Key things to know:
+Magic Eden Solana ki dominant NFT marketplace hai. Jab tum collection launch karte ho, zyada volume Magic Eden se hi aata hai. Ye important cheezein jaan lo:
 
-- Magic Eden indexes Metaplex metadata accounts automatically
-- Collections need to be submitted for listing with a verified collection NFT
-- Magic Eden has its own royalty enforcement mechanism (they honor royalties for opted-in collections)
-- They expanded to Ethereum, Polygon, and Bitcoin — but Solana remains the core
+- Magic Eden Metaplex metadata accounts ko automatically index karta hai
+- Collections ko listing ke liye submit karna padta hai, verified collection NFT ke saath
+- Magic Eden ka apna royalty enforcement mechanism hai (opted-in collections ke liye royalties honor karte hain)
+- Ethereum, Polygon, aur Bitcoin tak expand ho gaye hain — lekin Solana core hi rehta hai
 
-### Other marketplaces
+### Doosri marketplaces
 
 | Marketplace | Specialty |
 |---|---|
-| **Magic Eden** | Largest volume, PFP collections |
+| **Magic Eden** | Sabse zyada volume, PFP collections |
 | **Tensor** | Power users, advanced trading, cNFT support |
 | **Exchange.Art** | 1-of-1 fine art |
 | **Formfunction** | Open editions, generative art |
@@ -571,54 +571,54 @@ sequenceDiagram
 
 ---
 
-## ✅ When to Use / When NOT to Use
+## ✅ Kab Use Karein / Kab Na Karein
 
-### When to use traditional NFTs (mpl-token-metadata)
-- Creating 1-of-1 art or small limited editions
-- Building DeFi integrations (NFT lending, staking)
-- Need maximum wallet/marketplace compatibility
-- Creating the "parent" collection NFT for any collection
+### Traditional NFTs (mpl-token-metadata) Kab Use Karein
+- 1-of-1 art ya chhote limited editions banate waqt
+- DeFi integrations banate waqt (NFT lending, staking)
+- Maximum wallet/marketplace compatibility chahiye
+- Kisi bhi collection ka "parent" collection NFT banate waqt
 
-### When to use Candy Machine
-- Launching a collection of 1,000+ NFTs with public mint
-- Need whitelist phases, time-gated minting
-- Want bot protection built-in
-- Generative art drops with randomized reveals
+### Candy Machine Kab Use Karein
+- 1,000+ NFTs ka collection launch karte waqt, public mint ke saath
+- Whitelist phases, time-gated minting chahiye
+- Bot protection built-in chahiye
+- Generative art drops randomized reveals ke saath
 
-### When to use compressed NFTs (Bubblegum)
+### Compressed NFTs (Bubblegum) Kab Use Karein
 - Collection size > 10,000
-- Airdrops to many users
+- Bahut users ko airdrops
 - Gaming items, loyalty points at scale
-- Budget is a hard constraint
+- Budget hard constraint hai
 
-### When NOT to use Solana NFTs at all
-- You need cross-chain NFTs natively (Ethereum has wider tooling for some use cases)
-- Your use case does not benefit from decentralized ownership proofs
-- You need features not yet supported (e.g., complex on-chain royalty logic without pNFTs)
+### Solana NFTs Bilkul Use Na Karein Jab
+- Tumhe natively cross-chain NFTs chahiye (kuch use cases ke liye Ethereum ka tooling wider hai)
+- Tumhare use case ko decentralized ownership proofs se koi fayda nahi hota
+- Tumhe aisi features chahiye jo abhi support nahi hain (jaise pNFTs ke bina complex on-chain royalty logic)
 
 ---
 
 ## 🧩 Key Takeaways
 
-1. **An NFT on Solana is just a mint account with supply=1 and decimals=0** — the magic is in the constraints and the attached Metaplex metadata account.
+1. **Solana pe NFT bas ek mint account hai jiska supply=1 aur decimals=0 hai** — magic constraints mein aur attached Metaplex metadata account mein hai.
 
-2. **The metadata account is a PDA** derived from the mint address, created by the Metaplex Token Metadata program. It stores name, symbol, URI, creators, royalties, and collection info.
+2. **Metadata account ek PDA hai** jo mint address se derive hota hai, Metaplex Token Metadata program se create hota hai. Ye name, symbol, URI, creators, royalties, aur collection info store karta hai.
 
-3. **The URI points to off-chain JSON** (stored on Arweave or IPFS) containing the image URL and traits. Arweave is preferred for production because files are permanent.
+3. **URI off-chain JSON ki taraf point karta hai** (Arweave ya IPFS pe stored) jisme image URL aur traits hote hain. Production ke liye Arweave preferred hai kyunki files permanent rehti hain.
 
-4. **Collections use a parent Collection NFT** and child NFTs with a `collection.verified = true` field. Verification requires the collection update authority to sign — this prevents scammers from faking collection membership.
+4. **Collections ek parent Collection NFT use karte hain** aur child NFTs `collection.verified = true` field ke saath. Verification ke liye collection update authority ko sign karna padta hai — isse scammers collection membership fake nahi kar paate.
 
-5. **Candy Machine is the go-to tool for collection launches** — it handles phased minting, allowlists, pricing, and bot protection through a modular guard system.
+5. **Candy Machine collection launches ke liye go-to tool hai** — phased minting, allowlists, pricing, aur bot protection ek modular guard system se handle karta hai.
 
-6. **Royalties are not protocol-enforced by default** — they rely on marketplace cooperation. pNFTs add programmable enforcement, compressed NFTs have limited royalty support.
+6. **Royalties by default protocol-enforced nahi hoti** — ye marketplace cooperation pe depend karti hain. pNFTs programmable enforcement add karte hain, compressed NFTs mein royalty support limited hai.
 
-7. **Compressed NFTs cut minting costs by 1000x** using Concurrent Merkle Trees. They are the only practical option for collections above 100,000 items. Transfers require proof paths, which indexers like Helius manage for you.
+7. **Compressed NFTs minting costs ko 1000x kam karte hain** Concurrent Merkle Trees use karke. 100,000 se zyada items wale collections ke liye ye hi practical option hain. Transfers ke liye proof paths chahiye, jo Helius jaise indexers tumhare liye manage karte hain.
 
-8. **Use Metaplex Umi** for modern JavaScript development. It abstracts the low-level account building into clean, composable function calls.
+8. **Modern JavaScript development ke liye Metaplex Umi use karo**. Ye low-level account building ko clean, composable function calls mein abstract kar deta hai.
 
-9. **Magic Eden is the primary marketplace** — your collection's visibility depends on having a verified collection NFT that marketplaces can index.
+9. **Magic Eden primary marketplace hai** — tumhare collection ki visibility depend karti hai ek verified collection NFT hone pe jise marketplaces index kar sakein.
 
-10. **The ecosystem is standardized** — Metaplex's dominance means you get wallet support, marketplace support, and tooling for free by following the standard. Do not fight it.
+10. **Ecosystem standardized hai** — Metaplex ki dominance ka matlab hai tumhe wallet support, marketplace support, aur tooling free mein milti hai bas standard follow karke. Isse fight mat karo.
 
 ---
 

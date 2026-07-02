@@ -1,23 +1,19 @@
----
-tags: [testing, testcontainers, docker, integration]
-aliases: [Testcontainers, Real DB tests]
-stage: advanced
----
-
 # Testcontainers
 
-> [!info] For the Express/TS dev
-> Testcontainers spins up real Docker containers (Postgres, Kafka, Redis, Mongo, anything) for the duration of your test. It's the same `testcontainers` library available in Node — same idea, native Java integration. Stop testing against H2 and pretending it's Postgres.
+> [!info] Express/TS wale dev ke liye
+> Testcontainers ek Docker container (Postgres, Kafka, Redis, Mongo, jo bhi chahiye) real mein spin up kar deta hai tumhare test ke duration ke liye. Bilkul wahi `testcontainers` library jo Node mein bhi available hai — same concept, bas yahan native Java integration hai. Ab H2 pe test karke Postgres hone ka natak karna band karo.
 
 ## Concept
 
-The pitch: your test starts a **real** Postgres in Docker, points your app at it, runs, and tears it down. No more "works on H2 but breaks in prod because Postgres has different DDL semantics."
+Socho tumhara test ek **real** Postgres Docker mein start karta hai, tumhari app ko usi se point kar deta hai, test run karta hai, aur phir sab kuch clean kar deta hai. Bas — ab wo classic excuse nahi chalega ki "mere test H2 pe pass ho rahe the but production mein Postgres ke DDL semantics alag hone ki wajah se fail ho gaye."
 
-Three integration styles:
+Kya hota hai asal mein? Jab tum H2 (in-memory DB) pe test likhte ho, wo Postgres jaisa *dikhta* hai, lekin waisa *behave* nahi karta — JSONB columns, partial indexes, specific functions, sab kuch different hai. Testcontainers ye gap khatam kar deta hai kyunki tum literal wahi Postgres image use karte ho jo prod mein chalti hai.
+
+Teen tarike se integrate kar sakte ho:
 
 1. **JUnit 5 extension** — `@Testcontainers` + `@Container`.
-2. **Spring Boot 3.1+ `@ServiceConnection`** — auto-wires the container's URL/credentials into Spring properties. Magic.
-3. **Singleton container** — start once for the whole JVM, reuse across test classes.
+2. **Spring Boot 3.1+ `@ServiceConnection`** — container ka URL/credentials Spring properties mein khud-ba-khud wire ho jaate hain. Ekdum magic hai.
+3. **Singleton container** — poore JVM ke liye ek baar start karo, saare test classes mein reuse karo.
 
 ## Code example
 
@@ -43,6 +39,8 @@ Three integration styles:
 
 ### Modern Spring Boot (3.1+) — `@ServiceConnection`
 
+Kyun zaruri hai? Kyunki pehle tumhe manually `spring.datasource.url`, `username`, `password` set karna padta tha. `@ServiceConnection` ye sab automatically kar deta hai — container dekh ke samajh jaata hai ki ye Postgres hai ya Kafka ya Redis, aur uske hisaab se properties inject kar deta hai.
+
 ```java
 @SpringBootTest
 @Testcontainers
@@ -63,9 +61,11 @@ class OrderRepositoryIT {
 }
 ```
 
-That's it. `@ServiceConnection` introspects the container type and registers `spring.datasource.url`, `username`, `password` automatically. Same works for Kafka, Mongo, Redis, Cassandra, etc.
+Bas itna hi. `@ServiceConnection` container ka type introspect karta hai aur `spring.datasource.url`, `username`, `password` khud register kar deta hai. Same trick Kafka, Mongo, Redis, Cassandra sab pe kaam karti hai.
 
 ### Pre-3.1 / manual property override
+
+Agar tum Spring Boot 3.1 se pehle ke version pe ho, to itna magic nahi milega — manually `@DynamicPropertySource` use karke properties register karni padengi. Socho isko UPI ka manual bank account link karna — kaam ho jaata hai, bas ek extra step lagta hai.
 
 ```java
 @SpringBootTest
@@ -93,7 +93,9 @@ class OrderRepositoryIT {
 }
 ```
 
-### Singleton pattern (faster — start once)
+### Singleton pattern (faster — ek baar start karo)
+
+Har test class apna alag Postgres container start kare to test suite bahut slow ho jaayega — Zomato ke restaurant onboarding jaisa, agar har order ke liye naya restaurant register karna pade to system crawl karega. Isliye ek shared container banao jo saare test classes use karein.
 
 ```java
 public abstract class AbstractIntegrationTest {
@@ -102,7 +104,7 @@ public abstract class AbstractIntegrationTest {
         new PostgreSQLContainer<>("postgres:16-alpine");
 
     static {
-        POSTGRES.start();   // started once, never stopped (JVM exit cleans up)
+        POSTGRES.start();   // ek baar start hota hai, kabhi stop nahi hota (JVM exit pe cleanup ho jaata hai)
     }
 
     @DynamicPropertySource
@@ -117,10 +119,12 @@ public abstract class AbstractIntegrationTest {
 class OrderIT extends AbstractIntegrationTest { /* ... */ }
 
 @SpringBootTest
-class UserIT  extends AbstractIntegrationTest { /* shares the same Postgres */ }
+class UserIT  extends AbstractIntegrationTest { /* same Postgres share karta hai */ }
 ```
 
 ### Multiple containers — full integration
+
+Kya karna hai agar tumhe DB + Kafka + Redis sab ek saath real mein chahiye taaki poora flow test ho sake? Bas sabko `@Container @ServiceConnection` laga do — Spring khud sab wire kar dega.
 
 ```java
 @SpringBootTest
@@ -142,15 +146,17 @@ class FullIntegrationIT {
 
     @Test
     void placeOrder_persistsAndPublishes() {
-        // real DB, real Kafka, real Redis — full path test
+        // real DB, real Kafka, real Redis — full path test, koi mocking nahi
         service.place(new Cart(...));
     }
 }
 ```
 
-### `application.yml` — point Testcontainers via JDBC URL prefix
+Ye Swiggy ke order placement flow ki tarah hai — DB mein order save hua, Kafka pe event publish hua, Redis mein cache update hua — sab kuch ek hi test mein real components ke saath verify ho jaata hai.
 
-A neat trick: prefix the JDBC URL with `tc:` and Testcontainers takes over.
+### `application.yml` — JDBC URL prefix se Testcontainers point karo
+
+Ek neat trick: JDBC URL ke aage `tc:` laga do aur Testcontainers khud control le leta hai.
 
 ```yaml
 spring:
@@ -159,21 +165,21 @@ spring:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
 ```
 
-No code changes needed in tests — but less control.
+Test code mein koi change nahi chahiye — lekin control kam milta hai (container lifecycle pe fine-grained access nahi milta).
 
-### Reusable containers (faster local dev loops)
+### Reusable containers (local dev loops fast karne ke liye)
 
 ```java
 postgres.withReuse(true);
 ```
 
-In `~/.testcontainers.properties`:
+`~/.testcontainers.properties` mein:
 
 ```
 testcontainers.reuse.enable=true
 ```
 
-Container persists between JVM runs — huge speedup locally. Don't enable in CI (you want clean state).
+Container JVM runs ke beech persist karta hai — locally huge speedup milta hai kyunki baar-baar container start/stop nahi hota. CI mein isko enable mat karo — waha tumhe clean state chahiye, warna ek test run ka data agle run ko pollute kar dega.
 
 ### Spring Boot 3.1+ `TestcontainersConfiguration` for `bootTestRun`
 
@@ -188,7 +194,7 @@ class TestcontainersConfig {
 }
 ```
 
-Then run `./mvnw spring-boot:test-run` (or `bootTestRun` in Gradle) — your app starts with the test containers. Replaces fiddly `docker-compose.dev.yml`.
+Phir `./mvnw spring-boot:test-run` chalao (Gradle mein `bootTestRun`) — tumhari app test containers ke saath start ho jaayegi. Ye us fiddly `docker-compose.dev.yml` ka replacement hai jo local dev ke liye Postgres/Kafka manually spin up karne ke liye likhte the.
 
 ## Express/Node comparison
 
@@ -210,33 +216,45 @@ afterAll(() => container.stop());
 | `@ServiceConnection` | manual env var wiring |
 | `@DynamicPropertySource` | `process.env.X = ...` |
 | Singleton via static init | top-level `await` in setup |
-| `withReuse(true)` | same flag exists in Node lib |
+| `withReuse(true)` | Node lib mein bhi yahi flag exist karta hai |
 
-The Java tooling is more declarative. Node's is more imperative but flexible.
+Java ka tooling zyada declarative hai — annotations laga do, baaki Spring sambhal leta hai. Node ka approach zyada imperative hai lekin flexible bhi — tumhe khud control milta hai ki kab start/stop karna hai.
 
 ## Gotchas
 
-> [!warning] Docker required
-> The test runner needs Docker (or Podman, Colima, Rancher). CI must have a docker-in-docker setup or remote socket. Github Actions Linux runners have it pre-installed.
+> [!warning] Docker chahiye hi chahiye
+> Test runner ko Docker (ya Podman, Colima, Rancher) chahiye. CI mein docker-in-docker setup ya remote socket hona zaruri hai. GitHub Actions ke Linux runners mein ye pre-installed hota hai, so usually koi dikkat nahi aati.
 
-> [!warning] Container startup time
-> Postgres ≈ 2-3s. Kafka ≈ 5-15s. Use **singleton** or **reuse** to avoid paying this per test class.
+> [!warning] Container startup time lagta hai
+> Postgres ≈ 2-3 second. Kafka ≈ 5-15 second. Agar har test class apna naya container start kare to ye time multiply ho jaayega. **Singleton** ya **reuse** use karo taaki ye cost baar-baar na chukani pade.
 
 > [!warning] Ryuk side-container
-> Testcontainers spawns a "Ryuk" container that cleans up dangling containers after the JVM exits. Some restricted CI environments block it — set `TESTCONTAINERS_RYUK_DISABLED=true` (and clean up yourself).
+> Testcontainers ek "Ryuk" naam ka helper container spawn karta hai jo JVM exit hone ke baad dangling containers clean karta hai. Kuch restricted CI environments isko block kar dete hain — waha `TESTCONTAINERS_RYUK_DISABLED=true` set karo (aur cleanup khud handle karo).
 
-> [!danger] Don't share state between tests via the singleton
-> If 50 tests share one Postgres, one test's data pollutes the next. Use `@Transactional` rollback, truncate tables in `@AfterEach`, or use Flyway/Liquibase clean — but **plan it**.
+> [!danger] Singleton mein tests ke beech state share mat karo
+> Agar 50 tests ek hi Postgres share kar rahe hain, to ek test ka data agle test ko pollute kar dega — jaise ek customer ka cart dusre customer ko dikhne lag jaaye. `@Transactional` rollback use karo, `@AfterEach` mein tables truncate karo, ya Flyway/Liquibase se clean karo — lekin **plan karke** rakho, accident se mat hone do.
 
-> [!tip] Pin image versions
-> `postgres:latest` will eventually break your tests. Pin to `postgres:16-alpine`.
+> [!tip] Image versions pin karo
+> `postgres:latest` ek din tumhare tests tod dega jab naya version aayega aur behavior change ho jaayega. Hamesha `postgres:16-alpine` jaisa specific version pin karo.
 
-> [!tip] Use H2 only when speed > fidelity
-> If your repo tests use vendor-specific SQL, JSONB, partial indexes, etc. — H2 will lie to you. Testcontainers + real Postgres catches it.
+> [!tip] H2 tabhi use karo jab speed > fidelity ho
+> Agar tumhare repository tests vendor-specific SQL, JSONB, partial indexes waghera use karte hain — H2 tumse jhooth bolega ki sab sahi hai. Testcontainers + real Postgres asli bugs pakadega jo H2 kabhi nahi pakad payega.
 
 ## Related
 - [[04-Spring-Boot-Test]]
 - [[07-Integration-Testing]]
 - [[08-Test-Profiles-and-Properties]]
 - [[../07-Data-JPA/01-JPA-Hibernate-Overview|JPA]]
-- [[../11-Messaging/03-Spring-Kafka|Spring Kafka — test with KafkaContainer]]
+- [[../11-Messaging/03-Spring-Kafka|Spring Kafka — KafkaContainer se test karo]]
+
+## Key Takeaways
+- Testcontainers real Docker containers (Postgres, Kafka, Redis, Mongo) spin up karta hai test ke duration ke liye — H2 jaisi fake DB pe bharosa karna band karo.
+- `@ServiceConnection` (Spring Boot 3.1+) sabse aasan tarika hai — container ka URL/credentials automatically wire ho jaate hain, koi manual property setting nahi.
+- Pre-3.1 mein `@DynamicPropertySource` use karo manual wiring ke liye.
+- Singleton container pattern se saare test classes ek hi container share karte hain — test suite fast rehta hai.
+- Multiple containers ek saath use karke full integration test likh sakte ho (DB + Kafka + Redis).
+- `withReuse(true)` local dev ke liye speedup deta hai, lekin CI mein isse avoid karo — clean state chahiye hoti hai.
+- Docker zaruri hai test runner ke liye — CI mein docker-in-docker ya remote socket set karna padega.
+- Container startup time (khaaskar Kafka ka) ignore mat karo — singleton/reuse se optimize karo.
+- Singleton container mein tests ke beech state pollution se bachne ke liye transactional rollback ya cleanup strategy plan karo.
+- Image versions hamesha pin karo (`postgres:16-alpine`), `:latest` kabhi use mat karo tests mein.

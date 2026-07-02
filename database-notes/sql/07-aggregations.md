@@ -1,24 +1,24 @@
-# 📊 Aggregations, GROUP BY, and HAVING
+# 📊 Aggregations, GROUP BY, aur HAVING
 
-> **Who this is for:** Developers who know basic SELECT, WHERE, and JOIN but want to crunch numbers and summarize data like a pro.
+> **Ye kiske liye hai:** Jo developers basic SELECT, WHERE, aur JOIN jaante hain, lekin ab numbers crunch karna aur data summarize karna seekhna chahte hain — bilkul ek pro ki tarah.
 
 ---
 
-## 🧮 What Are Aggregate Functions?
+## 🧮 Aggregate Functions Hote Kya Hain?
 
-So far you have been fetching individual rows. Aggregations let you **collapse many rows into a single summary value** — counting users, summing revenue, finding the oldest post, and so on.
+Ab tak tum individual rows fetch kar rahe the — ek-ek row uthake dikha rahe the. Lekin **aggregations** tumhe kya dete hain? Woh tumhe **bahut saari rows ko ek single summary value mein collapse** karne dete hain — jaise total users count karna, revenue sum karna, sabse purana post dhundna, waghera.
 
-SQL has five core aggregate functions that work the same way across all major databases:
+SQL mein paanch core aggregate functions hote hain jo har major database mein same tarike se kaam karte hain:
 
-| Function | What it returns |
+| Function | Kya return karta hai |
 |---|---|
-| `COUNT(...)` | Number of rows (or non-NULL values) |
-| `SUM(col)` | Total of all values in a numeric column |
-| `AVG(col)` | Average of all values |
-| `MIN(col)` | Smallest value |
-| `MAX(col)` | Largest value |
+| `COUNT(...)` | Rows ki sankhya (ya non-NULL values ki) |
+| `SUM(col)` | Numeric column ke saare values ka total |
+| `AVG(col)` | Saare values ka average |
+| `MIN(col)` | Sabse chhota value |
+| `MAX(col)` | Sabse bada value |
 
-### Basic example — no grouping yet
+### Basic example — abhi grouping nahi hai
 
 ```sql
 SELECT
@@ -29,39 +29,40 @@ SELECT
 FROM posts;
 ```
 
-This returns **one row** summarising every row in the `posts` table.
+Ye query `posts` table ki **saari rows ka summary ek hi row mein** de degi. Socho jaise Zomato tumhe saal bhar ke orders ka ek single summary card dikhata hai — total orders, average bill, sabse mehenga order — sab ek jagah.
 
 ---
 
 ## 🔢 COUNT(*) vs COUNT(column) vs COUNT(DISTINCT column)
 
-These three look similar but behave very differently. Knowing the difference saves you from silent bugs.
+Ye teeno dikhne mein similar lagte hain, lekin behave bilkul alag tarike se karte hain. Fark samajh lo, warna silent bugs milenge jo pakadna mushkil hote hain.
 
 ```sql
--- Scenario: the `posts` table has 10 rows, but 2 rows have NULL in `image_url`
+-- Scenario: `posts` table mein 10 rows hain, lekin 2 rows mein `image_url` NULL hai
 
 SELECT
-    COUNT(*)              AS all_rows,         -- 10  (counts everything)
-    COUNT(image_url)      AS rows_with_image,  -- 8   (skips NULLs)
-    COUNT(DISTINCT user_id) AS unique_authors  -- however many distinct user_ids exist
+    COUNT(*)              AS all_rows,         -- 10  (sab kuch count karta hai)
+    COUNT(image_url)      AS rows_with_image,  -- 8   (NULLs skip karta hai)
+    COUNT(DISTINCT user_id) AS unique_authors  -- jitne bhi distinct user_ids hain
 FROM posts;
 ```
 
-**Rules:**
+**Rules yaad rakho:**
 
-- `COUNT(*)` — counts every row, including rows where every column is NULL. Use this when you just want the row count.
-- `COUNT(column)` — counts rows where that column is **not NULL**. Use this to count "how many rows have a value here".
-- `COUNT(DISTINCT column)` — counts unique non-NULL values. Use this to answer "how many different users posted?".
+- `COUNT(*)` — har row count karta hai, chahe saare columns NULL hi kyun na hon. Jab sirf row count chahiye ho, ye use karo.
+- `COUNT(column)` — sirf un rows ko count karta hai jaha us column mein **NULL nahi hai**. "Kitni rows mein ye value hai" jaanne ke liye use hota hai.
+- `COUNT(DISTINCT column)` — unique non-NULL values count karta hai. "Kitne alag-alag users ne post kiya?" jaise sawaal ka jawab dene ke liye.
 
-> **Tip:** `SUM`, `AVG`, `MIN`, and `MAX` all silently ignore NULLs too. This is almost always what you want, but keep it in mind when a column is sparse.
+> [!tip]
+> `SUM`, `AVG`, `MIN`, aur `MAX` — ye sab bhi chupke se NULLs ko ignore kar dete hain. Zyadatar yehi tumhe chahiye hota hai, lekin agar column sparse hai (bahut NULLs hain) to iska dhyan rakhna.
 
 ---
 
-## 🗂️ GROUP BY — Aggregating Per Group
+## 🗂️ GROUP BY — Har Group Ke Andar Aggregate Karna
 
-Without `GROUP BY`, every aggregate collapses the whole table into one row. With `GROUP BY`, SQL first **splits rows into buckets** based on the column(s) you specify, then applies the aggregate **inside each bucket**.
+Bina `GROUP BY` ke, har aggregate poori table ko ek row mein collapse kar deta hai. `GROUP BY` ke saath, SQL pehle rows ko **buckets mein baant deta hai** — jo column(s) tumne specify kiye hain uske basis pe — phir uss aggregate ko **har bucket ke andar** apply karta hai.
 
-### Social network example: posts per user
+### Social network example: har user ke posts
 
 ```sql
 SELECT
@@ -79,12 +80,12 @@ Result (example):
 | 2       | 3         |
 | 3       | 27        |
 
-SQL grouped every row that shares the same `user_id`, then counted how many rows are in each group.
+Yaha SQL ne un saari rows ko group kiya jinka `user_id` same hai, phir har group mein kitni rows hain woh count kiya. Bilkul waise jaise Swiggy tumhare area ke saare delivery partners ko group karke bata de "is delivery boy ne aaj kitne orders deliver kiye."
 
-### Grouping by multiple columns
+### Multiple columns pe grouping
 
 ```sql
--- Posts per user, per day
+-- Har user ke, har din ke posts
 SELECT
     user_id,
     DATE(created_at) AS post_date,
@@ -96,51 +97,54 @@ ORDER BY post_date DESC;
 
 ---
 
-## ⚠️ The SELECT Rule with GROUP BY
+## ⚠️ GROUP BY Ke Saath SELECT Ka Rule
 
-This is one of the most common beginner mistakes. Once you add `GROUP BY`, **only two kinds of expressions are allowed in SELECT**:
+Ye beginners ki sabse common mistake hai. Jaise hi tum `GROUP BY` add karte ho, SELECT mein **sirf do tarah ki cheezein allowed hain**:
 
-1. Columns that appear in the `GROUP BY` clause
+1. Wo columns jo `GROUP BY` clause mein hain
 2. Aggregate function calls
 
 ```sql
--- WRONG in PostgreSQL and SQL Server — title is not in GROUP BY
+-- GALAT — PostgreSQL aur SQL Server mein error dega — title GROUP BY mein nahi hai
 SELECT user_id, title, COUNT(*)
 FROM posts
 GROUP BY user_id;
 
--- CORRECT
+-- SAHI
 SELECT user_id, COUNT(*)
 FROM posts
 GROUP BY user_id;
 ```
 
-### Database behaviour comparison
+Socho aise — tumne apne friends ko city ke hisaab se group kiya hai (Mumbai wale ek group, Delhi wale doosra), aur ab tum poochh rahe ho "har group mein pehla friend ka naam kya hai?" — ye sawaal hi galat hai, kyunki group ke andar multiple alag naam ho sakte hain. SQL yehi keh raha hai.
+
+### Database ka behaviour compare karo
 
 | Database | Behaviour |
 |---|---|
-| **PostgreSQL** | Strict — raises an error if a non-aggregated, non-grouped column appears in SELECT |
-| **SQL Server** | Strict — same error as PostgreSQL |
+| **PostgreSQL** | Strict — agar non-aggregated, non-grouped column SELECT mein aaya to error de dega |
+| **SQL Server** | Strict — PostgreSQL jaisa hi error |
 | **Oracle** | Strict — same error |
-| **MySQL** | Lenient by default — silently picks an arbitrary value from the group for the extra column. **This is dangerous and produces unpredictable results.** |
+| **MySQL** | By default lenient hai — group mein se koi bhi random value chupke se utha leta hai extra column ke liye. **Ye khatarnak hai aur unpredictable results deta hai.** |
 
-MySQL's leniency is a footgun. You can (and should) enable strict mode in MySQL:
+MySQL ki ye leniency ek footgun hai — kabhi bhi apne pair pe goli maar sakti hai. Isliye MySQL mein strict mode enable karna chahiye:
 
 ```sql
--- MySQL: enable strict GROUP BY validation
+-- MySQL: strict GROUP BY validation enable karo
 SET sql_mode = 'ONLY_FULL_GROUP_BY,...';
 ```
 
-Always write queries that would be valid on a strict engine, even when using MySQL.
+> [!warning]
+> Hamesha aise queries likho jo strict engine pe bhi valid hon, chahe tum MySQL hi use kar rahe ho. Kal ko database change hua to tumhara code todega nahi.
 
 ---
 
-## 🔍 HAVING — Filtering Groups After Aggregation
+## 🔍 HAVING — Aggregation Ke Baad Groups Filter Karna
 
-`WHERE` filters **individual rows before grouping**. `HAVING` filters **groups after aggregation**.
+`WHERE` **individual rows ko grouping se pehle** filter karta hai. `HAVING` **groups ko aggregation ke baad** filter karta hai. Ye distinction bahut zaruri hai.
 
 ```sql
--- Users who have posted more than 10 times
+-- Wo users jinhone 10 se zyada baar post kiya hai
 SELECT
     user_id,
     COUNT(*) AS post_count
@@ -153,36 +157,37 @@ HAVING COUNT(*) > 10;
 
 | | WHERE | HAVING |
 |---|---|---|
-| **Runs** | Before GROUP BY | After GROUP BY |
-| **Filters** | Individual rows | Aggregated groups |
-| **Can reference** | Raw column values | Aggregate results |
-| **Use when** | Excluding rows from the calculation | Excluding groups from the result |
+| **Chalta kab hai** | GROUP BY se pehle | GROUP BY ke baad |
+| **Filter karta hai** | Individual rows | Aggregated groups |
+| **Reference kar sakta hai** | Raw column values | Aggregate results |
+| **Kab use karo** | Calculation se rows exclude karne ke liye | Result se groups exclude karne ke liye |
 
-### Using both together
+### Dono ko saath mein use karna
 
 ```sql
--- Among posts created in 2024, find users with more than 5 such posts
+-- 2024 mein bane posts mein se, jin users ke 5 se zyada aise posts hain
 SELECT
     user_id,
     COUNT(*) AS post_count
 FROM posts
-WHERE created_at >= '2024-01-01'   -- filters rows FIRST
+WHERE created_at >= '2024-01-01'   -- rows PEHLE filter honge
 GROUP BY user_id
-HAVING COUNT(*) > 5;               -- filters groups SECOND
+HAVING COUNT(*) > 5;               -- groups BAAD mein filter honge
 ```
 
-The `WHERE` here means rows from 2023 never even enter the grouping calculation — which is more efficient than filtering after the fact with `HAVING`.
+Yaha `WHERE` ka matlab hai — 2023 ki rows grouping calculation mein enter hi nahi hongi. Ye HAVING se baad mein filter karne se zyada efficient hai — kyunki jitna kaam pehle hi kam kar do, utna behtar.
 
-> **Rule of thumb:** Filter as early as possible. Use WHERE to shrink the dataset, then HAVING to trim unwanted groups.
+> [!tip]
+> **Rule of thumb:** Jitna jaldi ho sake filter kar do. Dataset chhota karne ke liye WHERE use karo, phir unwanted groups trim karne ke liye HAVING.
 
 ---
 
-## ↕️ ORDER BY with Aggregates
+## ↕️ Aggregates Ke Saath ORDER BY
 
-You can sort by an aggregate result just like any column:
+Aggregate result ko bhi normal column ki tarah sort kar sakte ho:
 
 ```sql
--- Most active users first
+-- Sabse active users pehle
 SELECT
     user_id,
     COUNT(*) AS post_count
@@ -191,21 +196,21 @@ GROUP BY user_id
 ORDER BY post_count DESC;
 ```
 
-You can also use the aggregate expression directly in `ORDER BY`:
+Aggregate expression ko directly `ORDER BY` mein bhi use kar sakte ho:
 
 ```sql
 ORDER BY COUNT(*) DESC
 ```
 
-Both forms work across all major databases.
+Dono forms har major database mein kaam karte hain.
 
 ---
 
-## 🔗 Aggregations with JOINs
+## 🔗 JOINs Ke Saath Aggregations
 
-Real queries often combine tables before grouping. The JOIN happens first; aggregation runs on the joined result.
+Real queries mein aksar tables ko pehle combine karte hain, phir group karte hain. Yaad rakho — JOIN pehle hota hai, aggregation joined result pe run hota hai.
 
-### Count posts per user (showing username, not just ID)
+### Har user ke posts count karo (username ke saath, sirf ID nahi)
 
 ```sql
 SELECT
@@ -217,9 +222,9 @@ GROUP BY u.id, u.username
 ORDER BY post_count DESC;
 ```
 
-Why `LEFT JOIN`? So users with zero posts still appear in the result with a count of 0. `COUNT(p.id)` returns 0 when there are no matching posts (because `p.id` is NULL for those rows).
+`LEFT JOIN` kyun? Taaki zero-posts wale users bhi result mein aayein — unka count 0 dikhega. `COUNT(p.id)` 0 return karta hai jab koi matching post nahi hai (kyunki un rows mein `p.id` NULL hota hai). Ye bilkul Zomato jaisa hai — jo restaurant abhi tak koi order nahi mila, wo bhi list mein "0 orders" ke saath dikhna chahiye, list se gayab nahi ho jaana chahiye.
 
-### Likes per post (with post title)
+### Har post ke likes (post title ke saath)
 
 ```sql
 SELECT
@@ -234,12 +239,12 @@ LIMIT 10;
 
 ---
 
-## 🔄 NULL in GROUP BY
+## 🔄 GROUP BY Mein NULL
 
-When a column contains NULLs, SQL treats all NULL values as **a single group**. This is consistent across all databases.
+Jab kisi column mein NULLs hote hain, SQL saare NULL values ko **ek single group** mana leta hai. Ye behaviour har database mein consistent hai.
 
 ```sql
--- Some posts have no category (NULL). They will appear as one group.
+-- Kuch posts ki koi category nahi hai (NULL). Woh sab ek group ban jaayenge.
 SELECT
     category,
     COUNT(*) AS post_count
@@ -247,7 +252,7 @@ FROM posts
 GROUP BY category;
 ```
 
-Result might look like:
+Result kuch aisa dikh sakta hai:
 
 | category | post_count |
 |----------|-----------|
@@ -255,15 +260,15 @@ Result might look like:
 | Travel   | 18        |
 | NULL     | 7         |
 
-The NULL group represents all posts where `category` is unknown. This is usually intentional, but if you want to exclude uncategorized posts from your count, add `WHERE category IS NOT NULL` before grouping.
+Ye NULL group un saare posts ko represent karta hai jinki category unknown hai. Zyadatar ye intentional hi hota hai, lekin agar tum uncategorized posts ko count se hataana chahte ho, to grouping se pehle `WHERE category IS NOT NULL` add kar do.
 
 ---
 
-## 🧩 ROLLUP and CUBE — Subtotals and Cross-Totals
+## 🧩 ROLLUP aur CUBE — Subtotals aur Cross-Totals
 
-`ROLLUP` generates **subtotals and a grand total** along a hierarchy. `CUBE` generates **every possible combination** of subtotals.
+`ROLLUP` ek hierarchy ke along **subtotals aur ek grand total** generate karta hai. `CUBE` subtotals ka **har possible combination** generate karta hai.
 
-### ROLLUP — subtotals per hierarchy level
+### ROLLUP — hierarchy ke har level ka subtotal
 
 ```sql
 -- PostgreSQL / SQL Server / Oracle
@@ -285,12 +290,14 @@ FROM posts
 GROUP BY user_id, DATE(created_at) WITH ROLLUP;
 ```
 
-`ROLLUP(user_id, date)` produces:
-- One row per (user_id, date) combination
-- One subtotal row per user_id (date = NULL)
-- One grand total row (user_id = NULL, date = NULL)
+`ROLLUP(user_id, date)` ye deta hai:
+- Har (user_id, date) combination ke liye ek row
+- Har user_id ke liye ek subtotal row (date = NULL)
+- Ek grand total row (user_id = NULL, date = NULL)
 
-### CUBE — every combination of subtotals
+Socho jaise CRED tumhe monthly bill breakdown deta hai — har din ka spend, phir mahine ka subtotal, phir saal ka grand total. ROLLUP wahi karta hai data ke liye.
+
+### CUBE — subtotals ka har combination
 
 ```sql
 -- PostgreSQL / SQL Server / Oracle
@@ -302,13 +309,13 @@ FROM posts
 GROUP BY CUBE(category, user_id);
 ```
 
-MySQL does not support `CUBE` natively. For MySQL, you must simulate it with UNION queries.
+MySQL natively `CUBE` support nahi karta. MySQL mein tumhe UNION queries se ise simulate karna padega.
 
 ---
 
 ## 🎛️ GROUPING SETS — Custom Combinations
 
-`GROUPING SETS` lets you define exactly which grouping combinations you want, without the full combinatorial explosion of `CUBE`.
+`GROUPING SETS` tumhe exactly define karne deta hai ki tumhe kaunse grouping combinations chahiye, `CUBE` ke full combinatorial explosion ke bina.
 
 ```sql
 -- PostgreSQL / SQL Server / Oracle
@@ -319,12 +326,12 @@ SELECT
 FROM posts
 GROUP BY GROUPING SETS (
     (category, user_id),  -- detail level
-    (category),           -- subtotal by category
-    ()                    -- grand total
+    (category),           -- category ke hisaab se subtotal
+    ()                     -- grand total
 );
 ```
 
-MySQL does not support `GROUPING SETS`. Simulate with `UNION ALL`:
+MySQL `GROUPING SETS` support nahi karta. `UNION ALL` se simulate karo:
 
 ```sql
 -- MySQL equivalent (manual simulation)
@@ -337,9 +344,9 @@ SELECT NULL,     NULL,    COUNT(*) FROM posts;
 
 ---
 
-## 🧵 String Aggregation — Collecting Values into a List
+## 🧵 String Aggregation — Values Ko List Mein Collect Karna
 
-Sometimes instead of counting, you want to **concatenate values from multiple rows into one string**.
+Kabhi-kabhi counting ki jagah tumhe **multiple rows ke values ko ek string mein jodna** hota hai.
 
 ```sql
 -- PostgreSQL
@@ -369,13 +376,14 @@ FROM posts
 GROUP BY user_id;
 ```
 
-> **Watch out:** Oracle's `LISTAGG` throws an error if the resulting string exceeds 4000 characters. Use `LISTAGG(...) ON OVERFLOW TRUNCATE` (Oracle 19c+) or `XMLAGG` for large datasets.
+> [!warning]
+> Oracle ka `LISTAGG` error throw karta hai agar resulting string 4000 characters se zyada ho jaaye. Bade datasets ke liye `LISTAGG(...) ON OVERFLOW TRUNCATE` (Oracle 19c+) ya `XMLAGG` use karo.
 
 ---
 
 ## 🌐 Real Social Network Examples
 
-### Most active users (all time)
+### Sabse active users (all time)
 
 ```sql
 SELECT
@@ -389,7 +397,7 @@ ORDER BY posts DESC
 LIMIT 10;
 ```
 
-### Daily signup counts for the last 30 days
+### Pichle 30 dino ke daily signup counts
 
 ```sql
 SELECT
@@ -401,7 +409,7 @@ GROUP BY DATE(created_at)
 ORDER BY signup_date;
 ```
 
-### Posts with above-average likes
+### Average se zyada likes wale posts
 
 ```sql
 SELECT
@@ -412,7 +420,7 @@ WHERE p.like_count > (SELECT AVG(like_count) FROM posts)
 ORDER BY p.like_count DESC;
 ```
 
-### Tags used in more than 5 posts
+### 5 se zyada posts mein use hue tags
 
 ```sql
 SELECT
@@ -429,57 +437,57 @@ ORDER BY usage_count DESC;
 
 ## 🗺️ Mental Model: Query Execution Order
 
-SQL does not execute in the order you write it. Understanding the logical order prevents confusion:
+SQL usi order mein execute nahi hota jis order mein tum likhte ho. Ye logical order samajh lo, confusion nahi hoga:
 
 ```
-1. FROM / JOIN    — assemble the full dataset
-2. WHERE          — filter individual rows
-3. GROUP BY       — split into groups
-4. Aggregates     — compute COUNT, SUM, etc. per group
-5. HAVING         — filter groups
-6. SELECT         — pick columns / compute expressions
-7. ORDER BY       — sort the result
-8. LIMIT / FETCH  — truncate to N rows
+1. FROM / JOIN    — poora dataset assemble karo
+2. WHERE          — individual rows filter karo
+3. GROUP BY       — groups mein split karo
+4. Aggregates     — har group ke liye COUNT, SUM, etc. compute karo
+5. HAVING         — groups filter karo
+6. SELECT         — columns pick karo / expressions compute karo
+7. ORDER BY       — result sort karo
+8. LIMIT / FETCH  — N rows tak truncate karo
 ```
 
-This is why you **cannot use a SELECT alias inside WHERE or HAVING** in most databases — the alias does not exist yet at that point in execution.
+Isi wajah se tum **WHERE ya HAVING ke andar SELECT alias use nahi kar sakte** zyadatar databases mein — kyunki execution ke us point pe wo alias abhi exist hi nahi karta.
 
 ---
 
 ## ✅ Key Takeaways
 
-- **Aggregate functions** (COUNT, SUM, AVG, MIN, MAX) collapse many rows into one value.
-- `COUNT(*)` counts all rows; `COUNT(col)` skips NULLs; `COUNT(DISTINCT col)` counts unique values.
-- `GROUP BY` splits rows into buckets and applies aggregates per bucket.
-- In `SELECT` with `GROUP BY`, every column must be either in `GROUP BY` or wrapped in an aggregate — MySQL breaks this rule by default (do not rely on that).
-- `WHERE` filters rows **before** grouping; `HAVING` filters groups **after** aggregation.
-- NULLs form their own group in `GROUP BY`.
-- `ROLLUP` / `CUBE` / `GROUPING SETS` generate multi-level summaries; syntax varies between MySQL and the rest.
-- String aggregation syntax varies: `STRING_AGG` (PostgreSQL, SQL Server), `GROUP_CONCAT` (MySQL), `LISTAGG` (Oracle).
+- **Aggregate functions** (COUNT, SUM, AVG, MIN, MAX) bahut saari rows ko ek value mein collapse karte hain.
+- `COUNT(*)` saari rows count karta hai; `COUNT(col)` NULLs skip karta hai; `COUNT(DISTINCT col)` unique values count karta hai.
+- `GROUP BY` rows ko buckets mein split karta hai aur har bucket pe aggregate apply karta hai.
+- `GROUP BY` ke saath `SELECT` mein har column ya to `GROUP BY` mein hona chahiye ya aggregate ke andar wrap hona chahiye — MySQL by default ye rule todta hai (isi pe bharosa mat karo).
+- `WHERE` grouping se **pehle** rows filter karta hai; `HAVING` aggregation ke **baad** groups filter karta hai.
+- `GROUP BY` mein NULLs apna ek alag group bana lete hain.
+- `ROLLUP` / `CUBE` / `GROUPING SETS` multi-level summaries generate karte hain; syntax MySQL aur baaki databases mein alag hota hai.
+- String aggregation syntax alag-alag hai: `STRING_AGG` (PostgreSQL, SQL Server), `GROUP_CONCAT` (MySQL), `LISTAGG` (Oracle).
 
 ---
 
 ## 📝 Quiz
 
-**Question 1.** You run this query on a table with 100 rows, where 10 rows have a NULL `email` column:
+**Question 1.** Tum ye query ek 100-row table pe chalate ho, jaha 10 rows mein `email` column NULL hai:
 
 ```sql
 SELECT COUNT(*), COUNT(email) FROM users;
 ```
 
-What are the two values returned?
+Dono values kya return hongi?
 
 <details>
 <summary>Answer</summary>
 
-`COUNT(*)` returns **100** (counts all rows regardless of NULLs).  
-`COUNT(email)` returns **90** (skips the 10 rows where email is NULL).
+`COUNT(*)` return karega **100** (NULLs ki parwaah kiye bina saari rows count karta hai).  
+`COUNT(email)` return karega **90** (jin 10 rows mein email NULL hai unhe skip kar deta hai).
 
 </details>
 
 ---
 
-**Question 2.** What is wrong with this query, and how would you fix it?
+**Question 2.** Is query mein kya galat hai, aur ise kaise fix karoge?
 
 ```sql
 SELECT user_id, title, COUNT(*)
@@ -490,15 +498,15 @@ GROUP BY user_id;
 <details>
 <summary>Answer</summary>
 
-`title` is neither in `GROUP BY` nor wrapped in an aggregate function. On PostgreSQL, SQL Server, and Oracle this raises an error. MySQL silently returns an arbitrary `title` from each group, which is unpredictable.
+`title` na to `GROUP BY` mein hai, na hi kisi aggregate function ke andar wrap hai. PostgreSQL, SQL Server, aur Oracle pe ye error dega. MySQL chupke se har group se ek arbitrary `title` return kar dega, jo unpredictable hai.
 
-Fix: either add `title` to `GROUP BY` (if you want one row per user+title combination) or remove `title` from `SELECT` (if you only care about the count per user).
+Fix: ya to `title` ko `GROUP BY` mein add karo (agar tumhe har user+title combination ke liye ek row chahiye), ya `title` ko `SELECT` se hata do (agar tumhe sirf har user ka count chahiye).
 
 </details>
 
 ---
 
-**Question 3.** You want to find all users who signed up in 2024 **and** have written more than 3 posts. Which clause goes where?
+**Question 3.** Tumhe wo saare users chahiye jo 2024 mein signup hue **aur** jinhone 3 se zyada posts likhe hain. Kaunsa clause kaha jaayega?
 
 ```sql
 SELECT u.username, COUNT(p.id) AS post_count
@@ -517,10 +525,10 @@ WHERE  u.created_at >= '2024-01-01' AND u.created_at < '2025-01-01'
 HAVING COUNT(p.id) > 3
 ```
 
-`WHERE` filters the users to 2024 sign-ups **before** grouping (more efficient). `HAVING` filters the resulting groups to those with more than 3 posts **after** aggregation.
+`WHERE` grouping se **pehle** hi users ko 2024 ke sign-ups tak filter kar deta hai (zyada efficient). `HAVING` aggregation ke **baad** resulting groups ko un tak filter karta hai jinke 3 se zyada posts hain.
 
 </details>
 
 ---
 
-*Next chapter: Window Functions — running totals, rankings, and moving averages without collapsing your rows.*
+*Next chapter: Window Functions — running totals, rankings, aur moving averages, bina apni rows collapse kiye.*

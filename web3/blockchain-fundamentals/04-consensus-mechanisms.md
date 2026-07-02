@@ -1,51 +1,51 @@
 # 🤝 Chapter 4: Consensus Mechanisms
 
-> **Who gets to decide what the truth is — when there is no single authority to ask?**
+> **Sach kya hai, ye decide kaun karega — jab koi single authority hi nahi hai poochne ke liye?**
 
-That question is the heart of every blockchain. This chapter answers it by walking you through the ingenious mechanisms that allow thousands of strangers, running nodes on every continent, to agree on a single shared history — without ever trusting each other.
+Yahi sawaal har blockchain ke dil mein baitha hai. Is chapter mein hum wahi genius mechanisms samjhenge jo hazaaron ajnabiyon ko — jo alag-alag continents pe apne nodes chala rahe hain — ek shared history pe agree karne dete hain, bina ek doosre pe trust kiye.
 
 ---
 
-## 🧩 What Is Consensus, and Why Do We Need It?
+## 🧩 Consensus Hai Kya, Aur Iski Zaroorat Kyun Padi?
 
-In a traditional database, one company owns the server. If you want to know the current balance of a bank account, you ask the bank's server, and it gives you the answer. Simple.
+Traditional database mein ek hi company server ki maalik hoti hai. Tumhe bank balance check karna hai? Bank ke server se pooch lo, jawab mil jaayega. Seedha-saadha kaam.
 
-Blockchains do not have that luxury. They are **distributed** — hundreds or thousands of computers all hold a copy of the ledger. When someone submits a transaction ("Alice sends 1 ETH to Bob"), every node needs to:
+Blockchain ke paas ye luxury nahi hai. Ye **distributed** system hain — sainkdon ya hazaaron computers ke paas ledger ki apni-apni copy hoti hai. Jab koi transaction submit karta hai ("Alice ne Bob ko 1 ETH bheja"), to har node ko ye karna padta hai:
 
-1. Verify the transaction is valid (Alice actually has the funds).
-2. Agree on the **order** of transactions (so no one double-spends).
-3. Add the agreed-upon block to the chain.
+1. Transaction valid hai ya nahi verify karna (Alice ke paas actually funds hain ya nahi).
+2. Transactions ka **order** decide karna (taaki koi double-spend na kar sake).
+3. Agreed-upon block ko chain mein add karna.
 
-This sounds straightforward until you ask: what happens if some nodes are lying, crashed, or actively trying to cheat?
+Ye sab tab tak simple lagta hai jab tak tum ye na pooch lo: agar kuch nodes jhooth bol rahe hain, crash ho gaye hain, ya cheat karne ki koshish kar rahe hain — tab kya hoga?
 
-### The Byzantine Generals Problem
+### Byzantine Generals Problem
 
-In 1982, computer scientists Leslie Lamport, Robert Shostak, and Marshall Pease published a famous thought experiment called the **Byzantine Generals Problem**.
+1982 mein, computer scientists Leslie Lamport, Robert Shostak, aur Marshall Pease ne ek famous thought experiment publish kiya — **Byzantine Generals Problem**.
 
-Imagine several Byzantine army generals surrounding an enemy city. They can only communicate by messenger. They must all agree on the same battle plan — attack or retreat — or they will lose. The catch: some generals might be **traitors** who send conflicting messages to different generals.
+Socho, kuch Byzantine army generals ek enemy city ko surround kiye baithe hain. Wo sirf messenger ke through communicate kar sakte hain. Sabko ek hi battle plan pe agree karna hai — attack karna hai ya retreat — nahi to haar pakki hai. Catch ye hai: kuch generals **traitors** ho sakte hain jo alag-alag generals ko conflicting messages bhej dein.
 
-> How do loyal generals reach agreement when some participants might be actively lying?
+> Jab kuch participants actively jhooth bol rahe hon, tab loyal generals agreement pe kaise pahunchein?
 
-This maps directly onto a blockchain network:
+Ye directly blockchain network pe fit baithta hai:
 
-- **Generals** = nodes on the network
-- **Messengers** = the peer-to-peer network
-- **Traitors** = malicious nodes trying to double-spend or corrupt the chain
-- **Battle plan** = the agreed-upon next block
+- **Generals** = network ke nodes
+- **Messengers** = peer-to-peer network
+- **Traitors** = malicious nodes jo double-spend ya chain corrupt karna chahte hain
+- **Battle plan** = agreed-upon next block
 
-A consensus mechanism is the protocol that solves this problem — it lets honest participants agree on truth even when some participants are dishonest. Any system that solves this is called **Byzantine Fault Tolerant (BFT)**.
+Consensus mechanism wahi protocol hai jo is problem ko solve karta hai — ye honest participants ko sach pe agree karne deta hai, chahe kuch participants dishonest hi kyun na hon. Jo bhi system isko solve karta hai, use **Byzantine Fault Tolerant (BFT)** kehte hain.
 
 ---
 
 ## ⛏️ Proof of Work (PoW)
 
-Proof of Work is the original consensus mechanism, invented for Bitcoin by Satoshi Nakamoto in 2008. It is elegant, battle-tested, and energy-hungry.
+Proof of Work sabse original consensus mechanism hai, jo Satoshi Nakamoto ne 2008 mein Bitcoin ke liye invent kiya tha. Ye elegant hai, battle-tested hai, aur bahut energy khaata hai.
 
-### The Core Idea: Solve an Expensive Puzzle
+### Core Idea: Ek Mehenga Puzzle Solve Karo
 
-To add the next block to the chain, a node (called a **miner**) must solve a computational puzzle. The puzzle is:
+Chain mein next block add karne ke liye, ek node (jisko **miner** kehte hain) ko ek computational puzzle solve karna padta hai. Puzzle ye hai:
 
-> Find a number (called a **nonce**) such that when you combine it with the block's data and hash everything together, the resulting hash starts with a certain number of zeros.
+> Ek number dhoondo (jisko **nonce** kehte hain) jise block ke data ke saath combine karke hash karo, aur resulting hash ke shuru mein kuch fixed number of zeros aane chahiye.
 
 **Example:**
 
@@ -53,11 +53,11 @@ To add the next block to the chain, a node (called a **miner**) must solve a com
 SHA256(block_data + nonce) = 0000000000000abcdef123...
 ```
 
-The only way to find this nonce is to **guess**. You try billions of combinations per second until one works. This is why Bitcoin mining requires enormous computing power.
+Iska ek hi tareeka hai ye nonce dhoondhne ka — **guess karo**. Tum billions of combinations per second try karte ho jab tak koi ek match nahi kar jaata. Isi wajah se Bitcoin mining ke liye itni zyada computing power chahiye hoti hai.
 
-### The Puzzle Analogy
+### Puzzle Wali Analogy
 
-Think of it like rolling a die: I tell you "roll until you get a 1." On a six-sided die that is easy — about 1-in-6 odds. Now imagine a die with one million sides, and you must roll a 1. That takes much longer and many more rolls. Bitcoin's difficulty adjusts to target one new block roughly every 10 minutes, regardless of how much computing power joins the network.
+Isko aise socho jaise ek dice roll kar rahe ho: maine bola "roll karte raho jab tak 1 na aaye." Six-sided dice pe ye easy hai — roughly 1-in-6 chance. Ab imagine karo ek million-sided dice, aur tumhe 1 hi rolls karna hai. Isme bahut zyada time aur rolls lagenge. Bitcoin ka difficulty apne aap adjust hota rehta hai taaki har 10 minute mein roughly ek naya block bane — chahe network mein kitni bhi computing power aa jaaye.
 
 ### PoW Flow
 
@@ -78,33 +78,33 @@ sequenceDiagram
     Network->>Miner: Block reward paid (e.g. 3.125 BTC)
 ```
 
-### Why Is Verification Fast but Mining Slow?
+### Verification Fast Kyun Hai Par Mining Slow?
 
-This asymmetry is the genius of PoW. Mining is expensive (billions of guesses). Verification is trivial — any node takes the proposed nonce, runs a single hash, and checks if it starts with enough zeros. One calculation confirms the work.
+Yahi asymmetry PoW ka asli genius hai. Mining mehengi hai (billions of guesses lagte hain). Verification bilkul trivial hai — koi bhi node proposed nonce leke ek single hash run karta hai aur check karta hai ki enough zeros se start ho raha hai ya nahi. Ek hi calculation se kaam ka proof confirm ho jaata hai.
 
-This means cheating is expensive. To rewrite history, an attacker would need to redo all the work for the target block **and** every block after it, faster than the rest of the honest network is adding new blocks. Unless the attacker controls more than 50% of the network's total compute power (a **51% attack**), this is economically irrational.
+Iska matlab cheating mehengi ho jaati hai. History rewrite karne ke liye, attacker ko target block **aur** uske baad ke har block ka kaam dobara karna padega — wo bhi honest network se tez raftaar mein. Jab tak attacker ke paas network ki total compute power ka 50% se zyada na ho (jisko **51% attack** kehte hain), ye economically bewakoofi hai.
 
 ### Energy Concerns
 
-PoW's security comes at a real cost. As of 2023, Bitcoin's network consumes more electricity annually than some mid-sized countries. This is by design — the energy expenditure is the "proof" that work was done. Critics argue this is environmentally irresponsible. Proponents argue it creates provable, unforgeable security with no central point of failure.
+PoW ki security ki ek real cost hai. 2023 tak, Bitcoin network saalana itni bijli khaata hai jitni kuch mid-sized countries khaate hain. Ye by design hai — energy kharch hi wo "proof" hai ki kaam hua hai. Critics kehte hain ye environmentally galat hai. Supporters kehte hain isi se ek provable, unforgeable security milti hai — bina kisi central point of failure ke.
 
 ---
 
 ## 🪙 Proof of Stake (PoS)
 
-Proof of Stake is the dominant modern approach. Rather than requiring miners to spend electricity, it requires validators to **lock up (stake) cryptocurrency** as collateral. Ethereum switched to this mechanism in September 2022.
+Proof of Stake aaj ka dominant modern approach hai. Miners se bijli kharch karwane ke bajaye, ye validators se crypto ko **lock (stake)** karwata hai as collateral. Ethereum September 2022 mein isi mechanism pe switch hua.
 
-### The Core Idea: Put Up a Security Deposit
+### Core Idea: Security Deposit Jama Karo
 
-Think of becoming a validator like renting an apartment. Your landlord takes a **security deposit** before you move in. If you trash the apartment, you lose the deposit. If you behave well, you get it back.
+Validator banna kuch aisa hai jaise flat kiraye pe lena. Landlord move-in se pehle tumse ek **security deposit** leta hai. Agar tumne flat kharab kiya, deposit gaya. Agar sab sahi rakha, deposit wapas mil jaata hai.
 
-In PoS:
+PoS mein:
 
-- A **validator** locks (stakes) a minimum amount of ETH (32 ETH on Ethereum mainnet).
-- The protocol randomly selects a validator to **propose** the next block.
-- Other validators **attest** (vote) on whether the proposed block is valid.
-- Honest validators earn **rewards** (new ETH + transaction fees).
-- Validators who try to cheat are **slashed** — they lose a portion of their staked ETH.
+- Ek **validator** ETH ka minimum amount lock (stake) karta hai (Ethereum mainnet pe 32 ETH).
+- Protocol randomly ek validator ko next block **propose** karne ke liye choose karta hai.
+- Baaki validators proposed block valid hai ya nahi, uspe **attest** (vote) karte hain.
+- Honest validators ko **rewards** milte hain (new ETH + transaction fees).
+- Jo validators cheat karne ki koshish karte hain, unko **slash** kiya jaata hai — unka staked ETH ka ek hissa cut ho jaata hai.
 
 ### PoS Flow
 
@@ -128,33 +128,33 @@ sequenceDiagram
     end
 ```
 
-### How Are Validators Selected?
+### Validators Select Kaise Hote Hain?
 
-Selection is **pseudo-random**, weighted by stake size. A validator who stakes twice as much has roughly twice the probability of being chosen to propose. However, stake alone is not enough — the randomness (using a cryptographic scheme called RANDAO on Ethereum) ensures no one can predict or manipulate who gets chosen next.
+Selection **pseudo-random** hai, stake size ke hisaab se weighted. Jo validator double stake karta hai, uske propose karne ke liye choose hone ke chances bhi roughly double ho jaate hain. Lekin sirf stake kaafi nahi — randomness (Ethereum pe RANDAO naam ki ek cryptographic scheme use hoti hai) ye ensure karti hai ki koi predict ya manipulate nahi kar sakta ki next kaun choose hoga.
 
-### Why Is PoS More Energy-Efficient?
+### PoS Energy-Efficient Kyun Hai?
 
-Validators do not compete in an energy arms race. There is no puzzle to solve. A validator simply needs to run a node (a standard server or even a good laptop) and stay online. Ethereum's energy consumption dropped by approximately **99.95%** after The Merge.
+Validators kisi energy race mein compete nahi karte. Koi puzzle solve karna hi nahi hai. Validator ko bas ek node run karna hota hai (ek standard server ya achha laptop bhi chalega) aur online rehna hota hai. The Merge ke baad Ethereum ki energy consumption approximately **99.95%** kam ho gayi.
 
 ---
 
 ## 🗳️ Delegated Proof of Stake (DPoS)
 
-DPoS is a variation used by blockchains like EOS and TRON. Token holders do not validate themselves — they **vote** to elect a small set of delegates (e.g., 21 on EOS) who do the actual block production.
+DPoS ek variation hai jo EOS aur TRON jaisi blockchains use karti hain. Token holders khud validate nahi karte — wo ek chhoti si delegates ki team **vote** karke elect karte hain (jaise EOS pe 21) jo actual block production karte hain.
 
-**Pros:** Very high throughput, fast blocks.  
-**Cons:** More centralized — only a handful of entities produce blocks, which can lead to cartel-like behavior.
+**Pros:** Bahut high throughput, fast blocks — Zomato ke order dispatch jaisa quick.  
+**Cons:** Zyada centralized — sirf muthi bhar entities blocks banati hain, jisse cartel jaisa behavior ban sakta hai.
 
 ---
 
 ## 🔏 Proof of Authority (PoA)
 
-PoA is used in private or consortium blockchains (e.g., enterprise supply chains, testnets). A pre-approved list of known validators signs blocks based on their **identity and reputation**, not stake or compute.
+PoA private ya consortium blockchains mein use hota hai (jaise enterprise supply chains, testnets). Pehle se approved validators ki ek list apni **identity aur reputation** ke basis pe blocks sign karti hai, na ki stake ya compute ke basis pe.
 
-**Pros:** Extremely fast, high throughput, no energy waste.  
-**Cons:** Fully centralized — trust is placed in the known validators. Not suitable for permissionless public networks.
+**Pros:** Bahut fast, high throughput, energy waste nahi.  
+**Cons:** Fully centralized — trust sirf known validators pe hai. Permissionless public networks ke liye suitable nahi.
 
-Ethereum's Sepolia and Goerli testnets historically used PoA variants.
+Ethereum ke Sepolia aur Goerli testnets historically PoA variants use karte the.
 
 ---
 
@@ -163,103 +163,103 @@ Ethereum's Sepolia and Goerli testnets historically used PoA variants.
 | Feature | Proof of Work (PoW) | Proof of Stake (PoS) |
 |---|---|---|
 | **Security Mechanism** | Computational work (energy) | Economic stake (collateral) |
-| **Who Participates** | Miners (specialized hardware) | Validators (locked ETH) |
-| **Energy Usage** | Very high | Very low (~99.95% less) |
-| **Entry Barrier** | ASIC hardware, electricity costs | 32 ETH (~$80K+ at current prices) |
-| **Attack Cost** | Buy 51% of hashrate | Buy 51% of staked tokens |
+| **Kaun Participate Karta Hai** | Miners (specialized hardware) | Validators (locked ETH) |
+| **Energy Usage** | Bahut zyada | Bahut kam (~99.95% kam) |
+| **Entry Barrier** | ASIC hardware, electricity costs | 32 ETH (~$80K+ current prices pe) |
+| **Attack Cost** | 51% hashrate khareedo | 51% staked tokens khareedo |
 | **Block Time** | ~10 min (Bitcoin) | ~12 sec (Ethereum) |
-| **Finality** | Probabilistic | Deterministic (after 2 epochs) |
-| **Decentralization** | Hardware centralization risk | Wealth concentration risk |
+| **Finality** | Probabilistic | Deterministic (2 epochs ke baad) |
+| **Decentralization** | Hardware centralization ka risk | Wealth concentration ka risk |
 | **Used By** | Bitcoin, Litecoin | Ethereum, Solana, Cardano |
 
 ---
 
 ## ⏱️ Finality: Probabilistic vs Deterministic
 
-**Finality** is the guarantee that a transaction cannot be reversed. There are two flavors:
+**Finality** ka matlab hai — guarantee ki ab transaction reverse nahi ho sakta. Iske do flavors hote hain:
 
 ### Probabilistic Finality (PoW)
 
-In Bitcoin, a transaction is never 100% final — it just becomes increasingly unlikely to be reversed. When your transaction appears in one block, there is a small chance a longer competing chain (fork) could appear and displace it. After 6 confirmations (roughly 60 minutes), the probability of reversal becomes astronomically small, so the industry treats it as final.
+Bitcoin mein, koi transaction kabhi 100% final nahi hota — bas uske reverse hone ke chances progressively kam hote jaate hain. Jab tumhara transaction ek block mein aata hai, tab bhi ek chhoti si chance rehti hai ki koi longer competing chain (fork) aa jaaye aur use replace kar de. 6 confirmations ke baad (roughly 60 minutes), reversal ki probability astronomically kam ho jaati hai, isliye industry ise final maan leti hai.
 
-> The more blocks piled on top, the harder it would be for an attacker to re-mine them all.
+> Jitne zyada blocks upar chad jaate hain, attacker ke liye unhe dobara mine karna utna hi mushkil ho jaata hai.
 
 ### Deterministic Finality (PoS)
 
-Modern PoS systems like Ethereum implement **economic finality**. Once 2/3 of validators have attested to a checkpoint, it is considered **finalized**. To reverse it, an attacker would need to burn at least 1/3 of all staked ETH — billions of dollars. The protocol considers this economically impossible and marks the block as final.
+Ethereum jaisi modern PoS systems **economic finality** implement karti hain. Ek baar jab 2/3 validators kisi checkpoint pe attest kar dete hain, wo **finalized** maana jaata hai. Isko reverse karne ke liye attacker ko kam se kam 1/3 total staked ETH jalana padega — yaani billions of dollars. Protocol isko economically impossible maanta hai aur block ko final mark kar deta hai.
 
-Ethereum finalizes blocks roughly every 12-15 minutes (two epochs). After finalization, reverting it would require extraordinary intervention (a hard fork).
+Ethereum roughly har 12-15 minutes (do epochs) mein blocks finalize karta hai. Finalization ke baad, use revert karne ke liye extraordinary intervention chahiye hoga (ek hard fork).
 
 ---
 
-## 🔀 The Merge: Ethereum's Switch from PoW to PoS
+## 🔀 The Merge: Ethereum Ka PoW Se PoS Mein Switch
 
-For its first seven years (2015–2022), Ethereum used Proof of Work — the same mechanism as Bitcoin. But Ethereum had always planned to move to PoS for efficiency and scalability reasons.
+Apne pehle saat saalon (2015–2022) mein, Ethereum Proof of Work use karta tha — bilkul Bitcoin jaisa mechanism. Lekin Ethereum ka shuru se hi plan tha ki efficiency aur scalability ke liye PoS pe move kiya jaaye.
 
-### The Timeline
+### Timeline
 
-- **2020:** Ethereum launched the **Beacon Chain** — a separate PoS chain running in parallel, with no transactions, just building the validator set and proving the system worked.
-- **2022 (September 15):** **The Merge** happened at block 15,537,394. The original PoW execution layer merged with the Beacon Chain's PoS consensus layer.
+- **2020:** Ethereum ne **Beacon Chain** launch ki — ek alag PoS chain jo parallel mein chal rahi thi, koi transactions nahi, bas validator set ban raha tha aur system prove ho raha tha ki kaam karta hai.
+- **2022 (15 September):** **The Merge** hua block 15,537,394 pe. Original PoW execution layer, Beacon Chain ke PoS consensus layer ke saath merge ho gaya.
 
-### What Changed
+### Kya Change Hua
 
-Before The Merge, Ethereum had two separate layers:
+The Merge se pehle, Ethereum ke do alag layers the:
 
 ```
 [Execution Layer] <---- Proof of Work (miners)
 [Consensus Layer] <---- Beacon Chain (validators, running in parallel)
 ```
 
-After The Merge, miners were entirely replaced by validators:
+The Merge ke baad, miners bilkul replace ho gaye validators se:
 
 ```
 [Execution Layer] + [Consensus Layer] = Unified Ethereum PoS
 ```
 
-Miners received no warning period — the transition happened at a specific total difficulty threshold (called the **Terminal Total Difficulty**). At that exact block, the network stopped accepting PoW blocks and began requiring PoS attestations.
+Miners ko koi warning period nahi mila — transition ek specific total difficulty threshold pe hua (jisko **Terminal Total Difficulty** kehte hain). Us exact block pe, network ne PoW blocks accept karna band kar diya aur PoS attestations maangna shuru kar diya.
 
-### What Did NOT Change
+### Kya Change NAHI Hua
 
-- **Your ETH balance was unaffected.** Not a single wei was moved or reset.
-- **The transaction history was preserved.** All 7 years of Ethereum history carried over.
-- **Smart contracts kept running.** Every deployed contract continued functioning identically.
-- **Gas fees worked the same way.** (Fees are a separate concern from consensus.)
+- **Tumhara ETH balance affect nahi hua.** Ek bhi wei move ya reset nahi hui.
+- **Transaction history preserve rahi.** Ethereum ke 7 saal ka pura history carry over ho gaya.
+- **Smart contracts chalte rahe.** Har deployed contract exactly waise hi kaam karta raha.
+- **Gas fees waisi hi rahi.** (Fees consensus se alag ek concern hai.)
 
-The Merge did not increase transaction throughput significantly — that goal is addressed by later upgrades (sharding, Layer 2s). What it did accomplish was slashing Ethereum's energy usage by ~99.95% overnight, and setting the foundation for future scalability work.
+The Merge ne transaction throughput ko significantly nahi badhaya — wo goal baad ke upgrades (sharding, Layer 2s) achieve karte hain. Isne jo kiya wo tha Ethereum ki energy usage ko raatorat ~99.95% kam karna, aur future scalability work ke liye foundation set karna.
 
 ---
 
 ## 💡 Key Takeaways
 
-- **Consensus** is how a distributed, trustless network agrees on a single truth, solving the Byzantine Generals Problem.
-- **Proof of Work** uses computational puzzles and energy expenditure to make cheating expensive. It is battle-tested but power-hungry.
-- **Proof of Stake** uses locked collateral and slashing to make cheating expensive. It is energy-efficient and increasingly dominant.
-- **Delegated PoS** and **Proof of Authority** trade decentralization for speed, suited to different use cases.
-- **Finality** in PoW is probabilistic (more blocks = more confidence). In PoS, it is deterministic once a supermajority attests.
-- **The Merge** (September 2022) was one of the most complex live system migrations in software history — Ethereum switched consensus mechanisms without downtime, resetting balances, or losing history.
+- **Consensus** wo tareeka hai jisse ek distributed, trustless network ek hi sach pe agree karta hai — Byzantine Generals Problem ko solve karke.
+- **Proof of Work** computational puzzles aur energy expenditure use karta hai taaki cheating mehengi ho jaaye. Battle-tested hai lekin power-hungry hai.
+- **Proof of Stake** locked collateral aur slashing use karta hai taaki cheating mehengi ho jaaye. Energy-efficient hai aur din-ba-din dominant ho raha hai.
+- **Delegated PoS** aur **Proof of Authority**, decentralization ke badle speed lete hain — alag-alag use cases ke liye suited.
+- **Finality** PoW mein probabilistic hai (jitne zyada blocks, utni zyada confidence). PoS mein, supermajority attest hote hi deterministic ho jaati hai.
+- **The Merge** (September 2022) software history ki sabse complex live system migrations mein se ek thi — Ethereum ne bina downtime, bina balances reset kiye, aur bina history khoye, consensus mechanism switch kar diya.
 
 ---
 
 ## 🧪 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test kar lo.
 
-**Question 1:** A friend says "Bitcoin is final after one confirmation." How would you correct them?
+**Question 1:** Ek dost bolta hai "Bitcoin ek confirmation ke baad hi final ho jaata hai." Tum use kaise correct karoge?
 
-> Bitcoin uses **probabilistic finality**. After one confirmation, there is still a small chance a longer competing chain could emerge and displace your transaction. The industry convention is to wait for 6 confirmations (~60 minutes) before treating a transaction as effectively irreversible.
-
----
-
-**Question 2:** Why does an Ethereum validator need to stake 32 ETH? What happens if they try to cheat?
-
-> The stake acts as a **security deposit**. If a validator proposes an invalid block or signs conflicting blocks (equivocation), the protocol automatically **slashes** a portion of their staked ETH. The larger the stake, the more a validator stands to lose by misbehaving, creating a strong financial disincentive against attacks.
+> Bitcoin **probabilistic finality** use karta hai. Ek confirmation ke baad bhi, ek chhoti si chance rehti hai ki koi longer competing chain aa jaaye aur tumhara transaction replace kar de. Industry convention ye hai ki 6 confirmations (~60 minutes) tak wait karo, uske baad transaction ko effectively irreversible maano.
 
 ---
 
-**Question 3:** What was the Beacon Chain, and why did Ethereum need it before The Merge?
+**Question 2:** Ethereum validator ko 32 ETH stake karne ki zaroorat kyun hai? Agar wo cheat karne ki koshish kare to kya hota hai?
 
-> The Beacon Chain was a **separate PoS consensus chain** launched in December 2020, running in parallel with the original PoW Ethereum chain. It allowed Ethereum developers to build up a set of real validators, test the PoS mechanics, and accumulate real ETH stakes — proving the system worked reliably — before risking the actual transaction-carrying chain. The Merge then fused the Beacon Chain's consensus layer with Ethereum's execution layer, replacing PoW miners entirely.
+> Stake ek **security deposit** ki tarah kaam karta hai. Agar koi validator invalid block propose karta hai ya conflicting blocks sign karta hai (equivocation), protocol automatically unke staked ETH ka ek hissa **slash** kar deta hai. Jitna zyada stake, utna zyada validator ko galti karne pe khona padega — isse misbehave karne ke against ek strong financial disincentive create hota hai.
 
 ---
 
-*Next Chapter: Transaction Lifecycle — from mempool to finalized block →*
+**Question 3:** Beacon Chain kya thi, aur The Merge se pehle Ethereum ko iski zaroorat kyun padi?
+
+> Beacon Chain ek **alag PoS consensus chain** thi jo December 2020 mein launch hui, original PoW Ethereum chain ke saath parallel mein chal rahi thi. Isse Ethereum developers ko real validators ka ek set banane, PoS mechanics test karne, aur real ETH stakes accumulate karne ka mauka mila — matlab actual transaction-carrying chain ko risk mein daalne se pehle ye prove ho gaya ki system reliably kaam karta hai. Uske baad The Merge ne Beacon Chain ke consensus layer ko Ethereum ke execution layer ke saath fuse kar diya, aur PoW miners ko poori tarah replace kar diya.
+
+---
+
+*Next Chapter: Transaction Lifecycle — mempool se finalized block tak →*

@@ -1,67 +1,69 @@
 # 🌐 Chapter 10: The Web3 Ecosystem
 
-> **Audience:** Developers who understand blockchain basics and are now ready to see the full landscape they are stepping into.
+> **Audience:** Woh developers jo blockchain ke basics samajh chuke hain aur ab poora landscape dekhna chahte hain jismein woh step kar rahe hain.
 
 ---
 
-## 🕰️ The Evolution of the Web: Library → Social Media → Ownership Economy
+## 🕰️ Web ka Evolution: Library → Social Media → Ownership Economy
 
-To understand Web3, you need to understand what came before it.
+Web3 ko samajhne se pehle, thoda peeche chalte hain — dekhte hain isse pehle kya tha.
 
-### Web1 — The Read-Only Library (1990s–early 2000s)
+### Web1 — Read-Only Library (1990s–early 2000s)
 
-Web1 was the internet of static pages. Users could **read** content, but rarely contribute it. Think of it as a giant digital library: thousands of encyclopaedia-style pages, mostly owned by companies or universities. You were a visitor, never a participant.
+Web1 static pages ka internet tha. Users sirf **padh** sakte the, contribute nahi kar sakte the. Socho ek bahut bada digital library — hazaaron encyclopaedia-style pages, jo mostly companies ya universities ke paas the. Tum sirf visitor the, participant kabhi nahi.
 
-- Pages were static HTML files
-- No user accounts, no personalisation
-- Information flowed one way: server → user
+- Pages static HTML files hoti thi
+- Koi user accounts nahi, koi personalisation nahi
+- Information ek hi direction mein flow karti thi: server → user
 
-### Web2 — The Social Media Era (mid-2000s–2020s)
+### Web2 — Social Media Era (mid-2000s–2020s)
 
-Web2 gave users the power to **read and write**. Platforms like Facebook, YouTube, Twitter, and Google emerged. Suddenly, users were generating the content that made these platforms valuable.
+Web2 ne users ko power di **padhne aur likhne** ki. Facebook, YouTube, Twitter, Google jaise platforms aaye. Achanak, users hi woh content bana rahe the jo in platforms ko valuable banata tha.
 
-The problem? **You don't own any of it.** Your data, your followers, your content — it all lives on someone else's server. Platforms can delete your account, change their algorithm, sell your data, or shut down entirely. The value you create flows to shareholders, not to you.
+Problem kya hai? **Tumhara us content pe koi ownership nahi hai.** Tumhara data, tumhare followers, tumhara content — sab kisi aur ke server pe reh raha hai. Platform tumhara account delete kar sakta hai, algorithm change kar sakta hai, tumhara data bech sakta hai, ya poora shut down ho sakta hai. Jo value tum create karte ho, woh shareholders ko jaati hai, tumhe nahi.
+
+Zomato pe socho — jitne bhi reviews, ratings, order history tumne banaye, woh sab Zomato ke server pe hai. Kal agar Zomato tumhara account band kar de, sab gayab.
 
 - Dynamic, user-generated content
-- Centralised platforms own your data
-- Monetisation controlled by intermediaries
+- Centralised platforms tumhara data control karte hain
+- Monetisation intermediaries ke haath mein hoti hai
 
-### Web3 — The Ownership Economy (now and beyond)
+### Web3 — Ownership Economy (ab aur aage)
 
-Web3 flips the model. Users can **read, write, and own**. Ownership of assets, identity, and even governance rights is encoded directly on a blockchain — not held by a company.
+Web3 poora model palat deta hai. Users ab **padh, likh, aur own** kar sakte hain. Assets, identity, aur governance rights ki ownership directly blockchain pe encode hoti hai — kisi company ke paas nahi.
 
-Think of it this way: in Web2, you are the product. In Web3, you are a stakeholder.
+Isse aise socho: Web2 mein, tum khud product ho. Web3 mein, tum stakeholder ho.
 
-- Assets (tokens, NFTs) owned in your wallet, not on a platform
-- Rules enforced by smart contracts, not corporate terms of service
-- Communities govern protocols via voting (DAOs)
-- Value flows to participants, not just platform owners
+- Assets (tokens, NFTs) tumhare wallet mein rehte hain, kisi platform pe nahi
+- Rules smart contracts enforce karte hain, corporate terms of service nahi
+- Communities protocols ko voting se govern karti hain (DAOs)
+- Value participants ko flow karti hai, sirf platform owners ko nahi
 
 ---
 
-## 🧱 Key Web3 Primitives
+## 🧱 Web3 ke Key Primitives
 
-These are the building blocks of the Web3 world. Every project you encounter will combine some subset of these.
+Yeh Web3 duniya ke building blocks hain. Jo bhi project tumhe milega, woh in mein se kisi na kisi combination ko use karega.
 
-| Primitive | What it is | Real-world analogy |
+| Primitive | Yeh hai kya | Real-world analogy |
 |-----------|-----------|-------------------|
-| **Token** | A digital unit of value or access | A casino chip or a loyalty point |
-| **NFT** | A unique, provably scarce digital asset | A physical collectible or deed |
-| **DAO** | A member-owned organisation governed by code | A co-operative or club with transparent bylaws |
-| **DeFi** | Financial services without banks or brokers | Peer-to-peer lending at internet scale |
+| **Token** | Value ya access ki digital unit | Casino chip ya loyalty point |
+| **NFT** | Ek unique, provably scarce digital asset | Physical collectible ya deed |
+| **DAO** | Code se governed, member-owned organisation | Ek co-operative ya club jiske bylaws transparent hain |
+| **DeFi** | Bina banks/brokers ke financial services | Internet-scale peer-to-peer lending |
 
 ---
 
-## 📜 ERC Standards: The Grammar of Ethereum Tokens
+## 📜 ERC Standards: Ethereum Tokens ki Grammar
 
-An **ERC** (Ethereum Request for Comments) is a community-agreed standard for how smart contracts should behave. Standards mean wallets, exchanges, and apps can interact with any compliant token without custom code.
+Ek **ERC** (Ethereum Request for Comments) ek community-agreed standard hai — smart contracts kaise behave karne chahiye. Standards ka fayda yeh hai ki wallets, exchanges, aur apps kisi bhi compliant token ke saath bina custom code likhe interact kar sakte hain.
 
 ### ERC-20 — Fungible Tokens
 
-A fungible token is **interchangeable**. One unit is equal to any other unit, just like a dollar bill. If you send me 1 ETH, I can send you 1 ETH back — they are identical.
+Kya hota hai? Fungible token woh hota hai jo **interchangeable** hai. Ek unit doosri unit ke barabar hai, bilkul ek dollar note ki tarah. Agar tum mujhe 1 ETH bhejo, main tumhe wapas 1 ETH bhej sakta hoon — dono identical hain.
 
 ```solidity
-// Every ERC-20 token exposes this interface
+// Har ERC-20 token yeh interface expose karta hai
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -71,11 +73,11 @@ interface IERC20 {
 }
 ```
 
-**Examples:** USDC, DAI, UNI, LINK, AAVE — any token you can trade on an exchange is ERC-20.
+**Examples:** USDC, DAI, UNI, LINK, AAVE — koi bhi token jo tum exchange pe trade kar sakte ho, woh ERC-20 hai.
 
 ### ERC-721 — Non-Fungible Tokens (NFTs)
 
-Each token has a unique `tokenId`. Two ERC-721 tokens from the same contract are **not** interchangeable — token #42 is distinct from token #43.
+Har token ka apna unique `tokenId` hota hai. Ek hi contract ke do ERC-721 tokens **interchangeable nahi** hote — token #42, token #43 se bilkul alag hai.
 
 ```solidity
 interface IERC721 {
@@ -89,7 +91,7 @@ interface IERC721 {
 
 ### ERC-1155 — Multi-Token Standard
 
-A single contract can hold **both** fungible and non-fungible tokens. This is ideal for games where a player might hold 500 gold coins (fungible) and 1 legendary sword (non-fungible) — all in one contract.
+Kyun zaruri hai? Ek hi contract **fungible aur non-fungible dono** tokens hold kar sakta hai. Yeh games ke liye perfect hai jahan ek player ke paas 500 gold coins (fungible) ho sakte hain aur 1 legendary sword (non-fungible) — sab ek hi contract mein.
 
 ```solidity
 interface IERC1155 {
@@ -99,68 +101,71 @@ interface IERC1155 {
 }
 ```
 
-**Examples:** Opensea Shared Storefront, most blockchain game items.
+**Examples:** Opensea Shared Storefront, zyada tar blockchain game items.
 
 ---
 
-## 💰 DeFi: Finance Without Intermediaries
+## 💰 DeFi: Bina Intermediaries ke Finance
 
-DeFi (Decentralised Finance) recreates traditional financial services using smart contracts. No bank accounts required — just a wallet.
+DeFi (Decentralised Finance) traditional financial services ko smart contracts ke through recreate karta hai. Koi bank account nahi chahiye — bas ek wallet chahiye.
 
 ### Decentralised Exchanges (DEXes) — Uniswap
 
-A traditional exchange matches buyers and sellers in an order book. Uniswap uses a **liquidity pool** instead. Anyone can deposit two tokens (e.g., ETH + USDC) into a pool and earn trading fees. The exchange rate is set by a formula:
+Kaise kaam karta hai? Ek traditional exchange buyers aur sellers ko order book mein match karta hai. Uniswap iske jagah **liquidity pool** use karta hai. Koi bhi do tokens (jaise ETH + USDC) pool mein deposit kar sakta hai aur trading fees kama sakta hai. Exchange rate ek formula se decide hota hai:
 
 ```
-x * y = k   (the constant product formula)
+x * y = k   (constant product formula)
 ```
 
-Where `x` and `y` are the pool reserves. When you trade, you shift the ratio, and the price adjusts automatically. No order book. No market makers. Just math.
+Jahan `x` aur `y` pool reserves hain. Jab tum trade karte ho, ratio shift hoti hai, aur price automatically adjust ho jaata hai. Koi order book nahi. Koi market makers nahi. Bas math.
 
-**Key concept:** Liquidity providers (LPs) earn fees but face **impermanent loss** — the risk that the price ratio of their deposited tokens shifts unfavourably.
+**Key concept:** Liquidity providers (LPs) fees kamaate hain, lekin **impermanent loss** ka risk bhi jhelte hain — yaani risk ki unke deposit kiye hue tokens ka price ratio unfavourably shift ho jaaye.
 
-### Lending Protocols — Aave and Compound
+### Lending Protocols — Aave aur Compound
 
-These protocols let you:
-- **Deposit** tokens to earn interest (supplied by borrowers)
-- **Borrow** tokens by posting collateral (always over-collateralised)
+Yeh protocols tumhe deti hain:
+- **Deposit** karne ka option — interest kamao (jo borrowers supply karte hain)
+- **Borrow** karne ka option — collateral post karke (hamesha over-collateralised)
 
-Because there is no credit check, borrowers must lock up more value than they borrow. If collateral value drops below a threshold, the protocol **liquidates** it automatically to protect lenders.
+Kyunki koi credit check nahi hoti, borrowers ko jitna borrow karna hai usse zyada value lock karni padti hai. Agar collateral ki value ek threshold se neeche jaati hai, protocol usse automatically **liquidate** kar deta hai lenders ko protect karne ke liye.
 
-**Example flow:** Deposit 1 ETH as collateral → borrow 500 USDC → use USDC elsewhere → repay loan + interest → retrieve ETH.
+**Example flow:** 1 ETH collateral deposit karo → 500 USDC borrow karo → USDC kahin aur use karo → loan + interest repay karo → apna ETH wapas lo.
 
 ### Stablecoins
 
-Stablecoins are tokens pegged to a stable asset (usually USD). They solve the volatility problem — you can participate in DeFi without constantly converting to fiat.
+Stablecoins woh tokens hain jo ek stable asset (usually USD) se peg kiye hote hain. Yeh volatility ka problem solve karte hain — tum DeFi mein participate kar sakte ho bina baar baar fiat mein convert kiye.
 
 | Type | Mechanism | Example |
 |------|-----------|---------|
-| Fiat-backed | 1 token = 1 USD held in bank | USDC, USDT |
-| Crypto-backed | Over-collateralised with crypto | DAI |
-| Algorithmic | Supply/demand algorithms | (historically fragile — see LUNA/UST) |
+| Fiat-backed | 1 token = 1 USD bank mein hold | USDC, USDT |
+| Crypto-backed | Crypto se over-collateralised | DAI |
+| Algorithmic | Supply/demand algorithms | (historically fragile — LUNA/UST dekho) |
 
 ### Yield Farming
 
-Yield farming is the practice of moving assets between protocols to maximise returns. A farmer might:
-1. Deposit USDC into Aave → receive `aUSDC` (a receipt token)
-2. Deposit `aUSDC` into a yield aggregator like Yearn → earn extra governance tokens
-3. Sell or restake those tokens for compounding returns
+Yield farming matlab assets ko ek protocol se doosre protocol mein move karke returns maximise karna. Ek farmer kya kar sakta hai:
+1. USDC ko Aave mein deposit karo → `aUSDC` (ek receipt token) milta hai
+2. `aUSDC` ko Yearn jaise yield aggregator mein deposit karo → extra governance tokens kamao
+3. Woh tokens bech do ya restake karo compounding returns ke liye
 
-It sounds lucrative, but involves **smart contract risk**, **liquidation risk**, and **impermanent loss**. Higher yields almost always mean higher risk.
+Sunne mein lucrative lagta hai, lekin isme **smart contract risk**, **liquidation risk**, aur **impermanent loss** shaamil hai. Zyada yield ka matlab almost hamesha zyada risk hota hai.
+
+> [!warning]
+> Jitna zyada return dikh raha ho, utna hi zyada dhyan se check karo — DeFi mein "too good to be true" wahi hota hai jo lagta hai.
 
 ---
 
-## 🖼️ NFTs: What They Actually Are On-Chain
+## 🖼️ NFTs: On-Chain Yeh Actually Kya Hote Hain
 
-A common misconception: "The NFT is the image." It is not.
+Ek common misconception: "NFT hi woh image hai." Aisa nahi hai.
 
-An NFT is an **on-chain record of ownership** for a `tokenId`. The contract stores:
+NFT ek `tokenId` ke liye **on-chain ownership record** hai. Contract yeh store karta hai:
 - `tokenId → ownerAddress` mapping
-- A `tokenURI` — a URL or IPFS hash pointing to the metadata
+- Ek `tokenURI` — ek URL ya IPFS hash jo metadata ki taraf point karta hai
 
 ### Metadata
 
-The metadata is a JSON file that describes the asset:
+Metadata ek JSON file hai jo asset describe karti hai:
 
 ```json
 {
@@ -174,107 +179,108 @@ The metadata is a JSON file that describes the asset:
 }
 ```
 
-The image lives off-chain (usually on IPFS). The contract only stores the pointer.
+Image off-chain rehti hai (usually IPFS pe). Contract sirf pointer store karta hai.
 
-### Use Cases Beyond Art
+### Art se Aage Use Cases
 
-NFTs are a general-purpose tool for proving unique ownership on-chain:
-- **Gaming:** Items, characters, land parcels in virtual worlds
-- **Ticketing:** Concert or event tickets with verifiable authenticity
+NFTs ek general-purpose tool hain on-chain unique ownership prove karne ke liye:
+- **Gaming:** Items, characters, virtual worlds mein land parcels
+- **Ticketing:** Concert ya event tickets, verifiable authenticity ke saath
 - **Identity:** ENS domains (`yourname.eth`), Soulbound Tokens (non-transferable credentials)
-- **Real-world assets:** Tokenised real estate, bonds, or invoices
-- **Memberships:** Token-gated access to communities or content
+- **Real-world assets:** Tokenised real estate, bonds, ya invoices
+- **Memberships:** Communities ya content ke liye token-gated access
 
 ---
 
-## 🏛️ DAOs: Organisations Owned by Their Members
+## 🏛️ DAOs: Organisations Jo Apne Members Ke Owned Hain
 
-A **DAO (Decentralised Autonomous Organisation)** replaces the traditional corporate hierarchy with smart contracts and token-based voting.
+Kya hota hai? Ek **DAO (Decentralised Autonomous Organisation)** traditional corporate hierarchy ko smart contracts aur token-based voting se replace karta hai.
 
-### How a DAO Works
+### DAO Kaise Kaam Karta Hai
 
-1. **Governance token** is distributed to members (via purchase, contribution, or airdrop)
-2. Any member can submit a **proposal** (e.g., "Allocate 50,000 USDC to fund a new feature")
-3. Token holders **vote** proportional to their holdings
-4. If the proposal passes, the smart contract **executes automatically** — no CEO approval needed
+1. **Governance token** members ko distribute hota hai (purchase, contribution, ya airdrop ke through)
+2. Koi bhi member ek **proposal** submit kar sakta hai (jaise, "Naya feature fund karne ke liye 50,000 USDC allocate karo")
+3. Token holders apne holdings ke proportional **vote** karte hain
+4. Agar proposal pass ho jaata hai, smart contract usse **automatically execute** kar deta hai — koi CEO approval nahi chahiye
 
 ### Examples
 
 | DAO | Purpose |
 |-----|---------|
-| Uniswap DAO | Governs the Uniswap protocol; UNI holders vote on fees and upgrades |
-| MakerDAO | Governs the DAI stablecoin system; MKR holders manage risk parameters |
-| ENS DAO | Governs the Ethereum Name Service |
-| Nouns DAO | A daily NFT auction where all proceeds go to a community treasury |
+| Uniswap DAO | Uniswap protocol ko govern karta hai; UNI holders fees aur upgrades pe vote karte hain |
+| MakerDAO | DAI stablecoin system ko govern karta hai; MKR holders risk parameters manage karte hain |
+| ENS DAO | Ethereum Name Service ko govern karta hai |
+| Nouns DAO | Ek daily NFT auction jiske saare proceeds community treasury mein jaate hain |
 
-### The Challenges
+### Challenges Kya Hain
 
-- **Voter apathy:** Most token holders do not vote
-- **Plutocracy risk:** Large holders can dominate decisions ("whale votes")
-- **Governance attacks:** A bad actor accumulates tokens to pass malicious proposals
-- **Execution speed:** On-chain governance is slow relative to a startup decision cycle
+- **Voter apathy:** Zyada tar token holders vote nahi karte
+- **Plutocracy risk:** Bade holders decisions pe hawi ho sakte hain ("whale votes")
+- **Governance attacks:** Koi bad actor tokens accumulate karke malicious proposals pass kara sakta hai
+- **Execution speed:** On-chain governance ek startup ke decision cycle ke comparison mein slow hota hai
 
 ---
 
-## 🛠️ Developer Tools Overview
+## 🛠️ Developer Tools ka Overview
 
-Here is the toolset you will encounter as a Solidity developer.
+Ek Solidity developer ke roop mein tumhe yeh toolset milega.
 
 ### Smart Contract Development
 
 | Tool | Role | Best For |
 |------|------|----------|
-| **Hardhat** | JS/TS-based development framework | Teams comfortable with Node.js |
-| **Foundry** | Rust-based, test contracts in Solidity | Speed demons; fuzzing; gas profiling |
+| **Hardhat** | JS/TS-based development framework | Node.js mein comfortable teams |
+| **Foundry** | Rust-based, Solidity mein hi contracts test karo | Speed demons; fuzzing; gas profiling |
 | **Remix IDE** | Browser-based IDE | Quick experiments; absolute beginners |
 
-**Hardhat** gives you a local blockchain, deployment scripts, and a plugin ecosystem (hardhat-ethers, hardhat-verify, etc.).
+**Hardhat** tumhe deta hai local blockchain, deployment scripts, aur ek plugin ecosystem (hardhat-ethers, hardhat-verify, etc.).
 
-**Foundry** (forge + cast + anvil) has become the professional standard. Tests are written in Solidity — no context switching. `forge test --gas-report` gives you a gas usage table instantly.
+**Foundry** (forge + cast + anvil) professional standard ban chuka hai. Tests Solidity mein likhe jaate hain — koi context switching nahi. `forge test --gas-report` turant ek gas usage table de deta hai.
 
-**Remix** runs entirely in your browser at [remix.ethereum.org](https://remix.ethereum.org). It is the best place to write your first contract without any local setup.
+**Remix** poora browser mein chalta hai [remix.ethereum.org](https://remix.ethereum.org) pe. Yeh best jagah hai apna pehla contract likhne ke liye, bina kisi local setup ke.
 
 ### Frontend / dApp Interaction
 
 | Library | Description |
 |---------|-------------|
-| **ethers.js** | The most popular library for interacting with Ethereum from JS/TS |
-| **web3.js** | The original Ethereum JS library; older API, still widely used |
+| **ethers.js** | JS/TS se Ethereum ke saath interact karne ke liye sabse popular library |
+| **web3.js** | Original Ethereum JS library; purana API hai, phir bhi widely use hoti hai |
 | **viem** | Modern, TypeScript-first, low-level Ethereum client |
-| **wagmi** | React hooks built on top of viem; the standard for React dApps |
+| **wagmi** | viem ke upar bane React hooks; React dApps ke liye standard |
 
 **Decision guide:**
-- Building a React app → use **wagmi** (it wraps viem under the hood)
-- Need low-level control or using vanilla JS → use **viem** or **ethers.js**
-- Maintaining a legacy codebase → you will likely encounter **web3.js**
+- React app bana rahe ho → **wagmi** use karo (yeh under the hood viem ko wrap karta hai)
+- Low-level control chahiye ya vanilla JS use kar rahe ho → **viem** ya **ethers.js** use karo
+- Legacy codebase maintain kar rahe ho → tumhe likely **web3.js** milega
 
 ---
 
 ## 📦 IPFS: Decentralised Storage
 
-### Why Blockchains Don't Store Files
+### Blockchains Files Kyun Store Nahi Karte
 
-Storing data on Ethereum costs gas. Storing even 1 KB of data on-chain costs dollars at average gas prices. A 5 MB image? Thousands of dollars, and it would bloat every node's storage requirements. It is economically and technically impractical.
+Ethereum pe data store karna gas cost karta hai. Sirf 1 KB data on-chain store karne mein average gas prices pe dollars lag jaate hain. Ek 5 MB image? Hazaaron dollars, aur har node ka storage requirement bhi bloat ho jaayega. Yeh economically aur technically dono impractical hai.
 
-### What IPFS Does
+### IPFS Kya Karta Hai
 
-**IPFS (InterPlanetary File System)** is a peer-to-peer storage network. Files are addressed by their **content hash** (CID — Content Identifier), not by location.
+**IPFS (InterPlanetary File System)** ek peer-to-peer storage network hai. Files unke **content hash** (CID — Content Identifier) se address hoti hain, location se nahi.
 
 ```
-# A traditional URL (location-based)
-https://myserver.com/image.png   # breaks if server goes down
+# Ek traditional URL (location-based)
+https://myserver.com/image.png   # server band ho gaya toh break ho jaata hai
 
-# An IPFS CID (content-based)
-ipfs://QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco  # always resolves to the same content
+# Ek IPFS CID (content-based)
+ipfs://QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco  # hamesha same content resolve karta hai
 ```
 
-If the content changes, the CID changes. This makes IPFS **content-addressable** and **tamper-evident**.
+Agar content change hota hai, CID bhi change ho jaata hai. Isi se IPFS **content-addressable** aur **tamper-evident** banta hai.
 
-### NFT Metadata and IPFS
+### NFT Metadata aur IPFS
 
-Most NFT projects store images on IPFS. The `tokenURI` in the smart contract points to an IPFS CID. As long as anyone is **pinning** the file (keeping a copy), it remains accessible. Services like **Pinata**, **NFT.Storage**, and **Filebase** provide pinning-as-a-service.
+Zyada tar NFT projects images IPFS pe store karte hain. Smart contract ka `tokenURI` ek IPFS CID pe point karta hai. Jab tak koi file ko **pin** kar raha hai (copy rakh raha hai), woh accessible rehti hai. Pinata, NFT.Storage, aur Filebase jaisi services pinning-as-a-service provide karti hain.
 
-**The risk:** If no one pins the file, it can disappear — even if the NFT still exists on-chain. This is called "link rot" and is an active area of improvement in the ecosystem.
+> [!warning]
+> **Risk yeh hai:** Agar koi file ko pin nahi kar raha, woh gayab ho sakti hai — chahe NFT on-chain abhi bhi exist kare. Isse "link rot" kehte hain, aur ecosystem mein isko improve karne pe kaam chal raha hai.
 
 ---
 
@@ -329,66 +335,66 @@ graph TD
 
 ---
 
-## 🛣️ The Solidity Path: What You'll Learn Next
+## 🛣️ Solidity Path: Aage Kya Seekhoge
 
-Now that you understand the ecosystem, here is where Solidity fits in and what is ahead:
+Ab jab ecosystem samajh gaye, dekhte hain Solidity kahan fit hoti hai aur aage kya hai:
 
 1. **Solidity Syntax** — Variables, types, functions, modifiers, events
 2. **Smart Contract Patterns** — Ownable, Pausable, Upgradeable proxies
-3. **ERC-20 Implementation** — Build your own token from scratch
-4. **ERC-721 Implementation** — Mint your own NFT collection
-5. **DeFi Mechanics** — Build a simple AMM or lending pool
+3. **ERC-20 Implementation** — Apna khud ka token scratch se banao
+4. **ERC-721 Implementation** — Apna khud ka NFT collection mint karo
+5. **DeFi Mechanics** — Ek simple AMM ya lending pool banao
 6. **Security** — Reentrancy, integer overflow, access control, audit techniques
-7. **Testing** — Unit tests with Foundry/Hardhat, fuzzing, coverage
-8. **Deployment** — Testnets, mainnet, verifying on Etherscan
+7. **Testing** — Foundry/Hardhat ke saath unit tests, fuzzing, coverage
+8. **Deployment** — Testnets, mainnet, Etherscan pe verify karna
 9. **Advanced Patterns** — Governance contracts, multi-sig, account abstraction (ERC-4337)
 
-Each concept you have read in this chapter has a corresponding Solidity implementation. You are not just learning a language — you are learning to build the financial and social infrastructure of the next internet.
+Is chapter mein tumne jo bhi concept padha, uska ek corresponding Solidity implementation hai. Tum sirf ek language nahi seekh rahe — tum next internet ka financial aur social infrastructure banana seekh rahe ho.
 
 ---
 
 ## ✅ Key Takeaways
 
-- **Web3 = read + write + own.** The core shift from Web2 is that users hold assets in self-custodied wallets, not on corporate servers.
-- **ERC standards** (ERC-20, ERC-721, ERC-1155) are the shared language that makes tokens composable across the entire ecosystem.
-- **DeFi** replaces intermediaries with smart contracts. DEXes use liquidity pools, lending protocols use over-collateralisation, and yield farming chains these legos together.
-- **NFTs are ownership records**, not images. The image lives on IPFS; the blockchain stores who owns which `tokenId`.
-- **DAOs** govern protocols with governance tokens and on-chain voting — transparent and permissionless, but with real challenges around participation and capture.
-- **Blockchains don't store files.** IPFS provides content-addressed, decentralised storage that complements on-chain data.
-- **Your toolkit:** Foundry or Hardhat for contracts, wagmi/viem for frontends, Remix for quick experiments.
+- **Web3 = padho + likho + owns karo.** Web2 se yeh core shift hai — users apne assets self-custodied wallets mein rakhte hain, corporate servers pe nahi.
+- **ERC standards** (ERC-20, ERC-721, ERC-1155) woh shared language hain jo tokens ko poore ecosystem mein composable banati hai.
+- **DeFi** intermediaries ko smart contracts se replace karta hai. DEXes liquidity pools use karte hain, lending protocols over-collateralisation use karte hain, aur yield farming in sabko legos ki tarah chain karta hai.
+- **NFTs ownership records hain**, images nahi. Image IPFS pe rehti hai; blockchain store karta hai ki kaunsa `tokenId` kiske paas hai.
+- **DAOs** protocols ko governance tokens aur on-chain voting se govern karte hain — transparent aur permissionless, lekin participation aur capture ke real challenges ke saath.
+- **Blockchains files store nahi karte.** IPFS content-addressed, decentralised storage deta hai jo on-chain data ko complement karta hai.
+- **Tumhara toolkit:** Contracts ke liye Foundry ya Hardhat, frontends ke liye wagmi/viem, quick experiments ke liye Remix.
 
 ---
 
 ## 🧠 Quiz
 
-**Question 1:** You want to create an in-game currency where every coin is identical and interchangeable (e.g., 1 GOLD = 1 GOLD). Which ERC standard should you use?
+**Question 1:** Tumhe ek in-game currency banani hai jahan har coin identical aur interchangeable ho (jaise, 1 GOLD = 1 GOLD). Kaunsa ERC standard use karoge?
 
 <details>
 <summary>Show Answer</summary>
 
-**ERC-20.** Fungible tokens are identical and interchangeable. ERC-721 tokens each have a unique ID, and ERC-1155 supports both, but for a pure fungible token, ERC-20 is the standard choice.
+**ERC-20.** Fungible tokens identical aur interchangeable hote hain. ERC-721 tokens ka apna unique ID hota hai, aur ERC-1155 dono support karta hai, lekin pure fungible token ke liye, ERC-20 hi standard choice hai.
 
 </details>
 
 ---
 
-**Question 2:** A user mints an NFT but the project's website goes down and the image no longer loads. The NFT still exists on-chain. What most likely happened, and what would have prevented it?
+**Question 2:** Ek user ek NFT mint karta hai lekin project ki website down ho jaati hai aur image ab load nahi hoti. NFT abhi bhi on-chain exist karta hai. Sabse zyada likely kya hua hoga, aur ise kaise prevent kiya ja sakta tha?
 
 <details>
 <summary>Show Answer</summary>
 
-The `tokenURI` pointed to a centralised server (e.g., `https://myproject.com/metadata/1.json`) that is now offline. **Prevention:** Store metadata and images on IPFS with reliable pinning (via a service like Pinata or NFT.Storage). With IPFS, the content is addressed by its hash — as long as anyone pins it, it remains accessible regardless of whether the original server is running.
+`tokenURI` ek centralised server (jaise, `https://myproject.com/metadata/1.json`) pe point kar raha tha jo ab offline hai. **Prevention:** Metadata aur images ko IPFS pe reliable pinning ke saath store karo (Pinata ya NFT.Storage jaisi service ke through). IPFS ke saath, content apne hash se address hota hai — jab tak koi bhi ise pin karke rakhta hai, woh accessible rehta hai, chahe original server chal raha ho ya nahi.
 
 </details>
 
 ---
 
-**Question 3:** In a Uniswap liquidity pool with the constant product formula `x * y = k`, if the pool starts with 100 ETH and 200,000 USDC, what happens to the price of ETH (in USDC) when a trader buys a large amount of ETH from the pool?
+**Question 3:** Ek Uniswap liquidity pool mein constant product formula `x * y = k` ke saath, agar pool 100 ETH aur 200,000 USDC se start hota hai, toh jab ek trader pool se ETH ki bahut badi amount kharidta hai, ETH ke price (USDC mein) ko kya hota hai?
 
 <details>
 <summary>Show Answer</summary>
 
-The price of ETH **increases**. When the trader removes ETH from the pool, `x` (ETH reserves) decreases. To keep `k` constant, `y` (USDC reserves) must increase. The ratio `y/x` (price of ETH in USDC) rises. This is the **price impact** of a large trade — the bigger the trade relative to the pool size, the more slippage the trader experiences.
+ETH ka price **badh jaata hai**. Jab trader pool se ETH nikalta hai, `x` (ETH reserves) kam ho jaata hai. `k` ko constant rakhne ke liye, `y` (USDC reserves) badhna zaruri hai. Ratio `y/x` (ETH ka price USDC mein) upar jaata hai. Yeh badi trade ka **price impact** hai — jitni badi trade pool size ke relative mein hogi, utna zyada slippage trader ko experience hoga.
 
 </details>
 

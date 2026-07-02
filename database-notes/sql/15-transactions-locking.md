@@ -4,29 +4,29 @@
 
 ---
 
-## What Is a Transaction?
+## Transaction Kya Hota Hai?
 
-Imagine you are transferring $500 from your savings account to your checking account. This involves two steps:
+Socho tum apne savings account se checking account mein ₹500 transfer kar rahe ho, jaise Paytm ya UPI se ek account se doosre mein paisa bhejna. Isme do steps hain:
 
-1. Deduct $500 from savings.
-2. Add $500 to checking.
+1. Savings se ₹500 kaato.
+2. Checking mein ₹500 daalo.
 
-What happens if the database crashes between step 1 and step 2? You lose $500 — it simply vanishes. A **transaction** prevents this by grouping both steps into a single all-or-nothing unit. Either both succeed, or neither happens.
+Ab agar step 1 ke baad, step 2 se pehle hi database crash ho jaaye toh? Tumhare ₹500 gayab — na yahaan na wahaan. Ye ek nightmare scenario hai. **Transaction** exactly isi problem ko solve karta hai — dono steps ko ek single all-or-nothing unit mein group kar deta hai. Ya toh dono ho, ya kuch bhi na ho. Beech mein kuch nahi.
 
-A transaction follows the **ACID** properties:
+Har transaction **ACID** properties follow karta hai:
 
-| Property | Meaning |
+| Property | Matlab |
 |---|---|
-| **A**tomicity | All steps succeed or none do |
-| **C**onsistency | Data moves from one valid state to another |
-| **I**solation | Concurrent transactions do not interfere with each other |
-| **D**urability | Once committed, changes survive crashes |
+| **A**tomicity | Sab steps successful, ya ek bhi nahi |
+| **C**onsistency | Data ek valid state se doosri valid state mein jaata hai |
+| **I**solation | Ek saath chal rahe transactions ek doosre ko disturb nahi karte |
+| **D**urability | Ek baar commit ho gaya, toh crash ke baad bhi data safe rahega |
 
 ---
 
 ## Transaction Syntax
 
-Transaction syntax is one of the few areas where databases differ meaningfully.
+Ye ek aisi jagah hai jahan har database thoda alag syntax use karta hai — isliye dhyan se dekho.
 
 ```sql
 -- PostgreSQL / MySQL
@@ -42,13 +42,13 @@ BEGIN TRANSACTION;
 COMMIT TRANSACTION;
 
 -- Oracle
--- No BEGIN needed. Transactions start implicitly on the first DML statement.
+-- BEGIN ki zaroorat nahi. Transaction pehle DML statement se hi implicitly shuru ho jaata hai.
 UPDATE accounts SET balance = balance - 500 WHERE id = 1;
 UPDATE accounts SET balance = balance + 500 WHERE id = 2;
 COMMIT;
 ```
 
-To undo everything since the transaction started:
+Agar transaction shuru hone ke baad se sab kuch undo karna ho:
 
 ```sql
 -- PostgreSQL / MySQL
@@ -63,9 +63,11 @@ ROLLBACK;
 
 ---
 
-## Savepoints — Partial Rollbacks
+## Savepoints — Partial Rollback
 
-A **savepoint** is a bookmark inside a transaction. You can roll back to a savepoint without discarding the entire transaction.
+**Savepoint** transaction ke andar ek bookmark jaisa hota hai. Puri transaction cancel kiye bina, tum sirf ek specific point tak rollback kar sakte ho.
+
+Isko aise socho — jaise Swiggy pe order karte waqt tum cart mein items add karte jaate ho. Agar ek item ka delivery address galat ho gaya, toh poora order cancel karne ki zaroorat nahi — sirf uss ek cheez ko revert karo.
 
 ```sql
 -- PostgreSQL / MySQL / Oracle
@@ -74,53 +76,56 @@ BEGIN;
   SAVEPOINT after_order;
 
   INSERT INTO shipments (order_id, address) VALUES (99, '123 Main St');
-  -- Something went wrong with shipment only
+  -- Shipment mein kuch gadbad ho gayi
   ROLLBACK TO SAVEPOINT after_order;
 
-  -- The order INSERT is still alive; only the shipment was rolled back
+  -- Order wala INSERT abhi bhi zinda hai; sirf shipment rollback hua
 COMMIT;
 
--- SQL Server uses different keywords
+-- SQL Server alag keywords use karta hai
 BEGIN TRANSACTION;
   INSERT INTO orders (product, qty) VALUES ('Widget', 10);
   SAVE TRANSACTION after_order;
 
   INSERT INTO shipments (order_id, address) VALUES (99, '123 Main St');
-  ROLLBACK TRANSACTION after_order;  -- rolls back only to the savepoint
+  ROLLBACK TRANSACTION after_order;  -- sirf savepoint tak rollback hota hai
 
 COMMIT TRANSACTION;
 ```
 
-> **Key insight:** After `ROLLBACK TO SAVEPOINT`, the transaction is still open. You must still `COMMIT` or `ROLLBACK` the whole thing.
+> [!tip]
+> `ROLLBACK TO SAVEPOINT` ke baad bhi transaction open hi rehta hai. Tumhe abhi bhi puri transaction ko `COMMIT` ya `ROLLBACK` karna hoga.
 
 ---
 
-## Locking
+## Locking Kya Hai?
 
-When multiple users hit the database at the same time, the database uses **locks** to keep data consistent. There are two fundamental lock types:
+Jab bahut saare users ek saath database ko hit karte hain (socho Big Billion Days sale pe Flipkart), toh database ko data consistent rakhne ke liye **locks** ka use karna padta hai. Do fundamental lock types hote hain:
 
-| Lock Type | Who can hold it | Blocks |
+| Lock Type | Kaun hold kar sakta hai | Kisko block karta hai |
 |---|---|---|
-| **Shared (read) lock** | Many readers simultaneously | Writers |
-| **Exclusive (write) lock** | Only one writer | All readers and writers |
+| **Shared (read) lock** | Bahut saare readers ek saath | Writers ko |
+| **Exclusive (write) lock** | Sirf ek writer | Sab readers aur writers ko |
 
-Normally the database acquires and releases locks automatically. But sometimes you need to control locking explicitly.
+Normally database khud hi automatically locks lagata aur hataata hai. Lekin kabhi-kabhi tumhe locking pe manual control chahiye hota hai.
 
 ---
 
-## SELECT FOR UPDATE — Lock Rows You Plan to Modify
+## SELECT FOR UPDATE — Jinhe Modify Karna Hai Unhe Lock Karo
 
-When you read a row and intend to update it, another transaction could change that row between your `SELECT` and your `UPDATE`. `SELECT FOR UPDATE` grabs an exclusive lock on the rows immediately at read time.
+Kyun zaruri hai? Jab tum ek row read karte ho aur usko update karne ka plan hai, toh tumhare `SELECT` aur `UPDATE` ke beech koi doosra transaction wo row change kar sakta hai. `SELECT FOR UPDATE` read time pe hi row par exclusive lock laga deta hai — taaki koi aur usse chhed na sake.
+
+Ye bilkul Ola/Uber cab booking jaisa hai — jaise hi ek driver ne ride accept karne ki koshish shuru ki, uss ride ko turant "locked" kar do taaki doosra driver usi ride ko accept na kar le.
 
 ```sql
 -- PostgreSQL / Oracle / MySQL
 BEGIN;
 SELECT balance FROM accounts WHERE id = 1 FOR UPDATE;
--- Row is now locked. Other transactions that try SELECT FOR UPDATE on this row will wait.
+-- Row ab lock ho chuki hai. Koi aur transaction jo isi row pe SELECT FOR UPDATE karega, wait karega.
 UPDATE accounts SET balance = balance - 100 WHERE id = 1;
 COMMIT;
 
--- SQL Server uses query hints instead
+-- SQL Server query hints use karta hai
 BEGIN TRANSACTION;
 SELECT balance FROM accounts WITH (UPDLOCK, ROWLOCK) WHERE id = 1;
 UPDATE accounts SET balance = balance - 100 WHERE id = 1;
@@ -129,9 +134,9 @@ COMMIT TRANSACTION;
 
 ---
 
-## SELECT FOR SHARE — Lock Rows for Reading
+## SELECT FOR SHARE — Reading Ke Liye Lock
 
-Sometimes you want to say "I am reading this row, and nobody should change it until I am done, but other readers are fine."
+Kabhi-kabhi tumhe kehna hota hai: "Main ye row padh raha hoon, jab tak khatam na ho koi isse change na kare — lekin doosre readers padh sakte hain, koi dikkat nahi."
 
 ```sql
 -- PostgreSQL
@@ -140,19 +145,19 @@ SELECT * FROM products WHERE id = 42 FOR SHARE;
 -- MySQL
 SELECT * FROM products WHERE id = 42 LOCK IN SHARE MODE;
 
--- SQL Server (use HOLDLOCK hint which holds a shared lock until end of transaction)
+-- SQL Server (HOLDLOCK hint jo transaction ke end tak shared lock hold karta hai)
 SELECT * FROM products WITH (HOLDLOCK, ROWLOCK) WHERE id = 42;
 
 -- Oracle
--- Oracle does not support a direct equivalent of SELECT FOR SHARE;
--- use FOR UPDATE if exclusive locking is acceptable, or rely on MVCC for reads.
+-- Oracle mein SELECT FOR SHARE ka direct equivalent nahi hai;
+-- exclusive locking chahiye toh FOR UPDATE use karo, ya reads ke liye MVCC pe rely karo.
 ```
 
 ---
 
-## SKIP LOCKED — The Job Queue Pattern
+## SKIP LOCKED — Job Queue Pattern
 
-Imagine a jobs table where multiple worker processes pull tasks off the queue. Without special handling, two workers could grab the same job. `SKIP LOCKED` tells the database: "Give me a row that is **not** already locked by anyone else, and skip right past the locked ones."
+Socho ek jobs table hai jaha multiple worker processes queue se tasks utha rahe hain — bilkul Zomato ke delivery partners jaise, jo ek pool se orders pick karte hain. Bina special handling ke, do workers ek hi job pakad sakte hain — dono confuse ho jayenge. `SKIP LOCKED` database ko bolta hai: "Mujhe wo row do jo **kisi aur ne lock nahi ki hui**, aur locked rows ko seedha skip kar do."
 
 ```sql
 -- PostgreSQL / MySQL 8+ / Oracle / SQL Server 2019+
@@ -164,20 +169,21 @@ ORDER BY created_at
 LIMIT 1
 FOR UPDATE SKIP LOCKED;
 
--- Process the job here...
+-- Yahan job process karo...
 UPDATE jobs SET status = 'done' WHERE id = :fetched_id;
 COMMIT;
 ```
 
-This pattern works identically across PostgreSQL, MySQL 8+, Oracle, and SQL Server — one of the rare cases of full cross-database compatibility.
+Ye pattern PostgreSQL, MySQL 8+, Oracle, aur SQL Server — sabme bilkul same tarike se kaam karta hai. Cross-database compatibility ka ek rare example.
 
-> **Why it matters:** Without `SKIP LOCKED`, workers would pile up waiting for each other's locks. With it, each worker immediately moves on to the next available job.
+> [!info]
+> **Kyun zaruri hai:** `SKIP LOCKED` ke bina, saare workers ek doosre ke locks release hone ka wait karte reh jaate — jaise traffic jam. Isse har worker turant agli available job pe move kar jaata hai.
 
 ---
 
-## NOWAIT — Fail Fast Instead of Waiting
+## NOWAIT — Wait Karne Ke Bajaye Turant Fail Ho Jao
 
-By default, if a row is locked, your query waits until the lock is released. `NOWAIT` changes this: if the row is already locked, return an error immediately instead of waiting.
+Default behaviour ye hai — agar row locked hai, toh tumhari query lock release hone tak wait karti hai. `NOWAIT` ye badal deta hai: agar row already locked hai, toh wait karne ke bajaye turant error de do.
 
 ```sql
 -- PostgreSQL / MySQL 8+ / Oracle
@@ -188,13 +194,13 @@ SELECT * FROM accounts WHERE id = 1 FOR UPDATE NOWAIT;
 SELECT * FROM accounts WITH (UPDLOCK, ROWLOCK, NOWAIT) WHERE id = 1;
 ```
 
-Use `NOWAIT` when waiting would make the user experience worse than showing a "try again" message.
+`NOWAIT` tab use karo jab waiting se user experience aur bhi kharab ho jaaye — jaise CRED app mein agar payment lock ho, toh "try again" dikhana behtar hai bajaye user ko forever spinner dikhane ke.
 
 ---
 
-## Table Locks — Use Sparingly
+## Table Locks — Sambhal Ke Use Karo
 
-Row-level locks are fine-grained and usually what you want. Occasionally you need to lock an entire table — for example, during a bulk load or schema migration.
+Row-level locks fine-grained hote hain aur usually yehi chahiye hota hai. Kabhi-kabhi puri table lock karni padti hai — jaise bulk load ya schema migration ke waqt.
 
 ```sql
 -- PostgreSQL
@@ -202,7 +208,7 @@ LOCK TABLE products IN EXCLUSIVE MODE;
 
 -- MySQL
 LOCK TABLES products WRITE;
--- (remember to unlock when done)
+-- (kaam khatam hone pe unlock karna mat bhoolna)
 UNLOCK TABLES;
 
 -- SQL Server
@@ -212,39 +218,40 @@ SELECT * FROM products WITH (TABLOCKX);  -- TABLOCKX = exclusive table lock
 LOCK TABLE products IN EXCLUSIVE MODE;
 ```
 
-> **Warning:** Table locks block all concurrent readers and writers. In production, a table lock on a busy table can cause a cascade of timeouts. Prefer row-level locks whenever possible.
+> [!warning]
+> Table locks sabhi concurrent readers aur writers ko block kar dete hain. Production mein, ek busy table pe table lock lagane se timeouts ka cascade ho sakta hai — jaise ek chhoti si dikkat poore system ko slow kar de. Jahan tak ho sake, row-level locks hi use karo.
 
 ---
 
 ## Deadlocks
 
-A **deadlock** occurs when two transactions are each waiting for a lock the other holds, so neither can proceed.
+**Deadlock** tab hota hai jab do transactions ek doosre ke pass jo lock hai uska wait kar rahe hote hain — aur dono hi aage nahi badh sakte. Bilkul do log ek narrow gali mein aamne-saamne aa jaayein aur koi peeche hatne ko taiyaar na ho.
 
 **Example:**
 
 | Time | Transaction A | Transaction B |
 |---|---|---|
-| T1 | Locks row 1 | Locks row 2 |
-| T2 | Tries to lock row 2 — **waits** | Tries to lock row 1 — **waits** |
-| T3 | Stuck forever | Stuck forever |
+| T1 | Row 1 lock kiya | Row 2 lock kiya |
+| T2 | Row 2 lock karne ki koshish — **wait** | Row 1 lock karne ki koshish — **wait** |
+| T3 | Hamesha ke liye stuck | Hamesha ke liye stuck |
 
-**Detection and Resolution**
+**Detection aur Resolution**
 
-All major databases detect deadlocks automatically by looking for cycles in the lock-wait graph. When a deadlock is found, the database picks one transaction as the "victim" and rolls it back, freeing the other to continue. Your application receives an error and should retry the transaction.
+Saare major databases lock-wait graph mein cycles dhoond kar deadlocks automatically detect kar lete hain. Jab deadlock milta hai, database ek transaction ko "victim" chun kar rollback kar deta hai, taaki doosra aage badh sake. Tumhari application ko error milega aur usse transaction retry karni chahiye.
 
 **Prevention Strategies**
 
-1. **Always access tables and rows in the same order.** If Transaction A always locks `accounts` before `orders`, and Transaction B does the same, they can never deadlock each other.
+1. **Tables aur rows ko hamesha same order mein access karo.** Agar Transaction A hamesha `accounts` ko `orders` se pehle lock karta hai, aur Transaction B bhi wahi order follow karta hai, toh dono kabhi deadlock nahi karenge.
 
-2. **Keep transactions short.** The longer a transaction holds locks, the higher the chance of deadlock.
+2. **Transactions short rakho.** Jitni der transaction locks hold karega, deadlock ka chance utna zyada.
 
-3. **Use `SELECT FOR UPDATE` early.** Acquire all the locks you need at the start of the transaction, not scattered throughout.
+3. **`SELECT FOR UPDATE` shuru mein hi karo.** Transaction ke start mein hi sab zaroori locks le lo, beech-beech mein bikhraao mat.
 
-4. **Use lower isolation levels when safe** (see next section) — fewer locks means fewer deadlocks.
+4. **Jab safe ho toh lower isolation levels use karo** (agla section dekho) — kam locks matlab kam deadlocks.
 
 **Lock Timeout Settings**
 
-Rather than waiting forever, set a timeout after which a blocked lock attempt fails with an error:
+Hamesha ke liye wait karne ke bajaye, ek timeout set karo jiske baad blocked lock attempt error de de:
 
 ```sql
 -- PostgreSQL
@@ -257,17 +264,17 @@ SET innodb_lock_wait_timeout = 5;  -- seconds
 SET LOCK_TIMEOUT 5000;  -- milliseconds
 
 -- Oracle
--- Use WAIT clause directly on the statement
+-- Statement pe seedha WAIT clause use karo
 SELECT * FROM accounts WHERE id = 1 FOR UPDATE WAIT 5;
 ```
 
 ---
 
-## Isolation Levels in Practice
+## Isolation Levels — Practical Nazariya
 
-Isolation levels control how much one transaction can see of what other **concurrent** transactions are doing. Higher isolation = more safety, more locking, less concurrency. Lower isolation = more concurrency, but more anomalies are possible.
+Isolation levels control karte hain ki ek transaction doosre **concurrent** transactions ka kitna dekh sakta hai. Zyada isolation = zyada safety, zyada locking, kam concurrency. Kam isolation = zyada concurrency, lekin zyada anomalies possible.
 
-### The Four Standard Levels
+### Chaar Standard Levels
 
 | Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read |
 |---|---|---|---|
@@ -276,39 +283,40 @@ Isolation levels control how much one transaction can see of what other **concur
 | REPEATABLE READ | Safe | Safe | Possible (MySQL: safe) |
 | SERIALIZABLE | Safe | Safe | Safe |
 
-**Dirty Read:** You read data another uncommitted transaction wrote. If that transaction rolls back, you read data that never officially existed.
+**Dirty Read:** Tumne aisa data padh liya jo ek doosre uncommitted transaction ne likha tha. Agar wo transaction rollback ho jaaye, toh tumne aisa data padha jo kabhi officially exist hi nahi kiya.
 
-**Non-Repeatable Read:** You read a row twice in one transaction and get different values because another transaction committed a change in between.
+**Non-Repeatable Read:** Ek hi transaction ke andar tum ek row do baar padhte ho aur alag values milti hain, kyunki beech mein kisi doosre transaction ne change commit kar diya.
 
-**Phantom Read:** You run the same query twice and get different rows because another transaction inserted or deleted rows that match your filter.
+**Phantom Read:** Tum same query do baar run karte ho aur alag rows milti hain, kyunki beech mein kisi ne insert ya delete kar diya jo tumhare filter se match karta hai.
 
-### Setting the Isolation Level
+### Isolation Level Set Karna
 
 ```sql
 -- PostgreSQL
 BEGIN;
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
--- ... your queries ...
+-- ... tumhari queries ...
 COMMIT;
 
 -- MySQL
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 BEGIN;
--- ... your queries ...
+-- ... tumhari queries ...
 COMMIT;
 
 -- SQL Server
 SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 BEGIN TRANSACTION;
--- ... your queries ...
+-- ... tumhari queries ...
 COMMIT TRANSACTION;
 
 -- Oracle
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
--- ... your queries ...
+-- ... tumhari queries ...
 COMMIT;
 ```
 
+> [!info]
 > **Defaults:** PostgreSQL = READ COMMITTED. MySQL InnoDB = REPEATABLE READ. SQL Server = READ COMMITTED. Oracle = READ COMMITTED.
 
 ### Practical Demonstration
@@ -320,42 +328,44 @@ SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 SELECT COUNT(*) FROM products WHERE category = 'Electronics';
 -- Returns: 42
 
--- Session B (concurrent): inserts a new electronics product and commits
+-- Session B (concurrent): naya electronics product insert karke commit karta hai
 INSERT INTO products (name, category) VALUES ('New Gadget', 'Electronics');
 COMMIT;
 
--- Session A: same query again
+-- Session A: wahi query dobara
 SELECT COUNT(*) FROM products WHERE category = 'Electronics';
--- PostgreSQL/MySQL REPEATABLE READ: still returns 42 (phantom prevented)
--- SQL Server READ COMMITTED: would return 43 (phantom visible)
+-- PostgreSQL/MySQL REPEATABLE READ: abhi bhi 42 aayega (phantom rok diya)
+-- SQL Server READ COMMITTED: 43 aayega (phantom dikh jaayega)
 COMMIT;
 ```
 
 ---
 
-## Advisory Locks (PostgreSQL Only)
+## Advisory Locks (Sirf PostgreSQL Mein)
 
-PostgreSQL has a unique feature called **advisory locks** — application-level locks that are not tied to any table row. You invent a lock ID (any integer), and use it to coordinate work across processes.
+PostgreSQL ka ek unique feature hai **advisory locks** — application-level locks jo kisi bhi table row se bandhe nahi hote. Tum khud ek lock ID (koi bhi integer) invent karte ho, aur usse different processes ke beech coordination ke liye use karte ho.
+
+Isko aise socho — jaise IRCTC pe ek scheduled cron job hai jo tickets confirm karta hai, aur tumhare paas do servers chal rahe hain. Tumhe ye ensure karna hai ki dono servers ek hi time pe wahi job na chala dein. Advisory lock isi kaam aata hai — bina koi extra "jobs-lock" table banaye.
 
 ```sql
--- Try to acquire an advisory lock (non-blocking, returns true/false)
+-- Advisory lock lene ki koshish (non-blocking, true/false return karta hai)
 SELECT pg_try_advisory_lock(12345);
--- Returns true if lock was acquired, false if another session holds it
+-- true agar lock mil gaya, false agar koi aur session pehle se hold kar raha hai
 
--- Acquire with blocking (waits until available)
+-- Blocking ke saath acquire karo (available hone tak wait karta hai)
 SELECT pg_advisory_lock(12345);
 
--- Release the lock
+-- Lock release karo
 SELECT pg_advisory_unlock(12345);
 
--- Session-level lock (released when session disconnects)
+-- Session-level lock (session disconnect hone pe release ho jaata hai)
 SELECT pg_advisory_lock(42);
 
--- Transaction-level lock (released automatically at COMMIT/ROLLBACK)
+-- Transaction-level lock (COMMIT/ROLLBACK pe automatically release)
 SELECT pg_try_advisory_xact_lock(42);
 ```
 
-**Use case:** Preventing two application servers from running the same scheduled job simultaneously, without creating a dedicated jobs-lock table.
+**Use case:** Do application servers ko ek hi scheduled job simultaneously run karne se rokna, bina koi dedicated jobs-lock table banaye.
 
 ---
 
@@ -364,30 +374,30 @@ SELECT pg_try_advisory_xact_lock(42);
 ### Bank Transfer with Proper Transaction
 
 ```sql
--- Works in PostgreSQL / MySQL (adapt BEGIN syntax for SQL Server / Oracle)
+-- PostgreSQL / MySQL mein kaam karta hai (SQL Server / Oracle ke liye BEGIN syntax adapt karo)
 BEGIN;
 
--- Lock both rows upfront to prevent deadlock (always lock in ID order)
+-- Deadlock rokne ke liye dono rows pehle hi lock karo (hamesha ID order mein lock karo)
 SELECT id, balance FROM accounts WHERE id IN (1, 2) ORDER BY id FOR UPDATE;
 
--- Check sufficient funds
--- (application checks the result here before proceeding)
+-- Sufficient funds check karo
+-- (application yahan result check karti hai aage badhne se pehle)
 
 UPDATE accounts SET balance = balance - 500 WHERE id = 1;
 UPDATE accounts SET balance = balance + 500 WHERE id = 2;
 
--- Record the transfer
+-- Transfer record karo
 INSERT INTO transfer_log (from_id, to_id, amount, transferred_at)
 VALUES (1, 2, 500, NOW());
 
 COMMIT;
--- On any error: ROLLBACK;
+-- Kisi bhi error pe: ROLLBACK;
 ```
 
 ### Job Queue with SKIP LOCKED
 
 ```sql
--- Worker process picks one pending job without blocking other workers
+-- Worker process ek pending job pick karta hai bina doosre workers ko block kiye
 BEGIN;
 
 SELECT id, payload, retry_count
@@ -398,72 +408,72 @@ ORDER BY priority DESC, scheduled_at ASC
 LIMIT 1
 FOR UPDATE SKIP LOCKED;
 
--- If a row was returned, mark it in-progress
+-- Agar row mil gayi, toh usse in-progress mark karo
 UPDATE job_queue
 SET status = 'processing', started_at = NOW(), worker_id = :my_worker_id
 WHERE id = :fetched_id;
 
 COMMIT;
--- Worker now processes job_queue row :fetched_id independently
+-- Worker ab job_queue row :fetched_id ko independently process karega
 ```
 
 ### Optimistic Locking with a Version Column
 
-Instead of locking rows at read time, **optimistic locking** detects conflicts at write time. It is useful when conflicts are rare and you want maximum read concurrency.
+Read time pe rows lock karne ke bajaye, **optimistic locking** write time pe conflicts detect karta hai. Ye tab useful hai jab conflicts rare hote hain aur tumhe maximum read concurrency chahiye — jaise BigBasket pe product ka stock count, jise bahut saare log padhte hain lekin kam log update karte hain.
 
 ```sql
--- 1. Read the row and note the version
+-- 1. Row padho aur version note karo
 SELECT id, balance, version FROM accounts WHERE id = 1;
 -- Returns: id=1, balance=1000, version=7
 
--- 2. Update ONLY if version hasn't changed (meaning nobody else edited it)
+-- 2. Update SIRF tabhi karo jab version na badla ho (matlab kisi aur ne edit nahi kiya)
 UPDATE accounts
 SET balance = balance - 100,
-    version = version + 1       -- bump the version
+    version = version + 1       -- version badhao
 WHERE id = 1
   AND version = 7;              -- optimistic check
 
--- 3. Check how many rows were updated
--- If 0 rows updated: someone else changed the row — retry or show conflict error
--- If 1 row updated: success
+-- 3. Check karo kitni rows update hui
+-- Agar 0 rows update hui: kisi aur ne row change kar di — retry karo ya conflict error dikhao
+-- Agar 1 row update hui: success
 ```
 
-This approach requires zero extra locks for reads but must handle the "0 rows updated" case in application code.
+Is approach mein reads ke liye zero extra locks chahiye, lekin application code mein "0 rows updated" wala case handle karna zaroori hai.
 
 ---
 
 ## Key Takeaways
 
-- A **transaction** groups SQL statements into an all-or-nothing unit. Use `BEGIN` / `COMMIT` (or the database-specific equivalent) every time you modify related data together.
-- **Savepoints** let you roll back part of a transaction without losing all the work done before the savepoint.
-- **Shared locks** allow many readers; **exclusive locks** allow one writer and block everyone else.
-- `SELECT FOR UPDATE` is the go-to tool for locking rows you are about to modify.
-- `SKIP LOCKED` and `NOWAIT` are power tools for job queues and fast-fail scenarios respectively.
-- **Deadlocks** are automatically detected and resolved, but you should still design your transactions to access resources in a consistent order.
-- **Isolation levels** trade concurrency against correctness. Start with the default (usually READ COMMITTED), and upgrade to REPEATABLE READ or SERIALIZABLE only when you see real anomalies.
-- PostgreSQL's **advisory locks** give you application-level coordination without touching your data tables.
+- **Transaction** SQL statements ko ek all-or-nothing unit mein group karta hai. Jab bhi related data ek saath modify karo, `BEGIN` / `COMMIT` (ya database-specific equivalent) use karo.
+- **Savepoints** se tum transaction ka ek part rollback kar sakte ho, bina savepoint se pehle kiya gaya kaam kho ke.
+- **Shared locks** bahut saare readers ko allow karte hain; **exclusive locks** sirf ek writer ko allow karte hain aur baaki sabko block karte hain.
+- `SELECT FOR UPDATE` un rows ko lock karne ka go-to tool hai jinhe tum modify karne wale ho.
+- `SKIP LOCKED` aur `NOWAIT` respectively job queues aur fast-fail scenarios ke liye power tools hain.
+- **Deadlocks** automatically detect aur resolve ho jaate hain, lekin phir bhi tumhe transactions ko consistent order mein resources access karne jaisa design karna chahiye.
+- **Isolation levels** concurrency aur correctness ke beech trade-off karte hain. Default (usually READ COMMITTED) se shuru karo, aur REPEATABLE READ ya SERIALIZABLE pe tabhi jao jab real anomalies dikhein.
+- PostgreSQL ke **advisory locks** tumhe application-level coordination dete hain, bina data tables ko chhue.
 
 ---
 
 ## Quiz
 
-**Q1.** You run `SELECT balance FROM accounts WHERE id = 5 FOR UPDATE` and then decide you do not need to change anything. What should you do?
+**Q1.** Tumne `SELECT balance FROM accounts WHERE id = 5 FOR UPDATE` run kiya aur phir decide kiya ki kuch change nahi karna. Ab kya karna chahiye?
 
-A) Nothing — the lock releases automatically after the SELECT.
-B) Run `ROLLBACK` or `COMMIT` to end the transaction and release the lock.
-C) Run `UNLOCK ROW 5`.
+A) Kuch nahi — SELECT ke baad lock automatically release ho jaata hai.
+B) `ROLLBACK` ya `COMMIT` run karo transaction khatam karke lock release karne ke liye.
+C) `UNLOCK ROW 5` run karo.
 
-**Q2.** Two workers are pulling jobs from a `job_queue` table. Worker A locks row 101. Worker B runs `SELECT ... FOR UPDATE SKIP LOCKED`. What happens to row 101 from Worker B's perspective?
+**Q2.** Do workers `job_queue` table se jobs pull kar rahe hain. Worker A ne row 101 lock kar di. Worker B `SELECT ... FOR UPDATE SKIP LOCKED` run karta hai. Worker B ke perspective se row 101 ka kya hoga?
 
-A) Worker B waits until Worker A releases the lock.
-B) Worker B gets an error immediately.
-C) Worker B skips row 101 and picks the next available unlocked row.
+A) Worker B wait karega jab tak Worker A lock release nahi karta.
+B) Worker B ko turant error milega.
+C) Worker B row 101 skip karke agli available unlocked row pick karega.
 
-**Q3.** You are on `REPEATABLE READ` isolation and run the same `SELECT COUNT(*)` query twice in the same transaction. Between your two queries, another session inserts a matching row and commits. What count do you see the second time in PostgreSQL?
+**Q3.** Tum `REPEATABLE READ` isolation pe ho aur same transaction ke andar `SELECT COUNT(*)` query do baar run karte ho. Dono queries ke beech, doosra session ek matching row insert karke commit kar deta hai. PostgreSQL mein doosri baar tumhe kya count dikhega?
 
-A) The new higher count, because the other session committed.
-B) The original count, because REPEATABLE READ prevents phantom reads in PostgreSQL.
-C) An error, because the data changed.
+A) Naya, zyada count — kyunki doosre session ne commit kar diya.
+B) Original count — kyunki REPEATABLE READ PostgreSQL mein phantom reads rokta hai.
+C) Error — kyunki data change ho gaya.
 
 **Answers:** Q1 = B, Q2 = C, Q3 = B
 

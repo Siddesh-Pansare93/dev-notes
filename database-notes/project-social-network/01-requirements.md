@@ -1,80 +1,85 @@
 # Social Network: Requirements and Architecture
 
-> **Project:** Building the database layer for a social network (Instagram + Twitter hybrid)
+> **Project:** Ek social network ke liye database layer banayenge (Instagram + Twitter ka hybrid)
 > **Stack:** PostgreSQL + Prisma + Node.js/TypeScript
 > **Chapter:** 01 — Requirements and Architecture
 
 ---
 
-## 🗺️ What We're Building
+## 🗺️ Kya Bana Rahe Hain?
 
-This is not a toy example. We are designing the full database layer for a real-world social network — something that combines the best of Instagram (visual posts, follows, stories) and Twitter (short text posts, hashtags, trending topics, DMs).
+Ye koi toy example nahi hai. Hum ek real-world social network ka poora database layer design kar rahe hain — Instagram (visual posts, follows, stories) aur Twitter (short text posts, hashtags, trending topics, DMs) ka best combo.
 
-By the end of this project series, you will have built a production-quality schema, written real queries, understood indexing decisions, and seen how an ORM like Prisma maps onto raw SQL concepts.
+Is project series ke end tak, tumhare paas ek production-quality schema hoga, real queries likhi hongi, indexing ke decisions samajh aayenge, aur ye bhi dikhega ki Prisma jaisa ORM raw SQL concepts pe kaise map hota hai.
 
 ### Feature List
 
+Socho ye tumhara khud ka startup hai — jaise Instagram/Twitter ka desi version. Ye saare features chahiye:
+
 | # | Feature | Description |
 |---|---------|-------------|
-| 1 | **User Registration & Profiles** | Sign up, login, bio, avatar, username |
-| 2 | **Posts** | Text content with an optional image attachment |
-| 3 | **Follow / Unfollow** | Users follow other users; asymmetric like Twitter |
-| 4 | **Like Posts** | Heart a post; each user can only like a post once |
-| 5 | **Comment on Posts** | Leave text replies under any post |
-| 6 | **Hashtags / Tags** | Tag posts with `#topics` for discoverability |
-| 7 | **News Feed** | See posts from people you follow, ordered by recency |
-| 8 | **Notifications** | Alerts when someone likes, comments, or follows you |
-| 9 | **Direct Messages** | Private 1-to-1 conversations between users |
-| 10 | **Search** | Find users by username; find posts by hashtag or content |
+| 1 | **User Registration & Profiles** | Signup, login, bio, avatar, username |
+| 2 | **Posts** | Text content, optional image ke saath |
+| 3 | **Follow / Unfollow** | Ek user doosre ko follow karta hai; Twitter jaisa asymmetric (tumne follow kiya, zaruri nahi woh tumhe follow kare) |
+| 4 | **Like Posts** | Post ko heart karna; ek user ek post ko sirf ek hi baar like kar sakta hai |
+| 5 | **Comment on Posts** | Kisi bhi post pe text reply dena |
+| 6 | **Hashtags / Tags** | Posts ko `#topics` se tag karna, taaki discover ho saken |
+| 7 | **News Feed** | Jinko follow karte ho unke posts dikhein, recency ke hisaab se sorted |
+| 8 | **Notifications** | Jab koi like, comment, ya follow kare to alert milna |
+| 9 | **Direct Messages** | Do users ke beech private 1-to-1 conversation |
+| 10 | **Search** | Username se user dhoondo; hashtag ya content se posts dhoondo |
 
-This is the scope. Every table we design, every column we add, every index we create — it all exists to serve one or more of these features.
+Bas yahi scope hai. Har table jo design karenge, har column jo add karenge, har index jo banayenge — sab in features ko serve karne ke liye hai.
 
 ---
 
-## 🧩 Entity Discovery: Turning Requirements into Tables
+## 🧩 Entity Discovery: Requirements Ko Tables Mein Badalna
 
-Before writing a single line of SQL, you need to read the requirements like a detective. The goal is to find the **nouns** — the things your system needs to store.
+SQL ki ek line likhne se pehle, tumhe requirements ko ek detective ki tarah padhna hoga. Goal hai **nouns** dhoondna — woh cheezein jo tumhare system ko store karni hain.
 
-### Step 1: Highlight the Nouns
+### Step 1: Nouns Highlight Karo
 
-Read each feature and ask: *"What things does this involve?"*
+Har feature padho aur khud se poocho: *"Isme kaunsi cheezein involved hain?"*
 
 - **User Registration & Profiles** → `User`
 - **Posts** → `Post`
-- **Follow / Unfollow** → `Follow` (a relationship between two Users)
-- **Like Posts** → `Like` (a relationship between a User and a Post)
+- **Follow / Unfollow** → `Follow` (do Users ke beech ek relationship)
+- **Like Posts** → `Like` (User aur Post ke beech ek relationship)
 - **Comment on Posts** → `Comment`
 - **Hashtags / Tags** → `Tag`, `PostTag` (junction table)
 - **Notifications** → `Notification`
 - **Direct Messages** → `Message`, `Conversation`
-- **Search** → no new entity, but impacts indexing decisions
+- **Search** → koi naya entity nahi, lekin indexing decisions pe asar padega
 
-### Step 2: Separate Entities from Relationships
+### Step 2: Entities Aur Relationships Ko Alag Karo
 
-Some nouns are **standalone things** (entities). Others are **connections between things** (relationships). Relationships sometimes become their own tables.
+Kuch nouns **standalone cheezein** hoti hain (entities). Kuch **do cheezon ke beech connection** hote hain (relationships). Relationships kabhi-kabhi apna khud ka table ban jaate hain.
 
 | Entity | Standalone? | Notes |
 |--------|-------------|-------|
-| User | Yes | Core entity |
-| Post | Yes | Belongs to a User |
-| Comment | Yes | Belongs to a Post and a User |
-| Tag | Yes | A hashtag like `#photography` |
-| Notification | Yes | Generated by system events |
-| Message | Yes | A single message in a conversation |
+| User | Haan | Core entity |
+| Post | Haan | Ek User ka hota hai |
+| Comment | Haan | Ek Post aur ek User dono se belong karta hai |
+| Tag | Haan | Ek hashtag jaise `#photography` |
+| Notification | Haan | System events se generate hota hai |
+| Message | Haan | Ek conversation ka single message |
 | Follow | Relationship | User → User |
 | Like | Relationship | User → Post |
 | PostTag | Relationship | Post ↔ Tag (many-to-many) |
 
-When a relationship has **no extra data** (like a simple follow), it can be a junction table with just two foreign keys. When it has **extra data** (like a message with text and a timestamp), it becomes a full entity.
+Jab kisi relationship mein **koi extra data nahi hota** (jaise simple follow), woh sirf do foreign keys wala junction table ban sakta hai. Jab **extra data ho** (jaise message ka text aur timestamp), woh ek full entity ban jaata hai.
 
-### Step 3: Identify Attributes
+> [!tip]
+> Yehi Zomato ka "order" wala concept hai — agar sirf "customer ne restaurant se order kiya" track karna hota to ek simple junction table kaafi hota. Lekin order mein items, price, timestamp jaisa extra data hai, isliye woh apna khud ka full entity banta hai.
 
-For each entity, list the data you need to store:
+### Step 3: Attributes Identify Karo
+
+Har entity ke liye, woh data list karo jo store karna hai:
 
 - **User:** `id`, `username`, `email`, `password_hash`, `display_name`, `bio`, `avatar_url`, `created_at`
 - **Post:** `id`, `author_id`, `content`, `image_url`, `created_at`
 - **Comment:** `id`, `post_id`, `author_id`, `content`, `created_at`
-- **Tag:** `id`, `name` (e.g. "photography")
+- **Tag:** `id`, `name` (jaise "photography")
 - **Follow:** `follower_id`, `following_id`, `created_at`
 - **Like:** `user_id`, `post_id`, `created_at`
 - **PostTag:** `post_id`, `tag_id`
@@ -83,75 +88,78 @@ For each entity, list the data you need to store:
 
 ---
 
-## 🔗 Identifying Relationships
+## 🔗 Relationships Identify Karna
 
-With entities in hand, we draw the connections. Every relationship has a **direction** and a **cardinality** (how many of one thing relates to how many of another).
+Entities haath mein aane ke baad, ab connections banayenge. Har relationship ki ek **direction** aur ek **cardinality** hoti hai (yaani ek cheez doosri cheez se kitni related hai).
 
 ### User → Post
-One user can write many posts. One post belongs to exactly one user.
+Ek user bahut saare posts likh sakta hai. Ek post exactly ek hi user ka hota hai.
 **Cardinality: One-to-Many (1:N)**
 
 ### User → Follow → User
-A user can follow many users. A user can be followed by many users. This is a self-referencing many-to-many relationship. The `follows` table is the junction.
+Ek user bahut logo ko follow kar sakta hai. Ek user ko bahut log follow kar sakte hain. Ye ek self-referencing many-to-many relationship hai. `follows` table hi junction hai.
 **Cardinality: Many-to-Many (M:N) — self-referencing**
 
 ### User → Like → Post
-A user can like many posts. A post can be liked by many users.
+Ek user bahut saare posts like kar sakta hai. Ek post ko bahut saare users like kar sakte hain.
 **Cardinality: Many-to-Many (M:N)**
 
 ### Post → Comment ← User
-A post can have many comments. Each comment is written by one user.
-**Cardinality: Post has many Comments (1:N); User writes many Comments (1:N)**
+Ek post pe bahut saare comments ho sakte hain. Har comment ek user ne likha hota hai.
+**Cardinality: Post ke many Comments hain (1:N); User bhi many Comments likhta hai (1:N)**
 
 ### Post → PostTag → Tag
-A post can have multiple tags. A tag can appear on multiple posts.
+Ek post pe multiple tags ho sakte hain. Ek tag multiple posts pe appear kar sakta hai.
 **Cardinality: Many-to-Many (M:N)**
 
 ### User → Message → User
-A message is sent by one user to another user. This is flat (no threading).
-**Cardinality: Each message has one sender and one receiver (1:1 on each end of the message)**
+Ek message ek user bhejta hai, doosre user ko. Ye flat hai (koi threading nahi).
+**Cardinality: Har message ka ek sender aur ek receiver hai (message ke har end pe 1:1)**
 
 ### User → Notification
-Notifications belong to a recipient user and reference an actor user (who triggered it).
-**Cardinality: One user has many notifications**
+Notifications ek recipient user ke hote hain aur ek actor user ko reference karte hain (jisne trigger kiya).
+**Cardinality: Ek user ki bahut saari notifications hoti hain**
 
 ---
 
-## 🤔 Cardinality Decisions: The Design Choices That Matter
+## 🤔 Cardinality Decisions: Wahi Decisions Jo Matter Karte Hain
 
-This is where junior and senior developers diverge. Anyone can list tables. The skill is in the **decisions**.
+Yahin pe junior aur senior developer alag ho jaate hain. Tables list karna toh koi bhi kar sakta hai. Asli skill hai **decisions** lena.
 
-### Can a user like a post multiple times?
+### Kya ek user ek post ko multiple baar like kar sakta hai?
 
-**Decision: No.**
+**Decision: Nahi.**
 
-This is a business rule. Instagram doesn't let you double-like. The way to enforce this in the database is to make `(user_id, post_id)` a **compound primary key** on the `likes` table. The database itself will reject a duplicate insert — no application-level check needed. This is far more reliable than checking in code.
+Ye ek business rule hai. Instagram tumhe double-like nahi karne deta. Database mein isko enforce karne ka tareeka hai `(user_id, post_id)` ko `likes` table pe **compound primary key** banana. Database khud hi duplicate insert reject kar dega — application-level check ki zarurat hi nahi. Ye code mein check karne se kahin zyada reliable hai.
 
 ```sql
--- The compound PK enforces uniqueness at the database level
+-- Compound PK database level pe hi uniqueness enforce karta hai
 PRIMARY KEY (user_id, post_id)
 ```
 
-### Can a post have multiple images?
+> [!tip]
+> Ye bilkul UPI transaction ID jaisa hai — ek baar payment ho gayi to system usi ID se dobara process nahi karega. Database khud gatekeeper ban jaata hai, tumhe manually check karne ki zarurat nahi.
 
-**Decision: Single optional image (for now).**
+### Kya ek post mein multiple images ho sakti hain?
 
-We store `image_url` directly on the `posts` table. This is a pragmatic starting point. A more advanced design would create a `PostMedia` table allowing multiple images per post (like Instagram carousels). We'll note this as a future extension but keep `image_url` nullable on `Post` for simplicity.
+**Decision: Abhi ke liye, ek single optional image.**
 
-If you needed multiple images:
+Hum `image_url` ko directly `posts` table pe store karte hain. Ye ek pragmatic starting point hai. Ek zyada advanced design mein `PostMedia` table banega jisse post pe multiple images ja saken (Instagram carousel jaisa). Isko future extension ke tor pe note karke rakhenge, aur abhi ke liye `Post` pe `image_url` ko nullable rakhenge — simplicity ke liye.
+
+Agar multiple images chahiye hoti:
 ```
-Post 1:N PostMedia (each row has post_id + image_url + position)
+Post 1:N PostMedia (har row mein post_id + image_url + position hoga)
 ```
 
-### Are messages threaded or flat?
+### Kya messages threaded hain ya flat?
 
 **Decision: Flat.**
 
-Each `Message` row represents one message with a `sender_id` and a `receiver_id`. There is no `conversation_id` grouping and no parent-child threading. To retrieve a conversation between two users, you query for messages where `(sender = A AND receiver = B) OR (sender = B AND receiver = A)`. This is simple, beginner-friendly, and sufficient for a V1. A threaded conversation model (with a `Conversation` entity) would be a natural next step.
+Har `Message` row ek single message represent karta hai, jisme `sender_id` aur `receiver_id` hota hai. Koi `conversation_id` grouping nahi hai aur na hi koi parent-child threading. Do users ke beech conversation nikaalne ke liye, tumhe query karni hogi jahan `(sender = A AND receiver = B) OR (sender = B AND receiver = A)`. Ye simple hai, beginner-friendly hai, aur V1 ke liye kaafi hai. Ek threaded conversation model (ek `Conversation` entity ke saath) natural next step hoga.
 
-### What goes in a Notification?
+### Notification mein kya-kya jaata hai?
 
-Notifications are tricky because they refer to different event types. A flexible approach uses a `type` field (enum: `LIKE`, `COMMENT`, `FOLLOW`) and an `entity_id` that points to whatever triggered the notification (the post, comment, or user). The application layer interprets the combination.
+Notifications thodi tricky hoti hain kyunki woh alag-alag event types ko refer karti hain. Ek flexible approach hai — ek `type` field rakho (enum: `LIKE`, `COMMENT`, `FOLLOW`) aur ek `entity_id` jo us cheez ko point kare jisne notification trigger kiya (post, comment, ya user). Application layer isi combination ko interpret karta hai.
 
 ---
 
@@ -249,51 +257,49 @@ erDiagram
 ## ⚙️ Technology Stack
 
 ### PostgreSQL
-Our database engine. PostgreSQL is the professional's choice for relational data. It gives us:
-- Full ACID transactions (your data is safe)
+Hamara database engine. PostgreSQL relational data ke liye professional ki pehli pasand hai. Ye deta hai:
+- Full ACID transactions (tumhara data safe rehta hai)
 - Rich data types (arrays, JSON, enums, full-text search)
 - Powerful indexing (B-tree, GIN, partial indexes)
-- Rock-solid performance at scale
+- Scale pe rock-solid performance
 
 ### Prisma
-Our ORM (Object-Relational Mapper). Prisma sits between Node.js and PostgreSQL and gives us:
-- A `schema.prisma` file that is the single source of truth for the database schema
-- Auto-generated, fully typed TypeScript client — no raw SQL strings required
-- Migration system that tracks schema changes over time
+Hamara ORM (Object-Relational Mapper). Prisma Node.js aur PostgreSQL ke beech baithta hai aur deta hai:
+- Ek `schema.prisma` file jo database schema ka single source of truth hoti hai
+- Auto-generated, fully typed TypeScript client — raw SQL strings likhne ki zarurat nahi
+- Ek migration system jo time ke saath schema changes track karta hai
 - Readable query API: `prisma.post.findMany({ where: { authorId: userId } })`
 
-You will write real SQL in this series to understand what is happening underneath, and then see how Prisma expresses the same operation.
+Is series mein tum real SQL likhoge taaki underneath kya ho raha hai samajh aaye, aur phir dekhoge ki Prisma wahi operation kaise express karta hai.
 
 ### Node.js + TypeScript
-Our application runtime. TypeScript gives us type safety that works hand-in-hand with Prisma's generated types. When Prisma generates a `User` type from your schema, TypeScript knows about every field — no guessing.
+Hamara application runtime. TypeScript woh type safety deta hai jo Prisma ke generated types ke saath haath mila ke chalta hai. Jab Prisma tumhare schema se ek `User` type generate karta hai, TypeScript ko har field pata hota hai — koi guessing nahi.
 
 ---
 
-## 📚 What's Coming Next
+## 📚 Aage Kya Aane Wala Hai
 
-Each chapter builds on the last. Here is the roadmap:
+Har chapter pichhle wale pe build hota hai. Ye raha roadmap:
 
 | Chapter | Topic |
 |---------|-------|
-| **02** | Schema Design — Writing the `CREATE TABLE` statements with proper constraints |
-| **03** | Prisma Setup — Defining the schema in `schema.prisma` and running migrations |
-| **04** | Seeding — Populating the database with realistic test data |
-| **05** | Queries I — Fetching a user's profile, posts, and follower counts |
-| **06** | Queries II — Building the news feed with joins and ordering |
-| **07** | Queries III — Search with `ILIKE`, full-text search, and tag lookups |
-| **08** | Indexing — Why your feed query is slow and how to fix it |
-| **09** | Transactions — Liking a post and sending a notification atomically |
-| **10** | Performance — Pagination, N+1 problems, and query analysis with `EXPLAIN` |
+| **02** | Schema Design — Proper constraints ke saath `CREATE TABLE` statements likhna |
+| **03** | Prisma Setup — `schema.prisma` mein schema define karna aur migrations run karna |
+| **04** | Seeding — Database ko realistic test data se populate karna |
+| **05** | Queries I — User ka profile, posts, aur follower counts fetch karna |
+| **06** | Queries II — Joins aur ordering ke saath news feed banana |
+| **07** | Queries III — `ILIKE`, full-text search, aur tag lookups se search karna |
+| **08** | Indexing — Tumhari feed query slow kyun hai aur usko fix kaise karein |
+| **09** | Transactions — Post like karna aur notification bhejna, ek saath atomically |
+| **10** | Performance — Pagination, N+1 problems, aur `EXPLAIN` se query analysis |
 
 ---
 
-## ✅ Chapter Summary
+## ✅ Key Takeaways
 
-- We defined a 10-feature scope for an Instagram/Twitter hybrid social network.
-- We discovered 9 core entities by reading requirements for nouns: `Users`, `Posts`, `Comments`, `Likes`, `Follows`, `Tags`, `PostTags`, `Notifications`, `Messages`.
-- We mapped out all relationships and their cardinalities (1:N, M:N, self-referencing).
-- We made three explicit design decisions: no duplicate likes (compound PK), single image per post (nullable column), flat messages (no threading).
-- We drew the full ER diagram connecting all entities.
-- Our stack is PostgreSQL + Prisma + Node.js/TypeScript.
-
-In the next chapter, we translate this diagram into real SQL `CREATE TABLE` statements with primary keys, foreign keys, constraints, and sensible defaults.
+- Instagram/Twitter hybrid social network ke liye 10-feature scope define kiya.
+- Requirements mein nouns dhoondh ke 9 core entities discover kiye: `Users`, `Posts`, `Comments`, `Likes`, `Follows`, `Tags`, `PostTags`, `Notifications`, `Messages`.
+- Saare relationships aur unki cardinalities map ki (1:N, M:N, self-referencing).
+- Teen clear design decisions liye: duplicate likes nahi (compound PK), post pe ek hi image (nullable column), flat messages (koi threading nahi).
+- Saare entities ko jodta hua full ER diagram banaya.
+- Stack hai PostgreSQL + Prisma + Node.js/TypeScript.

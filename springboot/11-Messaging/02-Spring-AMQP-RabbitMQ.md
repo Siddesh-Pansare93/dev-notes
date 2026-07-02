@@ -1,32 +1,30 @@
----
-tags: [messaging, rabbitmq, amqp, spring-amqp]
-aliases: [RabbitMQ, Spring AMQP]
-stage: advanced
----
-
 # Spring AMQP / RabbitMQ
 
-> [!info] For the Express/TS dev
-> RabbitMQ is the workhorse broker for tasks, RPC, and complex routing. Spring AMQP wraps it with the familiar `Template` + `Listener` pattern. Closest Node equivalent: `amqplib` (raw) or NestJS' AMQP transport. RabbitMQ shines when you need rich routing (topic exchanges, headers exchanges) or low-latency request/reply.
+> [!info] Express/TS dev ke liye
+> RabbitMQ ek workhorse broker hai — tasks, RPC, aur complex routing ke liye best. Spring AMQP isko wrap karta hai familiar `Template` + `Listener` pattern ke saath. Node mein closest equivalent hai `amqplib` (raw) ya NestJS ka AMQP transport. RabbitMQ tab chamakta hai jab tumhe rich routing chahiye (topic exchanges, headers exchanges) ya low-latency request/reply chahiye.
 
 ## Concept
 
-RabbitMQ's mental model:
+Socho tum Swiggy pe order karte ho. Restaurant (producer) order ko seedha delivery boy (consumer) ko nahi deta — order pehle jaata hai Swiggy ke dispatch system (exchange) ke paas, aur dispatch system decide karta hai ki kaunsa order kis area ke delivery queue mein jaayega (routing key + binding ke basis pe). RabbitMQ bhi bilkul yahi karta hai.
 
-- **Producer** publishes to an **exchange**.
-- **Exchange** routes the message to one or more **queues** based on **bindings** + **routing key**.
-- **Consumers** read from queues.
+RabbitMQ ka mental model:
+
+- **Producer** publish karta hai ek **exchange** pe.
+- **Exchange** message ko route karta hai ek ya multiple **queues** tak, based on **bindings** + **routing key**.
+- **Consumers** queues se read karte hain.
+
+Yaad rakho — producer kabhi bhi directly queue ko nahi jaanta, sirf exchange ko jaanta hai. Ye decoupling hi RabbitMQ ki power hai.
 
 Exchange types:
 
-| Type | Routing |
+| Type | Routing kaise hota hai |
 |------|---------|
-| `direct` | Routing key matches binding key exactly. |
-| `topic` | Wildcard match on routing key (`order.*.created`, `#.urgent`). |
-| `fanout` | Send to all bound queues. Pub/Sub. |
-| `headers` | Match on header values (rare). |
+| `direct` | Routing key, binding key se exactly match hona chahiye. |
+| `topic` | Wildcard match routing key pe (`order.*.created`, `#.urgent`) — jaise Swiggy "sabhi Koramangala ke urgent orders" ko match kar sakta hai. |
+| `fanout` | Sabhi bound queues ko bhej do. Pure Pub/Sub — jaise ek broadcast notification sabko jaata hai. |
+| `headers` | Header values pe match karta hai (rarely use hota hai). |
 
-Default exchange `""` lets you publish directly to a queue by name (handy for simple work queues).
+Default exchange `""` tumhe seedha queue name se publish karne deta hai — simple work queues ke liye kaafi handy hai.
 
 ## Code example
 
@@ -57,7 +55,9 @@ spring:
         default-requeue-rejected: false
 ```
 
-### Declare topology
+### Topology declare karna
+
+Kya hota hai yahan? Hum Java code se hi exchanges, queues, aur bindings define kar rahe hain — RabbitMQ admin panel mein manually click-click karke banane ki zarurat nahi. Spring startup pe khud hi ye sab create/verify kar leta hai.
 
 ```java
 @Configuration
@@ -110,7 +110,11 @@ public class RabbitConfig {
 }
 ```
 
+Dekho `auditBinding` mein routing key `"order.#"` use kiya hai — matlab "order." se shuru hone wala koi bhi routing key (order.placed, order.cancelled, order.shipped, sab) audit queue mein bhi jaayega. Ye topic exchange ka wildcard power hai.
+
 ### Producer
+
+Kya kar raha hai ye? `OrderPublisher` bas ek message ko exchange pe daal raha hai, saath mein kuch metadata (message ID, event type) bhi attach kar raha hai taaki consumer side pe traceability rahe.
 
 ```java
 @Service
@@ -135,6 +139,8 @@ public class OrderPublisher {
 
 ### Consumer
 
+Yahan asli game hai — manual acknowledgement. Jaise Zomato delivery boy jab tak order deliver karke confirm nahi karta, order "pending" hi rehta hai. Waise hi yahan jab tak `channel.basicAck` call nahi hota, RabbitMQ maanta hai ki message process nahi hua.
+
 ```java
 @Component
 public class EmailListener {
@@ -149,17 +155,21 @@ public class EmailListener {
                    @Header(AmqpHeaders.DELIVERY_TAG) long tag) throws IOException {
         try {
             email.sendConfirmation(ev.customerId(), ev.orderId());
-            channel.basicAck(tag, false);            // ack on success
+            channel.basicAck(tag, false);            // success pe ack
         } catch (TransientException e) {
-            channel.basicNack(tag, false, true);     // requeue
+            channel.basicNack(tag, false, true);     // requeue — dobara try karo
         } catch (Exception e) {
-            channel.basicNack(tag, false, false);    // → DLQ
+            channel.basicNack(tag, false, false);    // → DLQ bhej do, requeue mat karo
         }
     }
 }
 ```
 
-### Idempotent consumer (handle redeliveries)
+Teen cases samjho: success pe `basicAck`. Agar temporary error hai (jaise network glitch) to `basicNack(tag, false, true)` — requeue kar do, phir try hoga. Agar permanent error hai (jaise bad data) to `basicNack(tag, false, false)` — seedha Dead Letter Queue mein bhej do, warna infinite retry loop ban jaayega.
+
+### Idempotent consumer (duplicate messages handle karna)
+
+Kyun zaruri hai? RabbitMQ "at-least-once" delivery guarantee deta hai — matlab kabhi-kabhi same message do baar deliver ho sakta hai (network blip, consumer crash after processing but before ack, etc). Agar tumhara consumer duplicate-safe nahi hai, to customer ko do baar email chala jaayega ya do baar payment deduct ho sakta hai. UPI transactions mein bhi yahi problem solve karne ke liye idempotency keys use hote hain.
 
 ```java
 @Component
@@ -171,7 +181,7 @@ class EmailListener {
     public void on(OrderPlacedEvent ev,
                    @Header(AmqpHeaders.MESSAGE_ID) String messageId) {
         if (processed.existsById(messageId)) {
-            return; // duplicate
+            return; // duplicate hai, skip kar do
         }
         email.sendConfirmation(ev);
         processed.save(new ProcessedEvent(messageId, Instant.now()));
@@ -179,7 +189,11 @@ class EmailListener {
 }
 ```
 
-### Publisher confirms (durability)
+Simple logic — DB mein ek table rakho jisme processed message IDs store hon. Naya message aane pe pehle check karo "ye ID pehle process ho chuka hai kya?" Agar haan, to bas return kar do, dobara kaam mat karo.
+
+### Publisher confirms (durability ke liye)
+
+Kya hota hai bina isके? "Send" call return ho jaata hai success ke saath jaise hi message local socket buffer mein chala jaata hai — iska matlab ye nahi ki broker tak pahuncha bhi! Ye bilkul waisa hi hai jaise tum WhatsApp pe message bhejo aur ek single tick dikhe (sent from your phone) lekin double tick (delivered to server) na aaye.
 
 ```yaml
 spring:
@@ -195,14 +209,16 @@ rabbit.setConfirmCallback((corr, ack, cause) -> {
 rabbit.setReturnsCallback(ret ->
     log.error("unroutable: {} {}", ret.getReplyText(), ret.getMessage()));
 
-// when sending
+// send karte waqt
 var corr = new CorrelationData(ev.orderId().toString());
 rabbit.convertAndSend(exchange, key, ev, corr);
 ```
 
-Without confirms, "send" returns success once it's in the local socket buffer — no guarantee it reached the broker.
+`ConfirmCallback` batata hai ki broker ne message accept kiya ya nahi. `ReturnsCallback` batata hai ki agar message kisi bhi queue mein route hi nahi ho paaya (matlab binding hi nahi mili) to kya hua. Production systems mein critical payments/orders ke liye ye dono zaroor lagao.
 
 ### Request/Reply (RPC)
+
+Kabhi-kabhi tumhe sirf fire-and-forget nahi, balki reply chahiye hota hai — jaise ek microservice doosre se sync response maangta hai. RabbitMQ isko bhi handle kar sakta hai:
 
 ```java
 // Server side
@@ -215,7 +231,7 @@ String handle(String request) {
 String reply = (String) rabbit.convertSendAndReceive("rpc.queue", "ping");
 ```
 
-Spring handles correlation IDs and reply-to queues automatically.
+Spring khud hi correlation IDs aur reply-to queues handle kar leta hai — tumhe manually koi temporary queue banane ki zarurat nahi. Lekin real-world mein iska use kam hota hai kyunki ye synchronous coupling create karta hai — agar tumhe sirf sync call chahiye, to REST/gRPC zyada seedha option hai. RPC-over-AMQP tab useful hai jab tumhe RabbitMQ ke routing/load-balancing features ke saath request/reply chahiye ho.
 
 ### Concurrency
 
@@ -224,12 +240,12 @@ spring:
   rabbitmq:
     listener:
       simple:
-        concurrency: 5         # threads per listener
+        concurrency: 5         # per listener kitne threads
         max-concurrency: 20
-        prefetch: 50           # in-flight messages per consumer
+        prefetch: 50           # ek consumer ke paas kitne in-flight messages
 ```
 
-`prefetch` (channel QoS) is critical — without it RabbitMQ may dump thousands of messages on one consumer.
+`prefetch` (channel QoS) bahut critical setting hai. Isse tum control karte ho ki ek consumer ko ek time pe kitne unacknowledged messages mil sakte hain. Bina iske RabbitMQ ek hi consumer pe hazaron messages daal sakta hai — jaise ek hi Swiggy delivery boy ko ek saath 1000 orders assign kar dena, jabki wo handle hi nahi kar payega.
 
 ## Express/Node comparison
 
@@ -266,27 +282,27 @@ ch.consume("email.queue", async (msg) => {
 | Publisher confirms | `confirmChannel` |
 | `RabbitTemplate.convertSendAndReceive` | `amqplib-rpc` lib |
 
-Spring's wiring is more declarative; Node's gives you fine control.
+Spring ka wiring zyada declarative hai — annotations aur config beans se sab set ho jaata hai. Node ka approach zyada fine control deta hai, lekin har cheez tumhe khud likhni padti hai (JSON parsing, error handling, sab manual).
 
 ## Gotchas
 
-> [!danger] Auto-ack mode loses messages on crash
-> `acknowledge-mode: auto` (Spring's default) acks before listener returns. If listener throws after broker thinks it's done — message lost. Use `manual` and ack on success.
+> [!danger] Auto-ack mode crash pe messages loss kar deta hai
+> `acknowledge-mode: auto` (Spring ka default) listener ke return hone se PEHLE hi ack kar deta hai. Agar listener andar se exception throw kare uske baad — broker to already maan chuka hai "done ho gaya", message gone forever. Hamesha `manual` use karo aur success pe hi ack karo.
 
 > [!warning] Default `requeue-rejected: true`
-> Without `default-requeue-rejected: false`, a poison message gets nack'd → requeued → consumed → fails → ... infinite loop. Configure DLQs.
+> Agar tumne `default-requeue-rejected: false` set nahi kiya, to ek poison message (jo hamesha fail hota hai) nack ho ke requeue hoga → phir consume hoga → phir fail hoga → ... infinite loop ban jaayega. DLQs zaroor configure karo.
 
-> [!warning] No retention after consume
-> Once a message is ack'd, RabbitMQ deletes it. Unlike Kafka — no replay. If you need event history, also write to a DB or use Kafka.
+> [!warning] Consume ke baad koi retention nahi
+> Ek baar message ack ho gaya, RabbitMQ usko delete kar deta hai. Kafka ki tarah nahi hai — yahan replay possible nahi. Agar tumhe event history chahiye (audit, analytics, replay), to DB mein bhi likho ya Kafka use karo.
 
 > [!warning] Connection pooling
-> Each `Channel` is single-threaded but cheap. Spring's listener container manages this. Don't share a `Channel` across threads manually.
+> Har `Channel` single-threaded hota hai lekin banane mein cheap hai. Spring ka listener container ye sab khud manage karta hai. Ek `Channel` ko manually multiple threads mein share mat karo — race conditions aa jaayenge.
 
-> [!warning] Heartbeats and idle disconnects
-> Long-running consumer with no traffic? Set `requested-heartbeat: 30s` so connections stay healthy through firewalls.
+> [!warning] Heartbeats aur idle disconnects
+> Agar consumer lambe time tak idle rehta hai (koi traffic nahi), to connection firewall/load-balancer ke through drop ho sakta hai. `requested-heartbeat: 30s` set karo taaki connection healthy rahe.
 
-> [!tip] Use `quorum queues` in production
-> Default classic queues are single-node. Quorum queues are Raft-replicated:
+> [!tip] Production mein `quorum queues` use karo
+> Default classic queues single-node hoti hain — agar wo node down ho gaya, data gaya. Quorum queues Raft-replicated hote hain (multiple nodes pe copy rehta hai), jaise ek important cheez ko multiple jagah backup rakhna:
 > ```java
 > QueueBuilder.durable("orders").quorum().build();
 > ```

@@ -1,24 +1,18 @@
----
-tags: [microservices, eureka, discovery]
-aliases: [Eureka, Service Discovery]
-stage: advanced
----
-
 # Service Discovery with Eureka
 
-> [!info] For the Express/TS dev
-> Eureka is Netflix's service registry — services register themselves on startup ("hi, I'm `order-service`, here are my IPs"), and clients ask Eureka where they live. It's Consul without the KV store. On Kubernetes you usually skip Eureka entirely; kube-DNS does discovery for free. But Eureka is still common in non-K8s deployments.
+> [!info] Express/TS dev ke liye
+> Eureka basically Netflix ka service registry hai — services startup pe khud ko register karte hain ("hey, main `order-service` hoon, ye rahe mere IPs"), aur clients Eureka se puchte hain ki koi service kahan rehti hai. Isko simple bhasha mein Consul samjho, bas KV store wala part nahi hai. Kubernetes pe usually Eureka ki zaroorat hi nahi padti — kube-DNS ye kaam free mein kar deta hai. Lekin non-K8s deployments mein Eureka aaj bhi kaafi common hai.
 
 ## Concept
 
-In a microservice system, "where is `payment-service`?" is a non-trivial question. Instances come and go (autoscaling, deploys, crashes). A **service registry** is the source of truth.
+Kya hota hai? Ek microservice system mein "`payment-service` kahan hai bhai?" — ye sawaal itna simple nahi hai jitna lagta hai. Instances aate-jaate rehte hain — autoscaling ho rahi hai, naya deploy hua, koi instance crash ho gaya. Isliye ek **service registry** chahiye jo source of truth ho, jisse pata chale ki abhi kaunsi service kahan zinda hai.
 
-Two flavors of discovery:
+Discovery ke do tarike hote hain:
 
-- **Server-side** — clients call a stable URL (load balancer); the LB knows where instances live. e.g. AWS ALB, Kubernetes Service.
-- **Client-side** — clients ask the registry, get a list of instances, pick one, call it directly. Eureka, Consul.
+- **Server-side** — client ek stable URL (load balancer) ko call karta hai; load balancer ko pata hota hai instances kahan hain. Jaise AWS ALB ya Kubernetes Service — client ko instances ka pata hi nahi chalta, LB sab sambhal leta hai.
+- **Client-side** — client khud registry se puchta hai, instances ki list leta hai, ek chunta hai, aur seedha usse call karta hai. Eureka aur Consul isi category mein aate hain.
 
-Eureka is client-side. The flow:
+Eureka client-side discovery follow karta hai. Poora flow kuch aisa dikhta hai:
 
 ```mermaid
 sequenceDiagram
@@ -45,9 +39,13 @@ sequenceDiagram
     ER->>ER: evict after lease expiry
 ```
 
+Socho Zomato ka example — jab bhi koi naya delivery partner online aata hai, woh app ko "main available hoon, yahan hoon" bolta hai (registration). Har thodi der mein app usko "still alive?" check karta rehta hai (heartbeat). Jab tumhara order aata hai, Zomato apne registry mein dekhta hai konse partners nearby available hain (discovery), aur ek ko assign kar deta hai. Agar partner ka phone band ho jaaye aur woh heartbeat bhejna band kar de, to kuch der baad system usko "unavailable" maan leta hai (eviction). Eureka bilkul yahi role nibhata hai microservices ke beech.
+
 ## Code example
 
 ### Eureka Server
+
+Sabse pehle registry khud banate hain — ye ek alag Spring Boot app hoga jo sirf registry ka kaam karega.
 
 ```xml
 <dependency>
@@ -83,9 +81,11 @@ eureka:
     enable-self-preservation: false  # disable in dev; enable in prod
 ```
 
-Visit `http://localhost:8761` — there's a built-in dashboard listing registered services.
+`http://localhost:8761` pe jaake dekho — ek built-in dashboard milega jisme saari registered services list hoti hain. Bilkul waise hi jaise CRED ke andar tumhare saare linked cards ek dashboard mein dikhte hain.
 
-### Eureka Client (any service)
+### Eureka Client (koi bhi service)
+
+Ab har service jo registry mein register hona chahti hai, usme ye dependency daalte hain.
 
 ```xml
 <dependency>
@@ -120,13 +120,15 @@ public class PaymentServiceApp {
 }
 ```
 
-That's it — just having the starter on the classpath registers the service.
+Bas itna hi — sirf ye starter classpath pe hona hi kaafi hai, koi extra annotation ki zaroorat nahi (naye Spring Cloud versions mein `@EnableEurekaClient` bhi optional hai, starter dependency hi kaam kar deti hai).
 
-### Calling another service via discovery
+### Doosri service ko discovery se call karna
 
-Three ways:
+Kya options hain? Teen tarike:
 
 **1. `DiscoveryClient` (low-level)**
+
+Ye sabse raw approach hai — tum khud instances ki list uthate ho aur khud pick karte ho.
 
 ```java
 @RestController
@@ -148,7 +150,7 @@ class OrderController {
 }
 ```
 
-**2. Load-balanced `RestClient` / `WebClient`** — the typical way
+**2. Load-balanced `RestClient` / `WebClient`** — ye typical, real-world approach hai
 
 ```java
 @Configuration
@@ -178,13 +180,13 @@ class PaymentClient {
 }
 ```
 
-The magic: `http://payment-service` is **not** a real DNS name. The load-balanced interceptor resolves it via Eureka and picks an instance.
+Yahan asli jaadu ye hai: `http://payment-service` koi real DNS name nahi hai — ye ek fake/logical naam hai. `@LoadBalanced` waala interceptor is naam ko dekh ke Eureka se resolve karta hai aur behind-the-scenes ek actual instance (jaise `10.0.1.8:8080`) chun leta hai. Tumhe manually IP-port jugaad karne ki zaroorat hi nahi.
 
-**3. OpenFeign** — see [[07-OpenFeign]]. Cleanest.
+**3. OpenFeign** — [[07-OpenFeign]] dekho. Sabse clean aur declarative tarika — bilkul ek interface define karo aur Spring baaki sab sambhal leta hai.
 
 ### Multi-zone Eureka
 
-For HA you run multiple Eureka servers that peer with each other:
+Kya zaroorat hai? Agar tumhara Eureka server hi down ho gaya to poori discovery system thap ho jaayegi — single point of failure. Isliye HA (high availability) ke liye multiple Eureka servers chalate hain jo aapas mein peer karte hain (ek doosre ka data replicate karte hain).
 
 ```yaml
 # eureka-1
@@ -204,9 +206,11 @@ eureka:
       defaultZone: http://eureka-1:8761/eureka/,http://eureka-3:8761/eureka/
 ```
 
-Clients list all peers in `defaultZone`.
+Clients apne `defaultZone` mein saare peers list karte hain, taaki ek Eureka server down ho bhi jaaye to doosre se kaam chal jaaye.
 
 ### Health check integration
+
+Sirf heartbeat kaafi nahi hota kabhi kabhi — service zinda hai lekin unhealthy ho sakti hai (jaise database connection tut gaya ho). Isliye actuator health check bhi jodte hain:
 
 ```yaml
 eureka:
@@ -215,9 +219,11 @@ eureka:
       enabled: true
 ```
 
-Now Eureka considers a service `DOWN` if its `/actuator/health` reports unhealthy — not just based on heartbeats.
+Ab Eureka ek service ko `DOWN` maanega agar uska `/actuator/health` unhealthy report kare — sirf heartbeats ke bharose nahi rahega.
 
 ## Express/Node comparison
+
+Node background se aa rahe ho? Ye tumhe familiar lagega — Consul ke saath kaam almost same pattern follow karta hai.
 
 ```typescript
 // Node + Consul (similar pattern)
@@ -244,24 +250,24 @@ const instance = services[Math.random() * services.length | 0];
 | heartbeats | Consul TTL or HTTP checks |
 | Eureka self-preservation | (no equivalent) |
 
-On Kubernetes both ecosystems usually skip a registry: kube-DNS resolves `payment-service.default.svc.cluster.local` and the kube `Service` load-balances.
+Kubernetes pe dono ecosystems (Java aur Node) usually ek registry ki zaroorat hi skip kar dete hain: kube-DNS `payment-service.default.svc.cluster.local` resolve kar deta hai aur kube ka `Service` load-balancing khud sambhal leta hai. Yaani production K8s setup mein na Eureka chahiye, na Consul.
 
 ## Gotchas
 
 > [!warning] Self-preservation mode
-> If too many instances stop heartbeating, Eureka enters **self-preservation** — it stops evicting instances, assuming a network partition. In dev this masks bugs (dead services stay in the registry). In prod it prevents cascading evictions during a partition. Disable in dev (`enable-self-preservation: false`).
+> Kya hota hai? Agar bahut saare instances heartbeat bhejna band kar dein (jaise network partition ho gaya), to Eureka **self-preservation** mode mein chala jaata hai — woh instances ko evict karna band kar deta hai, ye assume karke ki shayad network hi kharab hai, services nahi. Dev environment mein ye problem create karta hai — dead services registry mein "alive" dikhti rehti hain, bugs mask ho jaate hain. Production mein ye feature accha hai — partition ke waqt cascading evictions rokta hai. Isliye dev mein isse disable karo (`enable-self-preservation: false`), prod mein on rakho.
 
 > [!warning] Long propagation delays
-> Default eviction is ~90s. A crashed service is "alive" in Eureka for over a minute. Combine with circuit breakers so callers don't keep hammering it.
+> Default eviction time ~90 seconds hai. Matlab agar koi service crash ho jaaye, to woh Eureka ki nazar mein ek minute se zyada "alive" dikhti rahegi. Isko circuit breakers ke saath combine karo, taaki caller us dead service ko baar-baar hit na karta rahe jab tak eviction naturally na ho.
 
-> [!warning] `prefer-ip-address: true` matters in containers
-> Hostname-based registration breaks across Docker/K8s networks. Use IPs.
+> [!warning] `prefer-ip-address: true` containers mein zaroori hai
+> Docker/K8s networks ke andar hostname-based registration break ho jaata hai kyunki hostnames container ke andar hi meaningful hote hain, bahar se resolve nahi hote. Isliye IPs use karo.
 
-> [!danger] Don't expose Eureka publicly
-> It's an internal infra component. Put it behind a VPN/private subnet. The dashboard is unauthenticated by default.
+> [!danger] Eureka ko publicly expose mat karo
+> Ye ek internal infra component hai — VPN ya private subnet ke peeche rakho. Dashboard by default unauthenticated hota hai, matlab koi bhi jo usse reach kar sakta hai, saari services ki list dekh sakta hai. Ye ek security risk hai, bilkul waise jaise koi apna UPI PIN bina lock ke rakh de.
 
-> [!tip] On K8s? Skip Eureka.
-> Use kube `Service`s. They have built-in DNS, health checks, load balancing. Eureka adds a layer that mostly duplicates what kube does — and the platform's eviction is faster than Eureka's.
+> [!tip] K8s pe ho? Eureka skip karo.
+> Kube `Service`s use karo. Unme built-in DNS, health checks, load balancing sab already hai. Eureka ek extra layer add karta hai jo mostly wahi kaam duplicate karta hai jo kube already karta hai — aur upar se platform ki eviction Eureka se fast bhi hoti hai.
 
 ## Related
 - [[02-Spring-Cloud-Overview]]

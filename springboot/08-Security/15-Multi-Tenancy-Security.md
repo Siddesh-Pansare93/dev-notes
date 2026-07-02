@@ -1,32 +1,36 @@
----
-tags: [security, production, multi-tenancy, tenant-isolation, hibernate, rls, postgresql]
-aliases: [Multi-Tenancy, Tenant Isolation, Row-Level Security, TenantContext]
-stage: advanced
----
-
 # Multi-Tenancy Security
 
-> [!info] For the Express/TS dev
-> In Node you might manage tenancy with a middleware that sets `req.tenantId = getTenantFromSubdomain(req)` and passes it everywhere. Spring's approach is similar conceptually but needs careful handling around `ThreadLocal` vs virtual threads, and Hibernate's multi-tenancy API for the persistence layer.
+> [!info] Express/TS wale dev ke liye
+> Node mein tum tenancy ko ek middleware se manage karte ho — `req.tenantId = getTenantFromSubdomain(req)` set karke pura request lifecycle mein pass karte ho. Spring ka approach concept mein same hi hai, bas do cheezon pe extra dhyaan dena padta hai — `ThreadLocal` vs virtual threads ka jhamela, aur persistence layer ke liye Hibernate ka multi-tenancy API.
 
 ## Concept / mental model
 
-### Tenancy models — pick one early, migrate is painful
+### Tenancy models — jaldi decide karo, baad mein migrate karna dard hai
 
-| Model | Data isolation | Cost | When to use |
+Socho tum ek SaaS bana rahe ho — jaise Zomato ne restaurants ke liye ek "restaurant partner dashboard" banaya. Har restaurant (tenant) ka apna data hai — orders, menu, staff. Ab sawaal ye hai ki sab restaurants ka data ek hi database mein rakhoge, ya alag-alag? Yehi decision "tenancy model" kehlata hai.
+
+| Model | Data isolation | Cost | Kab use karo |
 |---|---|---|---|
-| **Pool** (shared DB, shared schema) | Low — app-enforced | Low | SaaS MVP, homogeneous tenants |
-| **Bridge** (shared DB, schema-per-tenant) | Medium — DB-enforced via search_path | Medium | Regulated industries, medium isolation need |
-| **Silo** (DB-per-tenant) | High — total isolation | High | Enterprise contracts, strong compliance needs |
+| **Pool** (shared DB, shared schema) | Low — app khud filter karta hai | Low | SaaS MVP, saare tenants same type ke |
+| **Bridge** (shared DB, schema-per-tenant) | Medium — DB `search_path` se enforce | Medium | Regulated industries, medium isolation chahiye |
+| **Silo** (DB-per-tenant) | High — total isolation | High | Enterprise contracts, strict compliance |
+
+Pool model matlab — ek hi table `orders` hai, aur usme `tenant_id` column hai jo batata hai kis restaurant ka order hai. Silo model matlab — Zomato aur Swiggy dono ke liye alag-alag database, koi mix-up ka chance nahi.
 
 > [!warning]
-> The pool model is cheapest to build but most dangerous: a single bug in tenant filtering exposes all tenant data. Test cross-tenant leakage explicitly in CI. See the testing section below.
+> Pool model banane mein sabse sasta hai, lekin sabse dangerous bhi. Tenant filtering mein ek chhoti si bug — aur poora tenant data leak ho sakta hai. Isliye CI mein cross-tenant leakage explicitly test karo. Neeche testing section mein dekho.
 
 ---
 
 ## Tenant resolution strategies
 
+### Kya hota hai?
+
+Har request aane par sabse pehle ye pata karna padta hai — "ye request kis tenant (restaurant/company) ki hai?" Isko hi "tenant resolution" kehte hain. Chaar tareeke hain, chalo ek-ek karke dekhte hain.
+
 ### Strategy 1: Subdomain
+
+Jaise `acme.myapp.com` — yahan `acme` hi tenant hai. IRCTC jaisa socho nahi, ye zyada CRED ya kisi B2B SaaS jaisa hai jahan har company ko apna subdomain milta hai.
 
 ```java
 @Component
@@ -45,6 +49,8 @@ public class SubdomainTenantResolver implements TenantResolver {
 ```
 
 ### Strategy 2: Path prefix
+
+URL ke andar hi tenant ID daal do:
 
 ```
 GET /tenants/{tenantId}/api/orders
@@ -68,6 +74,8 @@ public class PathTenantResolver implements TenantResolver {
 
 ### Strategy 3: Header
 
+Client apne request mein ek custom header bhejta hai:
+
 ```java
 @Component
 public class HeaderTenantResolver implements TenantResolver {
@@ -84,9 +92,11 @@ public class HeaderTenantResolver implements TenantResolver {
 ```
 
 > [!danger]
-> Header-based resolution is fine for internal APIs. For public-facing APIs, always validate that the tenantId in the header matches the tenant in the authenticated JWT — otherwise any user can switch tenants by changing the header.
+> Header-based resolution internal APIs (jaise microservices ke beech) ke liye theek hai. Lekin public-facing API ke liye ye khatarnak hai — hamesha check karo ki header mein aaya `tenantId` authenticated JWT ke tenant se match karta hai ya nahi. Warna koi bhi user sirf header badal ke doosre tenant ka data access kar lega — jaise koi Zomato user apna "restaurant ID" header change karke doosre restaurant ka dashboard dekh le!
 
-### Strategy 4: JWT claim (most secure for public APIs)
+### Strategy 4: JWT claim (public APIs ke liye sabse secure)
+
+Ye sabse safe tareeka hai kyunki tenant ID JWT ke andar signed hoti hai — user usse tamper nahi kar sakta.
 
 ```java
 @Component
@@ -107,9 +117,13 @@ public class JwtTenantResolver implements TenantResolver {
 
 ---
 
-## `TenantContext` — storing the resolved tenant
+## `TenantContext` — resolve kiye hue tenant ko store karna
 
-### Classic ThreadLocal (warning about virtual threads below)
+### Kyun zaruri hai?
+
+Tenant resolve toh ho gaya request ke shuru mein — filter mein. Lekin controller, service, repository — sab jagah ye tenant ID chahiye hoga, bina har jagah parameter pass kiye. Isi ke liye `TenantContext` banate hain — ek global-ish jagah jahan se current request ka tenant ID uthaya ja sake.
+
+### Classic ThreadLocal (virtual threads wali warning neeche hai)
 
 ```java
 public final class TenantContext {
@@ -176,16 +190,16 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
 ```
 
 > [!danger]
-> **Always clear `ThreadLocal` in the `finally` block.** If you use a thread pool (which Spring's embedded Tomcat does by default), threads are reused. If you forget to clear, the *next* request on that thread inherits the previous tenant's context. This is a catastrophic data leak.
+> **`ThreadLocal` ko `finally` block mein hamesha clear karo.** Spring ka default embedded Tomcat thread pool use karta hai, matlab threads reuse hote hain. Agar tum clear karna bhool gaye, toh usi thread pe agla request pichhle tenant ka context inherit kar lega. Socho — Acme company ka request process hua ek thread pe, uske baad wahi thread reuse hua Globex company ke request ke liye, aur Globex ko Acme ka data dikhne laga. Ye ek **catastrophic data leak** hai — bilkul CRED user ko doosre user ka transaction history dikhne jaisa.
 
-### Virtual threads in Java 21 — the `ThreadLocal` pitfall
+### Virtual threads (Java 21) — `ThreadLocal` ka pitfall
 
-Virtual threads (Project Loom, JDK 21+) are **not** reused like platform threads — each virtual thread is a fresh carrier. `ThreadLocal` works correctly for the *duration* of a single request. However:
+Virtual threads (Project Loom, JDK 21+) platform threads ki tarah reuse **nahi** hote — har virtual thread ek fresh carrier hota hai. `ThreadLocal` ek single request ke *duration* ke liye theek se kaam karta hai. Lekin:
 
-- `InheritableThreadLocal` propagates to child threads — but virtual thread semantics make this unreliable with structured concurrency.
-- `@Async` methods using virtual threads may not inherit the `ThreadLocal` from the calling thread without explicit configuration.
+- `InheritableThreadLocal` child threads mein propagate hota hai — lekin virtual thread ke structured concurrency semantics ke saath ye unreliable ho jaata hai.
+- `@Async` methods jo virtual threads use karte hain, woh calling thread ka `ThreadLocal` explicit configuration ke bina inherit nahi karte.
 
-**Recommended for Java 21+**: Use `ScopedValue` (JEP 446, finalized in Java 21):
+**Java 21+ ke liye recommended**: `ScopedValue` (JEP 446, Java 21 mein finalize hua) use karo:
 
 ```java
 // Java 21+ — ScopedValue is immutable and scope-bound
@@ -204,13 +218,15 @@ ScopedValue.where(TenantContext.TENANT_ID, resolvedTenantId)
     .run(() -> filterChain.doFilter(request, response));
 ```
 
+`ScopedValue` immutable hai aur sirf uske scope ke andar hi bound rehta hai — scope khatam, context apne aap gone. `finally { clear() }` bhoolne ka risk hi nahi rehta.
+
 ---
 
 ## Hibernate multi-tenancy
 
-### Pool model — discriminator column (simplest, most dangerous)
+### Pool model — discriminator column (simplest, sabse dangerous)
 
-Add `tenant_id` to every table:
+Har table mein `tenant_id` add karo:
 
 ```sql
 ALTER TABLE orders ADD COLUMN tenant_id VARCHAR(50) NOT NULL;
@@ -250,6 +266,8 @@ public class TenantFilterAspect {
     }
 }
 ```
+
+Ye Hibernate ka `@Filter` mechanism har query mein automatically `WHERE tenant_id = :tenantId` daal deta hai — bina tumhare har repository method mein manually likhe. Node/Prisma se compare karo toh ye Prisma ke middleware jaisa hai jo har query ko intercept karke `where` clause mein tenant filter inject karta hai.
 
 ### Schema-per-tenant (bridge model) — Hibernate `MultiTenantConnectionProvider`
 
@@ -303,11 +321,15 @@ public class TenantIdentifierResolver
 }
 ```
 
+Yahan Postgres ka `search_path` switch karke Hibernate ko batate ho ki "is connection pe ab is tenant ka schema use karo." Ye pool aur silo ke beech ka middle ground hai.
+
 ---
 
-## Row-Level Security (RLS) with PostgreSQL — defense in depth
+## Row-Level Security (RLS) PostgreSQL ke saath — defense in depth
 
-Even if your application filtering has a bug, PostgreSQL RLS provides a second layer of enforcement at the DB level:
+### Kyun zaruri hai?
+
+Maan lo tumhara application-level filtering mein koi bug aa gaya — developer bhool gaya `WHERE tenant_id = ?` lagana kisi query mein. Agar sirf application filtering pe depend karoge, toh ye ek silent data leak ban jaayega. RLS ek **second layer** hai — DB khud enforce karta hai ki galat tenant ka data return na ho, chahe application ki query kaisi bhi ho.
 
 ```sql
 -- Enable RLS on the table
@@ -348,11 +370,15 @@ public class TenantAwareDataSourceWrapper extends DelegatingDataSource {
 ```
 
 > [!tip]
-> RLS makes cross-tenant leakage a DB-level error, not just an application bug. Even if a developer forgets to add a tenant filter, the DB refuses to return the wrong rows. Enable it from day one — retrofitting it later is painful.
+> RLS cross-tenant leakage ko application ki bug se DB-level error bana deta hai. Chahe developer tenant filter lagana bhool jaaye, DB khud galat rows return karne se mana kar dega. Isko din 1 se hi enable karo — baad mein retrofit karna bahut painful hota hai. Ye bilkul waise hai jaise UPI mein har transaction pe do-factor verification hoti hai — ek layer fail bhi ho jaaye, doosri layer bacha leti hai.
 
 ---
 
 ## Cross-tenant leakage tests (must-have)
+
+### Kyun zaruri hai?
+
+Multi-tenancy mein sabse dangerous bug hai — ek tenant ka data doosre tenant ko dikh jaana. Ye bug production mein pakde jaane se pehle CI mein hi pakadna zaruri hai, kyunki ek baar data leak ho gaya toh trust wapas laana mushkil hai (socho agar Swiggy ke ek restaurant ko doosre restaurant ka order data dikhne lage — kitna bada issue ban jaayega).
 
 ```java
 @SpringBootTest
@@ -396,26 +422,28 @@ class CrossTenantLeakageTest {
 ```
 
 > [!danger]
-> These tests must run in CI on every PR. A cross-tenant data leak is a critical security incident — treat it like SQL injection. Make it mechanically impossible, not just "unlikely."
+> Ye tests har PR pe CI mein zaroor chalne chahiye. Cross-tenant data leak ek **critical security incident** hai — isko SQL injection jaisa hi seriously lo. Isko mechanically impossible banao, sirf "unlikely" mat maano.
 
 ---
 
 ## Tenant onboarding/offboarding security checklist
 
+Naya tenant (naya restaurant partner, naya client) onboard karte waqt aur unko offboard karte waqt bhi security ka khayal rakhna padta hai — warna edge cases mein leaks ho sakte hain.
+
 **Onboarding**:
-- [ ] Tenant ID is validated against an allowlist regex (alphanumeric + hyphen)
-- [ ] Schema/DB created with proper permissions (silo model) or seed data inserted (pool)
-- [ ] Default roles provisioned for the tenant admin
-- [ ] Audit log entry for tenant creation (who, when)
-- [ ] Rate limiting configuration applied to tenant-specific endpoints
+- [ ] Tenant ID ko allowlist regex se validate karo (alphanumeric + hyphen)
+- [ ] Schema/DB proper permissions ke saath create ho (silo model) ya seed data insert ho (pool)
+- [ ] Tenant admin ke liye default roles provision ho
+- [ ] Tenant creation ke liye audit log entry (kisne, kab)
+- [ ] Tenant-specific endpoints pe rate limiting configuration lagi ho
 
 **Offboarding**:
-- [ ] All active sessions for tenant users invalidated
-- [ ] JWT blocklist updated for all tenant JWTs (or short TTL trusted)
-- [ ] Data export completed before deletion (GDPR right to portability)
-- [ ] Data deletion confirmed (GDPR right to erasure) with a paper trail
-- [ ] Credentials and API keys rotated/revoked
-- [ ] Audit logs retained per compliance retention policy (don't delete with the tenant)
+- [ ] Tenant ke sab active users ke sessions invalidate karo
+- [ ] Tenant ke sab JWTs ke liye JWT blocklist update karo (ya short TTL pe trust karo)
+- [ ] Data delete karne se pehle data export complete ho (GDPR right to portability)
+- [ ] Data deletion confirm ho (GDPR right to erasure) with paper trail
+- [ ] Credentials aur API keys rotate/revoke karo
+- [ ] Audit logs compliance retention policy ke hisaab se retain karo (tenant ke saath delete mat karo)
 
 ---
 
@@ -447,39 +475,39 @@ async function findOrders() {
 }
 ```
 
-Node's `AsyncLocalStorage` is the exact equivalent of `ScopedValue` in Java 21 (and superior to `ThreadLocal` for async code). Both propagate context through the async/virtual-thread execution chain automatically.
+Node ka `AsyncLocalStorage` bilkul Java 21 ke `ScopedValue` jaisa hi hai (aur async code ke liye `ThreadLocal` se behtar). Dono hi context ko async/virtual-thread execution chain ke through automatically propagate karte hain — tumhe manually pass karne ki zarurat nahi padti.
 
 ---
 
 ## Gotchas
 
 > [!danger]
-> **Missing `finally { TenantContext.clear() }`.** The most common multi-tenancy bug. Every place you set the tenant must clear it in a `finally` block — including tests. One leaked thread context exposes all tenants' data to the next request.
+> **`finally { TenantContext.clear() }` bhool jaana.** Ye sabse common multi-tenancy bug hai. Jahan bhi tenant set karo, waha `finally` block mein clear karna hi hai — tests mein bhi. Ek leaked thread context agle request ko saare tenants ka data expose kar sakta hai.
 
 > [!warning]
-> **Schema names as SQL identifiers.** In the bridge model, the schema name goes into a SQL `SET search_path` or `USE` statement. A tenant ID of `acme; DROP TABLE orders; --` would be catastrophic. Always validate tenant IDs against `[a-zA-Z0-9_-]+` and use parameterized statements or sanitize rigorously.
+> **Schema names as SQL identifiers.** Bridge model mein schema name seedha SQL `SET search_path` ya `USE` statement mein jaata hai. Agar tenant ID `acme; DROP TABLE orders; --` ho gaya, toh catastrophe ho jaayega. Hamesha tenant IDs ko `[a-zA-Z0-9_-]+` regex se validate karo aur parameterized statements use karo ya rigorously sanitize karo.
 
 > [!warning]
-> **Hibernate second-level cache is not tenant-aware by default.** If you use Ehcache or Caffeine as L2 cache, cached entities from tenant A are visible to tenant B. Either disable L2 cache, use a tenant-aware cache implementation, or add tenant ID to the cache key region.
+> **Hibernate second-level cache by default tenant-aware nahi hota.** Agar tum Ehcache ya Caffeine L2 cache ke roop mein use kar rahe ho, toh tenant A ke cached entities tenant B ko bhi dikh sakte hain. Ya toh L2 cache disable karo, ya tenant-aware cache implementation use karo, ya tenant ID ko cache key region mein add karo.
 
 > [!warning]
-> **`@Async` methods lose the tenant context** if you don't explicitly pass it. Either pass `tenantId` as a method parameter, or configure `DelegatingSecurityContextTaskExecutor` extended with tenant context propagation.
+> **`@Async` methods tenant context kho dete hain** agar tum explicitly pass nahi karte. Ya toh `tenantId` ko method parameter ki tarah pass karo, ya `DelegatingSecurityContextTaskExecutor` ko tenant context propagation ke saath extend karke configure karo.
 
 ---
 
 ## Production checklist
 
-- [ ] Tenancy model (pool/bridge/silo) documented in ADR
-- [ ] Tenant ID validation regex enforced at API boundary
-- [ ] `TenantContext.clear()` in `finally` in the filter
-- [ ] Java 21: `ScopedValue` used instead of `ThreadLocal`
-- [ ] PostgreSQL RLS enabled on all shared tables (pool model)
-- [ ] Hibernate filter enabled for ALL queries (no unfiltered paths)
-- [ ] Cross-tenant leakage tests run in CI on every PR
-- [ ] L2 cache tenant isolation verified
-- [ ] `@Async` tenant context propagation tested
-- [ ] Tenant onboarding/offboarding checklists in runbook
-- [ ] Audit log for tenant creation/deletion events
+- [ ] Tenancy model (pool/bridge/silo) ADR mein document ho
+- [ ] Tenant ID validation regex API boundary pe enforce ho
+- [ ] Filter mein `finally` ke andar `TenantContext.clear()` ho
+- [ ] Java 21: `ThreadLocal` ki jagah `ScopedValue` use ho
+- [ ] Saare shared tables pe PostgreSQL RLS enabled ho (pool model)
+- [ ] Hibernate filter SAARI queries ke liye enabled ho (koi unfiltered path na ho)
+- [ ] Cross-tenant leakage tests har PR pe CI mein chale
+- [ ] L2 cache tenant isolation verify ho
+- [ ] `@Async` tenant context propagation test ho
+- [ ] Tenant onboarding/offboarding checklists runbook mein ho
+- [ ] Tenant creation/deletion events ke liye audit log ho
 
 ---
 

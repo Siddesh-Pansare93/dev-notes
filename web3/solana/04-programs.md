@@ -1,18 +1,18 @@
 # Solana Programs (Smart Contracts)
 
-> "A Solana program is like a vending machine: it has no memory of who you are, it only reacts to the instructions you give it right now, and all the snacks live in separate compartments you own — not inside the machine itself."
+> "Solana program ek vending machine jaisa hota hai: usse yaad nahi rehta tum kaun ho, woh bas abhi diye gaye instruction pe react karta hai, aur saare snacks alag compartments mein rakhe hote hain jo tumhare khud ke hain — machine ke andar nahi."
 
 ---
 
 ## 🆚 Solana Programs vs Ethereum Smart Contracts
 
-Before writing a single line of code, understanding *how* Solana programs differ from Ethereum contracts will save you hours of confusion.
+Code likhna shuru karne se pehle ek cheez samajh lo — Solana programs, Ethereum contracts se *kaise* alag hain. Yeh samajh loge to aage ghanton ki confusion bach jayegi.
 
-### The Library vs The Bookshelf Analogy
+### Library vs Bookshelf wali Analogy
 
-Imagine an **Ethereum smart contract** as a **private filing cabinet**. The code AND the data live together in the same cabinet. If you write a counter contract, the counter value is stored *inside* the contract itself.
+Socho ek **Ethereum smart contract** ek **private filing cabinet** hai. Code AUR data dono ek hi cabinet mein rehte hain. Agar tumne ek counter contract likha, to counter ki value us contract ke *andar hi* store hoti hai.
 
-A **Solana program** is more like a **public library rule book**. The rule book (program) just describes the rules. The actual books (data/state) sit on separate shelves (external accounts) that *users own*. The rule book does not store anything itself.
+Ek **Solana program** zyada **public library ki rule book** jaisa hai. Rule book (program) sirf rules describe karti hai. Actual books (data/state) alag shelves (external accounts) pe rakhi hoti hain jinhe *users* apne paas rakhte hain. Rule book khud kuch store nahi karti.
 
 ```mermaid
 graph LR
@@ -33,29 +33,29 @@ graph LR
 
 | Property | Ethereum Contract | Solana Program |
 |---|---|---|
-| State storage | Inside the contract | External accounts |
-| Upgradeable by default | No (immutable unless proxy pattern) | Yes (upgrade authority) |
+| State storage | Contract ke andar | External accounts mein |
+| Upgradeable by default | Nahi (immutable, jab tak proxy pattern na ho) | Haan (upgrade authority ke through) |
 | Language | Solidity / Vyper | Rust (primary), C, C++ |
-| "Gas" equivalent | Gas (ETH) | Compute Units (SOL) |
+| "Gas" ka equivalent | Gas (ETH) | Compute Units (SOL) |
 | Parallelism | Sequential | Parallel (Sealevel runtime) |
-| Account model | Account has code + storage | Separate program accounts and data accounts |
+| Account model | Account mein code + storage dono | Program accounts aur data accounts alag-alag |
 
-### Programs Are Stateless — State Lives in External Accounts
+### Programs Stateless Hote Hain — State External Accounts Mein Rehti Hai
 
-This is the single most important mental model shift. When you call a Solana program:
+Yeh sabse important mental model shift hai. Jab tum ek Solana program ko call karte ho:
 
-1. You pass in a list of **accounts** (the shelves it can read/write)
-2. You pass in **instruction data** (what you want it to do)
-3. The program runs its logic, modifies the accounts, and exits
-4. The program remembers **nothing** between calls
+1. Tum ek list bhejte ho **accounts** ki (jo shelves woh read/write kar sakta hai)
+2. Tum bhejte ho **instruction data** (tumhe kya karwana hai)
+3. Program apni logic run karta hai, accounts modify karta hai, aur exit ho jata hai
+4. Program ko do calls ke beech **kuch bhi yaad nahi rehta**
 
-Every piece of state — your token balance, your NFT metadata, your game score — lives in a separate **data account** that you as the user own (or that the program owns on your behalf via a Program Derived Address).
+Har piece of state — tumhara token balance, tumhari NFT metadata, tumhara game score — sab ek alag **data account** mein rehta hai jise tum user ke roop mein own karte ho (ya program tumhari taraf se ek Program Derived Address ke through own karta hai).
 
-### Programs Are Upgradeable by Default
+### Programs Upgradeable Hote Hain, By Default
 
-Unlike Ethereum where contracts are permanently fixed at deployment (unless you use complex proxy patterns), Solana programs can be upgraded by whoever holds the **upgrade authority**. This is powerful but also a trust consideration — users must trust that the upgrade authority won't change the rules.
+Ethereum mein contracts deployment ke baad permanently fixed ho jate hain (jab tak complex proxy patterns use na karo). Solana mein jiske paas **upgrade authority** hoti hai, woh program ko upgrade kar sakta hai. Yeh powerful hai, lekin ek trust consideration bhi — users ko trust karna padta hai ki upgrade authority rules nahi badlega.
 
-You can make a program immutable by setting the upgrade authority to `None`:
+Tum program ko immutable bhi bana sakte ho, upgrade authority ko `None` set karke:
 
 ```bash
 solana program set-upgrade-authority <PROGRAM_ID> --final
@@ -63,40 +63,40 @@ solana program set-upgrade-authority <PROGRAM_ID> --final
 
 ---
 
-## 🦀 Why Rust? Memory Safety Meets Raw Performance
+## 🦀 Rust Kyun? Memory Safety Aur Raw Performance Dono
 
-### The Surgeon Analogy
+### Surgeon wali Analogy
 
-Think of programming languages on a spectrum. Python is like using a robotic surgical assistant — it handles a lot for you (garbage collection, memory management) but it adds overhead and takes more time. C is like doing surgery with your bare hands — maximum control, but one wrong move and the patient dies (memory bugs, undefined behavior).
+Programming languages ko ek spectrum pe socho. Python ek robotic surgical assistant jaisa hai — bahut kuch khud handle kar leta hai (garbage collection, memory management) lekin overhead add karta hai aur time zyada leta hai. C bare hands se surgery karne jaisa hai — maximum control, lekin ek galat move aur patient gaya (memory bugs, undefined behavior).
 
-Rust is like a surgical assistant that *prevents* you from making dangerous mistakes but still lets you work at the speed of bare hands. The compiler catches memory errors before the code ever runs.
+Rust ek aisa surgical assistant hai jo tumhe dangerous mistakes karne se *rokta* hai, lekin phir bhi bare hands ki speed pe kaam karne deta hai. Compiler memory errors ko code run hone se pehle hi pakad leta hai.
 
-**Why Rust for Solana?**
+**Solana ke liye Rust kyun?**
 
-- **Memory safety without a garbage collector** — no GC pauses that would make transaction times unpredictable
-- **Zero-cost abstractions** — you write high-level code that compiles to the same assembly as hand-optimized C
-- **Deterministic execution** — no runtime surprises, critical for a blockchain
-- **Rich type system** — catches entire classes of bugs at compile time
-- **WebAssembly target** — Solana's BPF (Berkeley Packet Filter) runtime is similar to WASM; Rust compiles to it cleanly
+- **Memory safety, bina garbage collector ke** — koi GC pauses nahi jo transaction times ko unpredictable bana de
+- **Zero-cost abstractions** — tum high-level code likhte ho jo hand-optimized C jaisi hi assembly mein compile hota hai
+- **Deterministic execution** — koi runtime surprises nahi, blockchain ke liye yeh critical hai
+- **Rich type system** — compile time pe hi bugs ki poori classes pakad leta hai
+- **WebAssembly target** — Solana ka BPF (Berkeley Packet Filter) runtime WASM jaisa hi hai; Rust cleanly usmein compile hota hai
 
 ---
 
-## 🏗️ Program Structure — The Anatomy of a Solana Program
+## 🏗️ Program Structure — Solana Program Ki Anatomy
 
-Every native Solana program (without a framework) has the same skeleton:
+Har native Solana program (bina kisi framework ke) ka skeleton same hota hai:
 
 ```
 my-program/
 ├── Cargo.toml          # Rust package manifest
 └── src/
-    ├── lib.rs          # Entry point — the front door
-    ├── instruction.rs  # Defines what instructions exist
-    ├── processor.rs    # The actual logic
-    ├── state.rs        # Data structures stored in accounts
+    ├── lib.rs          # Entry point — front door
+    ├── instruction.rs  # Kaunse instructions exist karte hain, define karta hai
+    ├── processor.rs    # Actual logic
+    ├── state.rs        # Accounts mein store hone wale data structures
     └── error.rs        # Custom error types
 ```
 
-### The Cargo.toml
+### Cargo.toml
 
 ```toml
 [package]
@@ -113,13 +113,13 @@ borsh = "0.10"
 borsh-derive = "0.10"
 ```
 
-The `cdylib` crate type is mandatory — it tells Rust to compile this as a dynamic library that Solana's runtime can load.
+`cdylib` crate type mandatory hai — yeh Rust ko batata hai ki isse ek dynamic library ki tarah compile karo, jise Solana ka runtime load kar sake.
 
 ---
 
-## 🚪 The Entrypoint Function — The Front Door
+## 🚪 Entrypoint Function — Front Door
 
-Every program has exactly one entrypoint. Think of it as the front door of a restaurant — every customer must walk through it, then gets routed to the right table.
+Har program mein exactly ek entrypoint hota hai. Isse socho kisi restaurant ka front door — har customer ko usi se andar aana padta hai, phir usse sahi table pe route kiya jata hai.
 
 ```rust
 // src/lib.rs
@@ -130,34 +130,34 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-// This macro declares our entrypoint function
+// Yeh macro humara entrypoint function declare karta hai
 entrypoint!(process_instruction);
 
 pub fn process_instruction(
-    program_id: &Pubkey,        // This program's address
-    accounts: &[AccountInfo],   // All accounts passed in
-    instruction_data: &[u8],    // Raw bytes — what to do
+    program_id: &Pubkey,        // Is program ka address
+    accounts: &[AccountInfo],   // Saare accounts jo pass kiye gaye
+    instruction_data: &[u8],    // Raw bytes — kya karna hai
 ) -> ProgramResult {
-    // Route to the right handler
+    // Sahi handler pe route karo
     crate::processor::process(program_id, accounts, instruction_data)
 }
 ```
 
-The `entrypoint!` macro handles the low-level ABI between Solana's runtime and your code. You just write the function.
+`entrypoint!` macro Solana ke runtime aur tumhare code ke beech ka low-level ABI handle karta hai. Tumhe bas function likhna hai.
 
 ---
 
-## 📦 Instruction Data — Telling the Program What to Do
+## 📦 Instruction Data — Program Ko Batana Kya Karna Hai
 
-Instruction data is a raw byte array. It is your program's API. You define what those bytes mean.
+Instruction data ek raw byte array hota hai. Yeh tumhare program ka API hai. Tum khud define karte ho ki woh bytes ka matlab kya hai.
 
-Think of it like a TV remote. The remote sends a signal (bytes). The TV (program) interprets signal `0x01` as "volume up" and signal `0x02` as "volume down". The bytes themselves are meaningless without the program's interpretation.
+Isse ek TV remote jaisa socho. Remote ek signal (bytes) bhejta hai. TV (program) signal `0x01` ko "volume up" aur signal `0x02` ko "volume down" ke roop mein interpret karta hai. Bytes khud kuch nahi matter karte, jab tak program unko interpret na kare.
 
 ```rust
 // src/instruction.rs
 use borsh::{BorshDeserialize, BorshSerialize};
 
-// All possible instructions this program understands
+// Yeh program samajhta hai in saare instructions ko
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum MyInstruction {
     Initialize { initial_value: u64 },
@@ -177,7 +177,7 @@ pub fn process(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    // Deserialize the raw bytes into our enum
+    // Raw bytes ko humare enum mein deserialize karo
     let instruction = MyInstruction::try_from_slice(instruction_data)?;
 
     match instruction {
@@ -194,82 +194,82 @@ pub fn process(
 
 ---
 
-## 🗂️ AccountInfo — The Most Important Struct in Solana
+## 🗂️ AccountInfo — Solana Ka Sabse Important Struct
 
-Every account passed to your program arrives as an `AccountInfo`. Understanding each field is non-negotiable.
+Tumhare program ko jo bhi account pass hota hai, woh `AccountInfo` ke roop mein aata hai. Har field samajhna non-negotiable hai.
 
 ```rust
 pub struct AccountInfo<'a> {
-    pub key: &'a Pubkey,          // The account's address (its identity)
-    pub lamports: Rc<RefCell<&'a mut u64>>,  // SOL balance in lamports
-    pub data: Rc<RefCell<&'a mut [u8]>>,     // Raw data bytes stored in this account
-    pub owner: &'a Pubkey,        // Which program owns this account
-    pub rent_epoch: u64,          // Legacy field — ignore for now
-    pub is_signer: bool,          // Did this account sign the transaction?
-    pub is_writable: bool,        // Is this account allowed to be modified?
-    pub executable: bool,         // Is this account a program (code)?
+    pub key: &'a Pubkey,          // Account ka address (uski identity)
+    pub lamports: Rc<RefCell<&'a mut u64>>,  // SOL balance lamports mein
+    pub data: Rc<RefCell<&'a mut [u8]>>,     // Is account mein stored raw data bytes
+    pub owner: &'a Pubkey,        // Kaunsa program is account ka owner hai
+    pub rent_epoch: u64,          // Legacy field — abhi ke liye ignore karo
+    pub is_signer: bool,          // Kya is account ne transaction sign kiya?
+    pub is_writable: bool,        // Kya is account ko modify karne ki permission hai?
+    pub executable: bool,         // Kya yeh account ek program (code) hai?
 }
 ```
 
-### Breaking Down Each Field
+### Har Field Ko Todke Samjho
 
-| Field | What It Is | Real-World Analogy |
+| Field | Kya Hai | Real-World Analogy |
 |---|---|---|
-| `key` | The account's public address | Your home address |
-| `lamports` | SOL balance (1 SOL = 1 billion lamports) | Cash in your wallet |
-| `data` | Raw bytes of state stored in the account | What's written inside the house |
-| `owner` | Which program has write authority over data/lamports | The landlord |
-| `is_signer` | Whether the private key signed this transaction | Whether you showed your ID |
-| `is_writable` | Whether the transaction declared this account mutable | Whether you have write access |
-| `executable` | Whether this account contains program bytecode | Whether this is a factory vs a warehouse |
+| `key` | Account ka public address | Tumhara ghar ka address |
+| `lamports` | SOL balance (1 SOL = 1 billion lamports) | Wallet mein cash |
+| `data` | Account mein store raw state bytes | Ghar ke andar likha kya hai |
+| `owner` | Data/lamports pe kis program ko write authority hai | Landlord |
+| `is_signer` | Kya private key ne yeh transaction sign kiya | Kya tumne apna ID dikhaya |
+| `is_writable` | Kya transaction ne is account ko mutable declare kiya | Kya tumhare paas write access hai |
+| `executable` | Kya is account mein program bytecode hai | Yeh factory hai ya warehouse |
 
 ---
 
-## 🔐 Security Checks — The Three Commandments
+## 🔐 Security Checks — Teen Commandments
 
-This is where most beginner programs get hacked. You MUST do these checks, every time, no exceptions.
+Yahin pe zyada tar beginner programs hack hote hain. Yeh checks tumhe HAR BAAR karne hain, koi exception nahi.
 
-### Commandment 1: Always Check Account Ownership
+### Commandment 1: Hamesha Account Ownership Check Karo
 
-Before touching an account's data, verify your program owns it. Otherwise an attacker can pass in a fake account with the same shape but different data.
+Kisi account ka data touch karne se pehle, verify karo ki tumhara program hi uska owner hai. Warna attacker same shape ka fake account bhej sakta hai jismein data different ho.
 
 ```rust
-// WRONG — never do this
+// GALAT — kabhi aisa mat karo
 let my_data = MyState::try_from_slice(&accounts[0].data.borrow())?;
 
-// RIGHT — always verify ownership first
+// SAHI — pehle hamesha ownership verify karo
 if accounts[0].owner != program_id {
     return Err(ProgramError::IncorrectProgramId);
 }
 let my_data = MyState::try_from_slice(&accounts[0].data.borrow())?;
 ```
 
-### Commandment 2: Always Check is_signer
+### Commandment 2: Hamesha is_signer Check Karo
 
-If an instruction modifies a user's account, that user must have signed the transaction. Without this check, anyone can drain anyone's account.
+Agar koi instruction user ka account modify karta hai, to us user ne transaction sign kiya hona chahiye. Yeh check nahi hoga to koi bhi kisi ka bhi account drain kar sakta hai.
 
 ```rust
 let user_account = &accounts[0];
 
-// WRONG — no signer check
-// (attacker passes victim's address and drains their funds)
+// GALAT — koi signer check nahi
+// (attacker victim ka address pass karke unke funds drain kar deta hai)
 
-// RIGHT — verify the user authorized this action
+// SAHI — verify karo ki user ne yeh action authorize kiya
 if !user_account.is_signer {
     return Err(ProgramError::MissingRequiredSignature);
 }
 ```
 
-### Commandment 3: Always Verify Account Keys
+### Commandment 3: Hamesha Account Keys Verify Karo
 
-When you expect a specific account (like a mint address or a system program), check that the account passed in actually is that account.
+Jab tumhe koi specific account expect ho (jaise mint address ya system program), check karo ki jo account pass hua hai woh actually wahi hai.
 
 ```rust
 use solana_program::system_program;
 
 let system_program_account = &accounts[2];
 
-// RIGHT — check that the system program is actually the system program
+// SAHI — check karo ki system program actually system program hi hai
 if system_program_account.key != &system_program::id() {
     return Err(ProgramError::IncorrectProgramId);
 }
@@ -281,14 +281,14 @@ if system_program_account.key != &system_program::id() {
 
 ### Missing Signer Check
 
-The attacker includes a victim's account as `is_signer: false`. Your program skips the signer check and happily modifies the victim's data.
+Attacker victim ka account `is_signer: false` ke saath include kar deta hai. Tumhara program signer check skip kar deta hai aur khushi-khushi victim ka data modify kar deta hai.
 
 ```rust
 // VULNERABLE
 pub fn transfer_funds(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
     let from = &accounts[0];
     let to = &accounts[1];
-    // No signer check! Anyone can call this on behalf of any "from" account.
+    // Koi signer check nahi! Koi bhi kisi bhi "from" account ki taraf se call kar sakta hai.
     **from.lamports.borrow_mut() -= amount;
     **to.lamports.borrow_mut() += amount;
     Ok(())
@@ -309,13 +309,13 @@ pub fn transfer_funds(accounts: &[AccountInfo], amount: u64) -> ProgramResult {
 
 ### Missing Owner Check
 
-The attacker crafts a fake account that looks identical to your state account (same data layout) but is owned by a different program they control.
+Attacker ek fake account banata hai jo tumhare state account jaisa hi dikhta hai (same data layout), lekin uska owner koi doosra program hai jo attacker control karta hai.
 
 ```rust
-// VULNERABLE — trusts any account with the right data shape
+// VULNERABLE — right data shape wale kisi bhi account pe bharosa karta hai
 let state = MyState::try_from_slice(&accounts[0].data.borrow())?;
 
-// SAFE — only trust accounts your program owns
+// SAFE — sirf un accounts pe bharosa karo jo tumhara program hi own karta hai
 if accounts[0].owner != program_id {
     return Err(ProgramError::IllegalOwner);
 }
@@ -324,14 +324,14 @@ let state = MyState::try_from_slice(&accounts[0].data.borrow())?;
 
 ### Arbitrary CPI (Cross-Program Invocation)
 
-Your program calls another program, but you use the program address from the accounts array without checking it. An attacker passes in their malicious program.
+Tumhara program doosre program ko call karta hai, lekin accounts array se jo program address aata hai usse check nahi karte. Attacker apna malicious program pass kar deta hai.
 
 ```rust
-// VULNERABLE — calls whatever program the attacker passes in
+// VULNERABLE — attacker jo bhi program pass kare, usko call kar deta hai
 let target_program = &accounts[3];
 invoke(&instruction, &[accounts[0].clone(), accounts[1].clone()])?;
 
-// SAFE — hardcode or verify the expected program address
+// SAFE — expected program address ko hardcode ya verify karo
 if accounts[3].key != &spl_token::id() {
     return Err(ProgramError::IncorrectProgramId);
 }
@@ -339,11 +339,11 @@ if accounts[3].key != &spl_token::id() {
 
 ---
 
-## 🔗 Cross-Program Invocation (CPI) — Programs Calling Programs
+## 🔗 Cross-Program Invocation (CPI) — Programs Ek Doosre Ko Call Karna
 
-### The Contractor Analogy
+### Contractor wali Analogy
 
-You hire a general contractor (your program) to renovate your house. The contractor does not do electrical work — they call a licensed electrician (another program, like the Token Program) to handle that part. The contractor vouches for the job and the electrician trusts the contractor's authorization.
+Tum apne ghar ke renovation ke liye ek general contractor (tumhara program) hire karte ho. Contractor khud electrical work nahi karta — woh ek licensed electrician (doosra program, jaise Token Program) ko call karta hai us kaam ke liye. Contractor kaam ki guarantee leta hai aur electrician contractor ke authorization pe bharosa karta hai.
 
 ```mermaid
 sequenceDiagram
@@ -361,7 +361,7 @@ sequenceDiagram
 
 ### invoke — Regular CPI
 
-Use `invoke` when a user account is signing — you pass the signer authority through.
+`invoke` tab use karo jab koi user account sign kar raha ho — tum signer authority ko aage pass karte ho.
 
 ```rust
 use solana_program::{
@@ -376,11 +376,11 @@ pub fn create_account_via_cpi(
     space: u64,
     owner: &Pubkey,
 ) -> ProgramResult {
-    let payer = &accounts[0];        // Must be is_signer = true
+    let payer = &accounts[0];        // is_signer = true hona chahiye
     let new_account = &accounts[1];
     let system_program = &accounts[2];
 
-    // Build the system program instruction
+    // System program ki instruction banao
     let create_ix = system_instruction::create_account(
         payer.key,
         new_account.key,
@@ -389,7 +389,7 @@ pub fn create_account_via_cpi(
         owner,
     );
 
-    // Call the system program — payer's signature carries through automatically
+    // System program ko call karo — payer ka signature automatically carry hota hai
     invoke(
         &create_ix,
         &[payer.clone(), new_account.clone(), system_program.clone()],
@@ -399,9 +399,9 @@ pub fn create_account_via_cpi(
 }
 ```
 
-### invoke_signed — CPI with a PDA as Signer
+### invoke_signed — CPI With a PDA as Signer
 
-Use `invoke_signed` when a **Program Derived Address (PDA)** needs to sign. PDAs have no private key — your program signs on their behalf by providing the seeds.
+`invoke_signed` tab use karo jab kisi **Program Derived Address (PDA)** ko sign karna ho. PDAs ke paas koi private key nahi hoti — tumhara program unki taraf se seeds provide karke sign karta hai.
 
 ```rust
 use solana_program::program::invoke_signed;
@@ -411,69 +411,69 @@ pub fn transfer_from_pda(
     amount: u64,
     bump: u8,
 ) -> ProgramResult {
-    let pda_account = &accounts[0];  // The PDA — no real private key
+    let pda_account = &accounts[0];  // PDA — koi real private key nahi
     let destination = &accounts[1];
     let token_program = &accounts[2];
 
     let seeds = &[b"vault", accounts[3].key.as_ref(), &[bump]];
 
-    // invoke_signed lets the PDA "sign" using seeds
+    // invoke_signed PDA ko seeds ke through "sign" karne deta hai
     invoke_signed(
         &spl_token::instruction::transfer(
             token_program.key,
             pda_account.key,
             destination.key,
-            pda_account.key,  // PDA is the authority
+            pda_account.key,  // PDA hi authority hai
             &[],
             amount,
         )?,
         &[pda_account.clone(), destination.clone(), token_program.clone()],
-        &[seeds],  // The seeds prove this program controls the PDA
+        &[seeds],  // Yeh seeds proof hain ki yeh program is PDA ko control karta hai
     )?;
 
     Ok(())
 }
 ```
 
-| Method | When to Use |
+| Method | Kab Use Karo |
 |---|---|
-| `invoke` | A real user account (with a private key) needs to sign |
-| `invoke_signed` | A PDA (program-owned address) needs to authorize an action |
+| `invoke` | Jab ek real user account (private key wala) sign kare |
+| `invoke_signed` | Jab ek PDA (program-owned address) action authorize kare |
 
 ---
 
 ## 🚀 Program Deployment
 
-### Compiling the Program
+### Program Compile Karna
 
 ```bash
-# Build the program (outputs a .so shared object file)
+# Program build karo (ek .so shared object file output hoti hai)
 cargo build-bpf
 
-# The compiled binary will be at:
+# Compiled binary yahan milegi:
 # target/deploy/my_program.so
 ```
 
-### Deploying to Devnet
+### Devnet Pe Deploy Karna
 
 ```bash
-# Set your cluster
+# Apna cluster set karo
 solana config set --url devnet
 
-# Deploy — uploads the bytecode and returns a Program ID
+# Deploy karo — bytecode upload hota hai aur ek Program ID return hoti hai
 solana program deploy target/deploy/my_program.so
 
 # Output:
 # Program Id: 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU
 ```
 
-### Deploying with a Specific Keypair (for upgrades)
+### Ek Specific Keypair Ke Saath Deploy Karna (Upgrades Ke Liye)
 
 ```bash
-# Generate a keypair for your program address
+# Apne program address ke liye keypair generate karo
 solana-keygen new -o my-program-keypair.json
 
-# Deploy with that keypair — you can upgrade later
+# Us keypair ke saath deploy karo — baad mein upgrade kar sakte ho
 solana program deploy target/deploy/my_program.so \
   --program-id my-program-keypair.json \
   --upgrade-authority ~/.config/solana/id.json
@@ -483,49 +483,49 @@ solana program deploy target/deploy/my_program.so \
 
 ## ♻️ Program Upgrades
 
-Because Solana programs are upgradeable by default, you can fix bugs and ship features without deploying to a new address.
+Kyunki Solana programs by default upgradeable hote hain, tum bugs fix aur naye features ship kar sakte ho bina naye address pe deploy kiye.
 
-### The Upgrade Authority
+### Upgrade Authority
 
-Think of the upgrade authority as the master key to a building. Whoever holds it can change the rules (upgrade the program). When you deploy a program, your wallet is the upgrade authority.
+Upgrade authority ko socho kisi building ki master key ki tarah. Jiske paas yeh hai, woh rules badal sakta hai (program upgrade kar sakta hai). Jab tum program deploy karte ho, tumhara wallet hi upgrade authority hota hai.
 
 ```bash
-# Upgrade an existing program with new code
+# Existing program ko naye code ke saath upgrade karo
 solana program upgrade target/deploy/my_program.so <PROGRAM_ID>
 
-# Check who has upgrade authority
+# Check karo kiske paas upgrade authority hai
 solana program show <PROGRAM_ID>
 
-# Transfer upgrade authority to a multisig (recommended for production)
+# Upgrade authority ko ek multisig ko transfer karo (production ke liye recommended)
 solana program set-upgrade-authority <PROGRAM_ID> \
   --new-upgrade-authority <MULTISIG_ADDRESS>
 
-# Make the program permanently immutable (no more upgrades — ever)
+# Program ko permanently immutable bana do (ab kabhi upgrade nahi hoga)
 solana program set-upgrade-authority <PROGRAM_ID> --final
 ```
 
-### When to Make a Program Immutable
+### Program Ko Immutable Kab Banao
 
-**Make it upgradeable when:**
-- You are in development or testing
-- The protocol is new and bugs are expected
-- You have governance mechanisms to control upgrades
+**Upgradeable rehne do jab:**
+- Tum development ya testing mein ho
+- Protocol naya hai aur bugs expected hain
+- Tumhare paas governance mechanisms hain upgrades control karne ke liye
 
-**Make it immutable when:**
-- The protocol is battle-tested and audited
-- Users need mathematical guarantees the rules will never change (e.g., core DeFi primitives)
-- You want maximum trust from the community
+**Immutable bana do jab:**
+- Protocol battle-tested aur audited ho chuka hai
+- Users ko mathematical guarantee chahiye ki rules kabhi nahi badlenge (jaise core DeFi primitives)
+- Tum community se maximum trust chahte ho
 
 ---
 
 ## 📐 Program Size Limits
 
-Solana programs have a maximum size of **10 MB** for the deployed binary. In practice, most programs are well under 1 MB. If you hit the limit:
+Solana programs ka deployed binary max **10 MB** ka ho sakta hai. Practically, zyada tar programs 1 MB se kaafi kam hote hain. Agar limit hit ho jaye:
 
-- Split into multiple programs and use CPI
-- Remove unused dependencies in Cargo.toml
-- Use `--release` optimizations during build
-- Enable link-time optimization (LTO) in Cargo.toml
+- Multiple programs mein split karo aur CPI use karo
+- Cargo.toml mein unused dependencies remove karo
+- Build ke time `--release` optimizations use karo
+- Cargo.toml mein link-time optimization (LTO) enable karo
 
 ```toml
 [profile.release]
@@ -536,13 +536,13 @@ codegen-units = 1
 
 ---
 
-## ⛽ Compute Units — Solana's Version of Gas
+## ⛽ Compute Units — Solana Ka Gas Version
 
-### The Factory Machine Analogy
+### Factory Machine Wali Analogy
 
-Ethereum has "gas" — you pay for every operation. Solana has **Compute Units (CUs)**. Every instruction the runtime executes costs CUs. Each transaction has a budget of **200,000 CUs by default** (extendable to 1,400,000 with a special instruction).
+Ethereum mein "gas" hota hai — har operation ka paisa dena padta hai. Solana mein **Compute Units (CUs)** hote hain. Runtime jo bhi instruction execute karta hai, uska CU cost lagta hai. Har transaction ka default budget **200,000 CUs** hota hai (special instruction se 1,400,000 tak badha sakte ho).
 
-Think of CUs like machine-hours in a factory. Every operation your program performs costs a fixed number of machine-hours. If you exceed your budget, the transaction fails.
+CUs ko factory ke machine-hours jaisa socho. Tumhara program jo bhi operation karta hai, uska fixed machine-hours cost hota hai. Budget exceed ho gaya to transaction fail ho jata hai.
 
 ```mermaid
 graph TD
@@ -568,12 +568,12 @@ graph TD
 | Cross-Program Invocation | 1,000 base + callee costs |
 | secp256k1 signature | ~1,800 |
 
-### Requesting More CUs
+### Zyada CUs Request Karna
 
 ```rust
 use solana_program::compute_budget::ComputeBudgetInstruction;
 
-// In client code — request more CUs before your instruction
+// Client code mein — apni instruction se pehle zyada CUs request karo
 let modify_cu_ix = ComputeBudgetInstruction::set_compute_unit_limit(400_000);
 let priority_fee_ix = ComputeBudgetInstruction::set_compute_unit_price(1_000); // microlamports per CU
 
@@ -585,24 +585,24 @@ let transaction = Transaction::new_signed_with_payer(
 );
 ```
 
-### How to Optimize Compute Units
+### Compute Units Kaise Optimize Karo
 
-1. **Use zero-copy deserialization** — avoid copying large structs, use `bytemuck` instead of `borsh` for fixed-size data
-2. **Minimize CPI calls** — each CPI has overhead; batch operations where possible
-3. **Avoid large loops** — O(n) loops on-chain are dangerous; use off-chain computation when possible
-4. **Use efficient data structures** — store data compactly, avoid dynamic arrays when a fixed array works
-5. **Lazy loading** — only deserialize the parts of an account you need
+1. **Zero-copy deserialization use karo** — bade structs copy karne se bacho, fixed-size data ke liye `borsh` ki jagah `bytemuck` use karo
+2. **CPI calls minimize karo** — har CPI ka overhead hota hai; jahan possible ho operations batch karo
+3. **Bade loops avoid karo** — on-chain O(n) loops dangerous hote hain; jahan possible ho off-chain computation use karo
+4. **Efficient data structures use karo** — data compactly store karo, jahan fixed array kaam kar jaye wahan dynamic arrays avoid karo
+5. **Lazy loading** — account ke sirf woh parts deserialize karo jinki zarurat hai
 
 ---
 
 ## ⚓ Native Programs vs Anchor Framework
 
-### Native Rust Programs — The Manual Transmission
+### Native Rust Programs — Manual Transmission
 
-Writing a native Solana program is like driving a car with a manual transmission. You have total control, maximum performance, and deep understanding of what is happening — but you have to do everything yourself: shift gears (account validation), check mirrors (ownership checks), and watch the tachometer (compute units).
+Native Solana program likhna manual transmission wali car chalane jaisa hai. Tumhare paas total control hai, maximum performance hai, aur samajh hai ki kya ho raha hai — lekin sab kuch khud karna padta hai: gear shift karna (account validation), mirror check karna (ownership checks), tachometer dekhna (compute units).
 
 ```rust
-// Native Rust — every check is explicit and manual
+// Native Rust — har check explicit aur manual hai
 pub fn process_initialize(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -613,7 +613,7 @@ pub fn process_initialize(
     let state_account = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    // Every check is your responsibility
+    // Har check tumhari responsibility hai
     if !user_account.is_signer {
         return Err(ProgramError::MissingRequiredSignature);
     }
@@ -629,19 +629,19 @@ pub fn process_initialize(
 }
 ```
 
-### Anchor Framework — The Automatic Transmission
+### Anchor Framework — Automatic Transmission
 
-Anchor is a framework that generates most of the boilerplate for you. It is like an automatic transmission — you still control where you are going, but the framework handles the gear shifts.
+Anchor ek framework hai jo tumhare liye zyada tar boilerplate generate kar deta hai. Yeh automatic transmission jaisa hai — tum still control karte ho kahan jaana hai, lekin gear shift framework handle karta hai.
 
-Anchor uses Rust macros (`#[derive(Accounts)]`, `#[program]`) to automatically generate:
+Anchor Rust macros (`#[derive(Accounts)]`, `#[program]`) use karke automatically generate karta hai:
 - Account validation code
 - Ownership checks
-- Discriminator checks (prevents account confusion attacks)
-- IDL (Interface Definition Language) for client SDKs
+- Discriminator checks (account confusion attacks se bachata hai)
+- IDL (Interface Definition Language) client SDKs ke liye
 - TypeScript client code
 
 ```rust
-// Anchor — the same logic, but the framework handles the security checks
+// Anchor — wahi logic, lekin security checks framework handle karta hai
 use anchor_lang::prelude::*;
 
 declare_id!("YourProgramIdHere111111111111111111111111111");
@@ -662,13 +662,13 @@ pub mod my_program {
     }
 }
 
-// Anchor generates all the validation from these type annotations
+// Anchor in type annotations se saari validation generate karta hai
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(mut)]
-    pub user: Signer<'info>,                         // is_signer enforced automatically
+    pub user: Signer<'info>,                         // is_signer automatically enforce hota hai
     #[account(
-        init,                                        // creates the account
+        init,                                        // account create karta hai
         payer = user,
         space = 8 + 8 + 32,
         seeds = [b"state", user.key().as_ref()],    // PDA derivation
@@ -683,7 +683,7 @@ pub struct Increment<'info> {
     pub user: Signer<'info>,
     #[account(
         mut,
-        has_one = authority @ MyError::Unauthorized  // checks state.authority == user.key
+        has_one = authority @ MyError::Unauthorized  // check karta hai state.authority == user.key
     )]
     pub state: Account<'info, MyState>,
     pub authority: Signer<'info>,
@@ -702,39 +702,39 @@ pub enum MyError {
 }
 ```
 
-### Native vs Anchor — The Trade-Off Table
+### Native vs Anchor — Trade-Off Table
 
 | Aspect | Native Rust | Anchor |
 |---|---|---|
-| Learning curve | Steep — understand every detail | Gentler — framework handles boilerplate |
-| Code verbosity | High — all checks are explicit | Low — macros generate most code |
-| Control | Complete | High, but framework makes some decisions |
-| Performance (CU) | Slightly better (no framework overhead) | Minimal overhead, usually negligible |
-| Security | You must write every check | Anchor generates many standard checks |
+| Learning curve | Steep — har detail samajhna padta hai | Aasaan — framework boilerplate handle karta hai |
+| Code verbosity | High — saare checks explicit | Low — macros zyada tar code generate karte hain |
+| Control | Complete | High, lekin framework kuch decisions khud leta hai |
+| Performance (CU) | Thoda better (koi framework overhead nahi) | Minimal overhead, usually negligible |
+| Security | Har check tumhe khud likhna hai | Anchor kai standard checks generate karta hai |
 | IDL / Client SDK | Manual | Auto-generated |
-| Best for | Protocol primitives, maximum control | Most DeFi apps, NFT programs, games |
-| Community resources | Fewer examples | Vast ecosystem, more tutorials |
+| Best for | Protocol primitives, maximum control | Zyadatar DeFi apps, NFT programs, games |
+| Community resources | Kam examples | Bada ecosystem, zyada tutorials |
 
-### When to Use Native Rust
+### Native Rust Kab Use Karo
 
-- You are building a primitive that other programs will call via CPI and every CU matters
-- You need behavior that Anchor's abstractions do not support
-- You are learning Solana deeply and want to understand every layer
-- You are building a system program or low-level infrastructure
+- Tum ek primitive bana rahe ho jise doosre programs CPI ke through call karenge aur har CU matter karta hai
+- Tumhe woh behavior chahiye jo Anchor ke abstractions support nahi karte
+- Tum Solana deeply seekh rahe ho aur har layer samajhna chahte ho
+- Tum ek system program ya low-level infrastructure bana rahe ho
 
-### When to Use Anchor
+### Anchor Kab Use Karo
 
-- You are building a DeFi protocol, NFT marketplace, or game
-- You want fast iteration and readable code
-- You want auto-generated TypeScript clients
-- You are working in a team where readability matters
-- You are building anything that is not a protocol primitive
+- Tum ek DeFi protocol, NFT marketplace, ya game bana rahe ho
+- Tumhe fast iteration aur readable code chahiye
+- Tumhe auto-generated TypeScript clients chahiye
+- Tum ek team mein kaam kar rahe ho jahan readability matter karti hai
+- Tum kuch bhi bana rahe ho jo protocol primitive nahi hai
 
 ---
 
 ## 🏃 Program Execution Flow
 
-Here is the complete picture of how a transaction flows through the Solana runtime into your program:
+Yeh raha poora picture ki ek transaction Solana runtime se hote hue tumhare program tak kaise pahunchta hai:
 
 ```mermaid
 graph TD
@@ -761,29 +761,29 @@ graph TD
 
 ## 🔑 Key Takeaways
 
-1. **Solana programs are stateless** — all state lives in external accounts, not in the program itself. This enables parallelism and is the biggest mental model shift from Ethereum.
+1. **Solana programs stateless hote hain** — saara state external accounts mein rehta hai, program ke andar nahi. Isi se parallelism possible hoti hai, aur Ethereum se yehi sabse bada mental model shift hai.
 
-2. **Programs are upgradeable by default** — the upgrade authority controls the program. Set it to a multisig or burn it (`--final`) for production protocols.
+2. **Programs by default upgradeable hote hain** — upgrade authority hi program control karta hai. Production protocols ke liye ise ek multisig ko de do ya burn kar do (`--final`).
 
-3. **Rust is the right tool** — memory safety, zero-cost abstractions, and deterministic execution make it ideal for on-chain code.
+3. **Rust hi sahi tool hai** — memory safety, zero-cost abstractions, aur deterministic execution ise on-chain code ke liye ideal banate hain.
 
-4. **AccountInfo is everything** — understand `key`, `lamports`, `data`, `owner`, `is_signer`, and `is_writable`. They are the API between the runtime and your program.
+4. **AccountInfo hi sab kuch hai** — `key`, `lamports`, `data`, `owner`, `is_signer`, aur `is_writable` samajhna zaruri hai. Yehi runtime aur tumhare program ke beech ka API hai.
 
-5. **The three security commandments:**
-   - Always check `owner` before reading account data
-   - Always check `is_signer` before mutating user state
-   - Always verify hardcoded program addresses (Token Program, System Program, etc.)
+5. **Teen security commandments:**
+   - Account data read karne se pehle hamesha `owner` check karo
+   - User state mutate karne se pehle hamesha `is_signer` check karo
+   - Hardcoded program addresses (Token Program, System Program, etc.) hamesha verify karo
 
-6. **CPI is how programs compose** — use `invoke` for user-signed actions, `invoke_signed` for PDA-signed actions. This is how all of DeFi is built.
+6. **CPI se programs compose hote hain** — user-signed actions ke liye `invoke` use karo, PDA-signed actions ke liye `invoke_signed`. Isi se DeFi ka sara ecosystem bana hai.
 
-7. **Compute Units are finite** — default budget is 200,000 CU. Optimize by minimizing serialization, reducing CPI calls, and avoiding large loops.
+7. **Compute Units finite hote hain** — default budget 200,000 CU hai. Serialization minimize karke, CPI calls kam karke, aur bade loops avoid karke optimize karo.
 
-8. **Anchor vs Native** — use Anchor for 90% of applications (faster, safer by default, better tooling). Use native Rust only when you need maximum control or are building protocol primitives.
+8. **Anchor vs Native** — 90% applications ke liye Anchor use karo (faster, safer by default, better tooling). Native Rust sirf tab use karo jab maximum control chahiye ho ya protocol primitives bana rahe ho.
 
-9. **Test on devnet first** — program deployment is not reversible (only upgradeable). Always test thoroughly on devnet before mainnet.
+9. **Pehle devnet pe test karo** — program deployment reversible nahi hota (sirf upgradeable hota hai). Mainnet se pehle hamesha devnet pe thoroughly test karo.
 
-10. **Security is opt-in in native Rust** — unlike Anchor, the native runtime does not enforce any checks for you. Every missing check is a potential exploit.
+10. **Native Rust mein security opt-in hai** — Anchor ke ulat, native runtime tumhare liye koi check enforce nahi karta. Har missing check ek potential exploit hai.
 
 ---
 
-*Next Chapter: Program Derived Addresses (PDAs) — how programs derive deterministic addresses and use them as signers to build complex state machines.*
+*Next Chapter: Program Derived Addresses (PDAs) — programs deterministic addresses kaise derive karte hain aur unhe signer ki tarah use karke complex state machines kaise banate hain.*

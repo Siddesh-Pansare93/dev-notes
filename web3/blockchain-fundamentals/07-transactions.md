@@ -6,28 +6,28 @@
 
 ## 🧭 Introduction
 
-If the Ethereum blockchain is a shared database, then a **transaction** is the only way to write to it. You cannot change state — move ETH, deploy a contract, or call a function — without submitting a signed transaction to the network. Everything else (reading data via `eth_call`, listening to events) is read-only and free.
+Socho Ethereum ek shared database hai jo pura duniya dekh sakta hai. Ab is database mein likhne (write) ka sirf ek hi tareeka hai — **transaction**. Chahe tumhe ETH bhejna ho, ek naya contract deploy karna ho, ya kisi function ko call karna ho — state change karne ke liye tumhe ek signed transaction network mein bhejna hi padega. Baaki sab kuch (jaise `eth_call` se data padhna, ya events sunna) sirf **read-only** hai aur free hai — bilkul Zomato app mein menu dekhna free hai, lekin order place karna ek "transaction" hai jisme paisa aur commitment dono involve hain.
 
-This chapter walks you through what a transaction is, what it contains, how it travels through the network, and why things like the nonce and gas model matter for everyday development.
-
----
-
-## 📦 What Is a Transaction?
-
-A transaction is a **cryptographically signed instruction** sent by an externally owned account (EOA) that tells the Ethereum network to change some state.
-
-Examples of state changes:
-- Transferring 1 ETH from Alice to Bob
-- Deploying a new ERC-20 contract
-- Calling `transfer()` on an existing token contract
-
-Everything inside a single transaction is **atomic**: either all of it succeeds and the state change is committed, or it all fails and the state rolls back. There is no partial execution — except that gas is always consumed either way (more on that later).
+Is chapter mein hum dekhenge — transaction hota kya hai, usme kya-kya hota hai, woh network mein kaise safar karta hai, aur nonce + gas model jaise concepts developer ke liye kyun important hain.
 
 ---
 
-## 🔬 Transaction Anatomy
+## 📦 Transaction Hai Kya?
 
-Every Ethereum transaction is a structured object. Here is what a raw **EIP-1559** transaction looks like as JSON:
+Ek transaction ek **cryptographically signed instruction** hota hai jo ek externally owned account (EOA) bhejta hai, aur Ethereum network ko bolta hai — "bhai, state change karo."
+
+State change ke kuch examples:
+- Alice se Bob ko 1 ETH transfer karna
+- Ek naya ERC-20 contract deploy karna
+- Kisi existing token contract pe `transfer()` call karna
+
+Ek transaction ke andar jo bhi ho raha hai, woh **atomic** hota hai — matlab ya to sab kuch successfully ho jayega aur state permanently change ho jayegi, ya sab fail ho jayega aur state wapas rollback ho jayegi. Beech mein "half-done" jaisa kuch nahi hota — bas gas hamesha consume hota hai, chahe transaction pass ho ya fail (isके baare mein aage detail mein baat karenge).
+
+---
+
+## 🔬 Transaction Ke Andar Kya Hota Hai (Anatomy)
+
+Har Ethereum transaction ek structured object hota hai. Neeche ek raw **EIP-1559** transaction JSON format mein dikhaya gaya hai:
 
 ```json
 {
@@ -47,55 +47,55 @@ Every Ethereum transaction is a structured object. Here is what a raw **EIP-1559
 }
 ```
 
-Let's break down each field:
+Chalo ek-ek field samajhte hain:
 
 ### `type`
-The transaction format version. `0x2` means EIP-1559 (current standard). Legacy transactions use `0x0`.
+Transaction format ka version. `0x2` matlab EIP-1559 (aajkal ka standard). Legacy transactions `0x0` use karte hain.
 
 ### `chainId`
-Identifies the network: `1` = Ethereum Mainnet, `11155111` = Sepolia testnet. This field was introduced by EIP-155 to prevent the same signed transaction from being replayed on a different chain (e.g., your Mainnet tx cannot be broadcast on Polygon).
+Yeh batata hai ki network kaunsa hai: `1` = Ethereum Mainnet, `11155111` = Sepolia testnet. Yeh field EIP-155 ne introduce kiya tha taaki ek signed transaction ko dusre chain pe replay na kiya ja sake (jaise, tumhara Mainnet wala tx Polygon pe broadcast nahi ho sakta — Ola ki ride receipt Uber mein use nahi kar sakte, waisa hi samjho).
 
 ### `nonce`
-A sequential counter for every transaction sent from an address, starting at `0`. If your address has sent 79 transactions before, your next nonce is `79` (hex `0x4f`). The network rejects any transaction whose nonce is not exactly one higher than the last confirmed nonce. This is a core replay-attack prevention mechanism — explained in detail below.
+Har address se bheje gaye transaction ka ek sequential counter, jo `0` se start hota hai. Agar tumhare address se pehle 79 transactions ja chuke hain, to agla nonce `79` hoga (hex mein `0x4f`). Network kisi bhi transaction ko reject kar deta hai jiska nonce last confirmed nonce se exactly ek zyada nahi hai. Yeh replay-attack rokne ka core mechanism hai — niche detail mein samjhayenge.
 
 ### `from`
-The sender's address. This is **not** explicitly in the signed bytes — it is cryptographically recovered from the signature `(v, r, s)` using `ecrecover`. The network derives `from` automatically.
+Sender ka address. Yeh interesting baat hai — yeh field signed bytes mein explicitly nahi hoti, balki signature `(v, r, s)` se `ecrecover` function ke through **cryptographically recover** ki jaati hai. Network khud hi `from` nikaal leta hai.
 
 ### `to`
-The recipient address. Three cases:
-- **ETH transfer:** another EOA address
-- **Contract call:** the deployed contract's address
-- **Contract deployment:** this field is **omitted** (or set to `null`)
+Recipient ka address. Teen cases ho sakte hain:
+- **ETH transfer:** koi doosra EOA address
+- **Contract call:** deployed contract ka address
+- **Contract deployment:** yeh field **omit** kar diya jaata hai (ya `null` set hota hai)
 
 ### `value`
-Amount of ETH to send, in wei (1 ETH = 10¹⁸ wei). For pure token transfers via a contract call, `value` is `0x0` — the token amount lives in `data`.
+Kitna ETH bhejna hai, wei mein (1 ETH = 10¹⁸ wei). Pure token transfer (jaise ek contract call ke through) mein `value` `0x0` hota hai — token ka amount `data` field ke andar hota hai.
 
 ### `data`
-Arbitrary byte payload. For ETH transfers it is empty. For contract interactions it encodes:
-- The **function selector** (first 4 bytes of the keccak256 hash of the function signature, e.g., `transfer(address,uint256)`)
+Ek arbitrary byte payload. ETH transfer ke liye yeh empty hota hai. Contract interaction ke liye isme yeh sab encode hota hai:
+- **Function selector** (function signature jaise `transfer(address,uint256)` ke keccak256 hash ke pehle 4 bytes)
 - ABI-encoded **arguments**
 
-For contract deployment, `data` contains the contract's **bytecode** plus constructor arguments.
+Contract deployment ke liye, `data` mein contract ka **bytecode** aur constructor arguments hote hain.
 
 ### `gasLimit`
-The maximum units of gas you authorize for this transaction. If execution uses more gas than this, the transaction reverts (but gas is still consumed up to the limit). If it uses less, unused gas is refunded. A standard ETH transfer costs exactly **21,000 gas**.
+Yeh maximum gas units hain jo tum is transaction ke liye authorize kar rahe ho. Agar execution isse zyada gas use kar le, to transaction revert ho jaata hai (lekin gas limit tak jo bhi consume hua, woh phir bhi charge hoga). Agar kam use hua, to bacha hua gas refund ho jaata hai. Ek simple ETH transfer ka cost exactly **21,000 gas** hota hai.
 
 ### `maxFeePerGas`
-The absolute maximum you are willing to pay **per gas unit** (in wei). This caps your total exposure. Introduced by EIP-1559.
+Per gas unit tum maximum kitna dene ko ready ho (wei mein) — yeh tumhare total exposure ka cap hai. EIP-1559 ne introduce kiya tha.
 
 ### `maxPriorityFeePerGas`
-The "tip" per gas unit you offer to the block proposer (validator) as an incentive to include your transaction. Also called the **priority fee**.
+Yeh "tip" hai jo tum per gas unit block proposer (validator) ko dete ho, taaki woh tumhara transaction jaldi include kare. Isse **priority fee** bhi kehte hain.
 
-### `v`, `r`, `s` — The Signature
-These three values are the ECDSA signature produced by signing the transaction hash with the sender's private key.
-- `r` and `s` are the two 32-byte components of the elliptic curve signature.
-- `v` is a recovery ID (1 or 0) that allows the network to recover the exact public key — and therefore the `from` address — without needing the public key to be sent explicitly.
+### `v`, `r`, `s` — Signature
+Yeh teen values ECDSA signature hain, jo sender ki private key se transaction hash sign karke banti hain.
+- `r` aur `s` elliptic curve signature ke do 32-byte components hain.
+- `v` ek recovery ID hai (1 ya 0), jisse network exact public key — aur isliye `from` address bhi — recover kar leta hai, bina public key explicitly bheje.
 
 ---
 
-## 🔄 Transaction Lifecycle
+## 🔄 Transaction Ki Journey (Lifecycle)
 
-Here is how a transaction travels from your wallet to the blockchain:
+Chalo dekhte hain ek transaction tumhare wallet se blockchain tak kaise pahunchta hai:
 
 ```mermaid
 sequenceDiagram
@@ -117,36 +117,36 @@ sequenceDiagram
     Chain-->>User: 6+ confirmations = finalized
 ```
 
-**Step-by-step explanation:**
+**Step-by-step samjho:**
 
-1. **Sign:** Your wallet signs the transaction data with your private key, producing `(v, r, s)`.
-2. **Broadcast:** The signed transaction is submitted to any Ethereum node via `eth_sendRawTransaction`. You receive a `txHash` immediately — this is just the keccak256 hash of the transaction bytes, not a confirmation.
-3. **Mempool (Memory Pool):** The node validates basic things (valid signature, nonce is correct, sender has enough ETH to cover `gasLimit * maxFeePerGas + value`) and adds it to the **mempool** — a temporary waiting room of unconfirmed transactions shared across nodes.
-4. **Selection:** Validators (formerly miners) scan the mempool and select transactions to include in the next block, typically prioritizing those with a higher `maxPriorityFeePerGas`.
-5. **Mined (1 Confirmation):** When the block containing your transaction is proposed and accepted by the network, your transaction has **1 confirmation**. State has changed.
-6. **Finalized:** After additional blocks build on top (~12 seconds each), the transaction becomes increasingly difficult to revert. For high-value operations, wait for **6–12 confirmations**. Ethereum's Proof-of-Stake achieves economic finality after ~2 epochs (~12.8 minutes).
-
----
-
-## 🛡️ The Nonce and Replay Attack Prevention
-
-The nonce solves two problems simultaneously.
-
-**Problem 1 — Replay attacks:** Without a nonce, if Alice sends Bob 1 ETH and that signed transaction is broadcast, anyone who sees it could rebroadcast the same bytes again and again, draining Alice's wallet.
-
-**Problem 2 — Transaction ordering:** If you submit multiple transactions, the nonce guarantees they execute in order. Nonce 5 will never execute before nonce 4.
-
-**How it works:** The network tracks the `nonce` of the last confirmed transaction for every address. If you submit a transaction with nonce `5` but the network expects `4`, your transaction sits in the mempool until nonce `4` is confirmed — or is dropped after a timeout. If you submit nonce `3` (already used), it is rejected outright as a duplicate.
-
-> **Developer tip:** This is why "stuck" transactions happen. If transaction N never confirms (e.g., gas too low), every subsequent transaction with a higher nonce is also stuck. The fix is to resend transaction N with the same nonce but a higher gas fee — the network accepts whichever version gets mined first.
+1. **Sign:** Tumhara wallet transaction data ko tumhari private key se sign karta hai, aur `(v, r, s)` produce hota hai.
+2. **Broadcast:** Signed transaction kisi bhi Ethereum node ko `eth_sendRawTransaction` ke through submit kiya jaata hai. Tumhe turant ek `txHash` milta hai — yeh bas transaction bytes ka keccak256 hash hai, confirmation nahi.
+3. **Mempool (Memory Pool):** Node kuch basic cheezein check karta hai (signature valid hai, nonce sahi hai, sender ke paas `gasLimit * maxFeePerGas + value` cover karne jitna ETH hai) aur usko **mempool** mein daal deta hai — yeh ek temporary waiting room hai unconfirmed transactions ka, jo saare nodes ke beech shared hoti hai. Bilkul Swiggy order jab restaurant accept karne se pehle "confirming" state mein hota hai.
+4. **Selection:** Validators (pehle miners kehlate the) mempool scan karke agle block ke liye transactions choose karte hain, generally higher `maxPriorityFeePerGas` wale transactions ko priority dete hain — jaise surge pricing mein zyada paise doge to driver jaldi milega.
+5. **Mined (1 Confirmation):** Jab tumhara transaction wale block ko propose karke network accept kar leta hai, tab tumhare transaction ko **1 confirmation** milta hai. State change ho chuki hai.
+6. **Finalized:** Jaise-jaise upar aur blocks add hote jaate hain (~har 12 second mein ek), transaction ko revert karna mushkil se mushkil hota jaata hai. High-value operations ke liye **6–12 confirmations** ka wait karo. Ethereum ka Proof-of-Stake ~2 epochs (~12.8 minutes) ke baad economic finality achieve kar leta hai.
 
 ---
 
-## ⛽ The EIP-1559 Gas Model
+## 🛡️ Nonce Aur Replay Attack Se Bachaav
 
-Before EIP-1559 (August 2021), gas worked like a blind auction: you set a `gasPrice` and miners picked the highest bidders. This caused huge fee spikes during congestion and made it hard to predict costs.
+Nonce ek saath do problems solve karta hai.
 
-**EIP-1559 introduced a two-part fee model:**
+**Problem 1 — Replay attacks:** Agar nonce na ho, aur Alice Bob ko 1 ETH bheje, to woh signed transaction jo bhi dekh le, woh usi bytes ko baar-baar rebroadcast karke Alice ka wallet khali kar sakta hai.
+
+**Problem 2 — Transaction ordering:** Agar tum multiple transactions submit karte ho, to nonce guarantee karta hai ki woh order mein hi execute hongi. Nonce 5 kabhi bhi nonce 4 se pehle execute nahi hoga.
+
+**Kaam kaise karta hai:** Network har address ke last confirmed transaction ka `nonce` track karta hai. Agar tum nonce `5` wala transaction submit karo lekin network `4` expect kar raha ho, to tumhara transaction mempool mein tab tak baitha rahega jab tak nonce `4` confirm nahi ho jaata — ya timeout ke baad drop ho jaata hai. Agar tum nonce `3` submit karo (jo already use ho chuka hai), to woh directly reject ho jaata hai as duplicate.
+
+> **Developer tip:** Isi wajah se "stuck" transactions hote hain. Agar transaction N kabhi confirm nahi hota (jaise gas bahut kam diya ho), to usse upar wale saare nonce wale transactions bhi stuck ho jaate hain. Fix yeh hai ki transaction N ko same nonce ke saath, lekin higher gas fee ke saath resend karo — network jo bhi version pehle mine ho jaaye, usko accept kar leta hai.
+
+---
+
+## ⛽ EIP-1559 Gas Model
+
+EIP-1559 (August 2021) se pehle, gas ek blind auction jaisa kaam karta tha — tum ek `gasPrice` set karte the aur miners sabse zyada bid karne walon ko pick karte the. Isse congestion ke time fees mein bade spikes aate the aur cost predict karna mushkil ho jaata tha.
+
+**EIP-1559 ne ek two-part fee model introduce kiya:**
 
 ```
 Total fee per gas = baseFee + priorityFee
@@ -157,147 +157,147 @@ Where:
   maxFeePerGas      = your cap: baseFee + priorityFee must not exceed this
 ```
 
-### Base Fee (Burned)
-The `baseFee` is determined algorithmically by the protocol based on how full the previous block was. If blocks are more than 50% full, `baseFee` rises by up to 12.5%. If less than 50% full, it falls. This makes fees somewhat predictable and self-correcting.
+### Base Fee (Burn Ho Jaati Hai)
+`baseFee` protocol algorithmically decide karta hai, based on pichla block kitna bhara tha. Agar blocks 50% se zyada bhare the, to `baseFee` 12.5% tak badh jaata hai. Agar 50% se kam bhare the, to woh gir jaata hai. Isse fees kaafi predictable aur self-correcting ho jaate hain.
 
-Crucially, the `baseFee` is **burned** — permanently removed from circulation. This makes ETH deflationary during high-activity periods, as more ETH is burned than is issued as staking rewards.
+Sabse important baat — `baseFee` **burn** ho jaata hai, matlab permanently circulation se hata diya jaata hai. Isse high-activity periods mein ETH deflationary ho jaata hai, kyunki jitna burn hota hai utna staking rewards mein issue nahi hota.
 
 ### Priority Fee (Tip)
-The `maxPriorityFeePerGas` is your incentive to validators. A higher tip means faster inclusion during congestion. During quiet periods, even a 1 gwei tip is sufficient.
+`maxPriorityFeePerGas` tumhara validators ke liye incentive hai. Zyada tip dene se congestion ke time tumhara transaction jaldi include hota hai. Quiet periods mein, 1 gwei ka tip bhi kaafi hota hai.
 
-### What you actually pay
+### Tum Actually Kitna Pay Karte Ho
 ```
 actualGasCost = gasUsed * (baseFee + min(priorityFee, maxFeePerGas - baseFee))
 
 Refund = (gasLimit - gasUsed) * effectiveGasPrice
 ```
 
-If `maxFeePerGas` is set lower than the current `baseFee`, your transaction cannot be included in any block and stays in the mempool until the `baseFee` drops to meet your cap or you cancel it.
+Agar `maxFeePerGas` current `baseFee` se kam set kiya ho, to tumhara transaction kisi bhi block mein include nahi ho payega, aur mempool mein tab tak pada rahega jab tak `baseFee` tumhare cap tak nahi gir jaata, ya tum usko cancel na kar do.
 
 ---
 
-## 🗂️ Transaction Types
+## 🗂️ Transaction Ke Types
 
 ### 1. ETH Transfer
-The simplest transaction: move native ETH between accounts.
-- `to`: recipient address
-- `value`: amount in wei
+Sabse simple transaction: native ETH ko ek account se doosre mein move karna.
+- `to`: recipient ka address
+- `value`: wei mein amount
 - `data`: empty (`0x`)
 - `gasLimit`: exactly **21,000**
 
 ### 2. Contract Deployment
-Deploy bytecode to the network to create a new contract.
+Network pe bytecode deploy karke ek naya contract banana.
 - `to`: **omitted / null**
-- `value`: optional (sent to the contract's constructor)
+- `value`: optional (contract ke constructor ko bheja jaata hai)
 - `data`: compiled bytecode + ABI-encoded constructor arguments
-- Gas: varies based on bytecode size (roughly 200 gas per byte)
-- The resulting contract address is deterministic: `keccak256(rlp([sender, nonce]))[12:]`
+- Gas: bytecode size ke hisaab se vary karta hai (roughly 200 gas per byte)
+- Resulting contract address deterministic hota hai: `keccak256(rlp([sender, nonce]))[12:]`
 
 ### 3. Contract Function Call
-Interact with an already-deployed contract.
-- `to`: the contract's address
-- `value`: `0` for non-payable functions, or ETH amount for `payable` functions
+Kisi already-deployed contract ke saath interact karna.
+- `to`: contract ka address
+- `value`: non-payable functions ke liye `0`, ya `payable` functions ke liye ETH amount
 - `data`: 4-byte function selector + ABI-encoded arguments
-- Gas: varies based on what the function executes in the EVM
+- Gas: function EVM mein kya execute karta hai uske hisaab se vary karta hai
 
 ---
 
-## 🔍 Reading a Real Transaction on Etherscan
+## 🔍 Etherscan Pe Real Transaction Padhna
 
-When you paste a `txHash` into [etherscan.io](https://etherscan.io), here is what you see and what it means:
+Jab tum [etherscan.io](https://etherscan.io) pe koi `txHash` paste karte ho, yahan dekho kya milta hai aur uska matlab kya hai:
 
-| Etherscan Field | Meaning |
+| Etherscan Field | Matlab |
 |---|---|
-| **Transaction Hash** | The unique `txHash` — keccak256 of the signed tx bytes |
-| **Status** | Success / Fail — whether execution completed without reverting |
-| **Block** | Block number where this tx was mined |
-| **Timestamp** | When that block was produced |
-| **From** | The `from` address recovered from the signature |
-| **To** | The `to` field — a contract address links to its page |
-| **Value** | ETH transferred (the `value` field) |
-| **Transaction Fee** | `gasUsed * effectiveGasPrice` in ETH — what you actually paid |
-| **Gas Price** | `baseFee + priorityFee` at the time of inclusion |
-| **Gas Limit & Usage** | Your `gasLimit` vs. how much the EVM actually consumed |
-| **Base Fee Per Gas** | The `baseFee` for that block (burned) |
-| **Max Fee Per Gas** | Your `maxFeePerGas` cap |
-| **Max Priority Fee** | Your `maxPriorityFeePerGas` tip |
-| **Nonce** | The sequential nonce of this tx from the sender |
-| **Input Data** | The raw `data` field — Etherscan decodes this using the ABI |
+| **Transaction Hash** | Unique `txHash` — signed tx bytes ka keccak256 |
+| **Status** | Success / Fail — execution bina revert hue complete hua ya nahi |
+| **Block** | Block number jisme yeh tx mine hua |
+| **Timestamp** | Woh block kab produce hua |
+| **From** | Signature se recover kiya gaya `from` address |
+| **To** | `to` field — contract address ho to uske page pe link karta hai |
+| **Value** | Transfer hua ETH (`value` field) |
+| **Transaction Fee** | `gasUsed * effectiveGasPrice` ETH mein — tumne actually kitna pay kiya |
+| **Gas Price** | Inclusion ke time `baseFee + priorityFee` |
+| **Gas Limit & Usage** | Tumhara `gasLimit` vs EVM ne actually kitna consume kiya |
+| **Base Fee Per Gas** | Us block ka `baseFee` (burned) |
+| **Max Fee Per Gas** | Tumhara `maxFeePerGas` cap |
+| **Max Priority Fee** | Tumhara `maxPriorityFeePerGas` tip |
+| **Nonce** | Sender ke us tx ka sequential nonce |
+| **Input Data** | Raw `data` field — Etherscan isko ABI use karke decode karta hai |
 
-The **"Input Data"** tab is particularly useful: for a known contract, Etherscan decodes the function selector and arguments into human-readable form, e.g., `transfer(address _to, uint256 _value)` with the actual values shown.
+**"Input Data"** tab bohot useful hai: kisi known contract ke liye, Etherscan function selector aur arguments ko human-readable form mein decode kar deta hai, jaise `transfer(address _to, uint256 _value)` actual values ke saath.
 
 ---
 
-## 💀 Failed Transactions — Why You Still Pay Gas
+## 💀 Failed Transactions — Gas Fir Bhi Kyun Lagta Hai
 
-This surprises almost every new developer: **a failed transaction still costs gas.**
+Yeh baat almost har naye developer ko surprise karti hai: **fail hua transaction bhi gas leta hai.**
 
-Here is why. The EVM executes your transaction instruction by instruction, consuming gas at each step. At some point, execution hits a `REVERT` opcode — triggered by a failed `require()`, `assert()`, or an explicit `revert()` — and execution stops. The state changes up to that point are rolled back. But the computation that happened up to the revert point was still performed by every validator on the network. That work is real and must be compensated.
+Kyun? EVM tumhare transaction ko instruction-by-instruction execute karta hai, aur har step pe gas consume karta hai. Kisi point pe execution ek `REVERT` opcode se takra jaata hai — jo ek failed `require()`, `assert()`, ya explicit `revert()` se trigger hota hai — aur execution ruk jaata hai. Us point tak jo bhi state change hua tha, woh rollback ho jaata hai. Lekin revert point tak jo computation hua, woh network ke har validator ne actually kiya tha. Woh kaam real tha aur uska payment banta hai — bilkul Zomato delivery boy ne aadha raasta cover kar liya, to usko wo distance ka bhi paisa milega, chahe order cancel ho jaaye.
 
-What you lose on a failed transaction:
-- **Gas used up to the revert point** — paid to validators
-- **The base fee portion** — burned
+Failed transaction mein tum kya lose karte ho:
+- **Revert point tak use hua gas** — validators ko jaata hai
+- **Base fee ka hissa** — burn ho jaata hai
 
-What you get back:
-- **Unused gas** (`gasLimit - gasUsed`) — refunded
-- **Your `value` (ETH)** — returned if the revert happens before it is accepted
+Kya wapas milta hai:
+- **Bacha hua gas** (`gasLimit - gasUsed`) — refund hota hai
+- **Tumhara `value` (ETH)** — agar revert accept hone se pehle hota hai, to woh return ho jaata hai
 
-**Common causes of failed transactions:**
-- `require()` condition not met (e.g., insufficient token balance, wrong caller)
-- Running out of gas mid-execution (`gasLimit` set too low)
-- Arithmetic overflow/underflow (Solidity 0.8+ reverts automatically)
-- Calling a function on a contract that doesn't exist at `to`
-- Reentrancy guard blocking a call
+**Failed transactions ke common causes:**
+- `require()` condition poori nahi hui (jaise, insufficient token balance, galat caller)
+- Mid-execution mein gas khatam ho gaya (`gasLimit` bahut kam set kiya)
+- Arithmetic overflow/underflow (Solidity 0.8+ automatically revert karta hai)
+- Kisi aise contract pe function call kiya jo `to` address pe exist hi nahi karta
+- Reentrancy guard ne call block kar diya
 
-> **Developer tip:** Use `eth_estimateGas` before sending to get a gas estimate, and add a 20–30% buffer as `gasLimit` to avoid running out of gas on complex operations.
+> **Developer tip:** Bhejne se pehle `eth_estimateGas` use karo gas estimate lene ke liye, aur `gasLimit` mein 20–30% ka buffer add karo taaki complex operations mein gas khatam na ho.
 
 ---
 
 ## 🔑 Key Takeaways
 
-- A transaction is the **only way to change state** on Ethereum — signed by an EOA's private key.
-- Every transaction contains: `nonce`, `to`, `value`, `data`, `gasLimit`, `maxFeePerGas`, `maxPriorityFeePerGas`, and a signature `(v, r, s)`.
-- The **nonce** is a sequential counter that prevents replay attacks and enforces transaction ordering.
-- EIP-1559 split gas into a **base fee** (burned by the protocol) and a **priority fee** (tip to the validator).
-- Transactions go: signed → broadcast → mempool → mined (1 confirmation) → finalized.
-- The three transaction types are: **ETH transfer**, **contract deployment**, and **contract function call**.
-- Failed transactions **still consume gas** because the EVM did real computation before reverting.
-- On Etherscan, you can inspect every field of a transaction including decoded calldata.
+- Transaction hi Ethereum pe **state change karne ka ekmatra tareeka** hai — EOA ki private key se signed.
+- Har transaction mein hota hai: `nonce`, `to`, `value`, `data`, `gasLimit`, `maxFeePerGas`, `maxPriorityFeePerGas`, aur ek signature `(v, r, s)`.
+- **Nonce** ek sequential counter hai jo replay attacks rokta hai aur transaction ordering enforce karta hai.
+- EIP-1559 ne gas ko do parts mein baant diya — **base fee** (protocol burn karta hai) aur **priority fee** (validator ko tip).
+- Transaction ka safar: signed → broadcast → mempool → mined (1 confirmation) → finalized.
+- Teen transaction types hain: **ETH transfer**, **contract deployment**, aur **contract function call**.
+- Failed transactions **fir bhi gas consume karte hain**, kyunki revert se pehle EVM ne real computation kiya hota hai.
+- Etherscan pe tum transaction ki har field inspect kar sakte ho, decoded calldata samet.
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding before moving to Chapter 8.
+Chapter 8 pe jaane se pehle apni samajh test karo.
 
-**Question 1:** Alice has sent 12 transactions from her wallet (nonces 0–11). She submits a new transaction. What nonce should it have, and what happens if she accidentally submits it with nonce 10 instead?
+**Question 1:** Alice ne apne wallet se 12 transactions bheje hain (nonces 0–11). Woh ek naya transaction submit karti hai. Usko kaunsa nonce use karna chahiye, aur agar galti se woh nonce 10 use kar de to kya hoga?
 
 <details>
 <summary>Answer</summary>
 
-Her next transaction should use **nonce 12**. If she submits nonce 10, the network will reject it immediately as a duplicate — nonce 10 was already used and confirmed. The transaction will never enter the mempool.
+Uske agle transaction ka nonce **12** hona chahiye. Agar woh nonce 10 submit kare, to network usko turant duplicate maan kar reject kar dega — nonce 10 already use aur confirm ho chuka tha. Yeh transaction mempool mein kabhi enter hi nahi karega.
 
 </details>
 
 ---
 
-**Question 2:** You call `swapExactTokensForTokens()` on a DEX contract. The transaction fails because slippage exceeded your tolerance and the contract reverts. You set `gasLimit` to 200,000 and the EVM used 85,000 gas before reverting. How much gas do you pay, and what happens to the rest?
+**Question 2:** Tum ek DEX contract pe `swapExactTokensForTokens()` call karte ho. Transaction fail ho jaata hai kyunki slippage tumhari tolerance se zyada ho gaya aur contract revert kar deta hai. Tumne `gasLimit` 200,000 set kiya tha, aur EVM ne revert se pehle 85,000 gas use kiya. Tum kitna gas pay karoge, aur baaki ka kya hoga?
 
 <details>
 <summary>Answer</summary>
 
-You pay for **85,000 gas** (the amount consumed before the revert). The remaining **115,000 gas** is refunded to your wallet. The `baseFee` portion of those 85,000 gas units is burned; the `priorityFee` portion goes to the validator. Your token balances are unchanged because the state rolled back.
+Tum **85,000 gas** ka payment karoge (revert se pehle jitna consume hua). Bacha hua **115,000 gas** tumhare wallet mein refund ho jaayega. Un 85,000 gas units ka `baseFee` wala hissa burn ho jaayega; `priorityFee` wala hissa validator ko jaayega. Tumhare token balances unchanged rahenge kyunki state rollback ho gayi.
 
 </details>
 
 ---
 
-**Question 3:** You set `maxFeePerGas` to 15 gwei. The network's current `baseFee` is 18 gwei. What happens to your transaction?
+**Question 3:** Tumne `maxFeePerGas` 15 gwei set kiya. Network ka current `baseFee` 18 gwei hai. Tumhare transaction ka kya hoga?
 
 <details>
 <summary>Answer</summary>
 
-Your transaction **cannot be included** in any block while the `baseFee` exceeds your `maxFeePerGas` cap. It will sit in the mempool waiting for the `baseFee` to drop below 15 gwei, or it will eventually be dropped. To fix it, you need to resubmit the transaction (same nonce) with a higher `maxFeePerGas` that covers at least the current `baseFee` plus your desired tip.
+Tumhara transaction **kisi bhi block mein include nahi ho payega** jab tak `baseFee` tumhare `maxFeePerGas` cap se zyada hai. Yeh mempool mein tab tak baitha rahega jab tak `baseFee` 15 gwei se neeche na gir jaaye, ya phir eventually drop ho jaayega. Fix karne ke liye, tumhe same nonce ke saath ek higher `maxFeePerGas` set karke transaction resubmit karna hoga, jo current `baseFee` plus tumhari desired tip ko cover kare.
 
 </details>
 

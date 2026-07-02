@@ -1,74 +1,74 @@
-# 🗄️ Chapter 10: SQL vs NoSQL — Choosing the Right Database
+# 🗄️ Chapter 10: SQL vs NoSQL — Sahi Database Kaise Chuno
 
-> **Who this is for:** Developers just starting out with databases who want to understand the landscape before picking a technology.
-
----
-
-## 🧭 Why This Choice Matters
-
-Before you write a single line of code, one of the most consequential decisions you will make is: **which database do I use?** The wrong choice can mean painful migrations later, poor performance at scale, or unnecessary complexity for a simple app.
-
-The good news: once you understand the trade-offs, the decision becomes much more intuitive.
+> **Yeh kiske liye hai:** Un developers ke liye jo databases mein naye hain aur kisi technology pe kood-ne se pehle poora landscape samajhna chahte hain.
 
 ---
 
-## 🟦 The SQL (Relational) World
+## 🧭 Yeh Choice Itni Important Kyun Hai?
 
-SQL databases have been the backbone of software for over 50 years. They store data in **tables** — rows and columns, like a very powerful spreadsheet — and relationships between tables are expressed using **foreign keys** and **JOIN** operations.
+Code ki ek line likhne se pehle, sabse bada decision jo tum loge woh hai: **konsa database use karun?** Galat choice ka matlab hai — baad mein painful migrations, scale pe kharab performance, ya phir ek simple app ke liye bewajah complexity.
+
+Achhi baat yeh hai: ek baar trade-offs samajh aa gaye, toh decision khud-ba-khud intuitive ban jata hai. Socho jaise tumhe Zomato pe restaurant choose karna hai — agar tumhe bas quick bite chahiye toh fast food, agar family dinner hai toh proper sit-down restaurant. Database bhi waise hi — use-case ke hisaab se choose karte hain.
+
+---
+
+## 🟦 SQL (Relational) Duniya
+
+SQL databases pichle 50+ saal se software ki rीढ़ ki haddi (backbone) hain. Yeh data ko **tables** mein store karte hain — rows aur columns, ek powerful spreadsheet ki tarah — aur tables ke beech relationships **foreign keys** aur **JOIN** operations se banate hain.
 
 **Core characteristics:**
 
-| Property | What it means |
+| Property | Iska matlab kya hai |
 |---|---|
-| Structured data | Every row in a table has the same columns (schema) |
-| Fixed schema | You define the structure upfront; changes require migrations |
-| Relationships | Data across tables links together via foreign keys |
-| ACID guarantees | Transactions are safe, consistent, and reliable |
-| SQL language | Universally understood query language |
+| Structured data | Table ki har row mein same columns hote hain (schema fix hota hai) |
+| Fixed schema | Structure pehle se define karte ho; badlaav ke liye migration chahiye |
+| Relationships | Alag-alag tables ka data foreign keys se jud'ta hai |
+| ACID guarantees | Transactions safe, consistent, aur reliable hote hain |
+| SQL language | Universally samjhi jaane wali query language |
 
 **Popular SQL databases:** PostgreSQL, MySQL, SQLite, Microsoft SQL Server, Oracle.
 
-### ACID — The Reliability Promise
+### ACID — Reliability ka Vaada
 
-ACID is the gold standard for data integrity. Every transaction in a SQL database guarantees:
+ACID data integrity ka gold standard hai. SQL database ka har transaction guarantee karta hai:
 
-- **A — Atomicity:** A transaction either fully succeeds or fully fails. No half-written states. If you transfer money from Account A to Account B and the power cuts out halfway, the money does not vanish — the entire transaction rolls back.
-- **C — Consistency:** The database only moves from one valid state to another. Rules (constraints, foreign keys) are always enforced.
-- **I — Isolation:** Concurrent transactions do not interfere with each other. Two people booking the last concert seat at the same moment will not both get it.
-- **D — Durability:** Once a transaction is committed, it survives crashes. The data is written to disk.
+- **A — Atomicity:** Ek transaction ya toh poora successful hoga ya poora fail hoga. Aadha-adhoora state kabhi nahi rahega. Socho tum Account A se Account B mein paise transfer kar rahe ho aur beech mein bijli chali jaaye — paisa gayab nahi hoga, poora transaction rollback ho jayega. UPI transfer mein bhi yehi hota hai — agar transaction beech mein fail ho jaaye toh paisa waapas aa jata hai, atka nahi rehta.
+- **C — Consistency:** Database sirf ek valid state se dusri valid state mein jata hai. Rules (constraints, foreign keys) hamesha enforce hote hain.
+- **I — Isolation:** Ek saath chal rahe transactions ek dusre mein interfere nahi karte. IRCTC pe do log same waqt last waiting seat book karne ki koshish karein — dono ko seat nahi milegi, sirf ek ko milegi.
+- **D — Durability:** Ek baar transaction commit ho gaya, toh woh crash ke baad bhi survive karta hai. Data disk pe likha ja chuka hota hai.
 
-ACID is why banks, hospitals, and e-commerce checkouts trust relational databases with their most critical data.
+ACID isliye important hai kyunki banks, hospitals, aur e-commerce checkouts apna sabse critical data relational databases pe hi trust karte hain.
 
 ---
 
-## 🟩 The NoSQL World
+## 🟩 NoSQL Duniya
 
-NoSQL (sometimes read as "Not Only SQL") emerged in the 2000s when companies like Google, Amazon, and Facebook hit walls with traditional relational databases — specifically around **scale** and **flexibility**.
+NoSQL (kabhi-kabhi "Not Only SQL" bhi padha jata hai) 2000s mein tab aaya jab Google, Amazon, aur Facebook jaisi companies traditional relational databases ke saath deewar se takra gayi — khaaskar **scale** aur **flexibility** ke maamle mein.
 
-NoSQL is not one thing. It is a family of database designs that trade some relational guarantees for other benefits: flexible schemas, horizontal scaling, and specialization for particular access patterns.
+NoSQL koi ek cheez nahi hai. Yeh database designs ka ek pura parivaar hai jo kuch relational guarantees ko chhod kar dusre fayde deta hai: flexible schemas, horizontal scaling, aur specific access patterns ke liye specialization.
 
 **Core characteristics:**
 
-| Property | What it means |
+| Property | Iska matlab kya hai |
 |---|---|
-| Flexible schema | Documents/records can have different fields; no migration needed |
-| Horizontal scaling | Add more servers rather than upgrading one big server |
-| Eventual consistency | Reads might temporarily return stale data across replicas |
-| Specialized access | Optimized for specific patterns (caching, search, graphs, etc.) |
-| Varied query models | Each NoSQL type has its own query style |
+| Flexible schema | Documents/records mein alag-alag fields ho sakte hain; migration ki zarurat nahi |
+| Horizontal scaling | Ek bade server ko upgrade karne ke bajaye zyada servers add karo |
+| Eventual consistency | Reads kabhi-kabhi replicas ke beech stale data de sakte hain |
+| Specialized access | Specific patterns (caching, search, graphs, etc.) ke liye optimized |
+| Varied query models | Har NoSQL type ka apna query style hota hai |
 
 ---
 
-## 🗂️ Types of NoSQL Databases
+## 🗂️ NoSQL Databases ke Types
 
 ### 1. 📄 Document Stores — MongoDB, CouchDB
 
-Data is stored as self-describing documents, typically in JSON or BSON format. Each document can have a completely different structure.
+Data self-describing documents ki tarah store hota hai, generally JSON ya BSON format mein. Har document ka structure poori tarah alag ho sakta hai.
 
-**Best for:** Content management systems, user profiles, catalogs, any data where structure varies between records.
+**Kis kaam ke liye best:** Content management systems, user profiles, catalogs — jahan bhi records ka structure vary karta hai.
 
 ```json
-// A user document in MongoDB
+// MongoDB mein ek user document
 {
   "_id": "u_12345",
   "name": "Priya Sharma",
@@ -84,66 +84,66 @@ Data is stored as self-describing documents, typically in JSON or BSON format. E
 }
 ```
 
-The nested `addresses` array would require a separate table in SQL. In MongoDB, it lives naturally inside the document.
+Yeh nested `addresses` array SQL mein ek alag table maangega. MongoDB mein yeh document ke andar hi naturally reh jata hai.
 
 ---
 
 ### 2. ⚡ Key-Value Stores — Redis, DynamoDB
 
-The simplest model: a giant dictionary. You look up a value by its key. Extremely fast because there is no query planning — just direct lookups.
+Sabse simple model: ek bahut bada dictionary. Tum ek key se ek value dhoondte ho. Bahut fast hota hai kyunki koi query planning nahi — bas direct lookup.
 
-**Best for:** Caching, session storage, rate limiting, leaderboards, real-time counters.
+**Kis kaam ke liye best:** Caching, session storage, rate limiting, leaderboards, real-time counters.
 
 ```
 SET session:abc123  '{"userId": 42, "role": "admin"}'  EX 3600
 GET session:abc123
 ```
 
-Redis can store millions of lookups per second and keeps data in memory for microsecond latency. It is usually the first thing added to an architecture when a SQL database gets too slow for repeated reads.
+Redis per second lakhon lookups handle kar sakta hai aur data ko memory mein rakhta hai — matlab microsecond latency. Jab bhi ek SQL database repeated reads ke liye slow ho jaata hai, sabse pehle architecture mein Redis hi add kiya jata hai. Bilkul Swiggy ke order status jaisa — baar-baar database hit karne ke bajaye ek fast cache se turant status mil jaata hai.
 
 ---
 
 ### 3. 🏛️ Column-Family Stores — Apache Cassandra, HBase
 
-Data is organized into rows and columns like SQL, but with a twist: columns are grouped into **column families**, and rows can have different columns. Cassandra is designed to handle write-heavy workloads at massive scale across many servers.
+Data rows aur columns mein organize hota hai, SQL jaisa hi — lekin ek twist ke saath: columns ko **column families** mein group kiya jata hai, aur alag-alag rows ke alag-alag columns ho sakte hain. Cassandra khaas taur pe write-heavy workloads ko bahut bade scale pe, kai servers ke across, handle karne ke liye design kiya gaya hai.
 
-**Best for:** Time-series data, IoT sensor readings, event logs, analytics at scale.
+**Kis kaam ke liye best:** Time-series data, IoT sensor readings, event logs, analytics at scale.
 
 ```
--- Cassandra writes are extremely fast; great for:
+-- Cassandra writes bahut fast hote hain; achhe hain:
 -- sensor_readings table
 -- row key: device_id + timestamp
 -- columns: temperature, humidity, pressure
 ```
 
-Cassandra is used by Netflix, Apple, and Instagram for workloads that require writing millions of records per second without a single point of failure.
+Netflix, Apple, aur Instagram Cassandra use karte hain un workloads ke liye jahan single point of failure ke bina per second lakhon records likhne padte hain.
 
 ---
 
 ### 4. 🕸️ Graph Databases — Neo4j, Amazon Neptune
 
-In a graph database, **relationships are first-class citizens**. Data is stored as nodes (entities) and edges (relationships between them). This makes traversing complex relationship chains incredibly efficient — something SQL JOINs struggle with at depth.
+Graph database mein **relationships first-class citizens** hote hain. Data nodes (entities) aur edges (unke beech relationships) ki tarah store hota hai. Isse complex relationship chains ko traverse karna bahut efficient ho jata hai — jo SQL JOINs deep level pe struggle karte hain.
 
-**Best for:** Social networks, recommendation engines, fraud detection, knowledge graphs.
+**Kis kaam ke liye best:** Social networks, recommendation engines, fraud detection, knowledge graphs.
 
 ```cypher
--- Find friends of friends who like Jazz in Neo4j (Cypher query)
+-- Neo4j mein Jazz pasand karne wale friends-of-friends dhoondo (Cypher query)
 MATCH (me:User {name: "Arjun"})-[:FRIENDS_WITH*2]-(fof:User)-[:LIKES]->(genre:Genre {name: "Jazz"})
 RETURN fof.name
 ```
 
-This query that traverses two levels of friendship would require multiple self-JOINs in SQL and would slow down significantly with millions of users.
+Yeh query jo do level ki friendship traverse karti hai, SQL mein multiple self-JOINs maangegi aur millions of users ke saath bahut slow ho jaayegi.
 
 ---
 
 ### 5. 🔍 Search Engines — Elasticsearch, OpenSearch
 
-Optimized for **full-text search** with relevance ranking. Under the hood they use inverted indexes — the same technique search engines use to find documents containing a word instantly across billions of records.
+**Full-text search** ke liye optimized, relevance ranking ke saath. Under the hood inverted indexes use hote hain — wahi technique jo search engines billions of records mein instantly ek word dhoondne ke liye use karte hain.
 
-**Best for:** Product search, log analysis, autocomplete, document search, observability dashboards.
+**Kis kaam ke liye best:** Product search, log analysis, autocomplete, document search, observability dashboards.
 
 ```json
-// Search for "wireless headphones" sorted by relevance
+// "wireless headphones" search karo relevance ke hisaab se sorted
 {
   "query": {
     "match": { "description": "wireless headphones" }
@@ -151,18 +151,18 @@ Optimized for **full-text search** with relevance ranking. Under the hood they u
 }
 ```
 
-Elasticsearch powers the search on sites like GitHub, Wikipedia, and Stack Overflow.
+Elasticsearch GitHub, Wikipedia, aur Stack Overflow jaisi sites ki search power karta hai — bilkul jaise Flipkart pe tum "phone under 20000" search karte ho aur turant relevant results aa jaate hain.
 
 ---
 
 ### 6. ⏱️ Time-Series Databases — InfluxDB, TimescaleDB
 
-Built specifically for data that is indexed by time: metrics, sensor readings, financial tick data, server performance. They use compression and storage layouts optimized for sequential time-based writes and range queries.
+Khaas taur pe us data ke liye bane hain jo time ke hisaab se index hota hai: metrics, sensor readings, financial tick data, server performance. Yeh compression aur storage layouts use karte hain jo sequential time-based writes aur range queries ke liye optimized hain.
 
-**Best for:** Server monitoring, IoT telemetry, financial market data, application performance monitoring (APM).
+**Kis kaam ke liye best:** Server monitoring, IoT telemetry, financial market data, application performance monitoring (APM).
 
 ```sql
--- TimescaleDB (extends PostgreSQL)
+-- TimescaleDB (PostgreSQL ko extend karta hai)
 SELECT time_bucket('1 hour', time) AS hour, avg(cpu_usage)
 FROM server_metrics
 WHERE time > NOW() - INTERVAL '24 hours'
@@ -170,19 +170,19 @@ GROUP BY hour
 ORDER BY hour;
 ```
 
-TimescaleDB is particularly interesting because it gives you time-series performance on top of a familiar PostgreSQL interface.
+TimescaleDB isliye interesting hai kyunki tumhe time-series performance milti hai ek familiar PostgreSQL interface ke upar hi.
 
 ---
 
-## 🔺 CAP Theorem — The Fundamental Trade-off
+## 🔺 CAP Theorem — Ek Fundamental Trade-off
 
-In 2000, computer scientist Eric Brewer proposed that distributed databases can only guarantee **two of these three properties** simultaneously:
+2000 mein computer scientist Eric Brewer ne yeh proposal diya ki distributed databases ek saath in teen properties mein se sirf **do hi guarantee** kar sakte hain:
 
-- **C — Consistency:** Every read receives the most recent write (or an error).
-- **A — Availability:** Every request receives a response (not guaranteed to be the latest data).
-- **P — Partition Tolerance:** The system keeps operating even when network communication between nodes fails.
+- **C — Consistency:** Har read sabse latest write hi return karega (ya error dega).
+- **A — Availability:** Har request ka response milega (zaruri nahi ki data sabse latest ho).
+- **P — Partition Tolerance:** Nodes ke beech network communication fail hone pe bhi system chalta rehta hai.
 
-In any real distributed system, **network partitions will happen** — so P is not optional. That means you are really choosing between **CP** (consistency over availability) or **AP** (availability over consistency).
+Kisi bhi real distributed system mein, **network partitions hoti hi hain** — toh P optional nahi hai. Iska matlab hai tum asal mein **CP** (consistency over availability) ya **AP** (availability over consistency) mein choose kar rahe ho.
 
 ```mermaid
 graph TD
@@ -205,49 +205,49 @@ graph TD
 
 **Real-world examples:**
 
-| System | CAP Position | Trade-off in practice |
+| System | CAP Position | Practical trade-off |
 |---|---|---|
-| PostgreSQL (single node) | CA | No partition tolerance; great for one server |
-| MongoDB | CP | During a network split, MongoDB refuses writes to stay consistent |
-| Cassandra | AP | During a split, Cassandra keeps accepting writes; you might read stale data briefly |
-| Zookeeper | CP | Prefers to be unavailable rather than return inconsistent data |
-| DynamoDB | AP (configurable) | Eventual consistency by default; strong consistency available at cost |
+| PostgreSQL (single node) | CA | Partition tolerance nahi hai; ek single server ke liye great |
+| MongoDB | CP | Network split ke waqt, MongoDB writes mana kar deta hai consistent rehne ke liye |
+| Cassandra | AP | Split ke waqt, Cassandra writes accept karta rehta hai; thoda stale data mil sakta hai |
+| Zookeeper | CP | Inconsistent data return karne se behtar unavailable rehna pasand karta hai |
+| DynamoDB | AP (configurable) | Default eventual consistency; strong consistency bhi milti hai extra cost pe |
 
 ---
 
 ## ⚗️ ACID vs BASE
 
-SQL databases offer ACID. Many NoSQL databases operate on a looser model called **BASE**:
+SQL databases ACID dete hain. Bahut saare NoSQL databases ek loose model pe chalte hain jise **BASE** kehte hain:
 
 | | ACID | BASE |
 |---|---|---|
 | Full form | Atomicity, Consistency, Isolation, Durability | Basically Available, Soft state, Eventually consistent |
-| Consistency model | Strong (immediate) | Eventual |
-| Availability | May sacrifice for consistency | Prioritized |
+| Consistency model | Strong (turant) | Eventual |
+| Availability | Consistency ke liye sacrifice ho sakti hai | Priority di jaati hai |
 | Use case fit | Financial transactions, bookings | Social feeds, analytics, caching |
 | Example systems | PostgreSQL, MySQL, Oracle | Cassandra, DynamoDB, CouchDB |
 
-**"Eventually consistent"** means: if you write a value and immediately read it from a different replica, you might briefly get the old value. Within milliseconds to seconds, all replicas converge. For a social media "like count" that is perfectly fine. For a bank balance, it is absolutely not.
+**"Eventually consistent"** ka matlab: agar tum ek value likho aur turant use kisi doosre replica se padho, toh ho sakta hai thodi der ke liye purani value mil jaaye. Milliseconds se seconds ke andar, saare replicas converge kar jaate hain. Ek social media "like count" ke liye yeh bilkul theek hai. Ek bank balance ke liye, yeh bilkul bhi acceptable nahi hai.
 
 ---
 
-## 🤔 Decision Guide — When to Use What
+## 🤔 Decision Guide — Kab Kya Use Karein
 
 ```mermaid
 flowchart TD
-    Start([Start: What does your data look like?]) --> Q1{Is data highly\nrelational with\ncomplex JOINs?}
-    Q1 -->|Yes| Q2{Need strong\nconsistency\nand ACID?}
-    Q1 -->|No| Q3{What is the\nprimary access\npattern?}
+    Start([Start: Tumhara data kaisa dikhta hai?]) --> Q1{Data highly\nrelational hai\ncomplex JOINs ke saath?}
+    Q1 -->|Haan| Q2{Strong\nconsistency\naur ACID chahiye?}
+    Q1 -->|Nahi| Q3{Primary access\npattern kya hai?}
 
-    Q2 -->|Yes| SQL[Use SQL\nPostgreSQL / MySQL]
-    Q2 -->|No| NEWSQL[Consider NewSQL\nCockroachDB / Spanner]
+    Q2 -->|Haan| SQL[SQL use karo\nPostgreSQL / MySQL]
+    Q2 -->|Nahi| NEWSQL[NewSQL consider karo\nCockroachDB / Spanner]
 
-    Q3 -->|Fast key lookups\nor caching| REDIS[Key-Value\nRedis / DynamoDB]
+    Q3 -->|Fast key lookups\nya caching| REDIS[Key-Value\nRedis / DynamoDB]
     Q3 -->|Flexible nested\nJSON documents| MONGO[Document Store\nMongoDB / CouchDB]
-    Q3 -->|Full-text search\nor relevance ranking| ELASTIC[Search Engine\nElasticsearch]
+    Q3 -->|Full-text search\nya relevance ranking| ELASTIC[Search Engine\nElasticsearch]
     Q3 -->|Relationship\ntraversal| GRAPH[Graph DB\nNeo4j / Neptune]
-    Q3 -->|Time-indexed metrics\nor sensor data| TIMESERIES[Time-Series DB\nInfluxDB / TimescaleDB]
-    Q3 -->|Massive write volume\nacross many servers| CASSANDRA[Column-Family\nCassandra / HBase]
+    Q3 -->|Time-indexed metrics\nya sensor data| TIMESERIES[Time-Series DB\nInfluxDB / TimescaleDB]
+    Q3 -->|Massive write volume\nkai servers ke across| CASSANDRA[Column-Family\nCassandra / HBase]
 
     style Start fill:#2d3748,color:#fff
     style SQL fill:#3182ce,color:#fff
@@ -260,23 +260,23 @@ flowchart TD
     style CASSANDRA fill:#553c9a,color:#fff
 ```
 
-### Use SQL when:
-- You have financial transactions or anything where partial writes would be catastrophic
-- Your data has clear relationships (users, orders, products, invoices)
-- You need complex queries with multiple JOINs
-- Your team knows SQL well and your data fits in one server or a small cluster
-- Regulatory compliance requires strong data integrity guarantees
+### SQL kab use karo:
+- Tumhare paas financial transactions hain ya kuch aisa jahan partial writes disaster ban sakte hain
+- Tumhara data clearly related hai (users, orders, products, invoices)
+- Tumhe multiple JOINs wali complex queries chahiye
+- Tumhari team SQL achhe se jaanti hai aur data ek server ya chhote cluster mein fit ho jata hai
+- Regulatory compliance ke liye strong data integrity guarantees chahiye
 
-### Use NoSQL when:
-- Your schema changes frequently or varies between records
-- You need to scale writes horizontally across many servers
-- You have a specialized access pattern (search, graph, time-series, caching)
-- You can tolerate eventual consistency for better availability
-- You are building real-time features: live dashboards, activity feeds, leaderboards
+### NoSQL kab use karo:
+- Tumhara schema baar-baar badalta hai ya records ke beech vary karta hai
+- Tumhe writes ko horizontally, kai servers ke across, scale karna hai
+- Tumhare paas ek specialized access pattern hai (search, graph, time-series, caching)
+- Tum better availability ke liye eventual consistency tolerate kar sakte ho
+- Tum real-time features bana rahe ho: live dashboards, activity feeds, leaderboards
 
 ---
 
-## 📊 Big Comparison Table
+## 📊 Bada Comparison Table
 
 | Feature | PostgreSQL (SQL) | MongoDB (Document) | Redis (Key-Value) | Cassandra (Column) | Neo4j (Graph) |
 |---|---|---|---|---|---|
@@ -292,91 +292,91 @@ flowchart TD
 
 ---
 
-## 🆕 NewSQL — Best of Both Worlds?
+## 🆕 NewSQL — Dono Duniya ka Best?
 
-NewSQL databases attempt to combine the ACID guarantees of SQL with the horizontal scalability of NoSQL.
+NewSQL databases SQL ki ACID guarantees ko NoSQL ki horizontal scalability ke saath combine karne ki koshish karte hain.
 
-**CockroachDB** and **Google Spanner** are the leading examples. They:
-- Accept standard SQL queries
-- Support full ACID transactions across distributed nodes
-- Automatically shard data across many servers
-- Survive entire data center failures
+**CockroachDB** aur **Google Spanner** iske leading examples hain. Yeh:
+- Standard SQL queries accept karte hain
+- Distributed nodes ke across full ACID transactions support karte hain
+- Data ko automatically kai servers mein shard kar dete hain
+- Poore data center ki failure bhi survive kar lete hain
 
-The trade-off: they are more complex to operate than traditional SQL and introduce higher latency due to distributed coordination (consensus protocols like Raft or Paxos).
+Trade-off: yeh traditional SQL se operate karne mein zyada complex hain aur distributed coordination (Raft ya Paxos jaisa consensus protocol) ki wajah se higher latency introduce karte hain.
 
-**Use NewSQL when** you genuinely need both: SQL semantics AND global scale. A fintech startup expanding internationally is the classic use case — you need consistent financial transactions AND you need them to work reliably across regions.
+**NewSQL kab use karo** — jab tumhe genuinely dono chahiye: SQL semantics AND global scale. Ek fintech startup jo internationally expand kar raha hai, uska classic use case hai — tumhe consistent financial transactions bhi chahiye AND unhe multiple regions mein reliably kaam karna bhi zaruri hai.
 
 ---
 
 ## 🏗️ Real Architecture Example
 
-A modern e-commerce application might use several databases simultaneously, each chosen for its strengths:
+Ek modern e-commerce application ek saath kai databases use kar sakta hai, har ek apni strength ke liye chuna hua:
 
 ```
 User authentication & profiles  →  PostgreSQL (ACID, relational)
-Product catalog                 →  MongoDB (flexible schema per category)
+Product catalog                 →  MongoDB (har category ka flexible schema)
 Shopping cart & sessions        →  Redis (fast, ephemeral, key-value)
-Order history & inventory       →  PostgreSQL (ACID transactions critical)
+Order history & inventory       →  PostgreSQL (ACID transactions critical hai)
 Product search                  →  Elasticsearch (full-text, facets, filters)
 Recommendation engine           →  Neo4j (relationship traversal)
 Server monitoring               →  InfluxDB (time-series metrics)
 ```
 
-This pattern is called **polyglot persistence** — using the right database for each specific job rather than forcing every use case into a single database.
+Iss pattern ko **polyglot persistence** kehte hain — har specific job ke liye sahi database use karna, na ki har use-case ko ek hi database mein zabardasti fit karna. Bilkul Zomato jaisa socho — order tracking ke liye ek system, payment ke liye dusra, aur search ke liye teesra. Sab kuch ek hi database pe daalna ineffiecient hoga.
 
 ---
 
 ## 🔑 Key Takeaways
 
-1. **SQL = structured, relational, ACID.** Use it for anything where consistency and relationships matter: finance, user accounts, inventory.
+1. **SQL = structured, relational, ACID.** Jahan bhi consistency aur relationships matter karte hain, wahan use karo: finance, user accounts, inventory.
 
-2. **NoSQL = flexible, scalable, specialized.** Not a single thing — document, key-value, column-family, graph, search, and time-series databases each solve a specific problem better than SQL.
+2. **NoSQL = flexible, scalable, specialized.** Yeh ek single cheez nahi hai — document, key-value, column-family, graph, search, aur time-series databases, har ek SQL se better tarike se ek specific problem solve karta hai.
 
-3. **CAP theorem forces a choice.** In a distributed system you pick Consistency + Partition Tolerance (CP) or Availability + Partition Tolerance (AP). Strong consistency costs availability during network failures.
+3. **CAP theorem ek choice force karta hai.** Distributed system mein tum Consistency + Partition Tolerance (CP) ya Availability + Partition Tolerance (AP) mein se ek chunte ho. Strong consistency ki keemat network failure ke waqt availability se chukani padti hai.
 
-4. **ACID vs BASE is not good vs bad** — it is a trade-off. Eventual consistency is perfectly fine for social feeds; it is unacceptable for financial transfers.
+4. **ACID vs BASE achha vs bura nahi hai** — yeh ek trade-off hai. Social feeds ke liye eventual consistency bilkul theek hai; financial transfers ke liye yeh unacceptable hai.
 
-5. **Polyglot persistence is normal.** Production systems routinely use 3-5 different databases. Pick the right tool for each job.
+5. **Polyglot persistence normal hai.** Production systems mein routinely 3-5 alag-alag databases use hote hain. Har job ke liye sahi tool chuno.
 
-6. **NewSQL (CockroachDB, Spanner) bridges the gap** when you genuinely need both SQL semantics and global horizontal scale.
+6. **NewSQL (CockroachDB, Spanner) gap bridge karta hai** jab tumhe genuinely SQL semantics aur global horizontal scale, dono chahiye.
 
-7. **Start with PostgreSQL.** For most new projects, PostgreSQL is the safest default — it is powerful, battle-tested, and can be extended with plugins like TimescaleDB. Only switch to a specialized database once you have a concrete reason.
+7. **PostgreSQL se start karo.** Zyaadatar naye projects ke liye, PostgreSQL sabse safe default hai — yeh powerful hai, battle-tested hai, aur TimescaleDB jaise plugins se extend bhi ho sakta hai. Kisi specialized database pe tabhi switch karo jab tumhare paas koi concrete reason ho.
 
 ---
 
-## 🧪 Quiz — Test Your Understanding
+## 🧪 Quiz — Apni Samajh Test Karo
 
-**Question 1:** You are building a feature that lets users transfer money between bank accounts. Which consistency model is absolutely required, and which database type provides it by default?
+**Question 1:** Tum ek feature bana rahe ho jisse users bank accounts ke beech paise transfer kar sakein. Konsa consistency model bilkul zaruri hai, aur konsa database type isse default mein deta hai?
 
 <details>
-<summary>Show answer</summary>
+<summary>Jawab dekho</summary>
 
-You need **ACID transactions** with **strong consistency**. Partial writes (money debited but not credited) would be catastrophic. A **SQL database** like PostgreSQL provides this by default. An AP NoSQL database like Cassandra would be a dangerous choice here.
+Tumhe **ACID transactions** chahiye **strong consistency** ke saath. Partial writes (paisa debit ho gaya lekin credit nahi hua) disaster ban sakta hai. PostgreSQL jaisa ek **SQL database** yeh default mein deta hai. Cassandra jaisa AP NoSQL database yahan ek dangerous choice hoga.
 
 </details>
 
 ---
 
-**Question 2:** Your social app has a "People You May Know" feature that needs to find users who share 3 or more mutual friends. You have 10 million users. A SQL JOIN approach is timing out. Which database type should you consider, and why?
+**Question 2:** Tumhare social app mein ek "People You May Know" feature hai jisse 3 ya usse zyada mutual friends share karne wale users dhoondhne hain. Tumhare paas 10 million users hain. SQL JOIN approach timeout ho raha hai. Konsa database type consider karna chahiye, aur kyun?
 
 <details>
-<summary>Show answer</summary>
+<summary>Jawab dekho</summary>
 
-A **graph database** like Neo4j. Relationship traversal (friends-of-friends) is exactly what graph databases are built for. In SQL, finding shared connections requires multiple self-JOINs that become exponentially slower as the user count grows. In Neo4j, you traverse the graph directly without expensive table scans.
+Neo4j jaisa ek **graph database**. Relationship traversal (friends-of-friends) exactly wahi cheez hai jiske liye graph databases bane hain. SQL mein, shared connections dhoondhne ke liye multiple self-JOINs chahiye hote hain jo user count badhne ke saath exponentially slow ho jaate hain. Neo4j mein, tum expensive table scans ke bina directly graph traverse karte ho.
 
 </details>
 
 ---
 
-**Question 3:** According to the CAP theorem, Cassandra is an AP system. What does this mean in practice when two data center nodes lose connectivity with each other?
+**Question 3:** CAP theorem ke hisaab se, Cassandra ek AP system hai. Jab do data center nodes ek dusre se connectivity kho dete hain, tab practically iska kya matlab hota hai?
 
 <details>
-<summary>Show answer</summary>
+<summary>Jawab dekho</summary>
 
-Cassandra prioritizes **Availability** over Consistency during a partition. Both nodes continue accepting reads and writes independently. When the network heals, Cassandra reconciles the diverged data using techniques like "last write wins" or vector clocks. This means a user might briefly read stale data, but the system never goes down. A CP system like MongoDB would instead refuse writes on the minority partition to protect consistency.
+Cassandra partition ke waqt **Consistency** ke upar **Availability** ko priority deta hai. Dono nodes independently reads aur writes accept karte rehte hain. Jab network waapas theek ho jata hai, Cassandra "last write wins" ya vector clocks jaisi techniques use karke diverged data ko reconcile kar leta hai. Iska matlab hai user ko thodi der ke liye stale data mil sakta hai, lekin system kabhi down nahi hota. MongoDB jaisa CP system iski jagah minority partition pe writes mana kar dega taaki consistency protect ho.
 
 </details>
 
 ---
 
-*Next chapter: Deep Dive into PostgreSQL — Indexes, Query Planning, and Performance Tuning*
+*Agla chapter: PostgreSQL mein Deep Dive — Indexes, Query Planning, aur Performance Tuning*

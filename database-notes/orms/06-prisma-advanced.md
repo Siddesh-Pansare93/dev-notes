@@ -1,6 +1,6 @@
 # Prisma Advanced — Transactions, Raw SQL, Middleware, and Performance
 
-> **Level:** Intermediate — you should already be comfortable with basic Prisma CRUD, relations, and the Prisma schema. This chapter covers the features you reach for once your app grows beyond simple queries.
+> **Level:** Intermediate — basic Prisma CRUD, relations, aur Prisma schema pehle se aana chahiye. Yeh chapter un cheezo ke baare mein hai jo tum tab use karte ho jab app simple queries se aage badh jaata hai.
 
 ---
 
@@ -18,15 +18,17 @@
 
 ## 🔁 Transactions
 
-A **transaction** is a group of database operations that either all succeed together or all fail together. If any single step throws an error, the database rolls back every change made so far — as if none of it happened. This is critical for data integrity. Imagine charging a customer's card and then failing to create their order record: without a transaction you now have a payment with no order.
+**Kya hota hai?** Ek **transaction** matlab database operations ka ek group jo ya to sab ke sab succeed karenge, ya sab ke sab fail. Agar beech mein koi ek step error de de, toh database ab tak ke saare changes rollback kar deta hai — jaise kuch hua hi nahi. Yeh data integrity ke liye zaruri hai.
 
-Prisma gives you two transaction flavors.
+Socho — tum Paytm se kisi ka card charge kar rahe ho aur uske baad order record create karna hai. Agar payment ho gaya lekin order create karte waqt kuch fail ho gaya, aur transaction nahi hai, toh customer ka paisa kat gaya but order kahin nahi hai. Bawaal ho jayega support team ke liye. Isi problem ko transactions solve karte hain.
+
+Prisma do transaction flavors deta hai.
 
 ---
 
 ### Sequential (Interactive) Transactions
 
-The interactive form lets you run several queries **one after the other** and use the result of one query as input to the next. You pass an async callback to `$transaction`; every query inside must use the special `tx` (transaction client) instead of the global `prisma` client.
+**Kyun zaruri hai?** Kabhi kabhi ek query ka result agli query mein use karna padta hai — jaise pehle user banao, phir uske `user.id` se profile banao. Interactive form isi ke liye hai — queries **ek ke baad ek** chalti hain, aur ek query ka result agli query mein input ban sakta hai. Tum `$transaction` ko ek async callback dete ho; andar har query global `prisma` client ki jagah special `tx` (transaction client) use karti hai.
 
 ```typescript
 const result = await prisma.$transaction(async (tx) => {
@@ -45,9 +47,9 @@ const result = await prisma.$transaction(async (tx) => {
 // If either step throws, BOTH rows are rolled back automatically
 ```
 
-**Why use `tx` and not `prisma` inside?** The `tx` object is a special client that is bound to the same database connection and the same open transaction. Using the global `prisma` client inside the callback would run queries on a different connection, outside the transaction, and you lose the atomicity guarantee.
+**`tx` hi kyun, `prisma` kyun nahi?** `tx` object ek special client hai jo usi database connection aur usi open transaction se bandha hota hai. Agar tum andar global `prisma` client use karoge, toh woh query ek alag connection pe chalegi, transaction ke bahar — aur atomicity guarantee gayab ho jayegi. Socho tumne UPI transfer ke andar ek alag "connection" se database hit kiya — woh transfer ke saath rollback nahi hoga, toh data inconsistent reh jayega.
 
-**Timeout:** By default Prisma aborts an interactive transaction after 5 seconds. For long-running work you can override this:
+**Timeout:** Default mein Prisma interactive transaction ko 5 second baad abort kar deta hai. Long-running kaam ke liye tum yeh override kar sakte ho:
 
 ```typescript
 await prisma.$transaction(async (tx) => { /* ... */ }, {
@@ -60,7 +62,7 @@ await prisma.$transaction(async (tx) => { /* ... */ }, {
 
 ### Batch (Array) Transactions
 
-When your operations are **independent of each other** — no result from query A feeds into query B — you can pass an array. Prisma sends all queries in one round-trip and wraps them in a single database transaction.
+**Kab use karein?** Jab tumhare operations ek dusre se **independent** hain — matlab query A ka result query B mein feed nahi ho raha — tab tum ek array pass kar sakte ho. Prisma saari queries ek hi round-trip mein bhejta hai aur unhe ek single database transaction mein wrap kar deta hai.
 
 ```typescript
 const [createdPost, updatedUser] = await prisma.$transaction([
@@ -74,26 +76,26 @@ const [createdPost, updatedUser] = await prisma.$transaction([
 ])
 ```
 
-Notice that you use `prisma` (not `tx`) here. You are just building query *promises* and handing them to `$transaction` as a list. The array syntax is simpler but less flexible — you cannot branch on intermediate results.
+Notice karo — yahan `prisma` use ho raha hai, `tx` nahi. Tum bas query *promises* bana rahe ho aur unki ek list `$transaction` ko de rahe ho. Array syntax simple hai lekin utna flexible nahi — intermediate results pe branch nahi kar sakte.
 
 | Feature | Sequential (callback) | Batch (array) |
 |---|---|---|
-| Use result of query A in query B | Yes | No |
+| Query A ka result Query B mein use karna | Haan | Nahi |
 | Syntax | `$transaction(async tx => {})` | `$transaction([...])` |
-| Round-trips | One per query | One for all |
-| Timeout control | Yes | No (single round-trip) |
+| Round-trips | Har query ka alag | Sab ke liye ek |
+| Timeout control | Haan | Nahi (single round-trip) |
 
 ---
 
 ## 🧬 Raw SQL
 
-Prisma's query API covers the vast majority of use cases, but sometimes you need raw SQL — a complex window function, a database-specific feature, or a migration-time script. Prisma exposes two raw helpers.
+Prisma ka query API zyada tar use-cases cover kar leta hai, lekin kabhi kabhi tumhe raw SQL chahiye hota hai — koi complex window function, database-specific feature, ya migration-time script. Iske liye Prisma do raw helpers deta hai.
 
 ---
 
 ### `$queryRaw` — Read Data
 
-Use this when you need rows back. Tag the template literal with your SQL:
+Jab tumhe rows chahiye, tab yeh use karo. SQL ko template literal se tag karo:
 
 ```typescript
 import { Prisma } from '@prisma/client'
@@ -105,11 +107,11 @@ const users = await prisma.$queryRaw<User[]>`
 `
 ```
 
-A few things to note:
+Kuch important baatein:
 
-- **Type parameter** — `$queryRaw<User[]>` tells TypeScript what shape each row has. Prisma cannot verify this at compile time; you are responsible for keeping it in sync with your actual SELECT columns.
-- **Template literal = auto-parameterization** — The `${cutoffDate}` interpolation is NOT plain string concatenation. Prisma turns it into a parameterized placeholder (`$1`, `?`, etc. depending on your database), which **prevents SQL injection**. Never build the SQL string yourself with string concatenation.
-- **`Prisma.sql` helper** — When you want to compose parts of a query dynamically, use `Prisma.sql`:
+- **Type parameter** — `$queryRaw<User[]>` TypeScript ko batata hai ki har row ka shape kaisa hai. Prisma isko compile time pe verify nahi kar sakta; tumhari zimmedari hai ki yeh actual SELECT columns ke saath sync rahe.
+- **Template literal = auto-parameterization** — `${cutoffDate}` interpolation plain string concatenation NAHI hai. Prisma isko ek parameterized placeholder (`$1`, `?`, database ke hisaab se) mein convert karta hai, jo **SQL injection ko prevent** karta hai. Kabhi bhi apne haath se string concatenation karke SQL mat banao — warna ho sakta hai koi tumhare form field mein `'; DROP TABLE users; --` type cheez daal de, jaise ek expired IRCTC coupon code exploit karke.
+- **`Prisma.sql` helper** — Jab dynamically query ke parts compose karne ho, `Prisma.sql` use karo:
 
 ```typescript
 const column = 'email'
@@ -121,11 +123,14 @@ const rows = await prisma.$queryRaw`
 // you fully control (never user input)
 ```
 
+> [!warning]
+> `Prisma.raw` sanitize NAHI karta. Isko sirf un values ke saath use karo jo tum khud control karte ho (jaise hardcoded column names) — kabhi bhi user input ke saath nahi, warna SQL injection ka seedha darwaza khul jayega.
+
 ---
 
 ### `$executeRaw` — Mutate Data
 
-Use this for `UPDATE`, `INSERT`, or `DELETE` when you do not need rows back. It returns the **number of rows affected**.
+Jab `UPDATE`, `INSERT`, ya `DELETE` karna ho aur rows wapas nahi chahiye, tab yeh use karo. Yeh **kitni rows affect hui** wo number return karta hai.
 
 ```typescript
 const affectedRows = await prisma.$executeRaw`
@@ -134,23 +139,23 @@ const affectedRows = await prisma.$executeRaw`
 console.log(`Activated ${affectedRows} users`)
 ```
 
-The same parameterization rules apply. Always use the template-literal syntax; never interpolate user-controlled values with `Prisma.raw`.
+Same parameterization rules yahan bhi lagu hote hain. Hamesha template-literal syntax use karo; user-controlled values ko kabhi `Prisma.raw` se interpolate mat karo.
 
 ---
 
 ## 🪝 Middleware
 
-Prisma Middleware lets you intercept every query before it runs (or after it returns), globally across your whole application. Think of it like Express middleware but for database operations.
+**Kya hota hai?** Prisma Middleware tumhe har query ko run hone se pehle (ya return hone ke baad) intercept karne deta hai — poore application mein globally. Socho ise Express middleware jaisa, bas database operations ke liye.
 
-You register middleware with `prisma.$use(...)`. Each middleware receives:
-- `params` — describes the query: which model, which action, what arguments.
-- `next` — a function that forwards the query down the chain (and eventually to the database).
+Tum `prisma.$use(...)` se middleware register karte ho. Har middleware ko milta hai:
+- `params` — query describe karta hai: kaunsa model, kaunsa action, kya arguments.
+- `next` — ek function jo query ko chain mein aage bhejta hai (aur eventually database tak).
 
 ---
 
 ### Example: Soft Delete
 
-Hard deletes remove a row permanently. Soft deletes instead set a `deletedAt` timestamp so you can recover data later. Implementing this manually in every delete call is error-prone. Middleware centralizes the logic:
+**Kyun zaruri hai?** Hard delete row ko permanently hata deta hai. Soft delete iski jagah ek `deletedAt` timestamp set kar deta hai taaki baad mein data recover ho sake — bilkul jaise Gmail mein "Trash" folder hota hai, delete hone ke baad bhi 30 din tak recover kar sakte ho. Har delete call mein manually yeh logic likhna error-prone hai. Middleware isko centralize kar deta hai:
 
 ```typescript
 prisma.$use(async (params, next) => {
@@ -164,9 +169,9 @@ prisma.$use(async (params, next) => {
 })
 ```
 
-Now every `prisma.post.delete(...)` in your codebase silently becomes a soft delete — no other code needs to change.
+Ab tumhare codebase mein har `prisma.post.delete(...)` chupke se soft delete ban jaata hai — kisi aur code ko change karne ki zarurat nahi.
 
-You would also want to intercept `findMany` / `findFirst` to exclude soft-deleted records:
+Iske saath `findMany` / `findFirst` ko bhi intercept karna chahoge, taaki soft-deleted records exclude ho jayein:
 
 ```typescript
 prisma.$use(async (params, next) => {
@@ -200,7 +205,8 @@ prisma.$use(async (params, next) => {
 })
 ```
 
-**Note:** Prisma Middleware is considered a "legacy" feature. For new projects, Prisma recommends **Prisma Client Extensions** (covered at the end of this chapter), which offer better TypeScript support and composability. Middleware still works and is widely used in existing codebases.
+> [!info]
+> Prisma Middleware ko ab "legacy" feature maana jaata hai. Naye projects ke liye Prisma **Prisma Client Extensions** recommend karta hai (isi chapter ke end mein cover kiya hai), jisme better TypeScript support aur composability milti hai. Middleware abhi bhi kaam karta hai aur existing codebases mein widely use hota hai.
 
 ---
 
@@ -208,7 +214,7 @@ prisma.$use(async (params, next) => {
 
 ### The N+1 Problem
 
-The N+1 problem is one of the most common performance mistakes with any ORM. Here is how it looks with Prisma:
+**Kya hai yeh problem?** N+1 problem kisi bhi ORM ke saath sabse common performance mistake hai. Dekho Prisma mein yeh kaisa dikhta hai:
 
 ```typescript
 // BAD — N+1
@@ -223,7 +229,9 @@ for (const post of posts) {
 // If you have 100 posts → 101 database round-trips
 ```
 
-**The fix: use `include`**
+Socho Zomato ki app agar har order card ke liye alag se "restaurant details" fetch karne database ko 100 baar hit kare — app hang ho jayegi. Yahi ho raha hai upar wale code mein.
+
+**Fix: `include` use karo**
 
 ```typescript
 // GOOD — 1 + 1 queries (or sometimes just 1)
@@ -236,14 +244,14 @@ for (const post of posts) {
 }
 ```
 
-Prisma fires a second query to fetch all related authors **in one shot** and stitches the results together in memory — far better than one query per post.
+Prisma ek second query fire karta hai jo saare related authors ko **ek hi shot mein** fetch kar leta hai aur results ko memory mein stitch kar deta hai — har post ke liye alag query maarne se kahin behtar.
 
 ---
 
-### `select` vs `include` — Load Only What You Need
+### `select` vs `include` — Sirf Wahi Load Karo Jiski Zarurat Hai
 
-- **`include`** — keep all scalar fields on the model AND eagerly load relations.
-- **`select`** — pick *exactly* the fields you want, scalar or relational.
+- **`include`** — model ke saare scalar fields rakhta hai AND relations bhi eagerly load karta hai.
+- **`select`** — sirf woh fields deta hai jo tum explicitly maango, scalar ho ya relational.
 
 ```typescript
 // include: gives you every column on Post + the relation
@@ -261,13 +269,13 @@ const posts = await prisma.post.findMany({
 })
 ```
 
-Avoid `SELECT *` (the implicit default when you omit `select`). Over a large table with many columns — especially `TEXT` blobs or `JSONB` columns — transferring unused data wastes bandwidth and memory. Use `select` whenever you know you only need a subset.
+`SELECT *` se bacho (jo tab implicit default hota hai jab tum `select` omit karte ho). Ek badi table pe jisme bahut saare columns hain — especially `TEXT` blobs ya `JSONB` columns — unused data transfer karna bandwidth aur memory dono waste karta hai. Jab pata ho ki sirf kuch fields chahiye, tab `select` use karo.
 
 ---
 
-### Prisma's Built-In Query Batching (DataLoader Pattern)
+### Prisma ka Built-In Query Batching (DataLoader Pattern)
 
-When Prisma detects multiple `findUnique` calls with the same `where` field happening in the same event-loop tick, it automatically batches them into a single `WHERE id IN (...)` query. This is the same idea as Facebook's DataLoader library. It happens transparently — you write individual lookups and Prisma collapses them:
+**Kya hota hai?** Jab Prisma dekhta hai ki same event-loop tick mein multiple `findUnique` calls same `where` field ke saath ho rahe hain, toh woh automatically inhe ek single `WHERE id IN (...)` query mein batch kar deta hai. Yeh wahi idea hai jo Facebook ki DataLoader library use karti hai. Yeh transparently hota hai — tum individual lookups likhte ho aur Prisma unhe collapse kar deta hai:
 
 ```typescript
 // These two calls issued in the same tick...
@@ -278,20 +286,22 @@ await Promise.all([a, b])
 // Prisma sends: SELECT * FROM users WHERE id IN (1, 2)  ← one query!
 ```
 
-You do not need to configure anything — this is on by default for `findUnique`.
+Yeh feature `findUnique` ke liye default on hai — kuch configure karne ki zarurat nahi.
 
 ---
 
 ### Connection Pooling
 
-Prisma Client opens a pool of database connections. Holding open too many connections or too few is a classic scaling problem:
+**Kyun zaruri hai?** Prisma Client database connections ka ek pool khol ke rakhta hai. Bahut zyada ya bahut kam connections open rakhna scaling ki classic problem hai:
 
-- **Too few** — requests queue up waiting for a free connection.
-- **Too many** — your database server gets overwhelmed.
+- **Bahut kam** — requests queue mein wait karti hain free connection ke liye.
+- **Bahut zyada** — tumhara database server overwhelm ho jaata hai.
 
-**Prisma Accelerate (Cloud)** — Prisma's managed connection pool and global cache layer. You swap your database URL for an Accelerate proxy URL; it handles pooling, edge caching, and keeps warm connections close to your users.
+Socho ek IRCTC ki tatkal booking ka scene — agar counter (connections) kam hain toh log queue mein latke rehte hain; agar bina limit ke sabko andar ghusa diya toh poora system crash ho jaata hai.
 
-**PgBouncer (Self-hosted)** — A lightweight PostgreSQL connection pooler you run alongside your database. You point Prisma at PgBouncer instead of Postgres directly. When using PgBouncer in transaction mode, add `?pgbouncer=true` to your connection string so Prisma disables prepared statements (which are unsupported in that mode):
+**Prisma Accelerate (Cloud)** — Prisma ka managed connection pool aur global cache layer. Tum apne database URL ko Accelerate proxy URL se swap kar dete ho; yeh pooling, edge caching sambhalta hai aur users ke close warm connections rakhta hai.
+
+**PgBouncer (Self-hosted)** — Ek lightweight PostgreSQL connection pooler jo tum apne database ke saath chalate ho. Prisma ko direct Postgres ki jagah PgBouncer pe point karo. Jab PgBouncer transaction mode mein use kar rahe ho, connection string mein `?pgbouncer=true` add karo taaki Prisma prepared statements disable kar de (jo us mode mein unsupported hain):
 
 ```
 DATABASE_URL="postgresql://user:pass@pgbouncer-host:5432/mydb?pgbouncer=true"
@@ -301,7 +311,7 @@ DATABASE_URL="postgresql://user:pass@pgbouncer-host:5432/mydb?pgbouncer=true"
 
 ### Query Logging
 
-Turn on Prisma's built-in query logger when debugging performance:
+Performance debug karte waqt Prisma ka built-in query logger on karo:
 
 ```typescript
 const prisma = new PrismaClient({
@@ -309,9 +319,9 @@ const prisma = new PrismaClient({
 })
 ```
 
-With `'query'` enabled you will see every generated SQL statement in your console, including the parameter values and execution time. This is invaluable during development but should be disabled (or reduced to `'warn'`/`'error'`) in production to avoid log noise and performance overhead.
+`'query'` enable karne se tumhe console mein har generated SQL statement dikhega, saath mein parameter values aur execution time bhi. Development mein yeh invaluable hai, lekin production mein isko disable (ya `'warn'`/`'error'` tak reduce) kar dena chahiye, warna log noise aur performance overhead badh jaayega.
 
-You can also listen programmatically:
+Programmatically bhi listen kar sakte ho:
 
 ```typescript
 prisma.$on('query', (e) => {
@@ -324,7 +334,7 @@ prisma.$on('query', (e) => {
 
 ### `prisma.$metrics` — Prometheus Metrics
 
-For production observability, Prisma exposes internal metrics (connection pool usage, query latency histograms) in Prometheus format:
+**Kyun zaruri hai?** Production observability ke liye Prisma internal metrics (connection pool usage, query latency histograms) Prometheus format mein expose karta hai:
 
 ```typescript
 // Enable in client constructor
@@ -340,21 +350,21 @@ console.log(metrics)
 // prisma_client_queries_total{...} 42
 ```
 
-Pipe this output to a `/metrics` endpoint that Prometheus scrapes. Combine it with Grafana dashboards to visualize connection pool saturation and slow queries over time.
+Is output ko ek `/metrics` endpoint pe pipe karo jise Prometheus scrape kare. Iske saath Grafana dashboards combine karo taaki connection pool saturation aur slow queries time ke saath visualize ho sakein — jaise Swiggy ka ops team apne delivery-time dashboards monitor karta hoga.
 
 ---
 
 ## 🧩 Prisma Client Extensions
 
-Prisma Client Extensions (stable since Prisma 4.16) are the modern, type-safe way to extend Prisma beyond its built-in capabilities. They replace much of what middleware was used for and give you proper TypeScript inference.
+**Kya hota hai?** Prisma Client Extensions (stable Prisma 4.16 se) Prisma ko uski built-in capabilities se aage extend karne ka modern, type-safe tareeka hai. Yeh zyada tar wahi kaam karte hain jo pehle middleware karta tha, lekin proper TypeScript inference ke saath.
 
-You create extensions with `prisma.$extends({...})` and assign the result to a new client variable.
+Tum `prisma.$extends({...})` se extensions banate ho aur result ko ek naye client variable mein assign karte ho.
 
 ---
 
 ### Result Extensions — Computed Fields
 
-Add a virtual field that is computed from existing fields every time a record is returned:
+Ek virtual field add karo jo har baar record return hone pe existing fields se compute ho:
 
 ```typescript
 const xprisma = prisma.$extends({
@@ -374,13 +384,13 @@ const user = await xprisma.user.findFirst()
 console.log(user.fullName)  // "Jane Doe" — TypeScript knows this field exists!
 ```
 
-The `needs` object tells Prisma which underlying fields are required. If you `select` a user without `firstName`, TypeScript will error if you try to access `fullName`.
+`needs` object Prisma ko batata hai ki kaunse underlying fields required hain. Agar tum user ko `firstName` ke bina `select` karoge, aur `fullName` access karne ki koshish karoge, toh TypeScript error dega.
 
 ---
 
-### Model Extensions — Custom Methods on Models
+### Model Extensions — Models Pe Custom Methods
 
-Add domain-specific methods directly to a model:
+Model pe seedha domain-specific methods add karo:
 
 ```typescript
 const xprisma = prisma.$extends({
@@ -406,9 +416,9 @@ await xprisma.user.activate(user.id)
 
 ---
 
-### Client Extensions — Extend the Root Client
+### Client Extensions — Root Client Ko Extend Karo
 
-Add top-level methods or properties to the client itself:
+Client ke top-level pe methods ya properties add karo:
 
 ```typescript
 const xprisma = prisma.$extends({
@@ -427,7 +437,7 @@ const status = await xprisma.healthCheck()
 
 ### Composing Extensions
 
-Extensions are chainable. Build small, focused extensions and compose them:
+Extensions chainable hote hain. Chhote, focused extensions banao aur unhe compose karo:
 
 ```typescript
 const withAudit = prisma.$extends(auditExtension)
@@ -437,34 +447,34 @@ const withMetrics = withSoftDelete.$extends(metricsExtension)
 export { withMetrics as prisma }
 ```
 
-Each `$extends` call returns a new client — the original `prisma` instance is untouched. This composability is the key advantage over middleware, where all interceptors share one mutable chain.
+Har `$extends` call ek naya client return karta hai — original `prisma` instance untouched rehta hai. Yahi composability middleware ke comparison mein sabse bada advantage hai, jahan saare interceptors ek hi mutable chain share karte hain.
 
 ---
 
 ## 🏁 Key Takeaways
 
-- **Transactions** guarantee all-or-nothing execution. Use the callback form (`async tx => {}`) when queries depend on each other's results; use the array form when they are independent.
-- **Always use template literals with `$queryRaw` and `$executeRaw`** — never string concatenation — to prevent SQL injection through automatic parameterization.
-- **Middleware** is a global interceptor useful for cross-cutting concerns like soft delete, logging, and auditing. It is a legacy API; prefer **Prisma Client Extensions** in new code.
-- **The N+1 problem** is solved by `include` — let Prisma load relations in bulk rather than querying one by one in a loop.
-- **`select` is your friend** — never transfer columns you do not need, especially for large text or JSON fields.
-- **Connection pooling** (via Prisma Accelerate or PgBouncer) is essential at scale to prevent exhausting database connections.
-- **Prisma Client Extensions** provide type-safe, composable ways to add computed fields, custom model methods, and client-level utilities without sacrificing TypeScript inference.
+- **Transactions** all-or-nothing execution guarantee karte hain. Jab queries ek dusre ke result pe depend karti hain, callback form (`async tx => {}`) use karo; jab independent hain, array form use karo.
+- **`$queryRaw` aur `$executeRaw` ke saath hamesha template literals use karo** — kabhi string concatenation nahi — automatic parameterization se SQL injection prevent karne ke liye.
+- **Middleware** ek global interceptor hai jo cross-cutting concerns ke liye useful hai — soft delete, logging, auditing. Yeh legacy API hai; naye code mein **Prisma Client Extensions** prefer karo.
+- **N+1 problem** ko `include` se solve karo — Prisma ko relations bulk mein load karne do, loop mein ek-ek karke query maarne ke bajaye.
+- **`select` tumhara dost hai** — jo columns chahiye nahi unhe transfer mat karo, especially bade text ya JSON fields ke case mein.
+- **Connection pooling** (Prisma Accelerate ya PgBouncer ke through) scale pe zaruri hai taaki database connections exhaust na ho.
+- **Prisma Client Extensions** type-safe, composable tareeke se computed fields, custom model methods, aur client-level utilities add karne deta hai — bina TypeScript inference qurbaan kiye.
 
 ---
 
 ## 📝 Quiz
 
-Test yourself before moving on.
+Aage badhne se pehle khud ko test kar lo.
 
 **Question 1**
 
-You have a function that creates a bank transfer: it debits one account and credits another. Which transaction style should you use, and why?
+Tumhare paas ek function hai jo bank transfer create karta hai: ek account debit hota hai aur dusra credit. Kaunsi transaction style use karoge, aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-Use the **sequential (interactive) transaction** (`$transaction(async (tx) => {...})`). Both operations must share the same transaction client (`tx`) so they live in the same atomic unit. If the credit fails, the debit is automatically rolled back. The batch (array) form would also work here since neither result is needed as input to the other, but the sequential form is clearer for this use case and gives you the ability to add conditional logic.
+**Sequential (interactive) transaction** use karo (`$transaction(async (tx) => {...})`). Dono operations ko same transaction client (`tx`) share karna chahiye taaki woh ek hi atomic unit mein rahein. Agar credit fail hota hai, toh debit automatically rollback ho jayega. Batch (array) form bhi yahan chal jaata, kyunki koi bhi result dusre ka input nahi hai, lekin sequential form is use-case ke liye zyada clear hai aur tumhe conditional logic add karne ki flexibility bhi deta hai.
 
 </details>
 
@@ -472,7 +482,7 @@ Use the **sequential (interactive) transaction** (`$transaction(async (tx) => {.
 
 **Question 2**
 
-A teammate writes this code to display a list of 50 blog posts with their authors' names:
+Ek teammate 50 blog posts ki list unke authors ke naam ke saath display karne ke liye yeh code likhta hai:
 
 ```typescript
 const posts = await prisma.post.findMany()
@@ -482,14 +492,14 @@ for (const post of posts) {
 }
 ```
 
-What problem does this code have, and how would you fix it?
+Is code mein kya problem hai, aur tum isko kaise fix karoge?
 
 <details>
 <summary>Answer</summary>
 
-This is the **N+1 problem**. For 50 posts, the code issues 1 query to fetch posts then 50 more queries (one per post) to fetch authors — 51 round-trips total.
+Yeh **N+1 problem** hai. 50 posts ke liye, code 1 query posts fetch karne ke liye chalata hai, phir 50 aur queries (har post ke liye ek) authors fetch karne ke liye — total 51 round-trips.
 
-Fix it with `include`:
+Isko `include` se fix karo:
 
 ```typescript
 const posts = await prisma.post.findMany({
@@ -500,7 +510,7 @@ for (const post of posts) {
 }
 ```
 
-Prisma now fetches all authors in a second query and joins the data in memory — 2 round-trips instead of 51. Adding `select` on the nested `author` also avoids fetching every column on the user row.
+Ab Prisma saare authors ko ek second query mein fetch karta hai aur data ko memory mein join kar deta hai — 51 ki jagah sirf 2 round-trips. Nested `author` pe `select` add karna bhi user row ka har column fetch karne se bachata hai.
 
 </details>
 
@@ -508,19 +518,19 @@ Prisma now fetches all authors in a second query and joins the data in memory �
 
 **Question 3**
 
-What is the difference between Prisma Middleware and Prisma Client Extensions, and when should you prefer one over the other?
+Prisma Middleware aur Prisma Client Extensions mein kya difference hai, aur kab kisko prefer karna chahiye?
 
 <details>
 <summary>Answer</summary>
 
-**Middleware** (`prisma.$use(...)`) is a runtime interceptor that sits in a global chain. It intercepts queries by inspecting `params.action` and `params.model` as plain strings. It has no type safety on the params object and mutates shared state. It is a legacy API but is still widely used and fully supported.
+**Middleware** (`prisma.$use(...)`) ek runtime interceptor hai jo global chain mein baitha hota hai. Yeh `params.action` aur `params.model` ko plain strings ki tarah inspect karke queries intercept karta hai. Params object pe koi type safety nahi hai aur shared state mutate karta hai. Yeh legacy API hai lekin abhi bhi widely used aur fully supported hai.
 
-**Prisma Client Extensions** (`prisma.$extends({...})`) are the modern replacement. They are type-safe (TypeScript knows the shapes of result fields and method signatures), they are composable (each `$extends` call returns a new immutable client), and they support distinct extension types (result, model, client, query). Extensions do not mutate the original client.
+**Prisma Client Extensions** (`prisma.$extends({...})`) modern replacement hain. Yeh type-safe hain (TypeScript ko result fields aur method signatures ke shapes pata hote hain), composable hain (har `$extends` call ek naya immutable client return karta hai), aur distinct extension types support karte hain (result, model, client, query). Extensions original client ko mutate nahi karte.
 
-**When to use each:**
-- **New projects** — always prefer Prisma Client Extensions.
-- **Existing codebases** with middleware — migration is not urgent; middleware still works. Migrate incrementally when you touch that code.
-- **Query interception** (e.g., soft delete, audit logs) — Extensions support a `query` extension type that replaces middleware for this use case with full type safety.
+**Kab kisko use karein:**
+- **Naye projects** — hamesha Prisma Client Extensions prefer karo.
+- **Existing codebases** jahan middleware hai — migration urgent nahi hai; middleware abhi bhi kaam karta hai. Jab us code ko touch karo tab incrementally migrate karo.
+- **Query interception** (jaise soft delete, audit logs) — Extensions ek `query` extension type support karte hain jo full type safety ke saath middleware ki jagah leta hai.
 
 </details>
 

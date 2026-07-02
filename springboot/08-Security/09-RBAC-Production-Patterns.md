@@ -1,41 +1,37 @@
----
-tags: [security, production, rbac, authorization, roles, authorities]
-aliases: [RBAC, Role-Based Access Control, Roles vs Authorities]
-stage: advanced
----
-
 # RBAC — Production Patterns
 
-> [!info] For the Express/TS dev
-> You're used to middleware like `checkRole('admin')` or libraries like `accesscontrol` / `casbin`. Spring Security has a richer but more verbose model: every principal carries a `Collection<GrantedAuthority>` and every access decision is a comparison against those strings. This note is about doing that *right* at scale — not just getting it to compile.
+> [!info] Express/TS wale dev ke liye
+> Tumne pehle `checkRole('admin')` jaisa middleware likha hoga, ya `accesscontrol` / `casbin` jaisi libraries use ki hongi. Spring Security ka model thoda zyada verbose hai lekin zyada powerful bhi — har principal (yaani logged-in user) apne saath `Collection<GrantedAuthority>` carry karta hai, aur har access decision bas un strings ka comparison hai. Ye note isi cheez ko *production scale* pe sahi tarike se karne ke baare mein hai — sirf compile karwane ke baare mein nahi.
 
-## Concept / mental model
+## Concept / Mental Model
 
 ### Roles vs Authorities vs Scopes — clear definitions
 
-| Term | Spring model | Example string | How to check |
+Kya hota hai in teeno mein? Confusion yahin se shuru hoti hai — samjho ek baar clearly:
+
+| Term | Spring model | Example string | Kaise check karein |
 |---|---|---|---|
 | **Role** | `GrantedAuthority` with `ROLE_` prefix | `ROLE_ADMIN` | `hasRole("ADMIN")` |
 | **Authority / Permission** | `GrantedAuthority` without prefix | `order:approve` | `hasAuthority("order:approve")` |
 | **Scope** (OAuth2) | `GrantedAuthority` with `SCOPE_` prefix | `SCOPE_read:orders` | `hasAuthority("SCOPE_read:orders")` |
 
-`hasRole("ADMIN")` is syntactic sugar — it prepends `ROLE_` and delegates to `hasAuthority("ROLE_ADMIN")`.  
-`hasAuthority("order:approve")` checks the exact string, zero prefix magic.
+`hasRole("ADMIN")` bas syntactic sugar hai — ye internally `ROLE_` prefix laga deta hai aur `hasAuthority("ROLE_ADMIN")` ko call kar deta hai.
+`hasAuthority("order:approve")` exact string check karta hai, koi prefix magic nahi.
 
 > [!danger]
-> **The classic prefix trap**: writing `hasRole("ROLE_ADMIN")` produces a check for `ROLE_ROLE_ADMIN` — silently always false. Always write `hasRole("ADMIN")` or `hasAuthority("ROLE_ADMIN")`. Pick one style and ban the other in a ArchUnit test.
+> **Classic prefix trap**: agar tumne `hasRole("ROLE_ADMIN")` likh diya, to ye check ban jaata hai `ROLE_ROLE_ADMIN` ka — jo silently hamesha false rahega, koi error bhi nahi milegi. Hamesha `hasRole("ADMIN")` ya `hasAuthority("ROLE_ADMIN")` likho. Ek style pick karo aur dusri ko ArchUnit test se ban kar do team mein.
 
-### The full authority model
+### Poora authority model
 
 ```
 User  ──<  user_roles  >──  Role  ──<  role_permissions  >──  Permission
 ```
 
-At authentication time your app loads *all* permissions for the user, flattens them into the `Authentication` object's authority list, and never hits the DB again during the request. The filter chain is pure in-memory after that.
+Jaise Zomato pe ek restaurant partner ke paas "orders manage karo", "menu edit karo" jaise alag-alag permissions hote hain jo unke role (owner, manager, staff) se aate hain — waise hi yahan authentication ke time pe tumhara app user ke **saare** permissions load karta hai, unko flatten karke `Authentication` object ke authority list mein daal deta hai, aur us request ke baaki lifecycle mein dobara DB nahi hit karta. Matlab filter chain uske baad pure in-memory chalta hai — fast aur predictable.
 
 ---
 
-## Schema design (PostgreSQL DDL)
+## Schema Design (PostgreSQL DDL)
 
 ```sql
 -- Immutable permission catalog — never delete, only add (soft-delete if needed)
@@ -86,13 +82,15 @@ CREATE INDEX idx_user_roles_expires    ON user_roles(expires_at)
 ```
 
 > [!tip]
-> Add `granted_by` and `expires_at` from day one. The audit trail saves you during incidents; `expires_at` handles contractors and temporary on-call elevations without a manual cleanup ticket.
+> `granted_by` aur `expires_at` columns day-one se hi add kar do. Audit trail incident ke time tumhari jaan bachata hai ("kisne kab ye access diya tha?"), aur `expires_at` contractors ya temporary on-call elevation (jaise kisi ko 2 din ke liye admin access) ko bina manual cleanup ticket ke handle kar deta hai.
 
 ---
 
-## Code examples
+## Code Examples
 
-### Loading authorities at auth time — `UserDetailsService`
+### Auth time pe authorities load karna — `UserDetailsService`
+
+Jaise Swiggy app login hote hi tumhara pura profile — address, saved cards, preferences — ek baar mein fetch kar leta hai taaki baar-baar server hit na karna pade, waise hi yahan login ke time hi saari permissions ek JOIN query se load ho jaati hain:
 
 ```java
 @Service
@@ -149,9 +147,12 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
 }
 ```
 
-### JWT authority extraction — `JwtAuthenticationConverter`
+> [!warning]
+> Yahan `findAllByUserId` ek hi query mein saara data laata hai. Agar tum galti se loop mein har role ke liye alag query maarte (N+1 problem), to 5 roles wale user ke liye 5 extra DB calls lag jaatin — production mein ye slowly sab kuch dheema kar deta hai. Ek JOIN query hamesha better hai.
 
-For stateless JWT-based APIs (your own token or Keycloak/Auth0):
+### JWT se authorities nikalna — `JwtAuthenticationConverter`
+
+Stateless JWT-based APIs ke liye (chahe tumhara apna token ho ya Keycloak/Auth0 ka):
 
 ```java
 @Bean
@@ -186,9 +187,18 @@ public JwtAuthenticationConverter jwtAuthenticationConverter() {
 ```
 
 > [!danger]
-> **JWT role staleness**: You promote a user to ADMIN. Their 24-hour JWT still carries `USER`. They won't see the change until re-login. Mitigations ranked by cost: (a) short JWT TTL (15 min) + refresh token, (b) `roles_version` claim validated against a Redis counter on each request, (c) JWT blocklist keyed by `jti`. Most teams do (a). Do *not* skip this design decision — it bites you in production within the first month.
+> **JWT role staleness ka masla**: Socho tumne kisi user ko ADMIN bana diya. Lekin uska purana 24-hour wala JWT abhi bhi `USER` carry kar raha hai — jab tak wo dobara login nahi karega, uska access update hi nahi hoga. Bilkul waise jaise CRED app mein tumhara credit score update hone ke baad bhi purana cached score dikhta rahe jab tak app refresh na ho.
+>
+> Fix karne ke options, cost ke hisaab se:
+> - (a) Short JWT TTL (15 min) + refresh token — sabse common approach
+> - (b) `roles_version` claim jo Redis counter ke against validate ho har request pe
+> - (c) JWT blocklist, `jti` (JWT ID) ke basis pe
+>
+> Zyada teams (a) use karti hain. Ye design decision skip mat karna — production mein ye pehle mahine ke andar hi bite karega.
 
 ### Hierarchical roles — `RoleHierarchy` bean
+
+Kya hota hai ye? Socho ek company structure — SUPER_ADMIN wo sab kar sakta hai jo ADMIN kar sakta hai, ADMIN wo sab kar sakta hai jo MANAGER kar sakta hai, aur aage. Har baar har role ko sab permissions dobara likhne ki zaroorat nahi:
 
 ```java
 @Bean
@@ -219,9 +229,9 @@ public MethodSecurityExpressionHandler methodSecurityExpressionHandler(
 }
 ```
 
-### Caching authorities — Caffeine + invalidation
+### Authorities cache karna — Caffeine + invalidation
 
-Re-loading permissions on every request is a DB killer. Cache them:
+Har request pe DB se permissions dobara load karna DB ko maar dega — Diwali sale ke din Flipkart agar har click pe DB se pura user profile fetch kare to server crash ho jaayega. Isliye cache karo:
 
 ```java
 @Configuration
@@ -285,9 +295,14 @@ public class RoleAssignmentService {
 }
 ```
 
+> [!tip]
+> Cache TTL 5 minute jaisa short rakho — matlab worst case mein kisi ka access change hone ke 5 min baad tak purana access dikh sakta hai. Ye trade-off hai: bahut chhota TTL = zyada DB load, bahut bada TTL = stale permissions ka risk zyada der. Cache invalidate karna mat bhoolo jab bhi role change ho — warna user ko lagega access mil gaya lekin actually cache stale hai.
+
 ---
 
-## Enums and constants — kill string typos
+## Enums aur Constants — string typos ko khatam karo
+
+Kyun zaruri hai? Kyunki agar tum har jagah `"order:approve"` jaisi raw strings likhte raho, to ek jagah typo ho jaayega (`"oder:approve"`) aur compiler tumhe kabhi nahi batayega — runtime mein silently permission check fail hoga:
 
 ```java
 public enum Permission {
@@ -322,18 +337,20 @@ public class OrderService {
 ```
 
 > [!warning]
-> `@PreAuthorize` is SpEL evaluated at runtime. A typo in the string won't fail at compile time. Write an integration test that calls each secured method with and without the required authority using `@WithMockUser(authorities = "...")`.
+> `@PreAuthorize` SpEL hai jo runtime pe evaluate hota hai — matlab string mein typo compile time pe pakda hi nahi jaayega. Isliye ek integration test likho jo har secured method ko `@WithMockUser(authorities = "...")` ke saath call kare — dono cases test karo: authority ke saath (allow hona chahiye) aur bina authority ke (deny hona chahiye).
 
 ---
 
-## Role drift and privilege creep
+## Role Drift aur Privilege Creep
 
-Privilege creep is inevitable: roles get assigned but never revoked because removal needs a ticket. Counter-strategies:
+Ye kya cheez hai? Real duniya mein hota kya hai — kisi employee ko 6 mahine ke liye "temporary admin access" diya gaya tha kisi project ke liye, project khatam ho gaya, lekin access kabhi revoke nahi hua kyunki removal ke liye bhi ek ticket lagana padta hai aur koi karta nahi. Ye "privilege creep" hai — samay ke saath log zaroorat se zyada access jama kar lete hain.
 
-1. **Access recertification** — quarterly automated job emails managers a list of their reports' roles with click-to-revoke links.
-2. **Time-bounded elevated roles** — `expires_at` column in `user_roles`; nightly scheduler revokes expired grants.
-3. **Self-limiting grants** — a user can only grant roles they themselves hold (enforce in service layer).
-4. **Unused-permission audit** — query your audit log (see [[16-Audit-Logging-and-Compliance]]) for permissions never exercised in 90 days and auto-remove them.
+Counter-strategies:
+
+1. **Access recertification** — quarterly automated job managers ko ek email bhejta hai unke reports ke roles ki list ke saath, aur click-to-revoke links ke saath.
+2. **Time-bounded elevated roles** — `user_roles` table mein `expires_at` column; ek nightly scheduler expired grants ko khud revoke kar deta hai.
+3. **Self-limiting grants** — koi user sirf wahi roles grant kar sakta hai jo khud uske paas hain (ye service layer mein enforce karo). Matlab agar tum khud ADMIN nahi ho, to kisi aur ko ADMIN nahi bana sakte.
+4. **Unused-permission audit** — apne audit log (dekho [[16-Audit-Logging-and-Compliance]]) se query karo ki kaunse permissions pichle 90 din mein kabhi use hi nahi hue, aur unhe auto-remove kar do.
 
 ```sql
 -- Users holding a permission they haven't used in 90 days
@@ -353,7 +370,9 @@ WHERE NOT EXISTS (
 
 ---
 
-## Express/TS comparison
+## Express/TS Comparison
+
+Tumhare Node.js background se compare karke samjhte hain:
 
 ```typescript
 // express + accesscontrol
@@ -377,37 +396,37 @@ const check = (resource: string, action: string) =>
 router.get('/orders', check('order', 'readAny'), listOrders);
 ```
 
-Spring's `RoleHierarchy` covers the `.extend()` pattern. The structural difference: Spring enforces authorization *inside the service method* (not route middleware), so it's enforced even when called from a scheduled job or Kafka consumer — not just via HTTP. This is the single biggest architectural advantage.
+Spring ka `RoleHierarchy` bilkul `.extend()` pattern jaisa hi cover karta hai. Lekin **structural difference** yahan hai jo sabse important point hai: Spring authorization ko *service method ke andar* enforce karta hai, route middleware mein nahi. Iska matlab — jab tumhara code kisi scheduled job se call ho, ya Kafka consumer se call ho (yaani HTTP request ke bahar bhi) — tab bhi authorization enforce hoga. Express mein agar tumne sirf route middleware mein check lagaya, to koi internal call ya background job us check ko bypass kar sakta hai. Ye Spring ka sabse bada architectural advantage hai.
 
 ---
 
 ## Gotchas
 
 > [!warning]
-> **`@EnableMethodSecurity` is required.** Without it, `@PreAuthorize` compiles fine but does absolutely nothing at runtime. Add `@EnableMethodSecurity` (Spring Security 6+) to your `@Configuration`. In older Boot versions it was `@EnableGlobalMethodSecurity(prePostEnabled = true)`.
+> **`@EnableMethodSecurity` zaroori hai.** Isके bina `@PreAuthorize` compile to ho jaayega bilkul fine, lekin runtime pe kuch bhi nahi karega — silently ignore ho jaayega. `@EnableMethodSecurity` (Spring Security 6+) apni `@Configuration` class pe add karo. Purane Boot versions mein ye `@EnableGlobalMethodSecurity(prePostEnabled = true)` tha.
 
 > [!danger]
-> **Self-invocation bypasses AOP.** Calling a `@PreAuthorize`-annotated method from another method *in the same bean* skips the security proxy. Restructure so the call goes through the proxy, or inject the bean lazily into itself.
+> **Self-invocation AOP ko bypass kar deta hai.** Agar same bean ke andar se koi method kisi `@PreAuthorize`-annotated method ko call karta hai, to security proxy skip ho jaata hai — permission check hoga hi nahi. Isse bachne ke liye ya to call ko proxy ke through route karo (dusre bean se call karwao), ya bean ko lazily khud mein inject karo.
 
 > [!warning]
-> **ROLE_ prefix in DB.** Store roles in the DB with the `ROLE_` prefix (e.g., `ROLE_ADMIN`) so the `SimpleGrantedAuthority` created from the DB value matches what `hasRole()` expects after it prepends the prefix. Document this convention; a future developer will try to "clean it up."
+> **DB mein ROLE_ prefix.** Roles DB mein `ROLE_` prefix ke saath store karo (jaise `ROLE_ADMIN`) taaki DB value se banaya gaya `SimpleGrantedAuthority` `hasRole()` ki expectation se match kare (jo apna prefix khud prepend karta hai). Is convention ko document kar do — kal ko koi naya developer isko "clean up" karne ki koshish karega aur sab tod dega.
 
 ---
 
-## Production checklist
+## Production Checklist
 
-- [ ] Roles stored in DB with `ROLE_` prefix
-- [ ] Permissions defined as enum + `Authorities` constants class
-- [ ] `@EnableMethodSecurity` present in at least one `@Configuration`
-- [ ] `UserDetailsService` loads permissions in a single JOIN (no N+1)
-- [ ] Caffeine cache on authority loading, TTL ≤ 5 min
-- [ ] Cache eviction triggered on role change
-- [ ] `RoleHierarchy` bean wired into both web and method expression handlers
-- [ ] JWT TTL ≤ 15 min OR blocklist OR `roles_version` claim strategy documented
-- [ ] `user_roles.expires_at` column with scheduled cleanup for temporary grants
-- [ ] `granted_by`/`granted_at` audit columns in `user_roles`
-- [ ] Unit tests: `@PreAuthorize` tested with `@WithMockUser` for both grant and deny paths
-- [ ] Quarterly access recertification process documented in runbook
+- [ ] Roles DB mein `ROLE_` prefix ke saath store hain
+- [ ] Permissions enum + `Authorities` constants class ke roop mein define hain
+- [ ] `@EnableMethodSecurity` kam se kam ek `@Configuration` mein present hai
+- [ ] `UserDetailsService` permissions ek single JOIN mein load karta hai (no N+1)
+- [ ] Authority loading pe Caffeine cache hai, TTL ≤ 5 min
+- [ ] Role change hone pe cache eviction trigger hoti hai
+- [ ] `RoleHierarchy` bean web aur method dono expression handlers mein wired hai
+- [ ] JWT TTL ≤ 15 min YA blocklist YA `roles_version` claim strategy documented hai
+- [ ] `user_roles.expires_at` column hai temporary grants ke liye, scheduled cleanup ke saath
+- [ ] `user_roles` mein `granted_by`/`granted_at` audit columns hain
+- [ ] Unit tests: `@PreAuthorize` `@WithMockUser` se dono grant aur deny paths ke liye tested hai
+- [ ] Quarterly access recertification process runbook mein documented hai
 
 ---
 

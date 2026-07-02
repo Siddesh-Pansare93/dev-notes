@@ -1,74 +1,70 @@
----
-tags: [microservices, communication, rest, grpc, messaging]
-aliases: [Service Communication, IPC]
-stage: advanced
----
-
 # Inter-Service Communication
 
-> [!info] For the Express/TS dev
-> Once you have multiple services, you need to decide how they talk. Three big families: synchronous HTTP/REST (or gRPC), and asynchronous messaging. Each has costs. Defaulting to synchronous REST is the most common — and most regretted — choice. Build with async-first in mind.
+> [!info] Express/TS dev ke liye
+> Jaise hi tumhare paas ek se zyada services aa jaati hain, sabse pehla sawaal yeh hota hai — yeh services aapas mein baat kaise karengi? Teen bade families hain: synchronous HTTP/REST (ya gRPC), aur asynchronous messaging. Har ek ki apni cost hai. Zyadatar log default REST pakad lete hain — aur baad mein pachtaate hain. Shuru se hi async-first soch ke design karo.
 
 ## Concept
 
-Three communication patterns:
+Kya hota hai? Basically teen tarike hain services ko baat karwane ke:
 
-| Pattern | Coupling | Latency | Resilience | When to use |
+| Pattern | Coupling | Latency | Resilience | Kab use karein |
 |---------|----------|---------|-----------|-------------|
-| **Synchronous REST** | Tight | Direct | Caller fails when callee fails | User-facing reads, simple commands |
-| **gRPC** | Tight (schema) | Faster than REST | Same as REST | High-RPC internal calls, streaming, polyglot |
-| **Async messaging** | Loose | Eventual | Callee can be down | Events, fan-out, decoupled workflows |
+| **Synchronous REST** | Tight | Direct | Caller bhi fail hoga agar callee fail ho | User-facing reads, simple commands |
+| **gRPC** | Tight (schema) | REST se fast | REST jaisa hi | High-RPC internal calls, streaming, polyglot |
+| **Async messaging** | Loose | Eventual | Callee down ho toh bhi chalega | Events, fan-out, decoupled workflows |
 
 ### Synchronous (request/response)
 
-Service A makes an HTTP call to Service B and waits.
+Socho Zomato ka order flow — jab tum "Place Order" dabate ho, restaurant app ko turant confirm karna padta hai ki order accept hua ya nahi, tabhi tumhe screen pe "Order Confirmed" dikhta hai. Yeh hai synchronous — Service A, Service B ko call karta hai aur wait karta hai jab tak reply nahi aata.
 
 ```
 A ─── POST /charge ──► B
 A ◄── 200 OK ─────────┘
 ```
 
-Pros: simple to reason about, easy debugging, immediate feedback.
-Cons: A is blocked until B responds; if B is down, A is impaired (the **distributed monolith** trap).
+**Fayda**: samajhna easy hai, debug karna easy hai, turant feedback milta hai.
+**Nuksan**: A tab tak block rehta hai jab tak B jawab nahi deta; agar B down hai toh A bhi impaired ho jaata hai. Isi ko **distributed monolith** trap kehte hain — tumne services alag kiye, par unka fate ab bhi ek-dusre se juda hai.
 
-Tools in Spring:
+Spring mein tools:
 
-- `RestTemplate` — old, blocking, still works.
-- `RestClient` — new (Boot 3.2+), blocking, fluent.
+- `RestTemplate` — purana, blocking, ab bhi chalta hai.
+- `RestClient` — naya (Boot 3.2+), blocking, fluent syntax.
 - `WebClient` — reactive, non-blocking.
-- **OpenFeign** — declarative interface-based. See [[07-OpenFeign]].
+- **OpenFeign** — declarative interface-based. Dekho [[07-OpenFeign]].
 - **gRPC** via `grpc-spring-boot-starter`.
 
 ### Asynchronous (events)
 
-A publishes an event; B subscribes and reacts when it can.
+Ab socho Swiggy ka order placed hone ke baad kya hota hai — restaurant ko notification jaata hai, delivery partner assign hota hai, tumhe SMS/push notification aata hai, analytics team ko data jaata hai. Yeh sab cheezein **turant** hone ki zarurat nahi — "thodi der mein ho jayega" chalta hai. Yahi hai async messaging.
+
+A ek event publish karta hai; B (aur C, D, jitne bhi consumers hon) subscribe karke jab fursat mile tab react karte hain.
 
 ```
 A ─── OrderPlaced ──► broker ──► B (eventually)
 ```
 
-Pros: A doesn't care if B is up; B can be slow without affecting A; fan-out to many consumers.
-Cons: eventual consistency, harder debugging, requires brokers (Kafka/RabbitMQ), tooling overhead.
+**Fayda**: A ko fark nahi padta B up hai ya down; B slow chal raha ho toh bhi A pe asar nahi padta; ek event se multiple consumers ko fan-out kar sakte ho.
+**Nuksan**: eventual consistency (thoda time lagta hai sync hone mein), debugging thodi mushkil (kyunki flow ek jagah nahi dikhta), aur brokers (Kafka/RabbitMQ) chalane ka tooling overhead.
 
-See [[../11-Messaging/01-Messaging-Concepts]].
+Dekho [[../11-Messaging/01-Messaging-Concepts]].
 
-### Choosing per interaction
+### Kaunsa interaction ke liye kya choose karein?
 
-A real system uses both. For a typical e-commerce checkout:
+Real system mein dono ka mix hota hai. Ek typical e-commerce checkout socho — jaise Flipkart pe order place karna:
 
 ```
 User → API Gateway → Order Service (sync REST: validate, create order)
                           │
-                          ├── sync gRPC → Inventory Service (reserve stock)
-                          ├── sync REST → Payment Service (charge)
+                          ├── sync gRPC → Inventory Service (stock reserve karo)
+                          ├── sync REST → Payment Service (paisa katao)
                           └── async → Kafka "OrderPlaced" event
                                           │
-                                          ├──► Email Service (send confirmation)
-                                          ├──► Analytics Service (track)
-                                          └──► Shipping Service (start fulfilment)
+                                          ├──► Email Service (confirmation bhejo)
+                                          ├──► Analytics Service (track karo)
+                                          └──► Shipping Service (fulfilment shuru karo)
 ```
 
-Sync where the user is waiting and needs an immediate answer. Async for everything that can happen "soon."
+**Rule of thumb**: jahan user screen pe wait kar raha hai aur usse turant jawab chahiye — wahan sync use karo. Baaki sab jo "thodi der mein" ho sakta hai — usko async bana do.
 
 ## Code example
 
@@ -101,7 +97,11 @@ class PaymentClient {
 }
 ```
 
+Yahan pe dekho — sirf `RestClient` se call nahi kar rahe, `Retry` aur `CircuitBreaker` ke saath wrap kiya hai. Kyun? Kyunki agar payment-service thoda slow ho gaya, retry try karega dobara, aur agar woh baar-baar fail ho raha hai toh circuit breaker aage retries rokega taaki poora system na girein. Isse [[08-Resilience4j]] mein detail mein padhenge.
+
 ### gRPC
+
+gRPC ko socho ek "private, super-fast phone line" ki tarah do services ke beech — jab data ka format fix ho (protobuf schema se defined) aur calls bohot frequent hon, jaise IRCTC ka seat-availability check jo baar-baar hota hai.
 
 ```protobuf
 // payment.proto
@@ -152,6 +152,8 @@ grpc:
 
 ### Async via Kafka
 
+Ab yeh dekho — jab order place hota hai, hum ek event "throw" kar dete hain Kafka mein, aur jisko bhi sunna hai woh sunn le. Order Service ko yeh bhi pata nahi ki Email Service exist karta hai — bas itna pata hai ki "OrderPlaced" topic pe message daal do.
+
 ```java
 // Producer
 @Service
@@ -166,7 +168,7 @@ class OrderService {
     }
 }
 
-// Consumer (in another service)
+// Consumer (doosri service mein)
 @Component
 class EmailListener {
     @KafkaListener(topics = "orders.placed", groupId = "email-service")
@@ -176,14 +178,14 @@ class EmailListener {
 }
 ```
 
-See [[../11-Messaging/03-Spring-Kafka]] for full setup.
+Poora setup [[../11-Messaging/03-Spring-Kafka]] mein dekho.
 
 ## Express/Node comparison
 
 | Spring | Node |
 |--------|------|
 | `RestClient` / `RestTemplate` | `axios`, `got`, `fetch` |
-| OpenFeign | `axios` with custom interface (no real equivalent) |
+| OpenFeign | `axios` with custom interface (koi real equivalent nahi) |
 | `WebClient` | `axios` returning Promises |
 | gRPC + `grpc-spring-boot-starter` | `@grpc/grpc-js` |
 | `KafkaTemplate` | `kafkajs` |
@@ -192,23 +194,23 @@ See [[../11-Messaging/03-Spring-Kafka]] for full setup.
 
 ## Gotchas
 
-> [!danger] Sync chains kill availability
-> Service A sync-calls B sync-calls C sync-calls D. Availability of A = product of B × C × D. Each at 99.9% → A at 99.7%. With ten services in a chain, you're at 99% — that's 7+ hours of downtime per month.
+> [!danger] Sync chains availability maar dete hain
+> Socho Service A sync-call karta hai B ko, B call karta hai C ko, C call karta hai D ko. A ki availability = B × C × D ka product. Agar har ek 99.9% available hai, toh A sirf 99.7% pe aa jaata hai. Das services ki chain mein toh tum 99% pe aa jaoge — matlab mahine mein 7+ ghante downtime. Yeh CRED jaisi finance app mein bilkul afford nahi kar sakte.
 
-> [!warning] Retries amplify load during partial outages
-> When B starts to slow, A retries → 3x load on B → B falls over completely. Combine retries with circuit breakers and exponential backoff. See [[08-Resilience4j]].
+> [!warning] Retries partial outage mein load amplify kar dete hain
+> Jab B slow hona shuru hota hai, A retry karta hai → B pe 3x load pad jaata hai → B poora crash ho jaata hai. Retries ko hamesha circuit breakers aur exponential backoff ke saath combine karo. Dekho [[08-Resilience4j]].
 
-> [!warning] Distributed transactions don't exist
-> "If charge succeeds but inventory doesn't, undo the charge" — there's no XA transaction across HTTP. Use the [[10-Saga-Pattern]] or [[11-Outbox-Pattern]].
+> [!warning] Distributed transactions exist hi nahi karte
+> "Agar charge success ho gaya lekin inventory reserve fail ho gaya, toh charge undo kar do" — HTTP ke across koi XA transaction nahi hoti. Iske liye [[10-Saga-Pattern]] ya [[11-Outbox-Pattern]] use karo.
 
-> [!warning] Synchronous fanout
-> If a controller calls 5 services and you do them sequentially, total latency = sum of 5. Parallelize with `CompletableFuture.allOf()` or reactive `Flux`.
+> [!warning] Synchronous fanout ka trap
+> Agar ek controller 5 services ko sequentially call karta hai, toh total latency in sab ka **sum** hoga. Isse parallelize karo `CompletableFuture.allOf()` ya reactive `Flux` se — warna user ek simple checkout ke liye 5 seconds wait karega.
 
-> [!tip] gRPC isn't always faster
-> The protobuf serialization wins, but the framework overhead is meaningful. gRPC shines for high-RPS internal traffic and streaming. For occasional calls, REST is fine and easier to debug.
+> [!tip] gRPC hamesha fast nahi hota
+> Protobuf serialization ka fayda milta hai, par framework overhead bhi hota hai jo ignore nahi kar sakte. gRPC tab shine karta hai jab high-RPS internal traffic ho ya streaming ki zarurat ho. Occasional calls ke liye REST hi theek hai aur debug karna aasan hai.
 
-> [!tip] Default to async for non-user-facing flows
-> If a notification, analytics push, or downstream replication can happen "soon" rather than "now" — use events. The system is more resilient and you can bring services up/down independently.
+> [!tip] Non-user-facing flows ke liye async default rakho
+> Agar koi notification, analytics push, ya downstream replication "abhi" nahi "thodi der mein" ho sakta hai — event use karo. System zyada resilient banega aur services ko independently up/down kar sakte ho, bina ek-dusre ko todhe.
 
 ## Related
 - [[01-What-is-a-Microservice]]

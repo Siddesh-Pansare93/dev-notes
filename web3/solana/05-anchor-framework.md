@@ -1,84 +1,84 @@
-# Anchor Framework — The Best Way to Build on Solana
+# Anchor Framework — Solana Pe Build Karne Ka Best Tareeka
 
-> "Building Solana programs without Anchor is like building a house without power tools. You *can* do it, but why would you?"
-
----
-
-## 🧭 What You Will Learn
-
-By the end of this chapter, you will understand:
-
-- What Anchor is and why it exists
-- How to install and set up an Anchor project
-- The core macros that make Anchor powerful
-- How to validate accounts without writing security checks by hand
-- How PDAs work inside Anchor
-- How to handle errors cleanly
-- What an IDL is and why it matters
-- A full, working Counter program with TypeScript tests
+> "Anchor ke bina Solana programs banana aisa hai jaise bina power tools ke ghar banana. Ho sakta hai, but kyun karoge?"
 
 ---
 
-## 🤔 What Is Anchor, and Why Should You Care?
+## 🧭 Is Chapter Mein Kya Seekhoge
 
-**Real-world analogy:** Think about building a web server. You *could* write raw TCP socket code in C. It would work. But most developers use frameworks like Express or Django that handle the boring parts — routing, parsing, error handling — so you can focus on your actual logic.
+Is chapter ke end tak tumhe samajh aa jayega:
 
-Anchor is that framework for Solana programs.
+- Anchor kya hai aur kyun exist karta hai
+- Anchor project kaise install aur setup karte hain
+- Wo core macros jo Anchor ko powerful banate hain
+- Account validation kaise karte hain bina manual security checks likhe
+- Anchor ke andar PDAs kaise kaam karte hain
+- Errors ko cleanly kaise handle karte hain
+- IDL kya hota hai aur kyun important hai
+- Ek full working Counter program, TypeScript tests ke saath
 
-Writing a raw Solana program in Rust means you spend 60–70% of your code doing:
+---
 
-- Manually deserializing account data
-- Checking that accounts are writable or signers
-- Preventing account confusion (is this really a Counter account or something else?)
-- Writing boilerplate that is the same in every program
+## 🤔 Anchor Hai Kya, Aur Iski Parwah Kyun Karein?
 
-Anchor eliminates all of that with macros and conventions. It is the closest thing Solana has to what Hardhat + OpenZeppelin is for Ethereum.
+**Real-world analogy:** Socho tum ek web server bana rahe ho. Tum chahte to raw TCP socket code C mein likh sakte the. Kaam ho jata. Lekin zyadatar developers Express ya Django jaise frameworks use karte hain jo boring cheezein khud handle kar lete hain — routing, parsing, error handling — taaki tum apni actual logic pe focus kar sako.
+
+Anchor bilkul wahi framework hai Solana programs ke liye.
+
+Raw Solana program Rust mein likhoge to 60-70% code sirf ye karega:
+
+- Account data ko manually deserialize karna
+- Check karna ki accounts writable hain ya signer hain
+- Account confusion rokna (ye sach mein Counter account hai ya kuch aur?)
+- Wahi boilerplate baar-baar likhna jo har program mein same hota hai
+
+Anchor macros aur conventions se ye sab khatam kar deta hai. Solana ke liye ye waisa hi hai jaisa Ethereum ke liye Hardhat + OpenZeppelin hota hai.
 
 ### Anchor vs Raw Solana Programs
 
 | Feature | Raw Solana (Native) | Anchor |
 |---|---|---|
-| Account deserialization | Manual, error-prone | Automatic via macros |
-| Account validation | Write checks yourself | Declarative constraints |
+| Account deserialization | Manual, error-prone | Macros se automatic |
+| Account validation | Khud checks likho | Declarative constraints |
 | Error handling | Raw error codes | Named enums with messages |
-| ABI / IDL generation | None | Auto-generated |
+| ABI / IDL generation | Kuch nahi | Auto-generated |
 | Client-side integration | Manual | TypeScript client included |
-| Security (discriminators) | You build it | Built-in 8-byte prefix |
-| Learning curve | Very steep | Much gentler |
-| Production use | Yes (e.g. Serum) | Yes (e.g. Marinade, Jito) |
+| Security (discriminators) | Khud banao | Built-in 8-byte prefix |
+| Learning curve | Bahut steep | Kaafi gentle |
+| Production use | Haan (jaise Serum) | Haan (jaise Marinade, Jito) |
 
-**When to use Anchor:**
-- Almost always when building new programs
-- When you want fast iteration and safety
-- When you need a TypeScript client that matches your program
+**Anchor kab use karo:**
+- Almost hamesha, jab bhi naya program bana rahe ho
+- Jab fast iteration aur safety chahiye
+- Jab tumhe apne program ke saath match karta TypeScript client chahiye
 
-**When NOT to use Anchor:**
-- When program size is extremely critical (Anchor adds some overhead)
-- When you are building very low-level infrastructure or custom runtimes
-- When you need byte-level control over account layout
+**Anchor kab NA use karo:**
+- Jab program size extremely critical ho (Anchor thoda overhead add karta hai)
+- Jab tum bahut low-level infrastructure ya custom runtime bana rahe ho
+- Jab tumhe account layout pe byte-level control chahiye
 
 ---
 
-## 🏗️ Installing Anchor
+## 🏗️ Anchor Install Karna
 
-Before installing Anchor, you need Rust, Solana CLI, and Node.js. If you completed the previous chapters, you already have those.
+Anchor install karne se pehle tumhare paas Rust, Solana CLI, aur Node.js hone chahiye. Agar tumne pichle chapters complete kiye hain, to ye sab already hoga.
 
-### Install Anchor Version Manager (AVM)
+### Anchor Version Manager (AVM) Install Karo
 
-AVM lets you switch between Anchor versions the same way NVM lets you switch Node versions.
+AVM tumhe Anchor versions ke beech switch karne deta hai — bilkul waise jaise NVM Node versions ke beech switch karne deta hai.
 
 ```bash
 cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
 ```
 
-### Install the Latest Anchor Version
+### Latest Anchor Version Install Karo
 
 ```bash
 avm install latest
 avm use latest
 ```
 
-### Verify the Installation
+### Installation Verify Karo
 
 ```bash
 anchor --version
@@ -87,14 +87,14 @@ anchor --version
 
 ---
 
-## 📁 Creating Your First Anchor Project
+## 📁 Apna Pehla Anchor Project Banana
 
 ```bash
 anchor init my-counter
 cd my-counter
 ```
 
-This creates the following structure:
+Isse ye structure ban jayega:
 
 ```
 my-counter/
@@ -105,13 +105,13 @@ my-counter/
 │   └── my-counter/
 │       ├── Cargo.toml
 │       └── src/
-│           └── lib.rs   # Your Solana program lives here
+│           └── lib.rs   # Yahin tumhara Solana program rehta hai
 ├── tests/
-│   └── my-counter.ts    # TypeScript tests using @coral-xyz/anchor
+│   └── my-counter.ts    # @coral-xyz/anchor use karke TypeScript tests
 └── target/              # Build output, IDL files
 ```
 
-### What Is Anchor.toml?
+### Anchor.toml Kya Hai?
 
 ```toml
 [features]
@@ -132,13 +132,13 @@ wallet = "~/.config/solana/id.json"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 ```
 
-The `[programs.localnet]` section maps your program name to its on-chain address. When you run `anchor build`, Anchor derives this address from your keypair.
+`[programs.localnet]` section tumhare program ke naam ko uske on-chain address se map karta hai. Jab tum `anchor build` chalate ho, Anchor ye address tumhari keypair se derive karta hai.
 
 ---
 
-## ⚙️ The Core Anchor Macros
+## ⚙️ Anchor Ke Core Macros
 
-Anchor uses Rust macros (think of them as code generators) to eliminate boilerplate. There are three macros you will use constantly.
+Anchor, Rust macros use karta hai (inhe code generators samjho) boilerplate khatam karne ke liye. Teen macros hain jo tum baar-baar use karoge.
 
 ```mermaid
 graph TD
@@ -153,7 +153,7 @@ graph TD
 
 ### Macro 1: `#[program]`
 
-**Analogy:** This is like defining your REST API routes. Each function inside is one "endpoint" — one instruction your program can handle.
+**Analogy:** Ye waisa hi hai jaise tum apne REST API routes define karte ho. Andar ka har function ek "endpoint" hai — ek instruction jo tumhara program handle kar sakta hai.
 
 ```rust
 #[program]
@@ -172,14 +172,14 @@ pub mod my_counter {
 }
 ```
 
-Every function inside `#[program]`:
-- Takes a `Context<T>` as its first argument (more on this below)
-- Can take additional arguments (numbers, strings, etc.)
-- Returns `Result<()>` — either success or a typed error
+`#[program]` ke andar har function:
+- Pehle argument ke roop mein `Context<T>` leta hai (isko neeche detail mein samjhenge)
+- Extra arguments bhi le sakta hai (numbers, strings, waghera)
+- `Result<()>` return karta hai — ya to success ya ek typed error
 
 ### Macro 2: `#[derive(Accounts)]`
 
-**Analogy:** Think of this as a form validator. Before your function even runs, Anchor checks that all the accounts passed in are exactly what you declared. If any check fails, the transaction is rejected automatically.
+**Analogy:** Isko ek form validator samjho. Tumhara function chalne se pehle hi, Anchor check kar leta hai ki jitne accounts pass kiye gaye hain wo bilkul waise hi hain jaise tumne declare kiye the. Agar koi check fail ho, transaction automatically reject ho jata hai.
 
 ```rust
 #[derive(Accounts)]
@@ -198,11 +198,11 @@ pub struct Initialize<'info> {
 }
 ```
 
-Each field in this struct is an account that the transaction must supply. The `#[account(...)]` attribute on each field is where you write your validation rules — and Anchor enforces them before your function body runs.
+Is struct mein har field ek account hai jo transaction ko supply karna padega. Har field pe `#[account(...)]` attribute wahi jagah hai jahan tum apni validation rules likhte ho — aur Anchor inhe enforce karta hai tumhare function body chalne se pehle.
 
 ### Macro 3: `#[account]`
 
-**Analogy:** This is like defining a database table schema. It tells Anchor what data lives inside an account.
+**Analogy:** Ye waisa hi hai jaise tum database table ka schema define karte ho. Ye Anchor ko batata hai ki account ke andar kaunsa data rehta hai.
 
 ```rust
 #[account]
@@ -211,15 +211,15 @@ pub struct Counter {
 }
 ```
 
-When you mark a struct with `#[account]`, Anchor automatically:
-- Serializes/deserializes it using Borsh (a binary encoding format)
-- Adds an 8-byte **discriminator** to the front (explained below)
+Jab tum kisi struct ko `#[account]` se mark karte ho, Anchor automatically:
+- Use Borsh (ek binary encoding format) se serialize/deserialize karta hai
+- Front mein ek 8-byte **discriminator** add karta hai (neeche explain kiya hai)
 
 ---
 
-## 🔐 Account Constraints — The Heart of Anchor Security
+## 🔐 Account Constraints — Anchor Security Ka Dil
 
-This is where Anchor really shines. Instead of writing `if !ctx.accounts.user.is_signer { return Err(...) }` everywhere, you declare rules inline.
+Yahin Anchor sach mein chamakta hai. Har jagah `if !ctx.accounts.user.is_signer { return Err(...) }` likhne ki jagah, tum rules inline declare karte ho.
 
 ### Common Constraints
 
@@ -254,24 +254,24 @@ This is where Anchor really shines. Instead of writing `if !ctx.accounts.user.is
 
 ### Constraint Reference Table
 
-| Constraint | What It Does | When to Use |
+| Constraint | Kya Karta Hai | Kab Use Karo |
 |---|---|---|
-| `mut` | Account must be writable | Modifying account data or balance |
-| `init` | Creates account on-chain | First time creating an account |
-| `payer = <field>` | Who pays the rent | With `init` |
-| `space = N` | How many bytes to allocate | With `init` |
-| `seeds = [...]` | Validates PDA seeds | PDA accounts |
-| `bump` | Validates canonical bump | PDA accounts |
+| `mut` | Account writable hona chahiye | Account data ya balance modify karte time |
+| `init` | On-chain account create karta hai | Pehli baar account banate time |
+| `payer = <field>` | Rent kaun pay karega | `init` ke saath |
+| `space = N` | Kitne bytes allocate karne hain | `init` ke saath |
+| `seeds = [...]` | PDA seeds validate karta hai | PDA accounts |
+| `bump` | Canonical bump validate karta hai | PDA accounts |
 | `has_one = field` | `account.field == passed_account.key()` | Ownership checks |
-| `constraint = expr` | Custom boolean expression | Anything else |
-| `close = target` | Closes account, returns lamports | Cleanup instructions |
-| `address = pubkey` | Account must have this exact address | Hardcoded accounts |
+| `constraint = expr` | Custom boolean expression | Baaki sab kuch |
+| `close = target` | Account close karta hai, lamports return karta hai | Cleanup instructions |
+| `address = pubkey` | Account ka exact yahi address hona chahiye | Hardcoded accounts |
 
 ---
 
-## 🎯 The Context Pattern
+## 🎯 Context Pattern
 
-**Analogy:** When a web framework calls your route handler, it passes a `request` object that contains everything — the URL, headers, body, cookies. Anchor's `Context<T>` is that request object for your instruction.
+**Analogy:** Jab ek web framework tumhare route handler ko call karta hai, wo ek `request` object pass karta hai jisme sab kuch hota hai — URL, headers, body, cookies. Anchor ka `Context<T>` tumhari instruction ke liye wahi request object hai.
 
 ```rust
 pub fn increment(ctx: Context<Increment>) -> Result<()> {
@@ -281,28 +281,28 @@ pub fn increment(ctx: Context<Increment>) -> Result<()> {
 }
 ```
 
-`ctx.accounts` gives you access to all the validated accounts defined in your `Increment` struct. Because Anchor already validated them, you can just use them.
+`ctx.accounts` tumhe tumhare `Increment` struct mein define kiye gaye saare validated accounts ka access deta hai. Kyunki Anchor pehle hi inhe validate kar chuka hai, tum bas inhe use kar sakte ho.
 
-`ctx` also gives you:
-- `ctx.program_id` — your program's address
-- `ctx.remaining_accounts` — any extra accounts not declared in the struct
-- `ctx.bumps` — the bump seeds for any PDA accounts (used when creating PDAs inside instructions)
+`ctx` tumhe ye bhi deta hai:
+- `ctx.program_id` — tumhare program ka address
+- `ctx.remaining_accounts` — koi extra accounts jo struct mein declare nahi kiye gaye
+- `ctx.bumps` — kisi bhi PDA account ke bump seeds (jab instruction ke andar PDA banate ho tab use hota hai)
 
 ---
 
-## 🧱 Account Discriminators — Preventing Account Confusion
+## 🧱 Account Discriminators — Account Confusion Rokna
 
-**Analogy:** Imagine you have two types of forms in a filing cabinet: Employee forms and Customer forms. They look similar. Without labels, you might accidentally process a Customer form as an Employee form. The discriminator is Anchor's label on every account.
+**Analogy:** Socho tumhare paas filing cabinet mein do tarah ke forms hain: Employee forms aur Customer forms. Dono dikhte similar hain. Labels ke bina, tum galti se Customer form ko Employee form samajh ke process kar sakte ho. Discriminator Anchor ka label hai har account pe.
 
-When Anchor creates an account with `#[account]`, it writes the first 8 bytes as a hash of the account type name:
+Jab Anchor `#[account]` se ek account banata hai, wo pehle 8 bytes mein account type ke naam ka hash likhta hai:
 
 ```
 [discriminator: 8 bytes][your actual data: remaining bytes]
 ```
 
-The discriminator is `sha256("account:Counter")[0..8]`.
+Discriminator hota hai `sha256("account:Counter")[0..8]`.
 
-When your program reads an account, Anchor checks that the first 8 bytes match the expected discriminator. If they do not match, the transaction fails. This prevents an attacker from passing in a `Vault` account where your program expects a `Counter` account.
+Jab tumhara program ek account read karta hai, Anchor check karta hai ki pehle 8 bytes expected discriminator se match karte hain ya nahi. Agar nahi match karte, transaction fail ho jata hai. Isse ek attacker `Vault` account nahi pass kar sakta jahan tumhara program `Counter` account expect kar raha ho.
 
 ```mermaid
 sequenceDiagram
@@ -319,13 +319,13 @@ sequenceDiagram
     Program->>Attacker: Transaction failed
 ```
 
-You do not write this code. Anchor handles it automatically whenever you use `Account<'info, T>`.
+Ye code tumhe khud nahi likhna. Jab bhi tum `Account<'info, T>` use karte ho, Anchor ise automatically handle kar leta hai.
 
 ---
 
-## 💥 Error Handling with `#[error_code]`
+## 💥 `#[error_code]` Se Error Handling
 
-**Analogy:** HTTP status codes tell the client what went wrong (404 Not Found, 403 Forbidden). Anchor's `#[error_code]` is your program's equivalent — named errors with human-readable messages.
+**Analogy:** HTTP status codes client ko batate hain ki kya galat hua (404 Not Found, 403 Forbidden). Anchor ka `#[error_code]` bhi bilkul wahi cheez hai tumhare program ke liye — named errors, human-readable messages ke saath.
 
 ```rust
 #[error_code]
@@ -341,7 +341,7 @@ pub enum CounterError {
 }
 ```
 
-Return errors inside instructions like this:
+Instructions ke andar errors aise return karo:
 
 ```rust
 pub fn increment(ctx: Context<Increment>) -> Result<()> {
@@ -357,7 +357,7 @@ pub fn increment(ctx: Context<Increment>) -> Result<()> {
 }
 ```
 
-Or use the `require!` macro for cleaner code:
+Ya cleaner code ke liye `require!` macro use karo:
 
 ```rust
 pub fn increment(ctx: Context<Increment>) -> Result<()> {
@@ -370,11 +370,11 @@ pub fn increment(ctx: Context<Increment>) -> Result<()> {
 
 ---
 
-## 📜 What Is an IDL?
+## 📜 IDL Kya Hota Hai?
 
-**Analogy:** When you deploy a Solana program, clients do not automatically know how to talk to it — what instructions exist, what accounts they need, what types they use. An IDL (Interface Description Language) is like a published menu at a restaurant. It tells clients exactly what is available and how to order it.
+**Analogy:** Jab tum Solana program deploy karte ho, clients ko automatically pata nahi hota ki tumse baat kaise karni hai — kaunse instructions exist karte hain, unhe kaunse accounts chahiye, kaunse types use hote hain. IDL (Interface Description Language) ek restaurant ke published menu jaisa hai. Ye clients ko exactly batata hai ki kya available hai aur kaise order karna hai.
 
-Anchor auto-generates an IDL file at `target/idl/my_counter.json` every time you build. It looks like:
+Anchor har baar build karne pe `target/idl/my_counter.json` mein ek IDL file auto-generate karta hai. Ye kuch aisa dikhta hai:
 
 ```json
 {
@@ -411,15 +411,15 @@ Anchor auto-generates an IDL file at `target/idl/my_counter.json` every time you
 }
 ```
 
-The `@coral-xyz/anchor` TypeScript library reads this IDL and auto-generates a fully typed client. You never manually craft transaction bytes.
+`@coral-xyz/anchor` TypeScript library ye IDL padh ke ek fully typed client auto-generate karti hai. Tumhe kabhi manually transaction bytes craft nahi karne padte.
 
 ---
 
 ## 🚀 Full Working Example: Counter Program
 
-Let us build a counter that any user can initialize (with a PDA tied to their wallet) and increment. This demonstrates every concept covered above.
+Chalo ek counter banate hain jise koi bhi user initialize kar sake (unke wallet se tied ek PDA ke saath) aur increment kar sake. Ye upar cover kiye gaye har concept ko demonstrate karta hai.
 
-### The Program (`programs/my-counter/src/lib.rs`)
+### Program (`programs/my-counter/src/lib.rs`)
 
 ```rust
 use anchor_lang::prelude::*;
@@ -548,22 +548,22 @@ pub enum CounterError {
 }
 ```
 
-### Build the Program
+### Program Build Karo
 
 ```bash
 anchor build
 ```
 
-This compiles the Rust program and generates:
-- `target/deploy/my_counter.so` — the compiled BPF bytecode
-- `target/idl/my_counter.json` — the IDL file
+Ye Rust program compile karega aur ye generate karega:
+- `target/deploy/my_counter.so` — compiled BPF bytecode
+- `target/idl/my_counter.json` — IDL file
 - `target/types/my_counter.ts` — TypeScript types
 
 ---
 
 ## 🧪 TypeScript Tests (`tests/my-counter.ts`)
 
-Anchor generates a fully typed TypeScript client from your IDL. You write tests that call your program exactly as a real client would.
+Anchor tumhare IDL se ek fully typed TypeScript client generate karta hai. Tum tests likhte ho jo tumhare program ko exactly waise call karte hain jaise ek real client karega.
 
 ```typescript
 import * as anchor from "@coral-xyz/anchor";
@@ -690,7 +690,7 @@ describe("my-counter", () => {
 });
 ```
 
-### Running the Tests
+### Tests Run Karna
 
 ```bash
 # Start a local validator in one terminal
@@ -700,7 +700,7 @@ solana-test-validator
 anchor test
 ```
 
-Or run everything in one command (Anchor manages the local validator):
+Ya sab kuch ek hi command mein run karo (Anchor khud local validator manage karega):
 
 ```bash
 anchor test --skip-local-validator
@@ -710,9 +710,9 @@ anchor test
 
 ---
 
-## 🔄 How a Transaction Flows Through Anchor
+## 🔄 Ek Transaction Anchor Ke Through Kaise Flow Hota Hai
 
-Understanding this flow helps you debug issues and reason about what Anchor is doing behind the scenes.
+Ye flow samajhna tumhe issues debug karne mein aur ye reason karne mein help karega ki Anchor peeche kya kar raha hai.
 
 ```mermaid
 sequenceDiagram
@@ -747,11 +747,11 @@ sequenceDiagram
 
 ## 📐 Space Calculation Reference
 
-When you use `init`, you must specify `space` accurately. Under-allocating causes panics; over-allocating wastes rent.
+Jab tum `init` use karte ho, tumhe `space` accurately specify karna hi padega. Kam allocate karoge to panics aayenge; zyada allocate karoge to rent waste hoga.
 
 | Type | Size (bytes) |
 |---|---|
-| Anchor discriminator | 8 (always add this first) |
+| Anchor discriminator | 8 (hamesha ye pehle add karo) |
 | `bool` | 1 |
 | `u8` / `i8` | 1 |
 | `u16` / `i16` | 2 |
@@ -763,7 +763,7 @@ When you use `init`, you must specify `space` accurately. Under-allocating cause
 | `Vec<T>` | 4 + (size of T * capacity) |
 | `Option<T>` | 1 + size of T |
 
-**Example calculation for Counter:**
+**Counter ke liye example calculation:**
 
 ```rust
 // Counter has: authority (Pubkey = 32) + count (u64 = 8)
@@ -773,13 +773,13 @@ space = 8 + 32 + 8
 
 ---
 
-## 🗺️ PDAs in Anchor — Deeper Look
+## 🗺️ Anchor Mein PDAs — Deeper Look
 
-PDAs (Program Derived Addresses) are accounts that your program controls. No private key exists for them. Anchor makes working with PDAs much simpler than native programs.
+PDAs (Program Derived Addresses) aise accounts hote hain jinhe tumhara program control karta hai. Inke liye koi private key exist nahi karti. Anchor native programs ke muqable PDAs ke saath kaam karna kaafi simple bana deta hai.
 
-**Analogy:** A PDA is like a safety deposit box at a bank. The bank (your program) is the only one who can open it, but the box is identified by a unique combination — your name (user pubkey) plus a box number (seed).
+**Analogy:** PDA ek bank ke safety deposit box jaisa hai. Bank (tumhara program) hi hai jo ise khol sakta hai, lekin box ek unique combination se identify hota hai — tumhara naam (user pubkey) plus box number (seed).
 
-### Deriving a PDA in TypeScript (Client Side)
+### TypeScript Mein PDA Derive Karna (Client Side)
 
 ```typescript
 const [pda, bump] = PublicKey.findProgramAddressSync(
@@ -791,7 +791,7 @@ const [pda, bump] = PublicKey.findProgramAddressSync(
 );
 ```
 
-### Declaring a PDA in Rust (Program Side)
+### Rust Mein PDA Declare Karna (Program Side)
 
 ```rust
 #[account(
@@ -802,11 +802,11 @@ pub counter: Account<'info, Counter>,
 ```
 
 Anchor automatically:
-1. Derives the PDA from the seeds and your program ID
-2. Verifies that the account passed in matches the derived address
-3. Finds and stores the canonical bump (the first valid bump seed)
+1. Seeds aur tumhare program ID se PDA derive karta hai
+2. Verify karta hai ki jo account pass kiya gaya hai wo derived address se match karta hai
+3. Canonical bump dhoondta hai aur store karta hai (pehla valid bump seed)
 
-If you need to use the bump inside an instruction (for example, when signing a CPI):
+Agar tumhe kisi instruction ke andar bump use karna hai (jaise, CPI signing ke time):
 
 ```rust
 pub fn do_something(ctx: Context<DoSomething>) -> Result<()> {
@@ -820,36 +820,36 @@ pub fn do_something(ctx: Context<DoSomething>) -> Result<()> {
 
 ## 🔑 Key Takeaways
 
-1. **Anchor is the standard framework for Solana development.** It handles deserialization, validation, discriminators, and IDL generation automatically — things you would spend days writing by hand.
+1. **Anchor Solana development ka standard framework hai.** Deserialization, validation, discriminators, aur IDL generation ye sab automatically handle karta hai — jo cheezein tum din bhar laga ke manually likhte.
 
-2. **`#[program]` defines your instruction handlers.** Each public function inside is one instruction your program can receive.
+2. **`#[program]` tumhare instruction handlers define karta hai.** Andar ka har public function ek instruction hai jo tumhara program receive kar sakta hai.
 
-3. **`#[derive(Accounts)]` is where security lives.** The constraints you declare there (`mut`, `init`, `has_one`, `seeds`, `bump`, `constraint`) are enforced before your function body ever runs. Anchor rejects invalid transactions for you.
+3. **`#[derive(Accounts)]` mein hi security rehti hai.** Jo constraints tum wahan declare karte ho (`mut`, `init`, `has_one`, `seeds`, `bump`, `constraint`) wo tumhari function body chalne se pehle hi enforce ho jate hain. Anchor invalid transactions khud reject kar deta hai.
 
-4. **`#[account]` defines your on-chain data shape.** Anchor serializes and deserializes it automatically using Borsh.
+4. **`#[account]` tumhare on-chain data ka shape define karta hai.** Anchor ise Borsh use karke automatically serialize aur deserialize karta hai.
 
-5. **The 8-byte discriminator prevents account confusion attacks.** Anchor writes and checks it automatically whenever you use `Account<'info, T>`. You get this security for free.
+5. **8-byte discriminator account confusion attacks rokta hai.** Jab bhi tum `Account<'info, T>` use karte ho, Anchor ise automatically likhta aur check karta hai. Ye security tumhe free mein milti hai.
 
-6. **`#[error_code]` gives your errors names and messages.** Use `require!()` for clean, readable error returns.
+6. **`#[error_code]` tumhare errors ko naam aur messages deta hai.** Clean, readable error returns ke liye `require!()` use karo.
 
-7. **The IDL is your program's public API contract.** The TypeScript client reads it to know exactly what your program expects — no manual byte crafting needed.
+7. **IDL tumhare program ka public API contract hai.** TypeScript client ise padh ke exactly jaanta hai ki tumhara program kya expect karta hai — koi manual byte crafting nahi chahiye.
 
-8. **Space calculation must be exact.** Always start with `8` for the discriminator and add the size of each field. Getting this wrong causes runtime panics.
+8. **Space calculation exact hona chahiye.** Hamesha discriminator ke liye `8` se start karo aur har field ka size add karo. Isme galti karna runtime panics ka karan banta hai.
 
-9. **PDAs in Anchor are declared with `seeds` and `bump`.** Anchor verifies the derivation automatically. You get the bump from `ctx.bumps` when needed.
+9. **Anchor mein PDAs `seeds` aur `bump` se declare hote hain.** Anchor derivation automatically verify karta hai. Zarurat padne pe tumhe bump `ctx.bumps` se milta hai.
 
-10. **Test with `@coral-xyz/anchor` TypeScript library.** It provides a fully typed, IDL-powered client that mirrors your on-chain program exactly.
+10. **`@coral-xyz/anchor` TypeScript library se test karo.** Ye ek fully typed, IDL-powered client deti hai jo tumhare on-chain program ko exactly mirror karta hai.
 
 ---
 
-## 🔗 What Comes Next
+## 🔗 Aage Kya
 
-Now that you understand Anchor's foundations, the next natural steps are:
+Ab jab tumhe Anchor ki foundations samajh aa gayi hain, agle natural steps ye hain:
 
-- **Cross-Program Invocations (CPIs):** Calling other programs (like the Token Program) from inside your Anchor program
-- **Token integration:** Using `anchor-spl` to work with SPL tokens inside your program
-- **Program upgrades:** How to safely upgrade an Anchor program without breaking existing accounts
-- **Advanced PDA patterns:** Using PDAs as signing authorities for CPIs
+- **Cross-Program Invocations (CPIs):** Doosre programs (jaise Token Program) ko apne Anchor program ke andar se call karna
+- **Token integration:** `anchor-spl` use karke apne program ke andar SPL tokens ke saath kaam karna
+- **Program upgrades:** Existing accounts ko break kiye bina Anchor program ko safely upgrade kaise karein
+- **Advanced PDA patterns:** CPIs ke liye signing authorities ke roop mein PDAs use karna
 
 ---
 

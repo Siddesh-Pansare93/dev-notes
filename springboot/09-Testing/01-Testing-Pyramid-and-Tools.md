@@ -1,17 +1,11 @@
----
-tags: [testing, overview, junit, mockito, testcontainers]
-aliases: [Testing Tools, Testing Pyramid]
-stage: advanced
----
-
 # Testing Pyramid and Tools
 
-> [!info] For the Express/TS dev
-> In Node you reach for `jest` (or `vitest`) + `supertest` + maybe `testcontainers-node` and call it a day. In Spring the canonical stack is **JUnit 5** (test runner) + **Mockito** (mocks) + **AssertJ** (fluent assertions) + **Spring Boot Test** (context loading) + **Testcontainers** (real DBs/brokers). Spring Boot bundles all of this in `spring-boot-starter-test`.
+> [!info] Express/TS wale dev ke liye
+> Node mein tum seedha `jest` (ya `vitest`) + `supertest` + shayad `testcontainers-node` utha lete ho aur kaam chal jaata hai. Spring ki duniya mein canonical stack thoda bada hai — **JUnit 5** (test runner) + **Mockito** (mocks) + **AssertJ** (fluent assertions) + **Spring Boot Test** (context loading) + **Testcontainers** (real DB/broker). Ghabrao mat — Spring Boot yeh sab ek hi jagah bundle karke deta hai `spring-boot-starter-test` mein. Ek dependency add karo, poora toolbox mil jaata hai.
 
-## Concept
+## Concept — Testing Pyramid kya hai?
 
-The classic pyramid:
+Socho tum Zomato ke backend pe kaam kar rahe ho. Tumhe kaise pata chalega ki tumhara code sahi kaam kar raha hai bina production mein customer ka order galat restaurant pe bheje? Yahi kaam tests karte hain — lekin sab tests ek jaisे nahi hote. Kuch fast aur focused hote hain (ek function test karo), kuch slow aur broad (poora system test karo). Isi hierarchy ko "Testing Pyramid" kehte hain.
 
 ```mermaid
 flowchart TD
@@ -42,7 +36,7 @@ flowchart LR
     end
 ```
 
-Old pyramid text:
+Purana text-wala pyramid, jo har jagah dikhta hai:
 
 ```
        /\
@@ -54,27 +48,31 @@ Old pyramid text:
  /----------------\
 ```
 
-In Spring Boot specifically you also have **slice tests** — a middle tier that loads only part of the context (`@WebMvcTest`, `@DataJpaTest`, `@JsonTest`). These are faster than full `@SpringBootTest` but more realistic than pure unit tests.
+Neeche wale layer mein sabse zyada tests hone chahiye (fast, cheap), upar jaate jaate tests kam hone chahiye (slow, expensive, brittle). Yeh Zomato ke delivery model jaisa hi hai — local kirana store (unit test) se saaman uthana fast hai, warehouse (integration test) se thoda slow, aur cross-city truck delivery (E2E) sabse slow aur sabse zyada cheezein galat ho sakti hain rasty mein.
 
-### The standard toolbox
+Spring Boot mein ek extra layer hai jo Node mein exist hi nahi karta — **slice tests**. Yeh beech ka tier hai jo poora Spring context load nahi karta, sirf zaruri hissa (`@WebMvcTest`, `@DataJpaTest`, `@JsonTest`). Yeh full `@SpringBootTest` se fast hain lekin pure unit test se zyada realistic — kyunki asli Spring wiring, validation, JSON serialization waghera actually chalta hai, bas puri application context nahi uthti.
 
-| Tool | What it does | Node analog |
+### Standard toolbox — kaunsa tool kis kaam ka?
+
+| Tool | Kya karta hai | Node analog |
 |------|--------------|-------------|
 | **JUnit 5** (Jupiter) | Test runner, lifecycle, assertions | `jest` / `vitest` |
 | **Mockito** | Mocking framework | `jest.fn()`, `vi.mock()` |
 | **AssertJ** | Fluent assertions | `expect(x).toEqual(...)` |
-| **Hamcrest** | Matchers (older style) | `chai` |
-| **Spring Boot Test** | Loads `ApplicationContext` for tests | (no direct equivalent) |
-| **MockMvc** | Tests controllers without HTTP server | `supertest` |
-| **WebTestClient** | Reactive HTTP client for tests | `supertest` (async) |
-| **Testcontainers** | Real services in Docker for tests | `testcontainers-node` |
+| **Hamcrest** | Matchers (purana style) | `chai` |
+| **Spring Boot Test** | Tests ke liye `ApplicationContext` load karta hai | (direct equivalent nahi) |
+| **MockMvc** | Controllers test karo bina HTTP server ke | `supertest` |
+| **WebTestClient** | Reactive HTTP client tests ke liye | `supertest` (async) |
+| **Testcontainers** | Tests ke liye Docker mein real services | `testcontainers-node` |
 | **WireMock** | HTTP service stubbing | `nock`, `msw` |
-| **RestAssured** | E2E HTTP DSL | `supertest` for full apps |
-| **Awaitility** | Async/eventual assertions | `waitFor` from Testing Library |
+| **RestAssured** | E2E HTTP DSL | poori app ke against `supertest` |
+| **Awaitility** | Async / eventual assertions | Testing Library ka `waitFor` |
 
-## Code example
+## Code example — sab kuch ek jagah
 
-The starter brings everything except Testcontainers:
+**Kyun zaruri hai?** Har tool alag kaam karta hai — koi runner hai, koi mocking, koi assertions. Inhe milake dekhna zaruri hai taaki pata chale ki asal test file mein sab kaise fit hote hain.
+
+`spring-boot-starter-test` sab kuch le aata hai Testcontainers chhodkar — woh alag se add karna padta hai:
 
 ```xml
 <dependency>
@@ -94,7 +92,7 @@ The starter brings everything except Testcontainers:
 </dependency>
 ```
 
-Gradle equivalent:
+Gradle mein wahi cheez:
 
 ```groovy
 testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -102,7 +100,7 @@ testImplementation 'org.testcontainers:junit-jupiter'
 testImplementation 'org.testcontainers:postgresql'
 ```
 
-A trivial test showing all four players:
+Ek chhota sa test jisme chaaron players ek saath dikhte hain — JUnit runner chalata hai, Mockito fake gateway banata hai, AssertJ result check karta hai:
 
 ```java
 import org.junit.jupiter.api.*;
@@ -116,21 +114,23 @@ class OrderServiceTest {
 
     @BeforeEach
     void setup() {
-        gateway = mock(PaymentGateway.class);     // Mockito
+        gateway = mock(PaymentGateway.class);     // Mockito — fake payment gateway
         service = new OrderService(gateway);
     }
 
     @Test
     void placesOrder_chargesCustomer() {
-        when(gateway.charge(100)).thenReturn("txn-1"); // stub
+        when(gateway.charge(100)).thenReturn("txn-1"); // stub — jab charge(100) call ho, "txn-1" return karo
 
         var order = service.place(new Cart(100));
 
-        assertThat(order.txnId()).isEqualTo("txn-1");  // AssertJ
-        verify(gateway).charge(100);                    // Mockito verify
+        assertThat(order.txnId()).isEqualTo("txn-1");  // AssertJ — fluent assertion
+        verify(gateway).charge(100);                    // Mockito verify — pakka call hua tha?
     }
 }
 ```
+
+Socho isko ek real scenario mein — `OrderService` UPI se paisa katne ke liye ek `PaymentGateway` use karta hai. Tum yeh test karte waqt asli Razorpay/UPI ko call nahi karna chahte — dhīmā bhi hoga aur paise bhi kat jaayenge. Isliye Mockito se ek fake `gateway` bana diya, usse bol diya "jab 100 rupaye ka charge aaye, 'txn-1' bol dena", aur phir check kiya ki `OrderService` ne sahi se use call kiya ya nahi.
 
 ## Express/Node comparison
 
@@ -143,22 +143,31 @@ class OrderServiceTest {
 | `AssertJ` chains | `expect().toEqual()` chains |
 | `MockMvc` | `supertest(app).get('/x')` |
 | `Testcontainers` | `testcontainers-node` |
-| `@SpringBootTest` | starting the actual `app.listen` in tests |
-| Slice tests | (no direct equivalent — Node tests usually mock everything or load the whole app) |
-| `RestAssured` | `supertest` against a deployed URL |
+| `@SpringBootTest` | asli `app.listen` test mein start karna |
+| Slice tests | (direct equivalent nahi — Node tests aam taur pe ya sab mock karte hain, ya poori app load karte hain) |
+| `RestAssured` | deployed URL ke against `supertest` |
 
-The cultural difference: Node tests are usually **either** pure unit (mock everything) **or** full app boot. Spring's slice tests give you a tested middle ground because the framework knows how to compose itself partially.
+Cultural difference samjho — Node tests **ya to** pure unit hote hain (sab kuch mock karo) **ya** poori app boot karte hain, beech ka koi standard raasta nahi. Spring ke slice tests tumhe ek tested middle ground dete hain, kyunki framework ko pata hai apna aadha context kaise banaya jaaye — jaise Swiggy sirf "restaurant listing" module test karna chahe bina poore order-and-delivery system ko chalaye.
 
-## Gotchas
+## Gotchas — jahan log phasate hain
 
-> [!warning] Don't `@SpringBootTest` everything
-> Booting the full context is slow (1-5s per class). Reach for slice tests or plain JUnit + Mockito first. If 80% of your tests boot Spring, your suite will crawl.
+> [!warning] Har jagah `@SpringBootTest` mat lagao
+> Poora context boot karna slow hai (1-5 second per class). Pehle slice tests ya plain JUnit + Mockito try karo. Agar tumhare 80% tests Spring boot karte hain, tumhari poori suite rengne lagegi — CI pipeline coffee break le lega.
 
 > [!warning] Hamcrest vs AssertJ
-> Old Spring docs use Hamcrest (`assertThat(x, is(5))`). Modern code uses AssertJ (`assertThat(x).isEqualTo(5)`). They both define `assertThat` — pick one import per file or you'll get conflicts.
+> Purane Spring docs Hamcrest use karte hain (`assertThat(x, is(5))`). Modern code AssertJ use karta hai (`assertThat(x).isEqualTo(5)`). Dono ka `assertThat` naam same hai — ek file mein ek hi import rakho, warna conflict ho jaayega aur compiler confuse ho jaayega ki kaunsa `assertThat` chahiye.
 
-> [!tip] Reuse the context
-> Spring caches the `ApplicationContext` between tests in the same JVM run. If every test class has slightly different `@MockBean`s or `@TestPropertySource`, the cache invalidates and your suite restarts the context for each — death by a thousand reboots.
+> [!tip] Context ko reuse karo
+> Spring `ApplicationContext` ko cache karta hai same JVM run ke tests ke beech. Lekin agar har test class mein thode-thode alag `@MockBean` ya `@TestPropertySource` hain, toh cache invalidate ho jaata hai aur har class ke liye context reboot hota hai — yeh "death by a thousand reboots" hai. Jaise Ola driver har trip pe naya car register kare instead of reuse karne ke — waste of time.
+
+## Key Takeaways
+
+- Testing pyramid: neeche unit tests (many, fast), beech mein slice tests (Spring-specific middle ground), upar integration/E2E tests (few, slow).
+- Standard Spring stack = JUnit 5 (runner) + Mockito (mocks) + AssertJ (assertions) + Spring Boot Test (context) + Testcontainers (real infra) — sab `spring-boot-starter-test` mein bundled, Testcontainers alag add karna hota hai.
+- Slice tests (`@WebMvcTest`, `@DataJpaTest`, `@JsonTest`) Node ki duniya mein exist hi nahi karte — Spring ka unique advantage hai kyunki framework ko pata hai apna aadha context kaise wire karna hai.
+- `@SpringBootTest` powerful hai lekin slow — sparingly use karo, warna suite crawl karega.
+- Hamcrest aur AssertJ dono `assertThat` provide karte hain — ek hi import rakhna, mix mat karna.
+- Context caching ka fayda uthao — inconsistent `@MockBean`/`@TestPropertySource` cache invalidate karke suite ko slow kar dete hain.
 
 ## Related
 - [[02-JUnit-5-Basics]]

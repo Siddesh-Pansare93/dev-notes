@@ -1,51 +1,47 @@
----
-tags: [microservices, database, architecture, patterns]
-aliases: [Database per Service, Polyglot Persistence]
-stage: advanced
----
-
 # Database per Service
 
 > [!info] For the Express/TS dev
-> The single most-violated microservice rule: **each service owns its database; no other service touches it.** It sounds obvious. It is also intensely uncomfortable when you realize you can't do a JOIN across services anymore. But sharing a DB defeats the entire point of microservices — go shared and you've built a distributed monolith.
+> Microservices ka sabse zyada violate hone wala rule yahi hai: **har service apni database khud owns karti hai; koi doosri service usse touch nahi karti.** Sunne mein simple lagta hai. Par jab realize hota hai ki ab tum services ke beech JOIN nahi laga sakte, toh bada uncomfortable feel hota hai. Lekin agar DB share kar diya, toh microservices ka pura point hi khatam ho gaya — tumne ek distributed monolith bana diya hai, microservice nahi.
 
 ## Concept
 
-Three escalating levels of database independence:
+Kya hota hai? Database independence ke teen escalating levels hote hain:
 
-| Level | What |
+| Level | Kya hai |
 |-------|------|
-| **Shared DB** | All services use one DB. Tight coupling. *Anti-pattern.* |
-| **Schema per service** | Same DB instance, different schemas. *Stepping stone.* |
-| **Database per service** | Each service has its own DB instance. *The goal.* |
+| **Shared DB** | Saari services ek hi DB use karti hain. Tight coupling. *Anti-pattern.* |
+| **Schema per service** | Ek hi DB instance, alag-alag schemas. *Stepping stone.* |
+| **Database per service** | Har service ki apni DB instance. *Yehi goal hai.* |
 
-### Why it matters
+Socho Zomato ka backend hai. Order service, Restaurant service, aur Payment service — agar teeno ek hi Postgres database mein apni tables rakhein aur ek-doosre ki tables directly query karein, toh yeh "shared DB" wala anti-pattern hai. Har service ko apni alag database milni chahiye — jaise alag alag dukaan, apna alag godown.
 
-A shared DB couples services at the **most fragile** layer:
+### Kyun zaruri hai?
 
-- Schema migrations force coordinated deploys.
-- One service's slow query slows everyone.
-- A service can break others by changing column types.
-- You can't switch tech (e.g. SQL → Cassandra for one service).
-- Implicit contracts (one service `JOIN`ing another's table) — when the table changes, both services break.
+Ek shared DB services ko sabse **fragile** layer par couple kar deta hai:
 
-### The cost
+- Schema migrations ke liye coordinated deploys karne padte hain — sab services ko ek saath deploy karna padta hai. Bye-bye independence.
+- Ek service ka slow query sabko slow kar deta hai — jaise ek restaurant ka order slow process ho raha ho aur poora Zomato app hang ho jaaye.
+- Ek service column type change karke doosri services ko break kar sakti hai.
+- Tum tech switch nahi kar sakte (jaise ek service ke liye SQL se Cassandra move karna) — kyunki sab ek hi DB pe bandhe hain.
+- Implicit contracts ban jaate hain (ek service doosri ki table JOIN kar rahi hai) — jab table change hoti hai, dono services break ho jaati hain.
 
-Once each service owns its data:
+### Iski cost kya hai?
 
-- **Cross-service queries are gone.** No more `JOIN orders ON customers`. You either:
-  - Make an HTTP call to fetch the other service's data (chatty).
-  - Replicate the data into your service via events (eventual consistency).
-  - Use API composition at the gateway/BFF layer.
-- **Distributed transactions are gone.** See [[10-Saga-Pattern]].
-- **Reporting is harder.** Cross-domain reports need an analytics DB / data lake fed by events.
-- **Polyglot persistence becomes possible.** Right tool for the job: Postgres for transactions, Elasticsearch for search, Redis for sessions, Neo4j for graphs.
+Jab har service apna data khud owns karti hai:
 
-### The "share-nothing" rule
+- **Cross-service queries khatam.** Ab `JOIN orders ON customers` nahi chalega. Teen options hain:
+  - Doosri service se HTTP call karke data fetch karo (chatty, thoda slow).
+  - Events ke through data replicate karo apni service mein (eventual consistency).
+  - Gateway/BFF layer pe API composition use karo.
+- **Distributed transactions khatam.** Dekho [[10-Saga-Pattern]].
+- **Reporting mushkil ho jaati hai.** Cross-domain reports ke liye ek analytics DB / data lake chahiye jo events se feed ho.
+- **Polyglot persistence possible ho jaata hai.** Har job ke liye sahi tool: transactions ke liye Postgres, search ke liye Elasticsearch, sessions ke liye Redis, graphs ke liye Neo4j.
 
-> No service may read or write another service's database **directly**. Communication is through APIs (REST/gRPC) or events.
+### "Share-nothing" rule
 
-This is non-negotiable. The moment two services share a table, you've lost independence.
+> Koi bhi service doosri service ki database ko **directly** read ya write nahi karegi. Communication sirf APIs (REST/gRPC) ya events ke through hogi.
+
+Yeh non-negotiable hai. Jis din do services ek table share karti hain, us din tumne apni independence kho di.
 
 ## Code example
 
@@ -63,9 +59,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 }
 ```
 
-Customer Service can't change the `Customer` table without breaking Order Service. You've coupled deployment.
+Yahan Customer Service `Customer` table ko change nahi kar sakti bina Order Service ko break kiye. Tumne deployment ko couple kar diya — jaise Zomato ka Order team, Customer team ki table pe directly depend karke apna feature bana raha ho. Ek chhota sa change Customer table mein, aur Order service crash.
 
-### Right way: API call
+### Sahi tarika: API call
 
 ```java
 @Service
@@ -85,11 +81,11 @@ class OrderQueryService {
 }
 ```
 
-The Customer Service exposes a `/api/customers/batch` endpoint. Order Service calls it. Customer Service can change its DB without Order knowing.
+Customer Service ek `/api/customers/batch` endpoint expose karti hai. Order Service usse call karti hai. Ab Customer Service apni DB kuch bhi change kar sakti hai, Order Service ko farak nahi padta — jaise UPI app tumhare bank ka balance seedha DB se nahi padhta, bank ke API se maangta hai.
 
-### Right way: data replication via events
+### Sahi tarika: events ke through data replication
 
-For high-traffic queries where API calls are too slow, **replicate** the data you need into your local DB:
+High-traffic queries ke liye jaha API calls slow pad jaayein, tum jo data chahiye woh apni local DB mein **replicate** kar lo:
 
 ```java
 // Order Service has its own minimal customer projection
@@ -121,7 +117,7 @@ class CustomerEventListener {
 }
 ```
 
-Now Order Service can JOIN against `customer_view` (same DB, owned by Order), but the data ultimately comes from Customer Service via events. Eventually consistent — see [[14-Eventual-Consistency]].
+Ab Order Service `customer_view` ke against JOIN kar sakti hai (yeh table same DB mein hai, aur Order Service khud owns karti hai), lekin data ultimately Customer Service se events ke through aata hai. Yeh eventually consistent hota hai — dekho [[14-Eventual-Consistency]]. Bilkul waise jaise CRED apna khud ka "cached" copy rakhta hai tumhare card details ka, jo periodically sync hota rehta hai — real source of truth toh bank hi hai.
 
 ### Polyglot persistence example
 
@@ -135,7 +131,7 @@ Graph (relations)    → Neo4j
 Analytics            → ClickHouse / BigQuery
 ```
 
-Each service picks its own. Spring Boot has starters for all of these.
+Har service apni marzi ka database choose karti hai — jaise Swiggy ka search feature Elasticsearch use kare kyunki fast text search chahiye, par cart Redis use kare kyunki data temporary hai aur super fast access chahiye. Spring Boot mein in sabke liye starters available hain.
 
 ### `application.yml` per service
 
@@ -155,11 +151,11 @@ spring:
     username: payments_app
 ```
 
-Different DB hosts, different credentials, different schemas. Even if they share a Postgres cluster physically, the access boundary is enforced.
+Alag-alag DB hosts, alag-alag credentials, alag-alag schemas. Chahe woh physically same Postgres cluster share kar rahe hon, access boundary strictly enforce hota hai.
 
 ### Schema-per-service compromise
 
-If you genuinely can't (yet) run separate DB instances:
+Agar abhi genuinely alag-alag DB instances run nahi kar sakte:
 
 ```sql
 CREATE SCHEMA orders;
@@ -170,11 +166,11 @@ GRANT USAGE ON SCHEMA orders TO orders_app;
 REVOKE ALL ON SCHEMA payments FROM orders_app;
 ```
 
-Each service connects with its own user that **cannot** read other schemas. Enforce the boundary at the DB level.
+Har service apne khud ke user se connect karti hai jo doosre schemas **read hi nahi kar sakta**. Boundary ko DB level pe enforce karo — jaise ek hi building mein alag-alag dukaanein hon, par har dukaan ka apna lock aur chaabi ho.
 
 ## Express/Node comparison
 
-The architecture is identical across stacks. Only the libraries change:
+Architecture har stack mein same hai. Sirf libraries badalti hain:
 
 | Spring | Node |
 |--------|------|
@@ -183,30 +179,30 @@ The architecture is identical across stacks. Only the libraries change:
 | Spring Kafka for replication | kafkajs |
 | Postgres + Elasticsearch + Redis | (same — DBs are language-agnostic) |
 
-The temptation to share DBs exists in both ecosystems. The fix is the same: **don't.**
+DB share karne ka temptation dono ecosystems mein aata hai. Fix same hai: **mat karo.**
 
 ## Gotchas
 
 > [!danger] Shared DB is the #1 microservice failure mode
-> Almost every "we tried microservices and it didn't work" story starts with a shared database. It feels easy at first; it's catastrophic at scale.
+> Almost har "humne microservices try kiya aur fail ho gaya" story shared database se start hoti hai. Shuru mein easy lagta hai; scale pe catastrophic ho jaata hai.
 
-> [!warning] Cross-service joins drive teams back to monoliths
-> "We can't query orders + customers efficiently anymore." This is real pain. Plan for it: introduce read models, projection services, or a CQRS-style query side.
+> [!warning] Cross-service joins teams ko wapas monolith mein le jaate hain
+> "Ab hum orders + customers efficiently query nahi kar sakte." Yeh dard real hai. Iske liye plan karo: read models, projection services, ya CQRS-style query side introduce karo.
 
-> [!warning] Data duplication is OK
-> Coming from a monolith you'll resist storing the same email in 3 services. Get over it. The duplication is the cost of independence; events keep it in sync.
+> [!warning] Data duplication theek hai
+> Monolith se aaye ho toh 3 services mein same email store karne mein resistance hoga. Usse nikal jao. Duplication hi independence ki cost hai; events isse sync mein rakhte hain.
 
-> [!warning] Foreign keys are gone
-> No FK from `order.customer_id` to `customer.id` if they're in different DBs. Application-level validation. Background reconciliation jobs.
+> [!warning] Foreign keys gaayab ho jaate hain
+> `order.customer_id` se `customer.id` tak FK nahi hoga agar dono alag DBs mein hain. Application-level validation karna padega. Background reconciliation jobs chalani padengi.
 
-> [!warning] Reporting needs a separate path
-> "Total revenue per VIP customer last quarter" can't be a JOIN. You need a data warehouse fed by events (Kafka → S3 → Snowflake/BigQuery).
+> [!warning] Reporting ke liye alag path chahiye
+> "Pichle quarter ka VIP customer revenue total" ek JOIN nahi ho sakta. Iske liye ek data warehouse chahiye jo events se feed ho (Kafka → S3 → Snowflake/BigQuery).
 
-> [!tip] Start with schema-per-service
-> Same Postgres cluster, separate schemas, separate users. You get most of the boundary benefit without the operational cost of N DBs. Split physically when needed.
+> [!tip] Schema-per-service se start karo
+> Same Postgres cluster, alag schemas, alag users. Isse boundary ka zyada fayda milta hai bina N DBs chalane ke operational cost ke. Jab zarurat pade tab physically split kar do.
 
-> [!tip] If two services always change together, they're one service
-> The split was wrong. Merge them. Don't paper over it with shared tables.
+> [!tip] Agar do services hamesha saath change hoti hain, toh woh actually ek hi service hai
+> Split galat tha. Unhe merge kar do. Shared tables se paper over mat karo.
 
 ## Related
 - [[01-What-is-a-Microservice]]

@@ -1,34 +1,30 @@
----
-tags: [security, spring-security, configuration, filter-chain]
-aliases: [SecurityFilterChain, HttpSecurity, Lambda DSL]
-stage: intermediate
----
-
 # Configuration & SecurityFilterChain
 
-> [!info] For the Express/TS dev
-> If you've used Express, you've chained middleware: `app.use(cors()); app.use(authMiddleware); app.use(routeMiddleware)`. Spring Security's `SecurityFilterChain` bean is the same idea, declared via the **lambda DSL** introduced in Spring Security 5.7+ and standard in 6+. The old `WebSecurityConfigurerAdapter` extending pattern is **gone** — bean-only config now.
+> [!info] Express/TS wale dev ke liye
+> Express mein tumne middleware chain kiya hoga: `app.use(cors()); app.use(authMiddleware); app.use(routeMiddleware)`. Spring Security ka `SecurityFilterChain` bean bilkul yehi cheez hai, bas declare karte hain **lambda DSL** ke through — jo Spring Security 5.7+ mein aaya aur 6+ mein standard ban gaya. Purana `WebSecurityConfigurerAdapter` extend karne wala pattern ab **khatam** — ab sirf bean-based config chalta hai.
 
-## Concept / How it works
+## Concept / Ye kaam kaise karta hai?
 
-You declare one or more `SecurityFilterChain` beans. Each chain is matched by request matchers (`securityMatcher`), so you can have different rules per path. Inside each chain, you configure auth, authorization, sessions, CORS, CSRF, etc., using the lambda DSL.
+Socho tumhara ek app hai jisme Zomato jaisa setup hai — customer-facing API bhi hai (`/api/**`) aur ek admin dashboard bhi (`/**` baaki sab). Dono ke security rules alag hone chahiye — API stateless JWT se chalega, dashboard session-based login se. Isi problem ko solve karta hai `SecurityFilterChain`.
+
+Tum ek ya zyada `SecurityFilterChain` beans declare karte ho. Har chain request matchers (`securityMatcher`) se match hoti hai, isliye tum har path ke liye alag rules bana sakte ho. Har chain ke andar tum auth, authorization, sessions, CORS, CSRF sab kuch configure karte ho lambda DSL use karke.
 
 ## Code example
 
-### A complete production-ish config
+### Ek complete, production-jaisa config
 
 ```java
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity        // enables @PreAuthorize ([[05-Method-Security]])
+@EnableMethodSecurity        // @PreAuthorize enable karta hai ([[05-Method-Security]])
 public class SecurityConfig {
 
     @Bean
-    @Order(1)                 // matched first
+    @Order(1)                 // pehle match hoga
     public SecurityFilterChain apiChain(HttpSecurity http,
                                          JwtAuthFilter jwtFilter) throws Exception {
         return http
-            .securityMatcher("/api/**")                          // only /api/**
+            .securityMatcher("/api/**")                          // sirf /api/**
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())                         // stateless API
             .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
@@ -103,17 +99,23 @@ public class SecurityConfig {
 }
 ```
 
-### Multiple chains: when to use them
+Zyada dar mat khaana isse dekh ke — line by line samjho:
+- `apiChain` sirf `/api/**` ke requests handle karta hai, `@Order(1)` ki wajah se pehle check hota hai.
+- `csrf().disable()` kyunki ye stateless JWT API hai — cookies use nahi ho rahi, toh CSRF attack ka risk hi nahi (Zomato ka mobile app jaisa, jo token bhejta hai header mein, cookie nahi).
+- `webChain` baaki sab requests (`/**`) ke liye hai — normal form login wala flow, jaise koi purana college portal jisme session-cookie based login hota hai.
+- `jwtFilter` ko `addFilterBefore` se pipeline mein inject kiya — Express ke `app.use(jwtAuth)` jaisa hi hai, bas thoda zyada explicit.
+
+### Multiple chains: kab use karein?
 
 | Reason | Pattern |
 | --- | --- |
-| API + web UI in the same app | One stateless chain for `/api/**`, one form-login chain for the rest |
-| Public endpoints with their own headers/CORS | Separate chain to skip auth filters entirely |
-| Admin sub-app with stricter CSP | Separate chain with stricter `headers` config |
+| Ek hi app mein API + web UI dono | `/api/**` ke liye stateless chain, baaki ke liye form-login chain |
+| Public endpoints jinke apne headers/CORS chahiye | Alag chain jo auth filters skip kar de |
+| Admin sub-app jisme extra strict CSP chahiye | Alag chain, stricter `headers` config ke saath |
 
-The `@Order` matters — the first matching chain wins.
+`@Order` yahan bahut matter karta hai — jo chain pehle match hoti hai, wahi jeetegi. Bilkul Express mein jaise routes top-se-bottom check hote hain, waise hi.
 
-### Disabling defaults
+### Defaults ko disable karna
 
 ```java
 http.csrf(AbstractHttpConfigurer::disable)
@@ -123,7 +125,7 @@ http.csrf(AbstractHttpConfigurer::disable)
 
 ### Custom authentication entry point + access denied handler
 
-By default, an unauthenticated request gets `401` with `WWW-Authenticate: Basic`. For a JSON API, override:
+Kya hota hai default mein? Agar koi unauthenticated request aati hai toh Spring Security by default `401` bhejta hai saath mein `WWW-Authenticate: Basic` header — jo browser ka native login popup trigger kar deta hai. JSON API ke liye ye bilkul useless hai (tumhara React/Angular frontend us popup ko handle nahi kar sakta), isliye override karna padta hai:
 
 ```java
 .exceptionHandling(eh -> eh
@@ -138,18 +140,24 @@ By default, an unauthenticated request gets `401` with `WWW-Authenticate: Basic`
     }))
 ```
 
+Ye bilkul waise hi hai jaise Express mein tum custom error middleware likhte ho jo `401`/`403` ke liye proper JSON response bhejta hai instead of default HTML error page.
+
 ## Request matchers
+
+Kya karte hain ye? Ye batate hain ki kaunsa request "kis rule" ke andar aayega — path ke basis pe, method ke basis pe, ya dono ke combination pe.
 
 ```java
 auth
-  .requestMatchers("/api/v1/users/**")                  // path
+  .requestMatchers("/api/v1/users/**")                  // sirf path
   .requestMatchers(HttpMethod.GET, "/api/v1/users/**")  // method + path
-  .requestMatchers(antMatcher("/api/**"))               // explicit Ant
+  .requestMatchers(antMatcher("/api/**"))               // explicit Ant style
   .requestMatchers(regexMatcher("^/api/v\\d+/.*$"))     // regex
-  .anyRequest()                                          // catch-all (last)
+  .anyRequest()                                          // catch-all (sabse last mein)
 ```
 
 ## Express/TS comparison
+
+Agar tum Express se aaye ho toh yehi mental model already tumhare paas hai — bas naam alag hain:
 
 ```ts
 // Express
@@ -166,42 +174,45 @@ app.use('/api', routes);
 | `helmet()` | `.headers(...)` |
 | `jwtAuth` middleware | `.addFilterBefore(jwtFilter, ...)` |
 | Per-route auth check | `.requestMatchers(...).hasRole(...)` |
-| `app.use('/api', router1); app.use('/web', router2)` | Two `SecurityFilterChain` beans with different `securityMatcher` |
-| `csurf` middleware | `.csrf(...)` (on by default) |
+| `app.use('/api', router1); app.use('/web', router2)` | Do `SecurityFilterChain` beans, alag `securityMatcher` ke saath |
+| `csurf` middleware | `.csrf(...)` (by default ON hi rehta hai) |
 
-## Gotchas
+## Gotchas — yahan log fasate hain
 
 > [!warning] `securityMatcher` vs `requestMatchers`
-> `securityMatcher` selects which requests this CHAIN handles. `requestMatchers` inside `authorizeHttpRequests` selects which requests get a particular AUTHORIZATION rule. Don't confuse them.
+> `securityMatcher` decide karta hai ki ye CHAIN kaunse requests handle karegi. `requestMatchers` (jo `authorizeHttpRequests` ke andar hota hai) decide karta hai ki kaunse request ko konsa AUTHORIZATION rule milega. Dono ko mix mat karo — ye alag level ke decisions hain.
 
-> [!warning] Order of `requestMatchers` matters
-> First match wins. Put specific matchers BEFORE general ones.
+> [!warning] `requestMatchers` ka order matter karta hai
+> Pehla match jeetta hai. Specific matchers ko GENERAL matchers se pehle likho.
 > ```java
-> // BUG: every request authenticated, second rule never reached
+> // BUG: har request authenticated maana jayega, doosra rule kabhi reach hi nahi hoga
 > .anyRequest().authenticated()
 > .requestMatchers("/public").permitAll()
 > ```
+> Ye bilkul Express ke route-order bug jaisa hai — agar catch-all `app.use('*', ...)` pehle likh diya toh baaki routes kabhi hit hi nahi honge.
 
-> [!warning] `@Order(N)` on chains
-> Without `@Order`, multiple chains may resolve in surprising order. Always set it when you have more than one chain.
+> [!warning] `@Order(N)` chains pe lagao
+> `@Order` ke bina, multiple chains kisi bhi weird order mein resolve ho sakti hain. Jab bhi ek se zyada chain ho, `@Order` zaroor set karo.
 
-> [!warning] Forgetting OPTIONS for CORS preflight
-> Browsers send OPTIONS without credentials. Permit it, or preflights 401. ([[08-CORS]])
+> [!warning] CORS preflight ke liye OPTIONS bhool jaana
+> Browser CORS preflight ke time `OPTIONS` request bina credentials ke bhejta hai. Agar tumne ise `permitAll()` nahi kiya toh preflight `401` mein fail ho jayega, aur tumhara actual request kabhi bheja hi nahi jayega. ([[08-CORS]])
 
-> [!danger] `csrf.disable()` for browser-facing apps
-> Stateless APIs (JWT in `Authorization` header) — yes, disable. Browser apps using cookies — DO NOT disable. ([[07-CSRF-CORS-Security]])
+> [!danger] `csrf.disable()` browser-facing apps mein
+> Stateless APIs (JWT `Authorization` header mein) — haan, disable karna sahi hai. Lekin cookies use karne wale browser apps mein — CSRF **kabhi disable mat karo**. Socho jaise CRED ya Paytm jaisa app agar cookie-based session use kare aur CSRF disable kar de — koi malicious site silently tumhare account se payment trigger kara sakta hai. ([[07-CSRF-CORS-Security]])
 
 > [!tip] `springSecurity()` MockMvc helper
-> When testing controllers behind security:
+> Jab controllers ko security ke peeche test karna ho:
 > ```java
 > mockMvc.perform(get("/api/me").with(user("alice").roles("ADMIN")));
 > ```
 
-## Related
+## Key Takeaways
 
-- [[01-Spring-Security-Concepts]]
-- [[03-Authentication-Methods]]
-- [[04-JWT-with-Spring-Security]]
-- [[06-Password-Encoding]]
-- [[08-OAuth2-Resource-Server]]
-- [[08-CORS]]
+- `SecurityFilterChain` bean = Express middleware chain ka Spring Security version, bas lambda DSL se declare hota hai.
+- Ek app mein multiple chains ho sakti hain — har ek apne `securityMatcher` se apna path range handle karti hai (jaise `/api/**` ke liye stateless, `/**` ke liye form-login).
+- `@Order` hamesha lagao jab multiple chains ho — pehla match jeetta hai.
+- `requestMatchers` ka order bhi matter karta hai — specific rules pehle, generic `.anyRequest()` sabse last mein.
+- `securityMatcher` (chain-level) aur `requestMatchers` (authorization-level) alag cheezein hain — confuse mat karo.
+- Stateless JWT API mein CSRF disable karna theek hai, lekin cookie-based browser apps mein kabhi mat karo.
+- CORS preflight (`OPTIONS`) ko hamesha `permitAll()` karo, warna preflight hi fail ho jayega.
+- JSON APIs ke liye default `401`/`403` handlers ko override karke proper JSON error response bhejo — browser ka native login popup avoid karne ke liye.

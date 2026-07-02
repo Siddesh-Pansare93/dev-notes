@@ -1,29 +1,29 @@
-# 08 - Relationships and Joins Fundamentals
+# 08 - Relationships aur Joins Fundamentals
 
-> **Chapter goal:** Understand how tables talk to each other, why relationships exist, and how to query data that spans multiple tables using JOINs.
+> **Chapter ka goal:** Samjho ki tables aapas mein kaise baat karte hain, relationships kyun banate hain, aur multiple tables mein failey data ko JOINs se kaise query karte hain.
 
 ---
 
-## 🔗 Part 1: Types of Relationships
+## 🔗 Part 1: Relationships ke Types
 
-A relational database is named that way for a reason — tables are meant to *relate* to one another. Before writing a single JOIN, you need to understand *why* those relationships exist.
+Relational database ka naam hi isliye "relational" hai — tables ka pura purpose hi ek dusre se *relate* karna hai. Ek bhi JOIN likhne se pehle, samajhna zaruri hai ki ye relationships bante *kyun* hain.
 
 ---
 
 ### 1️⃣ One-to-One (1:1)
 
-**Concept:** One row in Table A corresponds to exactly one row in Table B, and vice versa.
+**Kya hota hai?** Table A ka ek row exactly Table B ke ek row se match karta hai, aur vice versa.
 
 **Real example:** `users` ↔ `user_profiles`
 
-A user has exactly one profile. A profile belongs to exactly one user.
+Jaise Zomato pe ek user ka exactly ek hi profile hota hai. Aur ek profile exactly ek hi user ka hota hai — do users ek profile share nahi kar sakte.
 
-**When to use it:**
-- You want to split a table that's getting too wide (too many columns).
-- Some columns are optional or rarely queried (e.g., bio, avatar URL) — keep the hot path fast by isolating them.
-- You want to enforce that sensitive data (e.g., SSN, payment info) is stored separately with tighter permissions.
+**Kab use karein:**
+- Jab ek table bahut wide ho raha ho (columns zyada ho gaye ho).
+- Kuch columns optional hain ya kam query hote hain (jaise bio, avatar URL) — inhe alag rakh ke hot path (frequently accessed data) fast rakho.
+- Sensitive data (jaise SSN, payment info) ko alag table mein tighter permissions ke saath store karna ho.
 
-**How to implement:**
+**Kaise implement karein:**
 
 ```sql
 CREATE TABLE users (
@@ -34,33 +34,33 @@ CREATE TABLE users (
 
 CREATE TABLE user_profiles (
   id         SERIAL PRIMARY KEY,
-  user_id    INT NOT NULL UNIQUE,          -- UNIQUE enforces the 1:1 rule
+  user_id    INT NOT NULL UNIQUE,          -- UNIQUE hi 1:1 rule enforce karta hai
   bio        TEXT,
   avatar_url VARCHAR(500),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
 
-The two key ingredients are:
-1. A **foreign key** (`user_id`) pointing to the parent table.
-2. A **UNIQUE constraint** on that foreign key — without `UNIQUE`, this becomes a One-to-Many.
+Do cheezein zaruri hain yahan:
+1. Ek **foreign key** (`user_id`) jo parent table ko point kare.
+2. Us foreign key pe **UNIQUE constraint** — agar `UNIQUE` nahi lagaya, to ye One-to-Many ban jayega.
 
 ---
 
 ### 1️⃣➡️♾️ One-to-Many (1:N)
 
-**Concept:** One row in Table A relates to *many* rows in Table B. This is the most common relationship in any database.
+**Kya hota hai?** Table A ka ek row Table B ke *many* rows se relate karta hai. Ye sabse common relationship hai kisi bhi database mein.
 
 **Real example:** `users` → `posts`
 
-One user writes many posts. Each post belongs to exactly one user.
+Jaise Swiggy pe ek restaurant ke many orders aa sakte hain, waise hi ek user many posts likh sakta hai. Har post exactly ek hi user ka hota hai.
 
-**The golden rule:** The foreign key always goes on the **"many" side.**
+**Golden rule:** Foreign key hamesha **"many" wale side** pe jaata hai.
 
 ```sql
 CREATE TABLE posts (
   id         SERIAL PRIMARY KEY,
-  user_id    INT NOT NULL,               -- FK on the "many" side (posts)
+  user_id    INT NOT NULL,               -- FK "many" side (posts) pe hai
   title      VARCHAR(255) NOT NULL,
   body       TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
@@ -68,26 +68,26 @@ CREATE TABLE posts (
 );
 ```
 
-Notice there is **no UNIQUE** on `user_id` here — that's what makes it One-to-Many instead of One-to-One. Many rows in `posts` can share the same `user_id`.
+Notice karo — yahan `user_id` pe **koi UNIQUE nahi** hai. Yehi cheez ise One-to-One se One-to-Many banati hai. `posts` table ke multiple rows same `user_id` share kar sakte hain.
 
-Other classic examples:
-- `departments` → `employees` (one department, many employees)
-- `orders` → `order_items` (one order, many line items)
+Aur classic examples:
+- `departments` → `employees` (ek department, kai employees)
+- `orders` → `order_items` (ek order, kai line items)
 - `categories` → `products`
 
 ---
 
-### ♾️↔️♾️ Many-to-Many (M:N) — The Junction Table
+### ♾️↔️♾️ Many-to-Many (M:N) — Junction Table
 
-**Concept:** Many rows in Table A relate to many rows in Table B.
+**Kya hota hai?** Table A ke many rows Table B ke many rows se relate karte hain.
 
 **Real example:** `students` ↔ `courses`
 
-A student can enroll in many courses. A course can have many students enrolled.
+Ek student kai courses mein enroll ho sakta hai. Aur ek course mein kai students enroll ho sakte hain.
 
-**The problem:** You cannot represent this with just two tables and a foreign key. There is no single "many" side to put the FK on.
+**Problem:** Isko sirf do tables aur ek foreign key se represent nahi kar sakte. Yahan koi single "many" side hai hi nahi jahan FK daal sako.
 
-**The solution:** A **junction table** (also called a bridge table, associative table, or linking table).
+**Solution:** Ek **junction table** (isko bridge table, associative table, ya linking table bhi kehte hain).
 
 ```sql
 CREATE TABLE students (
@@ -100,43 +100,43 @@ CREATE TABLE courses (
   title VARCHAR(200) NOT NULL
 );
 
--- Junction table: one row per student-course pair
+-- Junction table: har student-course pair ka ek row
 CREATE TABLE enrollments (
   student_id INT NOT NULL,
   course_id  INT NOT NULL,
   enrolled_at TIMESTAMP DEFAULT NOW(),   -- extra context column
   role        VARCHAR(50) DEFAULT 'student', -- 'student', 'auditor', 'TA'
   grade       CHAR(2),
-  PRIMARY KEY (student_id, course_id),   -- composite PK prevents duplicates
+  PRIMARY KEY (student_id, course_id),   -- composite PK duplicates rokta hai
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
   FOREIGN KEY (course_id)  REFERENCES courses(id)  ON DELETE CASCADE
 );
 ```
 
-**What extra columns to add to a junction table:**
+**Junction table mein extra columns kya daalein:**
 
-| Column | Why |
+| Column | Kyun |
 |---|---|
-| `enrolled_at` / `created_at` | When did the relationship form? |
-| `role` | Student, auditor, TA — same relationship, different context |
-| `grade` | Data specific to *this* relationship, not the student or course alone |
+| `enrolled_at` / `created_at` | Relationship kab bana? |
+| `role` | Student, auditor, TA — same relationship, alag context |
+| `grade` | Ye data sirf *is* relationship ka hai, na ki student ya course ka akela |
 | `status` | `active`, `withdrawn`, `completed` |
 
-A junction table is not just a "connector" — it is a first-class entity that can hold relationship-level data.
+Junction table sirf ek "connector" nahi hai — ye khud ek first-class entity hai jo relationship-level data hold kar sakti hai. Socho isko jaise Zomato ka "order" table hota hai — ek restaurant aur ek customer ke beech ka connection, but usme khud ka data hota hai (total amount, delivery time, status).
 
 ---
 
 ### 🔄 Self-Referencing Relationship
 
-**Concept:** A table that relates to *itself*. A row in the same table acts as both parent and child.
+**Kya hota hai?** Ek table jo *khud se* relate karta hai. Same table ka ek row parent bhi hota hai aur child bhi.
 
-**Real example:** `employees` → manager (who is also an employee)
+**Real example:** `employees` → manager (jo khud bhi ek employee hai)
 
 ```sql
 CREATE TABLE employees (
   id         SERIAL PRIMARY KEY,
   name       VARCHAR(100) NOT NULL,
-  manager_id INT,                        -- nullable: CEO has no manager
+  manager_id INT,                        -- nullable: CEO ka koi manager nahi
   FOREIGN KEY (manager_id) REFERENCES employees(id)
 );
 
@@ -148,24 +148,24 @@ INSERT INTO employees (id, name, manager_id) VALUES
   (4, 'Dave (Dev)',    2);
 ```
 
-Other self-referencing examples:
-- `categories` with `parent_category_id` (nested menus)
+Bilkul waise hi jaise Ola mein har driver ka ek "referred by" driver ho sakta hai, ya joining tree bane. Aur classic self-referencing examples:
+- `categories` with `parent_category_id` (nested menus — jaise Flipkart ki category tree: Electronics → Mobiles → Smartphones)
 - `comments` with `parent_comment_id` (threaded replies)
-- `files` and `folders` in a file system
+- `files` and `folders` file system mein
 
 ---
 
-## 🔀 Part 2: JOINs — Combining Tables
+## 🔀 Part 2: JOINs — Tables ko Combine Karna
 
-A **JOIN** merges rows from two or more tables based on a related column (usually a foreign key / primary key pair). Without JOINs, every query is limited to one table at a time.
+**JOIN** kya hota hai? Ye do ya zyada tables ke rows ko ek related column (usually foreign key / primary key pair) ke basis pe merge karta hai. JOINs ke bina, har query sirf ek table tak limited rahegi.
 
-Mental model: think of two tables as two lists of sticky notes. A JOIN is the process of matching them up and deciding which matched/unmatched notes to keep.
+Mental model: socho do tables do lists of sticky notes hain. JOIN ka matlab hai unhe match karna aur decide karna ki matched/unmatched notes mein se kya rakhna hai.
 
 ---
 
 ### INNER JOIN
 
-**What it returns:** Only rows that have a match in **both** tables. Rows with no match on either side are dropped.
+**Kya return karta hai?** Sirf wo rows jinka match **dono** tables mein hai. Jis side match nahi mila, wo row drop ho jaata hai.
 
 ```
 Table A          Table B
@@ -178,7 +178,7 @@ Table A          Table B
 **SQL:**
 
 ```sql
--- Get all posts along with the author's email
+-- Saare posts unke author ke email ke saath nikalo
 SELECT
   posts.id,
   posts.title,
@@ -187,29 +187,29 @@ FROM posts
 INNER JOIN users ON posts.user_id = users.id;
 ```
 
-**Real-world use case:** Show a list of published posts with author names. You only want posts that *have* a user — orphaned posts (no valid user) are not useful to display.
+**Real-world use case:** Published posts ki list dikhani hai author names ke saath. Sirf wahi posts chahiye jinka valid user *hai* — orphaned posts (jinke user invalid hain) dikhane ka koi fayda nahi.
 
-**Shorthand:** Writing just `JOIN` (without a keyword before it) defaults to `INNER JOIN`.
+**Shorthand:** Sirf `JOIN` likhna (koi keyword pehle nahi) by default `INNER JOIN` maana jaata hai.
 
 ---
 
 ### LEFT JOIN (LEFT OUTER JOIN)
 
-**What it returns:** **All rows from the left table**, plus matched rows from the right table. If there is no match on the right, the right-side columns are filled with `NULL`.
+**Kya return karta hai?** **Left table ke saare rows**, plus right table se jo match mile. Agar right side match nahi mila, to right-side columns `NULL` bhar diye jaate hain.
 
 ```
 Table A          Table B
-[ A1 ]--match--[ B1 ]  ✓ included (both sides have data)
-[ A2 ]--match--[ B2 ]  ✓ included (both sides have data)
+[ A1 ]--match--[ B1 ]  ✓ included (dono side data hai)
+[ A2 ]--match--[ B2 ]  ✓ included (dono side data hai)
 [ A3 ]  no match        ✓ included (right side = NULL)
-         [ B4 ]  no match  ✗ excluded (not in left table)
+         [ B4 ]  no match  ✗ excluded (left table mein nahi hai)
 ```
 
 **SQL:**
 
 ```sql
--- Get all users, and their posts if they have any
--- Users with zero posts still appear (posts columns = NULL)
+-- Saare users nikalo, aur unke posts agar hain to
+-- Zero posts wale users bhi list mein dikhenge (posts columns = NULL)
 SELECT
   users.id,
   users.email,
@@ -218,10 +218,10 @@ FROM users
 LEFT JOIN posts ON posts.user_id = users.id;
 ```
 
-**Real-world use case:** List all users and show how many posts each has written — including users who have written zero posts (they should show `0`, not disappear from the list).
+**Real-world use case:** Socho tumhe saare users ki list chahiye, aur ye bhi dikhana hai ki har ek ne kitne posts likhe — including wo users jinhone zero posts likhe hain (unke against `0` dikhna chahiye, list se gayab nahi hona chahiye).
 
 ```sql
--- Count posts per user, including users with 0 posts
+-- Har user ke posts count karo, including 0 posts wale
 SELECT
   users.email,
   COUNT(posts.id) AS post_count
@@ -230,20 +230,20 @@ LEFT JOIN posts ON posts.user_id = users.id
 GROUP BY users.id, users.email;
 ```
 
-**Pro tip:** To find rows that exist in the left table but NOT in the right table (orphan detection):
+**Pro tip:** Left table mein hain but right table mein NAHI hain aise rows dhundne ke liye (orphan detection):
 
 ```sql
 SELECT users.email
 FROM users
 LEFT JOIN posts ON posts.user_id = users.id
-WHERE posts.id IS NULL;  -- users who have never posted
+WHERE posts.id IS NULL;  -- jinhone kabhi post nahi likha
 ```
 
 ---
 
 ### RIGHT JOIN (RIGHT OUTER JOIN)
 
-**What it returns:** The mirror image of LEFT JOIN. **All rows from the right table**, plus matched rows from the left. Left-side columns are `NULL` where no match exists.
+**Kya return karta hai?** LEFT JOIN ka mirror image. **Right table ke saare rows**, plus left se jo match mile. Left-side columns `NULL` honge jahan match nahi mila.
 
 ```
 Table A          Table B
@@ -256,7 +256,7 @@ Table A          Table B
 **SQL:**
 
 ```sql
--- Get all posts and their authors, even posts with no valid user_id
+-- Saare posts aur unke authors nikalo, un posts sahit jinka user_id invalid hai
 SELECT
   posts.title,
   users.email AS author_email
@@ -264,15 +264,15 @@ FROM users
 RIGHT JOIN posts ON posts.user_id = users.id;
 ```
 
-**Real-world use case:** Auditing orphaned data — find posts that somehow have a `user_id` pointing to a deleted or non-existent user.
+**Real-world use case:** Orphaned data audit karna — un posts ko dhundna jinka `user_id` kisi delete ho chuke ya non-existent user ko point kar raha hai.
 
-**Practical note:** In practice, most developers rewrite RIGHT JOINs as LEFT JOINs by swapping the table order. The result is identical but LEFT JOINs are considered more readable and more universally supported.
+**Practical note:** Practice mein, zyadatar developers RIGHT JOIN ko table order swap karke LEFT JOIN mein rewrite kar dete hain. Result same hi hota hai, but LEFT JOIN zyada readable maana jaata hai aur zyada universally supported bhi hai.
 
 ---
 
 ### FULL OUTER JOIN
 
-**What it returns:** **All rows from both tables**. Matched rows are combined; unmatched rows from either side appear with `NULL` on the missing side.
+**Kya return karta hai?** **Dono tables ke saare rows**. Matched rows combine ho jaate hain; jo unmatched hain unke against missing side `NULL` aata hai.
 
 ```
 Table A          Table B
@@ -292,13 +292,13 @@ FROM users
 FULL OUTER JOIN posts ON posts.user_id = users.id;
 ```
 
-**Real-world use case:** Reconciliation — comparing two data sources to find what exists in A but not B, what exists in B but not A, and what matches in both.
+**Real-world use case:** Reconciliation — do data sources compare karna, ye pata karne ke liye ki A mein kya hai jo B mein nahi, B mein kya hai jo A mein nahi, aur dono mein kya match karta hai. Jaise UPI transactions ko bank statement se reconcile karna.
 
 ---
 
-> ⚠️ **MySQL does not support FULL OUTER JOIN.**
+> ⚠️ **MySQL FULL OUTER JOIN support nahi karta.**
 >
-> Workaround: combine a LEFT JOIN and a RIGHT JOIN using `UNION` (which removes duplicates):
+> Workaround: LEFT JOIN aur RIGHT JOIN ko `UNION` se combine karo (jo duplicates hata deta hai):
 >
 > ```sql
 > SELECT users.email, posts.title
@@ -312,13 +312,13 @@ FULL OUTER JOIN posts ON posts.user_id = users.id;
 > RIGHT JOIN posts ON posts.user_id = users.id;
 > ```
 >
-> `UNION ALL` would keep duplicates (the matched rows would appear twice). Use `UNION` to deduplicate automatically.
+> `UNION ALL` use karoge to duplicates rakh lega (matched rows do baar dikhenge). Deduplicate automatically karne ke liye `UNION` use karo.
 
 ---
 
 ### CROSS JOIN
 
-**What it returns:** Every possible combination of rows from Table A and Table B. If Table A has 3 rows and Table B has 4 rows, the result has 3 × 4 = **12 rows**. This is the mathematical *Cartesian product*.
+**Kya return karta hai?** Table A aur Table B ke rows ka har possible combination. Agar Table A mein 3 rows hain aur Table B mein 4 rows, to result mein 3 × 4 = **12 rows** aayenge. Ye mathematical *Cartesian product* hai.
 
 ```
 Table A: [A1] [A2] [A3]
@@ -333,7 +333,7 @@ A3-B1  A3-B2  A3-B3  A3-B4
 **SQL:**
 
 ```sql
--- Generate all possible shirt size + color combinations
+-- Shirt size + color ka har combination generate karo
 SELECT
   sizes.label  AS size,
   colors.name  AS color
@@ -342,22 +342,22 @@ CROSS JOIN colors;
 ```
 
 **Real-world use cases:**
-- Generating a product variant matrix (every size × every color).
-- Building a calendar grid (every day × every time slot).
-- Populating a "default" report where every combination should appear even with zero data.
+- Product variant matrix generate karna (jaise Myntra pe har size × har color).
+- Calendar grid banana (har din × har time slot).
+- "Default" report populate karna jahan har combination dikhna chahiye chahe data zero ho.
 
-**Warning:** On large tables, CROSS JOIN can produce billions of rows and crash your database. Use it intentionally and always be aware of the row counts involved.
+**Warning:** Bade tables pe CROSS JOIN billions of rows generate kar sakta hai aur database crash kar sakta hai. Isko sochsamajh ke use karo, row counts ka hamesha dhyan rakho.
 
 ---
 
 ### SELF JOIN
 
-**What it returns:** A table joined to itself. You use table aliases to distinguish the "two copies."
+**Kya return karta hai?** Ek table khud se joined. "Do copies" ko distinguish karne ke liye table aliases use karte hain.
 
 **SQL:**
 
 ```sql
--- Show each employee alongside their manager's name
+-- Har employee ke saath uske manager ka naam dikhao
 SELECT
   emp.name        AS employee,
   mgr.name        AS manager
@@ -374,47 +374,47 @@ Result:
 | Carol (Dev) | Bob (VP) |
 | Dave (Dev) | Bob (VP) |
 
-The LEFT JOIN is used so that Alice (the CEO, with `manager_id = NULL`) still appears in the result. An INNER JOIN would exclude her.
+LEFT JOIN isliye use kiya taaki Alice (CEO, jiska `manager_id = NULL` hai) bhi result mein dikhe. INNER JOIN use karte to Alice exclude ho jaati.
 
 **Real-world use cases:**
-- Displaying org charts and reporting hierarchies.
-- Comparing rows within the same table (e.g., find products cheaper than the average price of products in the same category).
-- Threading: show a comment alongside its parent comment.
+- Org charts aur reporting hierarchies dikhana.
+- Same table ke rows ko compare karna (jaise same category ke products ka average price se cheaper products dhundna).
+- Threading: ek comment ko uske parent comment ke saath dikhana.
 
 ---
 
 ## 🧠 Quick Reference: JOIN Comparison Table
 
-| JOIN Type | Rows from Left | Rows from Right | NULLs? |
+| JOIN Type | Left ke Rows | Right ke Rows | NULLs? |
 |---|---|---|---|
-| INNER JOIN | Only matched | Only matched | No |
-| LEFT JOIN | All | Only matched | Right side |
-| RIGHT JOIN | Only matched | All | Left side |
-| FULL OUTER JOIN | All | All | Both sides |
-| CROSS JOIN | All (×) | All (×) | No |
-| SELF JOIN | Same table joined to itself | — | Depends on JOIN type used |
+| INNER JOIN | Sirf matched | Sirf matched | Nahi |
+| LEFT JOIN | Saare | Sirf matched | Right side |
+| RIGHT JOIN | Sirf matched | Saare | Left side |
+| FULL OUTER JOIN | Saare | Saare | Dono side |
+| CROSS JOIN | Saare (×) | Saare (×) | Nahi |
+| SELF JOIN | Same table khud se joined | — | Jo JOIN type use kiya usi pe depend karta hai |
 
 ---
 
 ## 📌 Key Takeaways
 
-1. **Relationship type determines where the FK goes.** 1:1 needs FK + UNIQUE. 1:N needs FK on the many side. M:N needs a junction table with two FKs.
+1. **Relationship type decide karta hai FK kahan jayega.** 1:1 ko FK + UNIQUE chahiye. 1:N ko FK "many" side pe chahiye. M:N ko junction table chahiye do FKs ke saath.
 
-2. **Junction tables are real tables.** They can (and often should) carry extra columns describing the relationship itself — timestamps, roles, grades, statuses.
+2. **Junction tables real tables hain.** Ye extra columns carry kar sakte hain (aur karne chahiye) jo relationship ke baare mein batate hain — timestamps, roles, grades, statuses.
 
-3. **Self-referencing relationships** model hierarchies inside a single table. The column referencing itself is nullable (the root has no parent).
+3. **Self-referencing relationships** ek hi table ke andar hierarchies model karte hain. Jo column khud ko reference karta hai wo nullable hota hai (root ka koi parent nahi hota).
 
-4. **INNER JOIN = intersection.** You get only what matches on both sides.
+4. **INNER JOIN = intersection.** Sirf wahi milta hai jo dono side match karta hai.
 
-5. **LEFT JOIN = left table guaranteed.** Every row from the left appears; missing right-side data becomes NULL. This is the most frequently used JOIN after INNER.
+5. **LEFT JOIN = left table guaranteed.** Left ka har row aayega; missing right-side data NULL ban jaayega. INNER ke baad ye sabse zyada use hone wala JOIN hai.
 
-6. **RIGHT JOIN = LEFT JOIN with tables swapped.** Most developers prefer to rewrite as LEFT JOIN for consistency.
+6. **RIGHT JOIN = LEFT JOIN with tables swapped.** Zyadatar developers consistency ke liye LEFT JOIN mein rewrite karna prefer karte hain.
 
-7. **FULL OUTER JOIN = both tables guaranteed.** MySQL does not support it — use a UNION of LEFT + RIGHT instead.
+7. **FULL OUTER JOIN = dono tables guaranteed.** MySQL isko support nahi karta — LEFT + RIGHT ka UNION use karo.
 
-8. **CROSS JOIN = combinatorial explosion.** Every row × every row. Powerful for variant generation, dangerous on large tables.
+8. **CROSS JOIN = combinatorial explosion.** Har row × har row. Variant generation ke liye powerful, bade tables pe dangerous.
 
-9. **SELF JOIN = a table conversing with itself.** Always use aliases. Use LEFT JOIN if the root/top-level row must be included.
+9. **SELF JOIN = ek table khud se baat kar raha hai.** Hamesha aliases use karo. Agar root/top-level row include karna zaruri ho to LEFT JOIN use karo.
 
 ---
 
@@ -422,12 +422,12 @@ The LEFT JOIN is used so that Alice (the CEO, with `manager_id = NULL`) still ap
 
 **Question 1**
 
-You are designing a database where each `order` can contain multiple `products`, and each `product` can appear in multiple `orders`. Which relationship type is this, and what must you create to model it correctly?
+Tum ek database design kar rahe ho jahan har `order` mein multiple `products` ho sakte hain, aur har `product` multiple `orders` mein appear ho sakta hai. Ye kaunsa relationship type hai, aur ise sahi tarike se model karne ke liye kya banana padega?
 
 <details>
 <summary>Answer</summary>
 
-This is a **Many-to-Many** relationship. You need a **junction table** — typically called `order_items` — with foreign keys pointing to both `orders` and `products`. It can also hold extra columns like `quantity` and `unit_price` (the price at the time of purchase, which may differ from the current price).
+Ye ek **Many-to-Many** relationship hai. Tumhe ek **junction table** banani padegi — usually `order_items` naam ki — jisme foreign keys `orders` aur `products` dono ko point karengi. Isme extra columns bhi rakh sakte ho jaise `quantity` aur `unit_price` (purchase ke time ka price, jo current price se alag ho sakta hai).
 
 </details>
 
@@ -435,10 +435,10 @@ This is a **Many-to-Many** relationship. You need a **junction table** — typic
 
 **Question 2**
 
-A team writes this query to list all users and count their posts, but users with zero posts are missing from the results. What JOIN should they use, and why?
+Ek team ye query likhti hai saare users list karne aur unke posts count karne ke liye, but zero posts wale users results mein missing hain. Unhe kaunsa JOIN use karna chahiye, aur kyun?
 
 ```sql
--- Broken: drops users with no posts
+-- Broken: zero posts wale users drop ho jaate hain
 SELECT users.email, COUNT(posts.id) AS post_count
 FROM users
 INNER JOIN posts ON posts.user_id = users.id
@@ -448,7 +448,7 @@ GROUP BY users.id;
 <details>
 <summary>Answer</summary>
 
-Replace `INNER JOIN` with **`LEFT JOIN`**. INNER JOIN excludes users who have no matching rows in `posts`. LEFT JOIN keeps all users in the result and fills `posts.id` with NULL for users with no posts. `COUNT(posts.id)` correctly returns `0` for those users because `COUNT` ignores NULL values.
+`INNER JOIN` ko **`LEFT JOIN`** se replace karo. INNER JOIN un users ko exclude kar deta hai jinke `posts` mein koi matching row nahi hai. LEFT JOIN saare users ko result mein rakhta hai aur zero posts wale users ke liye `posts.id` ko NULL bhar deta hai. `COUNT(posts.id)` un users ke liye sahi se `0` return karta hai kyunki `COUNT` NULL values ko ignore karta hai.
 
 </details>
 
@@ -456,12 +456,12 @@ Replace `INNER JOIN` with **`LEFT JOIN`**. INNER JOIN excludes users who have no
 
 **Question 3**
 
-You are on MySQL and need to find all records that exist in `table_a` OR `table_b` (or both), including unmatched rows from each side. FULL OUTER JOIN is not available. How do you replicate its behavior?
+Tum MySQL pe ho aur `table_a` OR `table_b` (ya dono) mein exist karne wale saare records chahiye, unmatched rows dono side se sahit. FULL OUTER JOIN available nahi hai. Iska behavior kaise replicate karoge?
 
 <details>
 <summary>Answer</summary>
 
-Use a `UNION` of a LEFT JOIN and a RIGHT JOIN:
+LEFT JOIN aur RIGHT JOIN ka `UNION` use karo:
 
 ```sql
 SELECT a.id, b.id
@@ -475,10 +475,10 @@ FROM table_a a
 RIGHT JOIN table_b b ON a.id = b.a_id;
 ```
 
-`UNION` (not `UNION ALL`) removes duplicate rows, so matched rows that appear in both halves of the query are deduplicated — exactly replicating FULL OUTER JOIN behavior.
+`UNION` (`UNION ALL` nahi) duplicate rows hata deta hai, isliye matched rows jo query ke dono halves mein aate hain wo deduplicate ho jaate hain — bilkul FULL OUTER JOIN jaisa behavior replicate karte hue.
 
 </details>
 
 ---
 
-*Next chapter: Indexes — Making Your Queries Fast*
+*Next chapter: Indexes — Apni Queries Fast Banana*

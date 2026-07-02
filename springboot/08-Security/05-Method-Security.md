@@ -1,34 +1,32 @@
----
-tags: [security, method-security, authorization, preauthorize]
-aliases: [PreAuthorize, PostAuthorize, Secured, Method Security]
-stage: intermediate
----
-
 # Method Security
 
-> [!info] For the Express/TS dev
-> URL-level auth (`requestMatchers("/admin/**").hasRole("ADMIN")`) is route-based — like `app.use('/admin', requireRole('admin'))` in Express. Method security takes it deeper: annotate any service method (`@PreAuthorize("hasRole('ADMIN')")`) and Spring blocks the call. Closer to a `@guard` decorator in NestJS.
+> [!info] Express/TS wale dev ke liye
+> URL-level auth (`requestMatchers("/admin/**").hasRole("ADMIN")`) route-based hota hai — bilkul Express ke `app.use('/admin', requireRole('admin'))` jaisa. Method security isse ek level deeper le jaati hai: kisi bhi service method pe annotation laga do (`@PreAuthorize("hasRole('ADMIN')")`) aur Spring us call ko block kar dega. Ye NestJS ke `@guard` decorator ke sabse kareeb hai.
 
-## Concept / How it works
+## Concept / Ye kaam kaise karta hai?
 
-Enable with `@EnableMethodSecurity` (Spring Security 6+). Underneath, Spring Security registers an AOP advisor that intercepts annotated methods.
+Socho tumne Zomato jaisa backend banaya hai. Controller level pe check laga diya "admin hi `/admin/**` routes hit kar sakta hai" — theek hai, lekin agar koi `OrderService.deleteAll()` method ko kisi aur jagah se, kisi doosre internal flow se, bina proper role check ke call kar de? URL-level guard wahan kaam nahi aayega, kyunki request wahan se aayi hi nahi.
 
-| Annotation | When checked | Use |
+Yahi problem method security solve karta hai — security ko method ke andar hi bolt kar do, chahe wo method kahin se bhi call ho (controller se, scheduler se, kisi doosre service se).
+
+Enable karne ke liye bas `@EnableMethodSecurity` (Spring Security 6+) lagao. Underneath, Spring Security ek AOP advisor register karta hai jo annotated methods ko intercept karta hai — matlab jab bhi tum us method ko call karte ho, actual method chalne se pehle (ya baad mein) ek proxy beech mein aakar check karta hai "isko permission hai kya?"
+
+| Annotation | Kab check hota hai | Use kab karein |
 | --- | --- | --- |
-| `@PreAuthorize` | Before invocation | Most common |
-| `@PostAuthorize` | After invocation, can inspect return value | "User can only read their own data" |
-| `@PreFilter` | Before invocation, filters input collection | Drop unauthorized items from input |
-| `@PostFilter` | After invocation, filters return collection | Drop unauthorized items from output |
-| `@Secured` | Before invocation, role-only | Legacy; prefer `@PreAuthorize` |
-| `@RolesAllowed` | JSR-250 | Legacy; prefer `@PreAuthorize` |
+| `@PreAuthorize` | Method call hone se PEHLE | Sabse common, 90% cases yahi |
+| `@PostAuthorize` | Method chalne ke BAAD, return value dekh sakta hai | "User sirf apna hi data dekh sakta hai" |
+| `@PreFilter` | Method call hone se pehle, input collection ko filter karta hai | Unauthorized items ko input se hata do |
+| `@PostFilter` | Method chalne ke baad, return collection ko filter karta hai | Unauthorized items ko output se hata do |
+| `@Secured` | Method call se pehle, sirf role check | Legacy hai; `@PreAuthorize` use karo |
+| `@RolesAllowed` | JSR-250 standard | Legacy hai; `@PreAuthorize` use karo |
 
 ## Code example
 
-### Enable
+### Enable karna
 
 ```java
 @Configuration
-@EnableMethodSecurity                       // enables @PreAuthorize/@PostAuthorize
+@EnableMethodSecurity                       // @PreAuthorize/@PostAuthorize enable karta hai
 public class MethodSecurityConfig { }
 ```
 
@@ -47,15 +45,15 @@ public class OrderService {
     @PreAuthorize("hasAuthority('orders:read')")
     public Order get(Long id) { ... }
 
-    // Reference method arguments
+    // Method ke arguments ko directly reference karo
     @PreAuthorize("#userId == authentication.principal.id or hasRole('ADMIN')")
     public List<Order> ordersOf(Long userId) { ... }
 
-    // Reference fields on parameter objects
+    // Parameter object ke fields ko reference karo
     @PreAuthorize("#req.userId == authentication.principal.id")
     public Order create(@P("req") CreateOrderRequest req) { ... }
 
-    // Anonymous (logged out)
+    // Anonymous (logged out) user ke liye
     @PreAuthorize("isAnonymous()")
     public void registerWaitingList(String email) { ... }
 
@@ -65,7 +63,9 @@ public class OrderService {
 }
 ```
 
-### `@PostAuthorize` — check the return value
+Dekho, ye SpEL (Spring Expression Language) expressions kitne flexible hain — sirf role check nahi, method ke arguments tak access mil jaata hai. Ye Express mein manually likhe gaye `if` conditions ka declarative version hai.
+
+### `@PostAuthorize` — return value check karna
 
 ```java
 @PostAuthorize("returnObject.userId == authentication.principal.id or hasRole('ADMIN')")
@@ -74,9 +74,12 @@ public Order findById(Long id) {
 }
 ```
 
-If the order's `userId` doesn't match the principal's id and they're not admin, Spring throws `AccessDeniedException` after the method runs. Used sparingly because the method already ran (DB query already happened) — but indispensable when the authorization rule depends on the data itself.
+Socho IRCTC ka scenario — koi user apna PNR dekhna chahta hai. URL se sirf `id` mil raha hai, lekin ye pata karne ke liye ki "ye order isi user ka hai ya nahi", pehle DB se order fetch karna padega. Yahi kaam `@PostAuthorize` karta hai — method chalne do (DB query ho jaane do), fir return value check karo. Agar order ka `userId` principal ke id se match nahi karta aur wo admin bhi nahi hai, to Spring `AccessDeniedException` throw kar dega — method chal chuka hoga, par response user tak nahi pahunchega.
 
-### `@PostFilter` — filter collections
+> [!tip] Kyun sparingly use karein?
+> Kyunki DB query already ho chuki hoti hai — resource waste hua. Lekin jab authorization rule khud data pe depend karta ho (jaise "sirf apna record dekh sakta hai"), tab `@PostAuthorize` ke alawa koi chaara nahi.
+
+### `@PostFilter` — collections ko filter karna
 
 ```java
 @PostFilter("filterObject.userId == authentication.principal.id or hasRole('ADMIN')")
@@ -85,9 +88,11 @@ public List<Order> all() {
 }
 ```
 
-Each element where the predicate is `false` is removed.
+Socho Swiggy ka "my orders" list — DB se sabke orders aa gaye, lekin `@PostFilter` list ke har element pe predicate chalayega aur jo `false` return karega, use list se hata dega. Result: user ko sirf apne orders dikhenge, baaki automatically drop ho jayenge.
 
 ### Custom security bean
+
+Jab logic thoda complex ho jaaye (jaise DB call karke check karna), to SpEL ke andar hi sab kuch likhna messy ho jaata hai. Isliye ek alag bean bana lo:
 
 ```java
 @Component("orderSecurity")
@@ -108,29 +113,31 @@ public class OrderSecurity {
 }
 ```
 
-Reference it from `@PreAuthorize("@orderSecurity.canEdit(#id, authentication)")`.
+Isko `@PreAuthorize("@orderSecurity.canEdit(#id, authentication)")` se reference karo. Bean ka naam (`"orderSecurity"`) SpEL string ke andar `@` ke saath use hota hai — bilkul NestJS mein dependency injection token jaisa feel hota hai, bas syntax alag hai.
 
-### Using `@AuthenticationPrincipal` together
+### `@AuthenticationPrincipal` ke saath combine karna
 
-You can pass your custom principal type directly into the SpEL:
+Apna custom principal type directly SpEL mein pass kar sakte ho:
 
 ```java
 @PreAuthorize("#user.id == #ownerId or hasRole('ADMIN')")
 public Resource read(Long ownerId, @AuthenticationPrincipal AppUser user) { ... }
 ```
 
-### Class-level
+### Class-level annotation
 
 ```java
 @RestController
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
-    // every method requires ROLE_ADMIN, individual methods can override
+    // har method ko ROLE_ADMIN chahiye, individual methods override kar sakte hain
     @GetMapping("/audit")
-    @PreAuthorize("hasAuthority('audit:read')")   // overrides
+    @PreAuthorize("hasAuthority('audit:read')")   // ye override karta hai
     public List<AuditEntry> audit() { ... }
 }
 ```
+
+Yaani pura controller "admin-only" bana do ek hi line mein, aur jahan zaroorat ho wahan method-level pe override kar do — CRED app mein jaise "admin panel" ke andar sab kuch by-default locked hota hai, sirf specific screens ko custom permission milti hai.
 
 ## Express/TS comparison
 
@@ -150,56 +157,59 @@ router.get('/orders/:id', async (req, res, next) => {
 });
 ```
 
-| Other frameworks | Spring Security |
+Dekho Express wale example mein tumhe khud `if` likhna pada — yahi manual check `@PostAuthorize` automate kar deta hai.
+
+| Doosre frameworks mein | Spring Security mein |
 | --- | --- |
 | NestJS `@Roles('ADMIN') @UseGuards(RolesGuard)` | `@PreAuthorize("hasRole('ADMIN')")` |
-| Custom guard with method args | `@PreAuthorize("@bean.method(#arg, authentication)")` |
-| Manual `req.user` checks in handler | `@PostAuthorize` on the result |
-| Filter array post-fetch | `@PostFilter` |
+| Custom guard jo method args use kare | `@PreAuthorize("@bean.method(#arg, authentication)")` |
+| Handler ke andar manual `req.user` checks | `@PostAuthorize` result pe |
+| Fetch ke baad array filter karna | `@PostFilter` |
 
 ## SpEL cheat sheet
 
-| Expression | Meaning |
+| Expression | Matlab |
 | --- | --- |
-| `hasRole('X')` | Has `ROLE_X` |
-| `hasAnyRole('X','Y')` | Has either |
-| `hasAuthority('s:r')` | Exact authority |
-| `hasAnyAuthority(...)` | Any of |
-| `isAuthenticated()` | Logged in (not anonymous) |
-| `isAnonymous()` | Not logged in |
-| `isFullyAuthenticated()` | Not via remember-me |
-| `permitAll()` / `denyAll()` | Always / never |
-| `principal` | The principal (custom UserDetails or `Jwt`) |
-| `authentication` | The full `Authentication` object |
-| `#argName` | Method argument |
-| `returnObject` | Return value (in `@PostAuthorize`) |
-| `filterObject` | Each element (in `@PreFilter`/`@PostFilter`) |
-| `@beanName.method(...)` | Bean reference |
+| `hasRole('X')` | `ROLE_X` hai kya |
+| `hasAnyRole('X','Y')` | Inmein se koi ek hai |
+| `hasAuthority('s:r')` | Exact authority match |
+| `hasAnyAuthority(...)` | Inmein se koi ek authority |
+| `isAuthenticated()` | Login hai (anonymous nahi) |
+| `isAnonymous()` | Login nahi hai |
+| `isFullyAuthenticated()` | Remember-me se nahi, pura login hai |
+| `permitAll()` / `denyAll()` | Hamesha allow / hamesha deny |
+| `principal` | Principal object (custom UserDetails ya `Jwt`) |
+| `authentication` | Pura `Authentication` object |
+| `#argName` | Method ka argument |
+| `returnObject` | Return value (`@PostAuthorize` mein) |
+| `filterObject` | Har element (`@PreFilter`/`@PostFilter` mein) |
+| `@beanName.method(...)` | Bean ka reference |
 
 ## Gotchas
 
-> [!warning] Self-invocation (yet again)
-> Method security uses AOP. Calling a `@PreAuthorize` method from another method in the SAME class skips the proxy — no check. Same fix as `@Transactional`/`@Cacheable`.
+> [!warning] Self-invocation (phir se wahi problem)
+> Method security AOP use karta hai. Agar tum SAME class ke andar se ek `@PreAuthorize` method ko doosre method se call karte ho, to proxy skip ho jaata hai — koi check nahi lagega. Bilkul wahi issue jo `@Transactional`/`@Cacheable` mein hota hai. Fix bhi wahi hai — self-injection ya method ko dusre bean mein nikaal do.
 
-> [!warning] `@PostAuthorize` runs the method first
-> If the method has side effects, they happen even if authorization fails. Use only for query methods.
+> [!warning] `@PostAuthorize` pehle method chala deta hai
+> Agar method ke side effects hain (jaise DB write, email bhejna), to wo ho chuke honge chahe authorization fail ho jaaye. Isliye sirf query methods (read-only) ke liye use karo.
 
-> [!warning] Public methods only
-> AOP proxies intercept public methods. `private` / `package-private` methods are NOT secured.
+> [!warning] Sirf public methods secure hote hain
+> AOP proxies sirf public methods ko intercept karte hain. `private` ya `package-private` methods secure NAHI hote — annotation lagane ke bawajood bhi.
 
-> [!warning] `@PreFilter`/`@PostFilter` mutates the collection
-> If the underlying collection is immutable (e.g., from `Stream.toList()`), you'll get an exception. Return a mutable list.
+> [!warning] `@PreFilter`/`@PostFilter` collection ko mutate karta hai
+> Agar underlying collection immutable hai (jaise `Stream.toList()` se aayi hui), to exception aayegi. Ek mutable list return karo (jaise `new ArrayList<>(...)` ya `Collectors.toList()`).
 
-> [!warning] Roles vs Authorities mismatch
-> `hasRole('ADMIN')` checks `ROLE_ADMIN`. `hasAuthority('ADMIN')` checks the literal `ADMIN`. With JWTs claiming `roles: ["ADMIN"]`, Spring will store them as authorities `ROLE_ADMIN` if your converter prefixes `ROLE_` ([[04-JWT-with-Spring-Security]]).
+> [!warning] Roles vs Authorities ka confusion
+> `hasRole('ADMIN')` asal mein `ROLE_ADMIN` check karta hai. `hasAuthority('ADMIN')` literal `ADMIN` check karta hai — `ROLE_` prefix nahi lagata. JWT mein agar `roles: ["ADMIN"]` claim aa raha hai, to Spring use `ROLE_ADMIN` authority ki tarah tabhi store karega jab tumhara converter `ROLE_` prefix laga raha ho ([[04-JWT-with-Spring-Security]]). Ye galti bahut common hai — "role hai phir bhi 403 kyun aa raha" — isi mismatch ki wajah se hoti hai.
 
-> [!warning] `@Secured` doesn't support SpEL
-> `@Secured("ROLE_ADMIN")` works; `@Secured("hasRole('ADMIN')")` does NOT. Use `@PreAuthorize` for expressions.
+> [!warning] `@Secured` SpEL support nahi karta
+> `@Secured("ROLE_ADMIN")` chalega; `@Secured("hasRole('ADMIN')")` NAHI chalega — SpEL expressions ko samajhta hi nahi. Expressions chahiye to `@PreAuthorize` use karo.
 
-> [!tip] Test method security
+> [!tip] Method security test karo
 > ```java
 > @WithMockUser(roles = "ADMIN") @Test void admin_can_delete() { ... }
 > ```
+> `@WithMockUser` ek fake authenticated user set kar deta hai test context mein, taaki tumhe real login flow ke bina hi security rules test karne ka mauka mile.
 
 ## Related
 

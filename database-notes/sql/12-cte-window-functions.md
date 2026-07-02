@@ -1,8 +1,8 @@
 # Chapter 12: CTEs and Window Functions
 
-> "SQL got its superpower the day window functions arrived."
+> "SQL ko uski superpower us din mili jab window functions aaye."
 
-If subqueries and JOINs are the bread and butter of SQL, then **CTEs** and **window functions** are the secret sauce that separates basic SQL writers from analysts who can answer complex business questions in a single, readable query. This chapter covers both in depth, with clear examples and real-world use cases.
+Agar subqueries aur JOINs SQL ki roti-sabzi hain, toh **CTEs** aur **window functions** wo secret sauce hain jo basic SQL likhne walo ko un analysts se alag karte hain jo complex business questions ek hi, readable query mein solve kar sakte hain. Ye chapter dono ko depth mein cover karta hai — clear examples aur real-world use cases ke saath.
 
 ---
 
@@ -26,7 +26,7 @@ If subqueries and JOINs are the bread and butter of SQL, then **CTEs** and **win
 
 ## Sample Data Setup
 
-All examples in this chapter use the following three tables. Run this once to follow along:
+Is chapter ke saare examples in teen tables use karte hain. Isko ek baar run kar lo taaki saath-saath follow kar sako:
 
 ```sql
 CREATE TABLE users (
@@ -80,27 +80,27 @@ INSERT INTO sales VALUES
 
 ## 🗂 Common Table Expressions (CTEs)
 
-A **CTE** (Common Table Expression) is a **named, temporary result set** that you define at the top of a query using the `WITH` keyword. You can then refer to it by name just like a regular table — but it only lives for the duration of that single query.
+Kya hota hai CTE? Ek **CTE** (Common Table Expression) ek **named, temporary result set** hota hai jo tum query ke top pe `WITH` keyword ke saath define karte ho. Uske baad tum usko ek normal table ki tarah refer kar sakte ho — lekin woh sirf usi ek query ke duration tak zinda rehta hai.
 
-Think of it as giving a subquery a friendly name so you can reuse and read it more easily.
+Isko aise socho — jaise tumne ek subquery ko ek friendly naam de diya, taaki usko reuse aur read karna aasan ho jaaye. Bilkul waise hi jaise Zomato pe tum ek baar "favourites" list bana lete ho aur baar-baar wahi restaurant search nahi karte.
 
 ### Basic Syntax
 
 ```sql
 WITH cte_name AS (
-    -- This is just a regular SELECT query
+    -- Ye bas ek normal SELECT query hai
     SELECT column1, column2
     FROM some_table
     WHERE some_condition
 )
--- Now use it like a normal table
+-- Ab isko normal table ki tarah use karo
 SELECT *
 FROM cte_name;
 ```
 
-### Your First CTE — Active Users
+### Tumhara Pehla CTE — Active Users
 
-Let's find all users who have written more than one post:
+Chalo dekhte hain kaunse users ne ek se zyada post likhi hai:
 
 ```sql
 WITH active_users AS (
@@ -123,29 +123,29 @@ Result:
 | alice    | 3         |
 | bob      | 2         |
 
-The CTE `active_users` calculates post counts. The outer query joins it with `users` to get the names. Clean and readable.
+CTE `active_users` post counts calculate karta hai. Outer query usko `users` ke saath join karke naam nikal leti hai. Simple aur clean.
 
 ---
 
 ## 🔗 Multiple CTEs
 
-You can chain multiple CTEs by separating them with a comma. Each CTE can even reference the one defined before it.
+Kyun zaruri hai multiple CTEs jaanna? Kyunki real-world queries mein ek step se kaam nahi chalta. Tum multiple CTEs ko comma se separate karke chain kar sakte ho. Har CTE apne pehle wale CTE ko bhi reference kar sakta hai — bilkul jaise Swiggy order flow mein pehle cart banta hai, phir uspe discount apply hota hai, phir final bill.
 
 ```sql
 WITH
--- Step 1: count posts per user
+-- Step 1: har user ke posts count karo
 post_counts AS (
     SELECT user_id, COUNT(*) AS total_posts
     FROM posts
     GROUP BY user_id
 ),
--- Step 2: add average views per user
+-- Step 2: har user ka average views nikaalo
 avg_views AS (
     SELECT user_id, AVG(views) AS avg_views
     FROM posts
     GROUP BY user_id
 ),
--- Step 3: combine both
+-- Step 3: dono ko combine karo
 user_stats AS (
     SELECT pc.user_id, pc.total_posts, av.avg_views
     FROM post_counts pc
@@ -166,35 +166,35 @@ Result:
 | alice    | 3           | 3167      |
 | bob      | 2           | 700       |
 
-Each CTE is a building block. You build complexity step by step — much easier to debug than a wall of nested subqueries.
+Har CTE ek building block hai. Tum complexity ko step-by-step build karte ho — ye ek lambi nested subquery se debug karna kaafi aasan hai.
 
 ---
 
 ## ⚖️ CTE vs Subquery: When to Use Which
 
-Both CTEs and subqueries let you embed a query inside another query. So when should you choose one over the other?
+Dono, CTE aur subquery, tumhe ek query ke andar dusri query embed karne dete hain. Toh kaunsa kab choose karein?
 
 | Feature | CTE | Subquery |
 |---|---|---|
-| Readability | Excellent — named and defined at the top | Can get messy when nested deeply |
-| Reusability in same query | Yes — reference the same CTE multiple times | No — must repeat the subquery |
-| Recursive queries | Yes (recursive CTEs) | No |
-| Performance | Usually the same; some DBs materialize CTEs | Sometimes slightly faster (optimizer can inline) |
-| Debugging | Easy — test each CTE independently | Hard — must untangle nesting |
+| Readability | Zabardast — top pe naam ke saath defined | Deeply nested hone pe messy ho sakti hai |
+| Same query mein reusability | Haan — same CTE ko multiple baar reference kar sakte ho | Nahi — subquery baar-baar repeat karni padegi |
+| Recursive queries | Haan (recursive CTEs) | Nahi |
+| Performance | Usually same; kuch DBs CTE ko materialize karte hain | Kabhi-kabhi thoda fast (optimizer inline kar deta hai) |
+| Debugging | Aasan — har CTE ko alag test kar sakte ho | Mushkil — nesting untangle karni padti hai |
 
 **Rule of thumb:**
-- Use a **subquery** when the logic is simple and used only once.
-- Use a **CTE** when the logic is complex, reused, or benefits from a name.
+- **Subquery** use karo jab logic simple ho aur sirf ek baar use ho raha ho.
+- **CTE** use karo jab logic complex ho, reuse ho raha ho, ya ek naam se fayda ho.
 
 ```sql
--- Subquery version (fine for simple cases)
+-- Subquery version (simple cases ke liye theek hai)
 SELECT username
 FROM users
 WHERE user_id IN (
     SELECT user_id FROM posts GROUP BY user_id HAVING COUNT(*) > 1
 );
 
--- CTE version (preferred when logic grows)
+-- CTE version (jab logic badhta hai, ye preferred hai)
 WITH prolific_authors AS (
     SELECT user_id FROM posts GROUP BY user_id HAVING COUNT(*) > 1
 )
@@ -207,12 +207,13 @@ WHERE user_id IN (SELECT user_id FROM prolific_authors);
 
 ## 🔄 Recursive CTEs
 
-A **recursive CTE** is a CTE that references itself. It works in two parts:
+Kya hota hai recursive CTE? Ye ek aisa CTE hota hai jo khud ko reference karta hai. Ye do parts mein kaam karta hai:
 
-1. **Anchor member** — the starting point (base case), runs once.
-2. **Recursive member** — references the CTE itself, runs repeatedly until no more rows are returned.
+1. **Anchor member** — starting point (base case), ek hi baar chalta hai.
+2. **Recursive member** — CTE ko khud reference karta hai, tab tak baar-baar chalta hai jab tak aur rows nahi milti.
 
-> **Warning:** Always include a termination condition (a `WHERE` clause or a maximum depth guard) or your query will loop forever!
+> [!warning]
+> Hamesha ek termination condition rakho (ek `WHERE` clause ya maximum depth guard) — warna tumhari query hamesha ke liye loop ho jaayegi!
 
 ### Syntax Difference: RECURSIVE Keyword
 
@@ -221,18 +222,18 @@ A **recursive CTE** is a CTE that references itself. It works in two parts:
 | PostgreSQL | `WITH RECURSIVE cte_name AS (...)` |
 | MySQL 8.0+ | `WITH RECURSIVE cte_name AS (...)` |
 | SQLite | `WITH RECURSIVE cte_name AS (...)` |
-| SQL Server | `WITH cte_name AS (...)` — no `RECURSIVE` keyword |
-| Oracle | `WITH cte_name AS (...)` — no `RECURSIVE` keyword |
+| SQL Server | `WITH cte_name AS (...)` — `RECURSIVE` keyword nahi chahiye |
+| Oracle | `WITH cte_name AS (...)` — `RECURSIVE` keyword nahi chahiye |
 
 ### Example 1 — Organizational Hierarchy
 
-Suppose we have an `employees` table where each employee has a `manager_id`:
+Maan lo hamare paas ek `employees` table hai jahan har employee ka ek `manager_id` hota hai — bilkul jaise kisi company mein reporting structure hota hai (CEO → VP → Manager → Engineer):
 
 ```sql
 CREATE TABLE employees (
     emp_id     INT PRIMARY KEY,
     name       VARCHAR(50),
-    manager_id INT  -- NULL means top of the org
+    manager_id INT  -- NULL matlab org ka sabse top
 );
 
 INSERT INTO employees VALUES
@@ -245,32 +246,32 @@ INSERT INTO employees VALUES
 (7, 'Designer Gina',3);
 ```
 
-**Goal:** Starting from the CEO, list every employee and their level in the hierarchy.
+**Goal:** CEO se start karke, har employee aur uska level hierarchy mein list karo.
 
 ```sql
 -- PostgreSQL / MySQL / SQLite
 WITH RECURSIVE org_chart AS (
-    -- Anchor: start with the CEO (no manager)
+    -- Anchor: CEO se start karo (koi manager nahi)
     SELECT emp_id, name, manager_id, 1 AS level
     FROM employees
     WHERE manager_id IS NULL
 
     UNION ALL
 
-    -- Recursive: find direct reports of each row already in the CTE
+    -- Recursive: CTE mein already maujood har row ke direct reports dhoondo
     SELECT e.emp_id, e.name, e.manager_id, oc.level + 1
     FROM employees e
     JOIN org_chart oc ON e.manager_id = oc.emp_id
 )
 SELECT
-    REPEAT('  ', level - 1) || name AS hierarchy,  -- indent by level
+    REPEAT('  ', level - 1) || name AS hierarchy,  -- level ke hisaab se indent karo
     level
 FROM org_chart
 ORDER BY level, emp_id;
 ```
 
 ```sql
--- SQL Server (no RECURSIVE keyword, use REPLICATE instead of REPEAT)
+-- SQL Server (RECURSIVE keyword nahi, REPEAT ki jagah REPLICATE use karo)
 WITH org_chart AS (
     SELECT emp_id, name, manager_id, 1 AS level
     FROM employees
@@ -301,20 +302,20 @@ Result:
 |       Eng Frank  | 4     |
 |   Designer Gina  | 3     |
 
-The query "walks" down the tree: level 1 → level 2 → level 3 → level 4, stopping when no more employees are found.
+Query tree ko "walk" karti hai: level 1 → level 2 → level 3 → level 4, aur jab aur employees nahi milte tab ruk jaati hai.
 
-### Example 2 — Generating a Series of Numbers
+### Example 2 — Numbers Ki Series Generate Karna
 
-Need a sequence of numbers without a `generate_series()` function? A recursive CTE can do it:
+`generate_series()` function ke bina numbers ki sequence chahiye? Recursive CTE ye kar sakta hai:
 
 ```sql
 -- PostgreSQL / MySQL / SQLite
 WITH RECURSIVE numbers AS (
-    SELECT 1 AS n         -- anchor: start at 1
+    SELECT 1 AS n         -- anchor: 1 se start
     UNION ALL
-    SELECT n + 1          -- recursive: add 1 each time
+    SELECT n + 1          -- recursive: har baar 1 add karo
     FROM numbers
-    WHERE n < 10          -- termination: stop at 10
+    WHERE n < 10          -- termination: 10 pe ruk jao
 )
 SELECT n FROM numbers;
 ```
@@ -333,7 +334,7 @@ SELECT n FROM numbers;
 
 Result: `1, 2, 3, 4, 5, 6, 7, 8, 9, 10`
 
-You can adapt this to **generate a date series** (useful for filling in missing dates in reports):
+Isko tum **date series generate** karne ke liye bhi adapt kar sakte ho (reports mein missing dates fill karne ke liye kaafi useful hai):
 
 ```sql
 -- PostgreSQL
@@ -351,25 +352,25 @@ SELECT d FROM date_series;
 
 ## 🪟 Window Functions: The Game Changer
 
-A **window function** performs a calculation across a set of rows that are related to the current row — called a "window" — **without collapsing those rows into a single output row** the way `GROUP BY` does.
+Kya hota hai window function? Ye current row se related rows ke ek set — jisse "window" kehte hain — par calculation karta hai, **bina un rows ko ek single output row mein collapse kiye**, jaisa `GROUP BY` karta hai.
 
-This is the critical difference:
+Yehi critical difference hai:
 
 ```sql
--- GROUP BY: collapses rows — you lose the individual rows
+-- GROUP BY: rows collapse ho jaati hain — individual rows kho jaati hain
 SELECT user_id, SUM(views) AS total_views
 FROM posts
 GROUP BY user_id;
--- Returns 1 row per user_id
+-- Har user_id ke liye 1 row return karta hai
 
--- Window function: keeps all rows + adds the aggregate alongside
+-- Window function: saari rows rakhta hai + aggregate ko saath mein add karta hai
 SELECT post_id, user_id, views,
        SUM(views) OVER (PARTITION BY user_id) AS total_views_per_user
 FROM posts;
--- Returns ALL rows, with total_views_per_user added as a column
+-- SAARI rows return karta hai, total_views_per_user ek extra column ke roop mein
 ```
 
-Window functions are supported across all major databases:
+Window functions har major database mein support hote hain:
 
 | Database | Minimum Version |
 |---|---|
@@ -383,32 +384,32 @@ Window functions are supported across all major databases:
 
 ## 🔭 The OVER() Clause: Your Window Into the Data
 
-Every window function is followed by `OVER(...)`. The `OVER` clause defines the "window" — which rows the function looks at relative to the current row.
+Kyun zaruri hai OVER() samajhna? Kyunki har window function ke baad `OVER(...)` aata hai. `OVER` clause "window" define karta hai — yaani function current row ke relative konsi rows ko dekhta hai.
 
 ```sql
 function_name(column) OVER (
-    PARTITION BY partition_column   -- divide rows into groups
-    ORDER BY order_column           -- set order within each group
+    PARTITION BY partition_column   -- rows ko groups mein baanto
+    ORDER BY order_column           -- har group ke andar order set karo
     ROWS BETWEEN start AND end      -- optional: frame specification
 )
 ```
 
-All three parts are optional. An empty `OVER()` means "look at all rows."
+Teeno parts optional hain. Ek empty `OVER()` ka matlab hai "saari rows dekho."
 
-| Clause | What it does |
+| Clause | Kya karta hai |
 |---|---|
-| `PARTITION BY col` | Splits rows into groups (like GROUP BY, but keeps all rows) |
-| `ORDER BY col` | Sets the ordering within each partition |
-| `ROWS BETWEEN ... AND ...` | Specifies the exact frame of rows to include |
+| `PARTITION BY col` | Rows ko groups mein split karta hai (GROUP BY jaisa, lekin saari rows rakhta hai) |
+| `ORDER BY col` | Har partition ke andar ordering set karta hai |
+| `ROWS BETWEEN ... AND ...` | Rows ka exact frame specify karta hai jo include hoga |
 
 ### Frame Specification
 
-The frame clause defines which rows relative to the current row are included:
+Frame clause define karta hai ki current row ke relative kaunsi rows include hongi:
 
 ```sql
-ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW   -- from first row to current (default for running totals)
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW   -- pehli row se current tak (running totals ke liye default)
 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING           -- current row ± 1 neighbor
-ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING -- entire partition
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING -- poora partition
 ```
 
 ---
@@ -417,7 +418,7 @@ ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING -- entire partition
 
 ### ROW_NUMBER() — Unique Sequential Number
 
-Assigns a unique integer to each row within a partition, starting at 1. No ties — every row gets a different number.
+Har row ko partition ke andar ek unique integer deta hai, 1 se start hokar. Koi tie nahi — har row ko alag number milta hai.
 
 ```sql
 SELECT
@@ -440,18 +441,18 @@ JOIN users USING (user_id);
 | carol    | 6       | 2100  | 2       |
 | carol    | 8       | 950   | 3       |
 
-Each user's posts are numbered independently, most-viewed first.
+Har user ke posts alag-alag number ho jaate hain, sabse zyada views wala pehle.
 
-### RANK() — Rank With Gaps for Ties
+### RANK() — Ties Ke Liye Gaps Wala Rank
 
-Assigns ranks, but when two rows tie, they share the same rank and the next rank is **skipped** (e.g., 1, 1, 3).
+Ranks deta hai, lekin jab do rows tie karti hain, dono ka same rank hota hai aur next rank **skip** ho jaata hai (jaise 1, 1, 3).
 
-### DENSE_RANK() — Rank Without Gaps
+### DENSE_RANK() — Bina Gaps Ke Rank
 
-Like `RANK()`, but tied rows share a rank and the **next rank is not skipped** (e.g., 1, 1, 2).
+`RANK()` jaisa hi, lekin tied rows same rank share karti hain aur **next rank skip nahi hota** (jaise 1, 1, 2).
 
 ```sql
--- Demonstrate all three ranking functions together
+-- Teeno ranking functions ek saath dikhao
 SELECT
     region,
     sale_id,
@@ -463,21 +464,21 @@ FROM sales
 ORDER BY region, amount DESC;
 ```
 
-If two sales in the same region had the same amount, you'd see:
+Agar same region mein do sales ka amount same hota, toh dikhega:
 
 | region | amount | row_num | rnk | dense_rnk |
 |--------|--------|---------|-----|-----------|
 | North  | 2300   | 1       | 1   | 1         |
 | North  | 1200   | 2       | 2   | 2         |
 | North  | 1200   | 3       | 2   | 2         |  ← tie example
-| North  | 980    | 4       | 4   | 3         |  ← RANK skips to 4, DENSE_RANK goes to 3
+| North  | 980    | 4       | 4   | 3         |  ← RANK 4 pe jump karta hai, DENSE_RANK 3 pe jaata hai
 
-### NTILE(n) — Divide Into Buckets
+### NTILE(n) — Buckets Mein Divide Karo
 
-Splits rows in a partition into `n` roughly equal groups (quartiles, deciles, etc.) and assigns a bucket number.
+Partition ki rows ko `n` roughly equal groups mein baant deta hai (quartiles, deciles, etc.) aur ek bucket number assign karta hai.
 
 ```sql
--- Divide posts into 3 tiers based on views
+-- Posts ko views ke hisaab se 3 tiers mein divide karo
 SELECT
     post_id,
     title,
@@ -497,23 +498,23 @@ FROM posts;
 | 4       | My First Post     | 800   | 3    |
 | 5       | Bob Learns SQL    | 600   | 3    |
 
-Tier 1 = top third, Tier 3 = bottom third. Great for percentile-based segmentation.
+Tier 1 = top third, Tier 3 = bottom third. Percentile-based segmentation ke liye zabardast — jaise CRED apne users ko credit score ke hisaab se tiers mein daalta hai.
 
 ---
 
 ## ⏪ LAG and LEAD: Time Travel Between Rows
 
-`LAG` and `LEAD` let you peek at a **previous** or **next** row's value without a self-join. They are invaluable for comparing sequential data like daily sales, stock prices, or step-by-step events.
+`LAG` aur `LEAD` tumhe **pichli** ya **agli** row ki value bina self-join ke dekhne dete hain. Sequential data jaise daily sales, stock prices, ya step-by-step events compare karne ke liye ye bahut kaam ki cheez hain.
 
 ```sql
 LAG(column, offset, default)  OVER (PARTITION BY ... ORDER BY ...)
 LEAD(column, offset, default) OVER (PARTITION BY ... ORDER BY ...)
 ```
 
-- `offset` — how many rows back (LAG) or forward (LEAD). Default is 1.
-- `default` — what to return if there's no previous/next row (e.g., the very first row has no previous row).
+- `offset` — kitni rows peeche (LAG) ya aage (LEAD) jaana hai. Default 1 hota hai.
+- `default` — agar pichli/agli row hai hi nahi toh kya return karna hai (jaise pehli row ki koi pichli row nahi hoti).
 
-### Example: Compare Each Day's Sales to the Previous Day
+### Example: Har Din Ki Sales Ko Pichle Din Se Compare Karo
 
 ```sql
 SELECT
@@ -535,7 +536,7 @@ ORDER BY sale_date;
 | 2024-01-06 | 980.00  | 1750.00         | -770.00             |
 | 2024-01-07 | 3100.00 | 980.00          | 2120.00             |
 
-With `LEAD`, you can look forward — for example, showing what the next day's expected sales will be.
+`LEAD` se tum aage bhi dekh sakte ho — jaise agle din ki expected sales dikhana.
 
 ```sql
 SELECT
@@ -549,17 +550,17 @@ FROM sales;
 
 ## 🔝 FIRST_VALUE and LAST_VALUE
 
-These return the **first** or **last** value in the window frame.
+Ye window frame mein **pehli** ya **aakhri** value return karte hain.
 
 ```sql
 FIRST_VALUE(column) OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN ...)
 LAST_VALUE(column)  OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN ...)
 ```
 
-### FIRST_VALUE — Easy
+### FIRST_VALUE — Easy Wala
 
 ```sql
--- For each post, show the most-viewed post by the same user
+-- Har post ke liye, usi user ka sabse zyada view wala post dikhao
 SELECT
     post_id,
     user_id,
@@ -572,19 +573,22 @@ SELECT
 FROM posts;
 ```
 
-### LAST_VALUE — The Gotcha!
+### LAST_VALUE — Yahan Gotcha Hai!
 
-`LAST_VALUE` has a common trap. By default, the window frame is `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, which means "from the first row up to the current row." So `LAST_VALUE` returns the **current row's value**, not the last in the partition!
+`LAST_VALUE` mein ek common trap hai. Default se, window frame `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` hota hai, jiska matlab hai "pehli row se current row tak." Toh `LAST_VALUE` **current row ki value** hi return karta hai, partition ki last value nahi!
 
-**Fix:** Explicitly expand the frame to include all rows in the partition:
+> [!warning]
+> Bilkul waise hi jaise koi tumse bole "list ki last cheez batao" lekin tumhe list ka sirf aadha hissa dikhaya jaaye — tum uss aadhe hisse ki last cheez hi bataoge, poori list ki nahi.
+
+**Fix:** Frame ko explicitly expand karo taaki partition ki saari rows cover ho jaayein:
 
 ```sql
--- Wrong: LAST_VALUE returns current row's value (frame ends at current row by default)
+-- Galat: LAST_VALUE current row ki value return karta hai (frame default se current row pe khatam hota hai)
 SELECT post_id, views,
     LAST_VALUE(title) OVER (PARTITION BY user_id ORDER BY views DESC) AS wrong_last
 FROM posts;
 
--- Correct: expand frame to cover entire partition
+-- Sahi: frame ko poore partition tak expand karo
 SELECT post_id, views,
     LAST_VALUE(title) OVER (
         PARTITION BY user_id
@@ -594,13 +598,13 @@ SELECT post_id, views,
 FROM posts;
 ```
 
-With the fixed frame, `LAST_VALUE` now correctly returns the least-viewed post's title for each user.
+Fixed frame ke saath, `LAST_VALUE` ab sahi se har user ke sabse kam-viewed post ka title return karta hai.
 
 ---
 
 ## ➕ Aggregate Window Functions
 
-Standard aggregate functions (`SUM`, `AVG`, `COUNT`, `MIN`, `MAX`) become window functions when you add `OVER()`. They perform the aggregation across the window instead of collapsing rows.
+Standard aggregate functions (`SUM`, `AVG`, `COUNT`, `MIN`, `MAX`) jab `OVER()` ke saath use hote hain toh window functions ban jaate hain. Ye rows ko collapse karne ki jagah window ke across aggregation perform karte hain.
 
 ### Running Total (Cumulative SUM)
 
@@ -623,7 +627,7 @@ ORDER BY sale_date;
 | 2024-01-06 | 980.00  | 7480.00       |
 | 2024-01-07 | 3100.00 | 10580.00      |
 
-The `ORDER BY` inside `OVER()` causes `SUM` to accumulate — each row gets the sum of all rows up to and including itself.
+`OVER()` ke andar wala `ORDER BY` `SUM` ko accumulate karwata hai — har row ko apne tak ki saari rows ka sum milta hai. Bilkul jaise UPI transaction history mein "total spent till date" dikhta hai.
 
 ### Moving Average (3-Day Window)
 
@@ -649,7 +653,7 @@ ORDER BY sale_date;
 | 2024-01-04 | 400.00  | 1183.33         |
 | 2024-01-05 | 1750.00 | 1483.33         |
 
-`ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` means: look at the current row plus the 2 rows before it (a 3-row sliding window).
+`ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` ka matlab hai: current row plus usse pehle ki 2 rows dekho (3-row ka sliding window).
 
 ### Running COUNT
 
@@ -661,15 +665,15 @@ SELECT
 FROM sales;
 ```
 
-This gives a cumulative count of sales per region over time — useful for tracking how quickly each region hits milestones.
+Ye har region ki sales ka time ke saath cumulative count deta hai — useful hai ye track karne ke liye ki har region kitni jaldi milestones hit kar raha hai.
 
 ---
 
 ## 🌍 Real-World Examples
 
-### 1. Rank Users by Post Count
+### 1. Users Ko Post Count Se Rank Karo
 
-**Business question:** Who are our most prolific writers? Show everyone with their rank.
+**Business question:** Hamare sabse zyada likhne wale writers kaun hain? Sabko unke rank ke saath dikhao.
 
 ```sql
 WITH post_counts AS (
@@ -693,9 +697,9 @@ ORDER BY author_rank;
 | bob      | 2           | 3           |
 | dave     | NULL        | 4           |
 
-### 2. Calculate Running Total of Revenue
+### 2. Revenue Ka Running Total Calculate Karo
 
-**Business question:** Build a daily revenue dashboard showing cumulative total.
+**Business question:** Ek daily revenue dashboard banao jisme cumulative total dikhe.
 
 ```sql
 SELECT
@@ -708,9 +712,9 @@ FROM sales
 ORDER BY sale_date;
 ```
 
-### 3. Compare Today's Sales to Yesterday's (LAG)
+### 3. Aaj Ki Sales Ko Kal Se Compare Karo (LAG)
 
-**Business question:** Flag days where sales dropped by more than 30% compared to the previous day.
+**Business question:** Un dino ko flag karo jaha sales pichle din se 30% se zyada gir gayi ho.
 
 ```sql
 WITH daily_change AS (
@@ -735,9 +739,9 @@ WHERE prev_amount IS NOT NULL
 ORDER BY sale_date;
 ```
 
-### 4. Find the Top 3 Posts Per User
+### 4. Har User Ke Top 3 Posts Dhoondo
 
-**Business question:** For each user, surface their three most-viewed posts for a "Best Of" feature.
+**Business question:** Har user ke liye, "Best Of" feature ke liye unke teen sabse zyada view wale posts nikaalo.
 
 ```sql
 WITH ranked_posts AS (
@@ -769,23 +773,23 @@ ORDER BY username, view_rank;
 | carol    | Carol on CTEs     | 2100  | 2         |
 | carol    | Carol on Triggers | 950   | 3         |
 
-This pattern — filter `WHERE row_num <= N` from a CTE — is one of the most common interview questions and real-world patterns in SQL analytics. The combination of CTEs and window functions makes it clean, efficient, and readable.
+Ye pattern — CTE se `WHERE row_num <= N` filter karna — SQL analytics ke sabse common interview questions aur real-world patterns mein se ek hai. CTEs aur window functions ka combination isko clean, efficient aur readable banata hai.
 
 ---
 
 ## 🔑 Key Takeaways
 
-- A **CTE** is a named temporary query defined with `WITH`. It makes complex queries readable and allows reuse within the same query.
-- **Multiple CTEs** can be chained with commas, building up logic step by step.
-- A **recursive CTE** references itself to traverse hierarchies or generate series. PostgreSQL, MySQL, and SQLite require the `RECURSIVE` keyword; SQL Server and Oracle do not.
-- Always include a termination condition in recursive CTEs to avoid infinite loops.
-- A **window function** operates on a "window" of rows related to the current row — unlike `GROUP BY`, it does not collapse rows.
-- The `OVER()` clause defines the window: `PARTITION BY` groups rows, `ORDER BY` sets order within the group, and the frame clause (`ROWS BETWEEN`) sets the exact range.
-- **Ranking functions:** `ROW_NUMBER()` gives unique numbers, `RANK()` has gaps for ties, `DENSE_RANK()` has no gaps, `NTILE(n)` divides into buckets.
-- **LAG / LEAD** access neighboring rows without a self-join — perfect for time-series comparisons.
-- **FIRST_VALUE / LAST_VALUE** retrieve boundary values; always specify the frame for `LAST_VALUE` to avoid the default-frame gotcha.
-- **Aggregate window functions** (`SUM`, `AVG`, `COUNT` with `OVER()`) enable running totals, moving averages, and cumulative counts.
-- Combining CTEs and window functions unlocks nearly any analytics query you could need.
+- **CTE** ek named temporary query hoti hai jo `WITH` se define hoti hai. Ye complex queries ko readable banata hai aur same query ke andar reuse allow karta hai.
+- **Multiple CTEs** ko commas se chain kar sakte ho, jisse logic step-by-step build hota hai.
+- **Recursive CTE** khud ko reference karke hierarchies traverse karta hai ya series generate karta hai. PostgreSQL, MySQL, aur SQLite ko `RECURSIVE` keyword chahiye; SQL Server aur Oracle ko nahi.
+- Recursive CTEs mein hamesha termination condition rakho, warna infinite loop ho jaayega.
+- **Window function** current row se related rows ke "window" par operate karta hai — `GROUP BY` ke ulat, ye rows ko collapse nahi karta.
+- `OVER()` clause window define karta hai: `PARTITION BY` rows ko group karta hai, `ORDER BY` group ke andar order set karta hai, aur frame clause (`ROWS BETWEEN`) exact range set karta hai.
+- **Ranking functions:** `ROW_NUMBER()` unique numbers deta hai, `RANK()` mein ties ke liye gaps hote hain, `DENSE_RANK()` mein gaps nahi hote, `NTILE(n)` buckets mein divide karta hai.
+- **LAG / LEAD** bina self-join ke neighboring rows access karte hain — time-series comparisons ke liye perfect.
+- **FIRST_VALUE / LAST_VALUE** boundary values retrieve karte hain; `LAST_VALUE` ke liye hamesha frame specify karo taaki default-frame gotcha se bacha ja sake.
+- **Aggregate window functions** (`SUM`, `AVG`, `COUNT` with `OVER()`) running totals, moving averages, aur cumulative counts enable karte hain.
+- CTEs aur window functions ka combination bilkul kisi bhi analytics query ko unlock kar deta hai jo tumhe chahiye ho.
 
 ---
 
@@ -793,7 +797,7 @@ This pattern — filter `WHERE row_num <= N` from a CTE — is one of the most c
 
 **Question 1:**
 
-You have a `transactions` table with columns `txn_date` and `revenue`. You want to display every transaction row along with the **cumulative sum** of revenue up to and including each row, ordered by date. Which query is correct?
+Tumhare paas ek `transactions` table hai jisme columns `txn_date` aur `revenue` hain. Tum har transaction row ke saath uski **cumulative sum** of revenue dikhana chahte ho, date ke order mein. Kaunsi query sahi hai?
 
 **A.**
 ```sql
@@ -821,7 +825,7 @@ GROUP BY txn_date;
 <details>
 <summary>Answer</summary>
 
-**B** is correct. `SUM(revenue) OVER (ORDER BY txn_date)` defaults to `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, which produces a running total while keeping all rows visible. Option A and D collapse rows with GROUP BY. Option C uses PARTITION BY on the date, which only sums within each date (not a running total).
+**B** sahi hai. `SUM(revenue) OVER (ORDER BY txn_date)` default se `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` leta hai, jo saari rows dikhate hue running total produce karta hai. Option A aur D GROUP BY se rows collapse kar dete hain. Option C date pe PARTITION BY use karta hai, jo sirf har date ke andar sum karta hai (running total nahi).
 
 </details>
 
@@ -829,17 +833,17 @@ GROUP BY txn_date;
 
 **Question 2:**
 
-You write a recursive CTE to walk an employee hierarchy. After running it, the query runs forever and crashes. What most likely went wrong?
+Tumne employee hierarchy walk karne ke liye ek recursive CTE likha. Run karne ke baad, query hamesha ke liye chalti rehti hai aur crash ho jaati hai. Sabse zyada possible kya galat hua?
 
-**A.** You forgot the `UNION ALL` between the anchor and recursive member.  
-**B.** You used `RECURSIVE` keyword in SQL Server.  
-**C.** You forgot a termination condition — the recursive member keeps finding rows indefinitely (possibly a cycle in the data or a missing WHERE clause).  
-**D.** Recursive CTEs do not support `JOIN`.
+**A.** Tum anchor aur recursive member ke beech `UNION ALL` bhool gaye.  
+**B.** Tumne SQL Server mein `RECURSIVE` keyword use kar diya.  
+**C.** Tum termination condition bhool gaye — recursive member hamesha rows dhoondta rehta hai (shaayad data mein cycle hai ya WHERE clause missing hai).  
+**D.** Recursive CTEs `JOIN` support nahi karte.
 
 <details>
 <summary>Answer</summary>
 
-**C** is correct. Without a proper termination condition (a `WHERE` clause that eventually returns zero rows), the recursive member keeps executing. This can happen if the data has a cycle (employee A reports to B, and B reports to A) or the stopping condition is missing entirely. Option B is wrong because SQL Server simply does not use RECURSIVE but still works fine. Options A and D would cause errors, not infinite loops.
+**C** sahi hai. Proper termination condition (ek `WHERE` clause jo eventually zero rows return kare) ke bina, recursive member chalta hi rehta hai. Ye tab ho sakta hai jab data mein cycle ho (employee A, B ko report karta ho, aur B, A ko) ya stopping condition bilkul missing ho. Option B galat hai kyunki SQL Server simply RECURSIVE use nahi karta lekin phir bhi theek se kaam karta hai. Options A aur D errors dete, infinite loops nahi.
 
 </details>
 
@@ -847,7 +851,7 @@ You write a recursive CTE to walk an employee hierarchy. After running it, the q
 
 **Question 3:**
 
-Given this query:
+Ye query dekho:
 
 ```sql
 SELECT
@@ -861,20 +865,20 @@ SELECT
 FROM posts;
 ```
 
-What will `last_val` contain for most rows, and why?
+`last_val` zyadatar rows ke liye kya contain karega, aur kyun?
 
-**A.** The highest views in the user's partition, because ORDER BY sorts descending.  
-**B.** The same value as `views` on each row, because the default frame ends at the current row.  
-**C.** The lowest views in the user's partition, because `LAST_VALUE` always looks at the end of the partition.  
-**D.** `NULL`, because no frame clause was specified.
+**A.** User ke partition mein sabse zyada views, kyunki ORDER BY descending sort karta hai.  
+**B.** Har row par `views` jaisi hi value, kyunki default frame current row pe khatam hota hai.  
+**C.** User ke partition mein sabse kam views, kyunki `LAST_VALUE` hamesha partition ke end ko dekhta hai.  
+**D.** `NULL`, kyunki koi frame clause specify nahi kiya gaya.
 
 <details>
 <summary>Answer</summary>
 
-**B** is correct. This is the classic `LAST_VALUE` gotcha. Without an explicit frame clause, the default is `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`. So `LAST_VALUE` looks only at rows from the beginning of the partition up to the current row — and the last of those is always the current row itself. To get the actual last value in the partition, you must specify `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`.
+**B** sahi hai. Ye classic `LAST_VALUE` gotcha hai. Bina explicit frame clause ke, default `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` hota hai. Toh `LAST_VALUE` sirf partition ke start se current row tak ki rows dekhta hai — aur un mein se last hamesha current row hi hoti hai. Partition ki actual last value paane ke liye tumhe `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` specify karna hoga.
 
 </details>
 
 ---
 
-*Next chapter: Indexes and Query Optimization — making your queries fast at scale.*
+*Next chapter: Indexes and Query Optimization — apni queries ko scale pe fast banana.*

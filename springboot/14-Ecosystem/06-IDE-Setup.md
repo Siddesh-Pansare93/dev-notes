@@ -1,37 +1,40 @@
----
-tags: [ecosystem, ide, intellij, vscode, productivity]
-aliases: [IDE, IntelliJ, VS Code Java]
-stage: foundation
----
-
 # IDE Setup
 
-> [!info] For the Express/TS dev
-> Java IDEs are an order of magnitude more powerful than your average TS setup. Refactoring, navigation, and debugging are world-class. **IntelliJ IDEA** is the gold standard. **VS Code** with the Java pack is fine for casual work but lags on big projects.
+> [!info] Express/TS wale dev ke liye
+> Java IDEs tumhare average TS setup se ek level upar ki cheez hain. Refactoring, navigation, aur debugging — sab world-class hai. **IntelliJ IDEA** gold standard hai. **VS Code** Java pack ke saath chhote-mote kaam ke liye theek hai, lekin bade projects pe peeche reh jaata hai.
 
 ## IntelliJ IDEA (recommended)
 
-**Editions:**
-- **Community** (free, open-source) — covers core Java + Maven/Gradle + Git
-- **Ultimate** (paid) — adds Spring/Spring Boot support, JPA tooling, HTTP client, DB tools, profilers
+**Kya hota hai?** IntelliJ do flavours mein aata hai — ek free, ek paid. Dono ka use-case alag hai.
 
-For Spring Boot work, **Ultimate is worth it**. The Spring plugin alone (autocomplete on `application.yml` keys, bean dependency graph, request mapping navigation) saves hours.
+**Editions:**
+- **Community** (free, open-source) — core Java + Maven/Gradle + Git cover karta hai
+- **Ultimate** (paid) — Spring/Spring Boot support, JPA tooling, HTTP client, DB tools, profilers add karta hai
+
+Spring Boot ke kaam ke liye, **Ultimate lene layak hai**. Sirf Spring plugin hi itna kaam bana deta hai — `application.yml` keys pe autocomplete, bean dependency graph, request mapping navigation — ki ghanton bach jaate hain. Socho jaise tum Zomato ka free version use kar rahe ho vs Zomato Gold — dono se khana milta hai, lekin Gold mein extra perks hain jo daily use mein farak dalte hain.
 
 ### First-time setup checklist
 
-1. **JDK**: File → Project Structure → SDKs → add 21
-2. **Project SDK & language level**: match your `pom.xml`
-3. **Annotation processing**: Settings → Build → Compiler → Annotation Processors → "Enable annotation processing"
-4. **Build with Maven/Gradle**: Settings → Build → Build Tools → Maven (or Gradle) → "Build and run using: IntelliJ IDEA" for fast incremental builds
-5. **Format on save**: Settings → Tools → Actions on Save → check "Reformat code", "Optimize imports"
-6. **Plugins to install**:
-   - Lombok (bundled in 2020.3+, but verify enabled)
+Naya IntelliJ khola aur Spring Boot project open kiya? Pehle ye 6 cheezein set kar lo, warna baad mein weird issues aayenge:
+
+1. **JDK**: File → Project Structure → SDKs → 21 add karo
+2. **Project SDK & language level**: apne `pom.xml` se match karo
+3. **Annotation processing**: Settings → Build → Compiler → Annotation Processors → "Enable annotation processing" (Lombok jaise annotation-based libraries ke liye zaruri hai, warna getters/setters generate hi nahi honge)
+4. **Build with Maven/Gradle**: Settings → Build → Build Tools → Maven (ya Gradle) → "Build and run using: IntelliJ IDEA" — isse fast incremental builds milte hain
+5. **Format on save**: Settings → Tools → Actions on Save → "Reformat code" aur "Optimize imports" check karo
+6. **Plugins install karo**:
+   - Lombok (2020.3+ mein bundled hota hai, bas enable verify kar lo)
    - SonarLint
-   - Key Promoter X (teaches you shortcuts)
+   - Key Promoter X (ye tumhe shortcuts sikhata hai — jab bhi mouse se click karoge, ye bata dega ki uske liye shortcut kya tha)
    - .ignore
    - GitToolBox
 
+> [!warning] Annotation processing bhool gaye?
+> Agar Lombok use kar rahe ho aur annotation processing enable nahi kiya, toh `@Getter`, `@Setter` waali classes mein red squiggly lines aayengi — jaise TypeScript mein type errors dikhte hain, waise hi. Bahut confusing lagta hai shuru mein.
+
 ### Essential shortcuts (macOS / Win-Linux)
+
+Kyun zaruri hai? Kyunki mouse se click karte-karte tumhara din nikal jaayega. Shortcuts seekh lo, productivity 3x ho jaayegi — bilkul waise jaise VS Code mein `Cmd+P` seekhne ke baad tum file explorer use karna bhool gaye the.
 
 | Action | macOS | Win/Linux |
 |--------|-------|-----------|
@@ -57,29 +60,35 @@ For Spring Boot work, **Ultimate is worth it**. The Spring plugin alone (autocom
 | Recent locations | `⌘⇧E` | `Ctrl+Shift+E` |
 | Navigate back / forward | `⌘[ / ⌘]` | `Ctrl+Alt+← / →` |
 
-> [!tip] Learn 3 shortcuts a day
-> Search Everywhere (`⇧⇧`), Show Intentions (`⌥⏎`), and Refactor (`⌃T`) cover 80% of daily use.
+> [!tip] Roz 3 shortcuts seekho
+> Search Everywhere (`⇧⇧`), Show Intentions (`⌥⏎`), aur Refactor (`⌃T`) — ye teen hi daily use ka 80% cover kar dete hain. Baaki dheere-dheere muscle memory mein aa jaayenge.
 
 ### Spring tooling highlights (Ultimate)
 
-- **Endpoints panel** — see all `@RequestMapping`s; click to navigate
-- **Beans graph** — visualize the DI graph
-- **`application.yml` autocomplete** — knows every Spring property
-- **HTTP Client** — `*.http` files for live request testing
-- **Database tool window** — connect to your DB, run SQL, inspect schema
-- **Run dashboard** — multi-app run/debug
+Ye woh features hain jinke liye Ultimate ka paisa vasool hota hai:
+
+- **Endpoints panel** — saare `@RequestMapping`s dikhta hai; click karke seedha us controller method pe pahunch jaate ho (Postman collection dekhne jaisa, lekin code ke andar hi)
+- **Beans graph** — DI graph visualize karta hai — kaunsa bean kis bean ko inject kar raha hai, sab ek diagram mein
+- **`application.yml` autocomplete** — har Spring property ko jaanta hai, typo hone se bachata hai
+- **HTTP Client** — `*.http` files se live request testing (Postman jaisa hi, bas IDE ke andar)
+- **Database tool window** — apne DB se connect karo, SQL run karo, schema inspect karo — bina alag DB client khole
+- **Run dashboard** — multiple apps ek saath run/debug karne ke liye (agar microservices pe kaam kar rahe ho)
 
 ### Debugger features worth learning
 
-- **Conditional breakpoints** — right-click breakpoint → condition `user.id == 42`
-- **Logging breakpoint** — print without pausing
-- **Hot swap** — change a method body and re-run without restart (limited)
-- **Drop frame** — re-enter a method during a debug session
-- **Stream debugger** — visualize `.map().filter().collect()` step-by-step
+Debugging Java mein Node.js ke `console.log` dabane se kahin zyada powerful hai — agar tumne ye features seekh liye:
+
+- **Conditional breakpoints** — breakpoint pe right-click → condition daalo jaise `user.id == 42`. Matlab breakpoint sirf tab rukega jab woh specific user aaye — 10,000 requests mein se ek ko dhundhna aasan ho jaata hai
+- **Logging breakpoint** — bina execution ruke print kar deta hai. Basically `console.log` ka replacement, bina code mein likhe
+- **Hot swap** — method body change karo aur bina app restart kiye re-run karo (limited use cases mein kaam karta hai). Ye kuch-kuch nodemon jaisa feel deta hai, lekin sirf method body ke liye
+- **Drop frame** — debug session ke beech mein method ko dobara enter karo, bina poora restart kiye
+- **Stream debugger** — `.map().filter().collect()` chain ko step-by-step visualize karta hai. Bilkul waise jaise tum chahte the ki JS array chains (`.map().filter()`) ko dekh sako ki har step pe data kaisa dikh raha hai
 
 ## VS Code for Java
 
-Install the **Extension Pack for Java** (Microsoft) which bundles:
+**Kya hota hai?** Agar tum already VS Code mein comfortable ho (jaisa ki zyadatar Node/TS devs hote hain), toh Java ke liye bhi VS Code chala sakte ho — bas sahi extensions chahiye.
+
+Install karo **Extension Pack for Java** (Microsoft) jisme ye sab bundled aata hai:
 - Language Support for Java by Red Hat
 - Debugger for Java
 - Test Runner for Java
@@ -89,24 +98,27 @@ Install the **Extension Pack for Java** (Microsoft) which bundles:
 
 Plus:
 - **Spring Boot Extension Pack** (VMware) — Boot Dashboard, application properties autocomplete, live actuator data
-- **Lombok Annotations Support** (if using Lombok)
+- **Lombok Annotations Support** (agar Lombok use kar rahe ho)
 
-### When VS Code is fine
+### VS Code kab theek hai?
 
-- Small projects, scripts
-- Polyglot repos (TS + Java side-by-side)
-- You're already deep in VS Code muscle memory
+- Chhote projects, scripts
+- Polyglot repos (TS + Java saath-saath ek hi repo mein)
+- Jab tum already VS Code ke muscle memory mein deep ho aur switch nahi karna chahte
 
-### When IntelliJ wins
+### IntelliJ kab jeetta hai?
 
-- Big enterprise codebase (10k+ files)
+- Bada enterprise codebase (10k+ files) — jaise ek bade e-commerce platform ka backend
 - Heavy refactoring
 - Spring/JPA-heavy projects
-- Database & profiling work
+- Database aur profiling ka kaam
+
+> [!tip] Analogy
+> Ye kuch-kuch aisa hai jaise VS Code Zomato ka basic app hai — fast, halka, kaam chal jaata hai. IntelliJ Ultimate Zomato Gold + Pro dono hai — heavy lifting ke liye banaya gaya, thoda resource-hungry bhi.
 
 ### VS Code Java shortcuts
 
-Mostly the same as TS:
+Zyadatar TS wale shortcuts jaise hi hain:
 
 | Action | Shortcut |
 |--------|----------|
@@ -121,16 +133,18 @@ Mostly the same as TS:
 
 ## Eclipse
 
-Still used in some enterprises. STS (Spring Tool Suite) is the Spring-flavored Eclipse distribution. If you have a choice, pick IntelliJ.
+Kuch enterprises mein aaj bhi use hota hai (purani Java shops mein common hai). STS (Spring Tool Suite) Eclipse ka Spring-flavored distribution hai. Agar choice ho, toh IntelliJ pick karo — Eclipse ab thoda dated feel deta hai.
 
 ## Settings sync
 
-- IntelliJ: Settings → Settings Sync → Enable (uses your JetBrains account)
-- VS Code: built-in Settings Sync via GitHub/Microsoft account
+- IntelliJ: Settings → Settings Sync → Enable karo (JetBrains account use hota hai)
+- VS Code: built-in Settings Sync GitHub/Microsoft account se
+
+Ye kaafi handy hai — naya laptop set karte waqt ya office/personal machine switch karte waqt saara setup (theme, shortcuts, plugins) apne aap aa jaata hai. Jaise UPI mein tumhara payment method har jagah sync ho jaata hai, waise hi.
 
 ## Recommended editor config
 
-`.editorconfig` at repo root:
+`.editorconfig` repo root mein rakho — isse team ke sab members (chahe IntelliJ use karein ya VS Code) same formatting rules follow karte hain:
 
 ```ini
 root = true
@@ -145,6 +159,9 @@ indent_size = 4
 [*.{yml,yaml,json,md}]
 indent_size = 2
 ```
+
+> [!info] Kyun zaruri hai?
+> Bina `.editorconfig` ke, ek dev tabs use karega, doosra spaces — aur git diff mein pura file "changed" dikhega sirf whitespace ki wajah se. Ye chhoti si file team ke beech consistency maintain karti hai, bilkul waise jaise ESLint + Prettier Node projects mein karte hain.
 
 ## Related
 - [[05-Common-CLI-Tools]]

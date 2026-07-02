@@ -4,14 +4,14 @@
 
 ---
 
-## 🤔 The Problem: Talking to a Database is Awkward
+## 🤔 Problem Kya Hai: Database Se Baat Karna Awkward Hai
 
-When you build a Node.js or TypeScript application, your data lives in two very different worlds:
+Jab tum ek Node.js ya TypeScript application banate ho, tumhara data do bilkul alag duniyao mein rehta hai:
 
-- **Your app world** — JavaScript objects, TypeScript classes, arrays, functions
-- **Your database world** — tables, rows, columns, SQL statements
+- **Tumhari app ki duniya** — JavaScript objects, TypeScript classes, arrays, functions
+- **Database ki duniya** — tables, rows, columns, SQL statements
 
-These two worlds do not naturally understand each other. To get data in or out of a database, you have to write raw SQL strings inside your JavaScript code, like this:
+Ye dono duniyayein ek dusre ki bhasha naturally nahi samajhti. Data ko andar-bahar le jaane ke liye, tumhe apne JavaScript code ke andar raw SQL strings likhni padti hain, kuch aisa:
 
 ```js
 const result = await db.query(
@@ -19,44 +19,44 @@ const result = await db.query(
 );
 ```
 
-This works — but it is brittle, hard to read, and full of traps. What happens when `email` contains a single quote? What if you rename the `users` table? What if you mistype a column name? Your editor has no idea — there is no autocomplete, no type checking, nothing.
+Ye kaam toh karta hai — lekin brittle hai, padhne mein mushkil hai, aur traps se bhara hua hai. Agar `email` mein single quote aa gaya toh? Agar tumne `users` table ka naam badal diya toh? Agar column name spell hi galat kar diya toh? Tumhare editor ko kuch pata nahi chalega — na autocomplete, na type checking, kuch nahi.
 
-This is the problem an ORM was built to solve.
+Yahi wo problem hai jise solve karne ke liye ORM banaya gaya.
 
 ---
 
-## 🌐 What is an ORM?
+## 🌐 ORM Kya Hota Hai?
 
-An **ORM (Object-Relational Mapper)** is a library that acts as a bridge between your application code and your relational database. It lets you interact with database tables using regular JavaScript or TypeScript objects and methods, instead of writing raw SQL strings.
+**ORM (Object-Relational Mapper)** ek library hai jo tumhari application code aur relational database ke beech ek pul (bridge) ka kaam karti hai. Ye tumhe database tables ke saath regular JavaScript ya TypeScript objects aur methods use karke baat karne deti hai, raw SQL strings likhne ki jagah.
 
-The key idea is simple: your **database table** maps to a **class or model** in your code, and each **row** in the table maps to an **instance** of that class.
+Idea simple hai: tumhara **database table** code mein ek **class ya model** banta hai, aur table ki har **row** us class ka ek **instance** banti hai.
 
-Instead of writing:
+Isko likhne ki jagah:
 
 ```sql
 SELECT id, name, email FROM users WHERE id = 1;
 ```
 
-You write:
+Tum ye likhte ho:
 
 ```ts
 const user = await User.findOne({ where: { id: 1 } });
 console.log(user.name); // fully typed!
 ```
 
-The ORM translates your object-oriented code into the correct SQL, sends it to the database, and hands the results back to you as proper JavaScript objects.
+ORM tumhare object-oriented code ko sahi SQL mein translate karta hai, use database ko bhejta hai, aur result ko wapas proper JavaScript objects ki tarah tumhe de deta hai.
 
 ---
 
-## 🔤 The Translator Analogy
+## 🔤 Translator Wali Analogy
 
-Think of an ORM as a **real-time translator** sitting between you and a foreign-language speaker.
+ORM ko socho ek **real-time translator** ki tarah jo tumhare aur ek foreign-language bolne wale ke beech baitha hai.
 
-- **You** speak JavaScript/TypeScript.
-- **The database** speaks SQL.
-- **The ORM** listens to what you say in JavaScript and translates it into SQL in real time, then translates the SQL response back into JavaScript objects for you.
+- **Tum** JavaScript/TypeScript bolte ho.
+- **Database** SQL bolta hai.
+- **ORM** tumhari JavaScript sunta hai, use real time mein SQL mein translate karta hai, phir SQL ka response wapas JavaScript objects mein translate karke tumhe deta hai.
 
-You never have to learn the other language in depth. You just talk naturally, and the translator handles the rest.
+Tumhe doosri bhasha seekhne ki zarurat hi nahi padti. Tum bas natural tarike se baat karte ho, translator baaki sab sambhal leta hai.
 
 ```mermaid
 flowchart LR
@@ -70,13 +70,13 @@ flowchart LR
     style C fill:#10b981,color:#fff,stroke:#059669
 ```
 
-Your application talks to the ORM. The ORM talks to the database. They each speak their own language, and the ORM handles the translation in both directions.
+Tumhari application ORM se baat karti hai. ORM database se baat karta hai. Dono apni-apni bhasha bolte hain, aur beech mein translation ka sara kaam ORM sambhalta hai.
 
 ---
 
-## ❌ Without an ORM: Raw SQL in Your Code
+## ❌ ORM Ke Bina: Code Mein Raw SQL
 
-Here is what database access looks like without an ORM, using a raw query library like `pg` for PostgreSQL:
+Bina ORM ke database access kaisa dikhta hai, ek raw query library `pg` (PostgreSQL ke liye) use karke dekhte hain:
 
 ```ts
 // Fetching a user and their posts — raw SQL style
@@ -93,20 +93,20 @@ const postsResult = await db.query(
 const posts = postsResult.rows;
 ```
 
-**Problems with this approach:**
+**Is approach ke problems:**
 
-- No autocomplete — you must remember every column name by heart
-- No type safety — `user.nmae` (a typo) will compile fine but fail at runtime
-- SQL strings can break if data changes (renamed columns, new tables)
-- SQL injection risk if you forget to parameterize inputs
-- Boilerplate piles up — every query is dozens of lines
-- Database-specific syntax locks you into one vendor
+- Autocomplete nahi milta — har column ka naam yaad rakhna padta hai
+- Type safety nahi hai — `user.nmae` (typo) compile toh ho jaayega, lekin runtime pe fail karega
+- Data change hone pe SQL strings break ho sakti hain (renamed columns, naye tables)
+- SQL injection ka risk hai agar inputs parameterize karna bhool gaye
+- Boilerplate badhta jaata hai — har query mein dozens lines
+- Database-specific syntax tumhe ek hi vendor mein lock kar deta hai
 
 ---
 
-## ✅ With an ORM: Clean, Typed, Object-Oriented
+## ✅ ORM Ke Saath: Clean, Typed, Object-Oriented
 
-Here is the same logic using Prisma (a popular ORM):
+Ab yehi same logic dekhte hain Prisma (ek popular ORM) ke saath:
 
 ```ts
 // Fetching a user and their posts — Prisma ORM style
@@ -118,33 +118,33 @@ const user = await prisma.user.findUnique({
 console.log(user.posts[0].title); // fully typed, autocomplete works
 ```
 
-One call. Full type safety. No raw strings. Autocomplete on every field.
+Ek hi call. Full type safety. Koi raw string nahi. Har field pe autocomplete.
 
 ---
 
-## 👍 Pros of Using an ORM
+## 👍 ORM Use Karne Ke Fayde
 
-| Benefit | Explanation |
+| Fayda | Explanation |
 |---|---|
-| **Type safety** | Column names and types are reflected in TypeScript — typos are caught at compile time |
-| **Autocomplete** | Your editor knows the shape of every model, so you get full IntelliSense |
-| **Migrations** | ORMs can generate and run database migration files automatically |
-| **Cross-DB compatibility** | Switch from PostgreSQL to MySQL by changing a config line (in theory) |
-| **Less boilerplate** | Common CRUD operations are one-liners instead of multi-line SQL blocks |
-| **Security** | Queries are parameterized by default, preventing SQL injection |
-| **Readable code** | Business logic reads like English rather than a mix of JS and SQL strings |
+| **Type safety** | Column names aur types TypeScript mein reflect hote hain — typos compile time pe hi pakde jaate hain |
+| **Autocomplete** | Tumhara editor har model ka shape jaanta hai, isliye full IntelliSense milta hai |
+| **Migrations** | ORM khud migration files generate aur run kar sakta hai |
+| **Cross-DB compatibility** | PostgreSQL se MySQL pe switch karo bas ek config line badal ke (theory mein) |
+| **Kam boilerplate** | Common CRUD operations multi-line SQL ki jagah one-liner ban jaate hain |
+| **Security** | Queries default mein parameterized hoti hain, SQL injection se bachaav |
+| **Readable code** | Business logic English jaisi padhti hai, JS aur SQL strings ke mix jaisi nahi |
 
 ---
 
-## 👎 Cons of Using an ORM
+## 👎 ORM Ke Nuksan
 
-No tool is perfect. ORMs come with real trade-offs:
+Koi bhi tool perfect nahi hota. ORM ke saath kuch real trade-offs aate hain:
 
 **1. Performance overhead**
-The ORM adds a layer between you and the database. For most apps this is negligible, but for high-throughput systems the extra abstraction costs CPU and memory.
+ORM tumhare aur database ke beech ek extra layer daal deta hai. Zyada tar apps ke liye ye negligible hai, lekin high-throughput systems ke liye ye extra abstraction CPU aur memory kharch karta hai.
 
 **2. N+1 query problem**
-A classic ORM pitfall. If you load 100 posts and then access `post.author` in a loop, the ORM might fire 100 separate SQL queries (one per post) instead of one join. This silently destroys performance. You have to be deliberate about eager loading.
+Ye ek classic ORM pitfall hai. Socho tumne Zomato jaisi app banayi — agar tum 100 posts load karte ho aur phir loop mein `post.author` access karte ho, toh ORM ek join query fire karne ki jagah 100 alag-alag SQL queries fire kar sakta hai (har post ke liye ek). Ye chupke se tumhari performance khatam kar deta hai. Isliye eager loading ke baare mein deliberate rehna padta hai.
 
 ```ts
 // Danger: N+1 queries
@@ -157,35 +157,35 @@ for (const post of posts) {
 const posts = await prisma.post.findMany({ include: { author: true } });
 ```
 
-**3. Abstraction leaks for complex queries**
-ORMs are great for CRUD. They struggle with complex analytical queries — multi-level joins, window functions, CTEs, subqueries. You often end up escaping into raw SQL anyway for the hard stuff.
+**3. Complex queries ke liye abstraction leak hoti hai**
+ORM CRUD ke liye kamaal ke hain. Lekin complex analytical queries mein struggle karte hain — multi-level joins, window functions, CTEs, subqueries. Aksar aisi cheezon ke liye tumhe wapas raw SQL mein hi jaana padta hai.
 
 **4. Learning curve**
-You still need to understand SQL to debug what the ORM generates. Treating the ORM as a black box causes mysterious bugs.
+Tumhe SQL phir bhi samajhna hi padega taaki ORM jo generate kar raha hai use debug kar sako. ORM ko black box treat karne se mysterious bugs aate hain.
 
 ---
 
-## ⚖️ When to Use an ORM vs Raw SQL
+## ⚖️ ORM vs Raw SQL — Kab Kya Use Karna Hai
 
 | Use Case | ORM | Raw SQL |
 |---|---|---|
 | Create / Read / Update / Delete records | ✅ Perfect | Overkill |
-| Simple filtering and sorting | ✅ Great | Fine too |
-| Complex joins across many tables | Possible, with care | ✅ Preferred |
-| Reporting and analytics queries | Awkward | ✅ Preferred |
+| Simple filtering aur sorting | ✅ Great | Ye bhi fine |
+| Kai tables ke beech complex joins | Possible, thoda dhyan se | ✅ Preferred |
+| Reporting aur analytics queries | Awkward | ✅ Preferred |
 | Aggregations, window functions | Limited | ✅ Preferred |
-| Full-text search with custom scoring | Escaping required | ✅ Preferred |
+| Custom scoring wali full-text search | Escape karna padta hai | ✅ Preferred |
 
-**Rule of thumb:** Use an ORM for 80% of your app (CRUD, business logic, simple relations). Drop down to raw SQL for the 20% that involves complex, performance-critical queries.
+**Rule of thumb:** Apni app ke 80% part ke liye ORM use karo (CRUD, business logic, simple relations). Baaki 20% ke liye jo complex, performance-critical queries hain, unke liye raw SQL pe utar aao.
 
 ---
 
-## 🗂️ The Major Node.js / TypeScript ORMs
+## 🗂️ Node.js / TypeScript Ke Major ORMs
 
 ### 1. Prisma — The Modern Choice
-**Schema-first, type-safe, excellent developer experience.**
+**Schema-first, type-safe, zabardast developer experience.**
 
-You define your data model in a `.prisma` schema file. Prisma generates a fully-typed client from that schema. Every query is type-safe out of the box. Prisma also handles migrations cleanly.
+Tum apna data model ek `.prisma` schema file mein define karte ho. Prisma us schema se fully-typed client generate kar deta hai. Har query out of the box type-safe hoti hai. Prisma migrations bhi cleanly handle karta hai.
 
 ```prisma
 model User {
@@ -199,14 +199,14 @@ model User {
 const users = await prisma.user.findMany(); // User[] — fully typed
 ```
 
-Best for: New TypeScript projects, teams that value DX, modern applications.
+Best for: Naye TypeScript projects, teams jo DX pasand karti hain, modern applications.
 
 ---
 
-### 2. TypeORM — The Java Developer's Comfort Zone
-**Decorator-based, similar to Java's JPA / Hibernate.**
+### 2. TypeORM — Java Developer Ke Liye Comfort Zone
+**Decorator-based, Java ke JPA / Hibernate jaisa lagta hai.**
 
-Models are TypeScript classes decorated with annotations. Feels familiar to developers coming from Spring Boot or Java. Older style but very feature-complete.
+Models TypeScript classes hoti hain jo annotations se decorate hoti hain. Spring Boot ya Java se aane wale developers ko ye kaafi familiar lagega. Style thodi purani hai lekin feature-complete kaafi hai.
 
 ```ts
 @Entity()
@@ -219,42 +219,42 @@ export class User {
 }
 ```
 
-Best for: Teams with Java backgrounds, legacy NestJS apps, enterprise patterns.
+Best for: Java background wali teams, legacy NestJS apps, enterprise patterns.
 
 ---
 
 ### 3. Sequelize — The Veteran
-**The oldest Node.js ORM. Extensive documentation, huge community.**
+**Sabse purana Node.js ORM. Bhari-bharkam documentation, bada community.**
 
-Sequelize has been around since Node.js was young. It uses a callback-and-promise style. Less idiomatic TypeScript support compared to newer options, but there is more Stack Overflow coverage than any other ORM.
+Sequelize Node.js ke shuruaati din se hai. Ye callback-and-promise style use karta hai. Newer options ke comparison mein TypeScript support utna idiomatic nahi hai, lekin Stack Overflow pe kisi bhi doosre ORM se zyada coverage milegi.
 
 ```js
 const users = await User.findAll({ where: { isActive: true } });
 ```
 
-Best for: Existing Sequelize projects, teams that need maximum documentation and community answers.
+Best for: Existing Sequelize projects, teams jinhe maximum documentation aur community answers chahiye.
 
 ---
 
 ### 4. Drizzle ORM — The New Contender
-**SQL-like API, ultra-lightweight, strongly typed.**
+**SQL jaisa API, ultra-lightweight, strongly typed.**
 
-Drizzle is the newest player and is gaining popularity fast. Its query syntax closely mirrors SQL, so there is almost no abstraction — just a type-safe wrapper around the queries you would write anyway. Very fast, very small bundle size.
+Drizzle sabse naya player hai aur teji se popular ho raha hai. Iska query syntax SQL se bahut milta-julta hai, isliye almost koi abstraction hi nahi hai — bas ek type-safe wrapper us query ke upar jo tum waise bhi likhte. Bahut fast, bahut chhota bundle size.
 
 ```ts
 const result = await db.select().from(users).where(eq(users.isActive, true));
 ```
 
-Best for: Developers who love SQL, performance-critical apps, edge environments (Cloudflare Workers, Vercel Edge).
+Best for: Wo developers jinhe SQL pasand hai, performance-critical apps, edge environments (Cloudflare Workers, Vercel Edge).
 
 ---
 
 ### 5. Knex.js — The Query Builder (Honorable Mention)
-**Not a full ORM — a SQL query builder.**
+**Full ORM nahi hai — ek SQL query builder hai.**
 
-Knex does not give you models or migrations in the ORM sense. It gives you a fluent JavaScript API for constructing SQL queries. You write `knex('users').where({ isActive: true }).select()` and it produces the SQL. No auto-magic, no model classes — just clean query construction with parameterization and cross-DB support.
+Knex tumhe models ya migrations us ORM wale sense mein nahi deta. Ye tumhe SQL queries construct karne ke liye ek fluent JavaScript API deta hai. Tum `knex('users').where({ isActive: true }).select()` likhte ho aur ye SQL bana deta hai. Koi auto-magic nahi, koi model classes nahi — bas clean query construction, parameterization aur cross-DB support ke saath.
 
-Best for: Teams that want raw SQL control with just enough abstraction to avoid string concatenation.
+Best for: Teams jinhe raw SQL pe control chahiye, bas itna abstraction jitna string concatenation se bachne ke liye kaafi ho.
 
 ---
 
@@ -274,72 +274,72 @@ Best for: Teams that want raw SQL control with just enough abstraction to avoid 
 
 ---
 
-## 🏆 Why Prisma Has Become the Most Popular Choice for TypeScript Apps
+## 🏆 Prisma TypeScript Apps Ke Liye Sabse Popular Choice Kyun Ban Gaya
 
-Prisma solved a problem that older ORMs did not fully address: **it made the entire database interaction end-to-end type-safe without any manual effort.**
+Prisma ne ek aisi problem solve ki jo purane ORMs ne poori tarah address nahi ki thi: **usne pura database interaction end-to-end type-safe bana diya, bina kisi manual effort ke.**
 
-With TypeORM or Sequelize, you define types yourself and the ORM trusts you. If your schema drifts from your type definitions, nothing catches it. With Prisma, the schema IS the source of truth — the TypeScript client is auto-generated from it, so your types are always correct by construction.
+TypeORM ya Sequelize mein, types tum khud define karte ho aur ORM tum pe bharosa karta hai. Agar tumhara schema type definitions se drift kar jaaye, toh kuch bhi pakdega nahi. Prisma mein, schema hi source of truth hai — TypeScript client us se auto-generate hota hai, isliye tumhare types construction se hi hamesha sahi hote hain.
 
-Additional reasons developers love Prisma:
+Prisma ko pasand karne ki aur bhi wajahein:
 
-- **Prisma Studio** — a web-based GUI to browse and edit your data during development
-- **Excellent error messages** — tells you exactly what went wrong and why
-- **First-class migration workflow** — `prisma migrate dev` handles everything
-- **Active development** — releases frequently, responds to community feedback fast
-- **Docs that are actually good** — step-by-step, with real-world examples
+- **Prisma Studio** — data browse aur edit karne ke liye ek web-based GUI, development ke waqt
+- **Zabardast error messages** — batata hai exactly kya galat hua aur kyun
+- **First-class migration workflow** — `prisma migrate dev` sab sambhal leta hai
+- **Active development** — frequently releases aati hain, community feedback pe fast respond karte hain
+- **Docs jo genuinely achhi hain** — step-by-step, real-world examples ke saath
 
-The TypeScript ecosystem has largely converged on Prisma as the default ORM for new projects in 2024 and 2025. When you start a new Next.js, NestJS, or Express project with a database, Prisma is almost certainly the right starting point.
+TypeScript ecosystem largely 2024 aur 2025 mein Prisma pe hi converge ho gaya hai naye projects ke default ORM ke tor pe. Jab bhi tum ek naya Next.js, NestJS, ya Express project database ke saath shuru karte ho, Prisma almost certainly sahi starting point hai.
 
 ---
 
 ## 🔑 Key Takeaways
 
-- An **ORM** sits between your app and your database, translating between JS/TS objects and SQL.
-- Without an ORM you write raw SQL strings — no types, no autocomplete, high risk.
-- With an ORM you work with classes and methods — typed, safe, readable.
-- **Pros:** type safety, autocomplete, migrations, less boilerplate, cross-DB support.
-- **Cons:** N+1 queries if careless, performance overhead, abstraction leaks on complex queries.
-- **Use ORM for CRUD; use raw SQL for complex analytics.**
-- The main Node.js ORMs: **Prisma** (modern), **TypeORM** (enterprise), **Sequelize** (veteran), **Drizzle** (lightweight), **Knex** (query builder).
-- Prisma is the most popular TypeScript ORM today due to its schema-first design and automatic type generation.
+- Ek **ORM** tumhari app aur database ke beech baithta hai, JS/TS objects aur SQL ke beech translate karta hai.
+- ORM ke bina tum raw SQL strings likhte ho — no types, no autocomplete, high risk.
+- ORM ke saath tum classes aur methods ke saath kaam karte ho — typed, safe, readable.
+- **Fayde:** type safety, autocomplete, migrations, kam boilerplate, cross-DB support.
+- **Nuksan:** careless rehne pe N+1 queries, performance overhead, complex queries pe abstraction leak.
+- **CRUD ke liye ORM use karo; complex analytics ke liye raw SQL.**
+- Node.js ke main ORMs: **Prisma** (modern), **TypeORM** (enterprise), **Sequelize** (veteran), **Drizzle** (lightweight), **Knex** (query builder).
+- Prisma aaj sabse popular TypeScript ORM hai kyunki iska schema-first design hai aur automatic type generation.
 
 ---
 
 ## 🧪 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test karo.
 
 **Question 1**
-What does ORM stand for, and what is its core job in a web application?
+ORM ka full form kya hai, aur ek web application mein iska core kaam kya hota hai?
 
 <details>
 <summary>Show Answer</summary>
 
-**Object-Relational Mapper.** Its core job is to act as a translator between your application's object-oriented code (JS/TS classes and objects) and a relational database (SQL tables and rows), letting you interact with the database without writing raw SQL strings.
+**Object-Relational Mapper.** Iska core kaam hai tumhari application ki object-oriented code (JS/TS classes aur objects) aur relational database (SQL tables aur rows) ke beech translator ka kaam karna, taaki tum raw SQL strings likhe bina database ke saath interact kar sako.
 
 </details>
 
 ---
 
 **Question 2**
-You are loading 500 blog posts and then accessing `post.author` inside a `for` loop. What performance problem are you likely causing, and how do you fix it?
+Tum 500 blog posts load kar rahe ho aur phir `for` loop ke andar `post.author` access kar rahe ho. Iska tumhe kaunsa performance problem ho sakta hai, aur usse kaise fix karoge?
 
 <details>
 <summary>Show Answer</summary>
 
-You are causing the **N+1 query problem** — the ORM will fire one SQL query per post to load the author, resulting in 501 total queries instead of 1. Fix it by **eager loading**: use `include: { author: true }` (Prisma) or the equivalent in your ORM so that authors are fetched in a single join query alongside the posts.
+Tum **N+1 query problem** create kar rahe ho — ORM har post ke author ko load karne ke liye ek alag SQL query fire karega, jisse total 1 ki jagah 501 queries ban jaayengi. Isse fix karne ke liye **eager loading** use karo: Prisma mein `include: { author: true }` (ya apne ORM ka equivalent) use karo, taaki authors posts ke saath ek hi join query mein fetch ho jaayein.
 
 </details>
 
 ---
 
 **Question 3**
-Your team needs to run a complex monthly sales report with window functions, multiple CTEs, and custom aggregations. Should you use your ORM or raw SQL for this query? Why?
+Tumhari team ko ek complex monthly sales report chalana hai jisme window functions, multiple CTEs, aur custom aggregations hain. Is query ke liye ORM use karoge ya raw SQL? Kyun?
 
 <details>
 <summary>Show Answer</summary>
 
-**Raw SQL.** ORMs are optimized for CRUD operations and struggle to express complex analytical queries cleanly. Window functions, CTEs, and multi-level aggregations often require escaping to raw SQL anyway. Writing the query directly in SQL gives you full control, better readability for complex logic, and no ORM abstraction overhead for a performance-sensitive report.
+**Raw SQL.** ORMs CRUD operations ke liye optimize hote hain aur complex analytical queries ko cleanly express karne mein struggle karte hain. Window functions, CTEs, aur multi-level aggregations ke liye aksar waise bhi raw SQL mein escape karna padta hai. Query ko directly SQL mein likhna tumhe full control deta hai, complex logic ke liye better readability deta hai, aur ek performance-sensitive report ke liye koi ORM abstraction overhead nahi hota.
 
 </details>
 

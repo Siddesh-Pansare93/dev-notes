@@ -1,18 +1,18 @@
 # MongoDB — NoSQL Document Database Deep Dive
 
-> "If a relational database is a rigid spreadsheet, MongoDB is a drawer full of sticky notes — each note can look completely different, and that is exactly the point."
+> "Agar relational database ek strict spreadsheet hai, toh MongoDB ek sticky-notes ka drawer hai — har note alag dikh sakta hai, aur yehi toh iska point hai."
 
 ---
 
-## 🗂️ What is MongoDB?
+## 🗂️ MongoDB Hai Kya?
 
-Imagine you are running a library. In a traditional library (relational DB), every book must have the exact same card format: Title, Author, Year, Pages. No more, no less. But real books are messy — some have multiple authors, some have series info, some have audiobook links, some have zero pages (magazines). You would need five different card types and a rule book to join them together.
+Socho tum ek library chala rahe ho. Traditional library (relational DB) mein har book ka card ek hi format follow karta hai: Title, Author, Year, Pages. Bas itna hi, na kam na zyada. Lekin real books toh messy hoti hain — kisi ki multiple authors hain, kisi mein series info hai, kisi mein audiobook links hain, kisi mein pages hi nahi hain (magazines). Isko handle karne ke liye tumhe paanch alag card types aur ek rule book chahiye hoga unko join karne ke liye.
 
-MongoDB is a **document database**. Instead of rows in tables, it stores **documents** — self-contained JSON-like blobs of data. Each document can have its own shape. No shared schema enforced at the database level.
+MongoDB ek **document database** hai. Rows aur tables ki jagah, yeh **documents** store karta hai — self-contained JSON jaisi data blobs. Har document ka apna shape ho sakta hai. Database level pe koi shared schema force nahi hota.
 
-### The BSON Format
+### BSON Format Kya Hai?
 
-MongoDB does not actually store plain JSON. It stores **BSON** (Binary JSON) — a binary-encoded superset of JSON that adds extra data types:
+MongoDB actually plain JSON store nahi karta. Yeh **BSON** (Binary JSON) store karta hai — ek binary-encoded superset of JSON jo extra data types add karta hai:
 
 | Type | JSON | BSON adds |
 |---|---|---|
@@ -23,7 +23,7 @@ MongoDB does not actually store plain JSON. It stores **BSON** (Binary JSON) —
 | ObjectId | not supported | 12-byte unique ID |
 | Regex | not supported | native regex |
 
-Every document gets an automatic `_id` field — a 12-byte **ObjectId** that encodes timestamp, machine ID, process ID, and a counter. It is unique across the planet without coordination.
+Har document ko automatic `_id` field milta hai — ek 12-byte **ObjectId** jo timestamp, machine ID, process ID, aur ek counter encode karta hai. Yeh poori duniya mein unique hota hai bina kisi coordination ke — Zomato order ID jaisa, jo kabhi clash nahi karta.
 
 ```json
 {
@@ -40,11 +40,11 @@ Every document gets an automatic `_id` field — a 12-byte **ObjectId** that enc
 }
 ```
 
-Notice: nested objects, arrays, mixed types — all in one document. No joins needed.
+Dekho: nested objects, arrays, mixed types — sab ek hi document mein. Koi joins ki zaroorat nahi.
 
 ---
 
-## 🏗️ Collections and Documents
+## 🏗️ Collections Aur Documents
 
 ```mermaid
 graph TD
@@ -61,43 +61,43 @@ graph TD
     C2 --> P2["{_id: ..., title: 'Phone', variants: [...]}"]
 ```
 
-- **Database** — like a warehouse
-- **Collection** — like a shelf in that warehouse (loosely equivalent to a SQL table)
-- **Document** — like a box on that shelf (loosely equivalent to a SQL row)
+- **Database** — ek godown (warehouse) jaisa
+- **Collection** — us godown ka ek rack (SQL table jaisa hi, loosely)
+- **Document** — rack pe rakha ek box (SQL row jaisa, loosely)
 
-The key difference: every box on the shelf can be a completely different shape.
+Sabse badi baat: rack pe rakha har box ekdum alag shape ka ho sakta hai.
 
 ---
 
-## ⚖️ MongoDB vs PostgreSQL — When to Choose What
+## ⚖️ MongoDB vs PostgreSQL — Kab Kya Choose Karo
 
-Think of it this way: PostgreSQL is a structured filing cabinet with labeled folders. MongoDB is a smart backpack — you shove things in, find them fast, and reorganize freely.
+Aise socho: PostgreSQL ek structured filing cabinet hai jisme labeled folders hain. MongoDB ek smart backpack hai — tum cheezein daalte jao, fast dhundh lo, aur jab chaho reorganize kar lo.
 
 | Dimension | MongoDB | PostgreSQL |
 |---|---|---|
 | Schema | Flexible (schema-optional) | Strict (schema-required) |
 | Data shape | Documents (nested, arrays) | Tables (flat rows) |
-| Joins | Limited (use $lookup or embed) | Native, powerful JOIN |
+| Joins | Limited (use $lookup ya embed) | Native, powerful JOIN |
 | Transactions | Supported (4.0+, multi-doc) | Battle-tested, full ACID |
 | Scaling | Horizontal sharding built-in | Vertical first, sharding harder |
 | Query language | MQL (MongoDB Query Language) | SQL |
 | Best for | Variable schema, nested data, scale | Complex relations, strict integrity |
 | Real-time changes | Change Streams built-in | Logical replication / triggers |
 
-### Use MongoDB when:
+### MongoDB Use Karo Jab:
 
-- Your data shape changes frequently (product catalogs with varying attributes)
-- You have deeply nested or hierarchical data (user profiles, JSON from APIs)
-- You need to scale horizontally across many servers
-- You are iterating fast and cannot afford migrations every sprint
-- You need real-time event streaming from DB changes
+- Tumhara data shape baar-baar change hota hai (product catalogs jinke attributes alag-alag hain)
+- Tumhare paas deeply nested ya hierarchical data hai (user profiles, API se aane wala JSON)
+- Tumhe kayi servers pe horizontally scale karna hai
+- Tum fast iterate kar rahe ho aur har sprint mein migrations afford nahi kar sakte
+- Tumhe DB changes se real-time event streaming chahiye
 
-### Do NOT use MongoDB when:
+### MongoDB Use MAT Karo Jab:
 
-- You need complex multi-table transactions daily (banking, payroll)
-- Your data is highly relational and normalized (ERP, accounting)
-- Your team already knows SQL and the data fits rows cleanly
-- You need strong schema enforcement as a safety net
+- Tumhe daily complex multi-table transactions chahiye (banking, payroll)
+- Tumhara data highly relational aur normalized hai (ERP, accounting)
+- Tumhari team already SQL jaanti hai aur data rows mein cleanly fit hota hai
+- Tumhe strong schema enforcement ek safety net ki tarah chahiye
 
 ---
 
@@ -127,20 +127,20 @@ graph LR
     end
 ```
 
-In the relational world, you normalize data into separate tables and JOIN them. In MongoDB, you often **embed** related data inside a single document. One read, all the data you need.
+Relational world mein tum data ko normalize karke alag tables mein daalte ho aur JOIN karte ho. MongoDB mein tum aksar related data ko ek hi document ke andar **embed** kar dete ho. Ek read, saara data mil gaya.
 
 ---
 
 ## 🧱 Data Modeling: Embedding vs Referencing
 
-This is the most important design decision in MongoDB. Get it wrong and your app becomes slow or inconsistent.
+Yeh MongoDB ka sabse important design decision hai. Isko galat kiya toh tumhara app slow ho jayega ya data inconsistent ho jayega.
 
-### The Embedding Pattern (Denormalize)
+### Embedding Pattern (Denormalize)
 
-Think of a user profile that includes their addresses. You would never open a separate drawer to find someone's address — it is written right on their file.
+Socho ek user profile jisme unke addresses bhi hain. Tum kabhi kisi ka address dhundhne ke liye alag drawer nahi khologe — woh unki file pe hi likha hota hai.
 
 ```javascript
-// Embedded: address lives inside the user document
+// Embedded: address user document ke andar hi rehta hai
 {
   "_id": ObjectId("..."),
   "name": "Alice",
@@ -151,15 +151,15 @@ Think of a user profile that includes their addresses. You would never open a se
 }
 ```
 
-**Use embedding when:**
-- The embedded data is always read together with the parent
-- The embedded array is bounded and small (< 100 items)
-- Data is read much more often than written (read-heavy)
-- The relationship is "owned by" (address belongs to one user)
+**Embedding kab use karo:**
+- Jab embedded data hamesha parent ke saath hi read hota hai
+- Jab embedded array bounded aur chhota ho (< 100 items)
+- Jab data write se zyada read hota ho (read-heavy)
+- Jab relationship "owned by" wala ho (address ek user ka hi hota hai)
 
-### The Referencing Pattern (Normalize)
+### Referencing Pattern (Normalize)
 
-Think of library books and their authors. An author writes many books. Storing the full author info inside every book document would be wasteful and inconsistent — change the author's bio and you update thousands of records.
+Socho library books aur unke authors. Ek author kayi books likhta hai. Har book document ke andar poora author info store karna wasteful hoga aur inconsistent bhi — author ki bio change karo toh hazaron records update karne padenge.
 
 ```javascript
 // Author document
@@ -169,7 +169,7 @@ Think of library books and their authors. An author writes many books. Storing t
   "bio": "Software engineer and author..."
 }
 
-// Book document — references author by ID
+// Book document — author ko ID se reference karta hai
 {
   "_id": ObjectId("book001"),
   "title": "Clean Code",
@@ -178,11 +178,11 @@ Think of library books and their authors. An author writes many books. Storing t
 }
 ```
 
-**Use referencing when:**
-- The referenced data is large and changes frequently
-- Many documents reference the same data (write-heavy updates)
-- The array could grow without bound (e.g., all comments on a viral post)
-- The relationship is many-to-many
+**Referencing kab use karo:**
+- Jab referenced data bada ho aur baar-baar change hota ho
+- Jab kayi documents same data ko reference karte hain (write-heavy updates)
+- Jab array unbounded grow ho sakta ho (jaise viral post ke saare comments)
+- Jab relationship many-to-many ho
 
 ```mermaid
 graph TD
@@ -205,7 +205,7 @@ graph TD
 ### Insert
 
 ```javascript
-// Insert one document
+// Ek document insert karo
 db.users.insertOne({
   name: "Siddesh",
   email: "sid@example.com",
@@ -213,7 +213,7 @@ db.users.insertOne({
   skills: ["Python", "MongoDB"]
 });
 
-// Insert many documents at once
+// Ek saath kayi documents insert karo
 db.users.insertMany([
   { name: "Alice", age: 25 },
   { name: "Bob",   age: 30 }
@@ -223,16 +223,16 @@ db.users.insertMany([
 ### Read (Find)
 
 ```javascript
-// Find all users
+// Saare users dhundo
 db.users.find({});
 
-// Find with filter — users older than 21
+// Filter ke saath find — 21 se zyada age wale users
 db.users.find({ age: { $gt: 21 } });
 
-// Find one document
+// Ek document dhundo
 db.users.findOne({ email: "sid@example.com" });
 
-// Projection — only return name and email, exclude _id
+// Projection — sirf name aur email return karo, _id exclude karo
 db.users.find(
   { age: { $gt: 21 } },
   { name: 1, email: 1, _id: 0 }
@@ -242,31 +242,31 @@ db.users.find(
 ### Update
 
 ```javascript
-// $set — update specific fields (does NOT replace the whole doc)
+// $set — specific fields update karta hai (poora doc replace NAHI karta)
 db.users.updateOne(
   { email: "sid@example.com" },
   { $set: { age: 23, city: "Pune" } }
 );
 
-// $push — add item to an array
+// $push — array mein item add karo
 db.users.updateOne(
   { email: "sid@example.com" },
   { $push: { skills: "Docker" } }
 );
 
-// $pull — remove item from an array
+// $pull — array se item remove karo
 db.users.updateOne(
   { email: "sid@example.com" },
   { $pull: { skills: "Python" } }
 );
 
-// $inc — increment a numeric field
+// $inc — numeric field increment karo
 db.products.updateOne(
   { _id: ObjectId("...") },
-  { $inc: { stock: -1 } }   // decrement stock by 1
+  { $inc: { stock: -1 } }   // stock ko 1 se decrement karo
 );
 
-// updateMany — update all matching docs
+// updateMany — jitne bhi docs match karein sab update karo
 db.users.updateMany(
   { age: { $lt: 18 } },
   { $set: { category: "minor" } }
@@ -276,10 +276,10 @@ db.users.updateMany(
 ### Delete
 
 ```javascript
-// Delete one matching document
+// Ek matching document delete karo
 db.users.deleteOne({ email: "sid@example.com" });
 
-// Delete all matching documents
+// Saare matching documents delete karo
 db.users.deleteMany({ age: { $lt: 13 } });
 ```
 
@@ -287,15 +287,15 @@ db.users.deleteMany({ age: { $lt: 13 } });
 
 ## 🔍 Query Operators
 
-MongoDB query operators let you express complex conditions inside the filter object.
+MongoDB query operators tumhe filter object ke andar complex conditions likhne dete hain.
 
 ```javascript
 // Comparison operators
 db.products.find({ price: { $gt: 1000 } });         // greater than
 db.products.find({ price: { $gte: 500, $lte: 2000 } }); // range
-db.products.find({ category: { $in: ["phone", "tablet"] } }); // in list
-db.products.find({ category: { $nin: ["laptop"] } }); // not in list
-db.products.find({ discount: { $exists: true } });   // field must exist
+db.products.find({ category: { $in: ["phone", "tablet"] } }); // list mein hai
+db.products.find({ category: { $nin: ["laptop"] } }); // list mein nahi hai
+db.products.find({ discount: { $exists: true } });   // field exist karni chahiye
 
 // Logical operators
 db.users.find({
@@ -312,11 +312,11 @@ db.users.find({
   ]
 });
 
-// Regex operator — find users whose name starts with "S"
+// Regex operator — "S" se start hone wale naam wale users dhundo
 db.users.find({ name: { $regex: /^S/i } });
 
-// $elemMatch — match documents where at least one array element meets ALL conditions
-// Find orders that have an item with quantity > 5 AND price < 100
+// $elemMatch — un documents ko match karo jinke array mein koi ek element saari conditions satisfy kare
+// Woh orders dhundo jinke items mein koi item quantity > 5 AND price < 100 ho
 db.orders.find({
   items: {
     $elemMatch: { quantity: { $gt: 5 }, price: { $lt: 100 } }
@@ -328,7 +328,7 @@ db.orders.find({
 
 ## 🔄 Aggregation Pipeline
 
-The aggregation pipeline is MongoDB's superpower for analytics. Think of it as an assembly line — your documents enter one end, pass through multiple stages (each stage transforms the data), and come out the other end as processed results.
+Aggregation pipeline MongoDB ka analytics superpower hai. Isko ek assembly line samjho — tumhare documents ek end se enter hote hain, kayi stages se pass hote hain (har stage data ko transform karta hai), aur dusre end se processed results ban ke nikalte hain.
 
 ```mermaid
 graph LR
@@ -342,29 +342,29 @@ graph LR
 ### Core Pipeline Stages
 
 ```javascript
-// Example: Sales report per category, only for products > Rs 500
+// Example: Har category ka sales report, sirf un products ke liye jo Rs 500 se zyada hain
 db.products.aggregate([
 
-  // Stage 1: Filter — like SQL WHERE
+  // Stage 1: Filter — SQL WHERE jaisa
   { $match: { price: { $gt: 500 } } },
 
-  // Stage 2: Group — like SQL GROUP BY + aggregate functions
+  // Stage 2: Group — SQL GROUP BY + aggregate functions jaisa
   {
     $group: {
-      _id: "$category",              // group by this field
+      _id: "$category",              // is field ke basis pe group karo
       totalSales: { $sum: "$sales" },
       avgPrice:   { $avg: "$price" },
       count:      { $sum: 1 }
     }
   },
 
-  // Stage 3: Sort — like SQL ORDER BY
+  // Stage 3: Sort — SQL ORDER BY jaisa
   { $sort: { totalSales: -1 } },    // -1 = descending
 
   // Stage 4: Limit — top 5
   { $limit: 5 },
 
-  // Stage 5: Project — reshape the output, like SQL SELECT
+  // Stage 5: Project — output ko reshape karo, SQL SELECT jaisa
   {
     $project: {
       category:   "$_id",
@@ -376,20 +376,20 @@ db.products.aggregate([
 ]);
 ```
 
-### $lookup — The JOIN of MongoDB
+### $lookup — MongoDB Ka JOIN
 
 ```javascript
-// Join orders with users collection
+// orders ko users collection ke saath join karo
 db.orders.aggregate([
   {
     $lookup: {
-      from: "users",           // the other collection
-      localField: "userId",    // field in orders
-      foreignField: "_id",     // field in users
-      as: "userInfo"           // output array field name
+      from: "users",           // doosri collection
+      localField: "userId",    // orders mein ka field
+      foreignField: "_id",     // users mein ka field
+      as: "userInfo"           // output array field ka naam
     }
   },
-  // $unwind flattens the array created by $lookup
+  // $unwind $lookup se bane array ko flatten karta hai
   { $unwind: "$userInfo" },
   {
     $project: {
@@ -404,13 +404,13 @@ db.orders.aggregate([
 
 ### $unwind
 
-`$unwind` deconstructs an array field — one document per array element. Imagine a single order with 3 items becoming 3 separate documents in the pipeline.
+`$unwind` ek array field ko deconstruct karta hai — array ke har element ke liye ek separate document ban jaata hai. Socho ek order jisme 3 items hain, woh pipeline mein 3 alag documents ban jaata hai.
 
 ```javascript
 // Original: { _id: 1, items: ["A", "B", "C"] }
-// After $unwind: { _id: 1, items: "A" }
-//                { _id: 1, items: "B" }
-//                { _id: 1, items: "C" }
+// $unwind ke baad: { _id: 1, items: "A" }
+//                  { _id: 1, items: "B" }
+//                  { _id: 1, items: "C" }
 
 db.orders.aggregate([
   { $unwind: "$items" },
@@ -422,7 +422,7 @@ db.orders.aggregate([
 
 ## ⚡ Indexes
 
-Without indexes, MongoDB scans every document in a collection (a **collection scan**) — like reading every page of a book to find one word. An index is like the book's index: it points directly to the right page.
+Bina index ke MongoDB collection ka har document scan karta hai (**collection scan**) — jaise ek word dhundhne ke liye poori book ka har page padhna. Index book ke index page jaisa hota hai: seedha sahi page pe le jaata hai.
 
 ```mermaid
 graph TD
@@ -431,24 +431,24 @@ graph TD
     IDX -- No  --> SLOW[Collection Scan → O n → Slow]
 ```
 
-### Types of Indexes
+### Index Types
 
 ```javascript
 // Single field index
 db.users.createIndex({ email: 1 });  // 1 = ascending, -1 = descending
 
-// Compound index — for queries that filter on multiple fields
-// Rule: order matters! Put equality fields first, then range fields, then sort fields
+// Compound index — jab query multiple fields pe filter karti ho
+// Rule: order matter karta hai! Equality fields pehle, phir range fields, phir sort fields
 db.products.createIndex({ category: 1, price: -1 });
 
-// Text index — for full-text search
+// Text index — full-text search ke liye
 db.articles.createIndex({ title: "text", body: "text" });
-// Now you can search:
+// Ab tum search kar sakte ho:
 db.articles.find({ $text: { $search: "mongodb indexing" } });
 
-// Geospatial index — for location queries
+// Geospatial index — location queries ke liye
 db.stores.createIndex({ location: "2dsphere" });
-// Find stores within 5km of a point:
+// Ek point ke 5km ke andar wale stores dhundo:
 db.stores.find({
   location: {
     $near: {
@@ -458,33 +458,33 @@ db.stores.find({
   }
 });
 
-// Partial index — index only documents that match a filter
-// Saves space and speeds up specific queries
+// Partial index — sirf un documents ko index karo jo ek filter match karte hain
+// Space bachata hai aur specific queries fast karta hai
 db.users.createIndex(
   { email: 1 },
   { partialFilterExpression: { active: true } }
 );
 
-// Sparse index — only index documents where the field exists
-// Useful for optional fields
+// Sparse index — sirf un documents ko index karo jinme field exist karti ho
+// Optional fields ke liye useful
 db.users.createIndex({ phoneNumber: 1 }, { sparse: true });
 
-// Unique index — enforce uniqueness
+// Unique index — uniqueness enforce karo
 db.users.createIndex({ email: 1 }, { unique: true });
 ```
 
 ### explain() — Query Analysis
 
-`explain()` is your X-ray machine for queries. It shows exactly how MongoDB executes a query.
+`explain()` tumhari query ka X-ray machine hai. Yeh exactly dikhata hai ki MongoDB query ko kaise execute karta hai.
 
 ```javascript
-// Get the execution plan
+// Execution plan lo
 db.users.find({ email: "sid@example.com" }).explain("executionStats");
 
-// Key things to look for in the output:
+// Output mein yeh cheezein check karo:
 // winningPlan.stage: "IXSCAN" = good (index scan), "COLLSCAN" = bad (full scan)
-// executionStats.totalDocsExamined: should equal totalDocsReturned ideally
-// executionStats.executionTimeMillis: how long it took
+// executionStats.totalDocsExamined: ideally totalDocsReturned ke barabar hona chahiye
+// executionStats.executionTimeMillis: kitna time laga
 ```
 
 ```mermaid
@@ -501,19 +501,19 @@ graph TD
 
 ## ☁️ MongoDB Atlas — Managed Cloud
 
-MongoDB Atlas is the cloud-hosted version of MongoDB. Think of it as "MongoDB as a Service" — you skip the painful setup, backups, patching, and hardware management.
+MongoDB Atlas MongoDB ka cloud-hosted version hai. Isko "MongoDB as a Service" samjho — tum painful setup, backups, patching, aur hardware management skip kar dete ho. Bilkul waise hi jaise tum khud restaurant chalane ke bajaye Zomato pe order karte ho — infra ki tension khatam.
 
 Key Atlas features:
 
-| Feature | What it does |
+| Feature | Kya karta hai |
 |---|---|
-| Global Clusters | Distribute data across regions for low-latency reads worldwide |
-| Atlas Search | Full-text search powered by Lucene, integrated into MongoDB |
-| Atlas Charts | Built-in dashboards for your data |
-| Atlas Triggers | Run serverless functions on DB events |
-| Atlas Data API | Access MongoDB over HTTP without a driver |
+| Global Clusters | Data ko regions mein distribute karta hai, worldwide low-latency reads ke liye |
+| Atlas Search | Lucene-powered full-text search, MongoDB mein integrated |
+| Atlas Charts | Tumhare data ke liye built-in dashboards |
+| Atlas Triggers | DB events pe serverless functions run karta hai |
+| Atlas Data API | Bina driver ke HTTP se MongoDB access karo |
 | Backups | Automated point-in-time backups |
-| Performance Advisor | Automatically suggests indexes |
+| Performance Advisor | Automatically indexes suggest karta hai |
 
 Atlas tiers: Free (M0, shared), Dedicated (M10+), Serverless (pay per operation).
 
@@ -521,7 +521,7 @@ Atlas tiers: Free (M0, shared), Dedicated (M10+), Serverless (pay per operation)
 
 ## 🔁 Replica Sets — High Availability
 
-Imagine a company with one server storing all customer data. If that server crashes, the entire business stops. A **replica set** is MongoDB's solution — it keeps three (or more) copies of your data across different servers.
+Socho ek company jiska poora customer data ek hi server pe hai. Agar woh server crash ho gaya, poora business ruk jayega. **Replica set** MongoDB ka solution hai — yeh tumhare data ki teen (ya usse zyada) copies alag-alag servers pe rakhta hai.
 
 ```mermaid
 graph TD
@@ -537,30 +537,30 @@ graph TD
     APP -- "reads can go here" --> SEC2
 ```
 
-How it works:
+Yeh kaise kaam karta hai:
 
-1. **Primary** — receives all writes. Logs them in the **oplog** (operation log)
-2. **Secondaries** — constantly replicate from the primary's oplog
-3. **Automatic failover** — if the primary dies, secondaries hold an election and one becomes the new primary (usually within 10-30 seconds)
-4. **Read preferences** — you can configure the driver to read from secondaries to spread read load
+1. **Primary** — saare writes yahin aate hain. Inko **oplog** (operation log) mein log kiya jaata hai
+2. **Secondaries** — primary ke oplog se continuously replicate karte rehte hain
+3. **Automatic failover** — agar primary mar jaaye, secondaries ek election karte hain aur koi ek naya primary ban jaata hai (usually 10-30 seconds mein)
+4. **Read preferences** — tum driver ko configure kar sakte ho ki secondaries se reads le, taaki read load spread ho jaaye
 
 ```javascript
-// In your connection string, specify replica set
+// Connection string mein replica set specify karo
 mongodb://host1:27017,host2:27017,host3:27017/?replicaSet=myReplicaSet
 
 // Read preference options
 // primary (default), primaryPreferred, secondary, secondaryPreferred, nearest
 ```
 
-Replica sets give you: **availability** (survives node failure), **durability** (data on multiple machines), and **read scaling** (route reads to secondaries).
+Replica sets tumhe deti hain: **availability** (node fail hone pe bhi chalta rehta hai), **durability** (data kayi machines pe hai), aur **read scaling** (reads ko secondaries pe route kar sakte ho).
 
 ---
 
 ## 📦 Sharding — Horizontal Scaling
 
-A replica set keeps the same data on every node — it handles failures but not massive data volume. **Sharding** splits data across multiple machines, each holding a **shard** of the total data.
+Replica set har node pe same data rakhta hai — yeh failures handle karta hai, lekin massive data volume nahi. **Sharding** data ko multiple machines mein split karta hai, har machine total data ka ek **shard** rakhti hai.
 
-Real-world analogy: Instead of one giant post office handling all mail, you split by ZIP code — PIN codes starting with 4 go to post office A, starting with 5 go to B, etc.
+Real-world analogy: Ek hi bada post office saara mail handle karne ke bajaye, tum PIN code se split kar dete ho — "4" se start hone wale PIN codes post office A jaate hain, "5" se start hone wale B mein, waise hi.
 
 ```mermaid
 graph TD
@@ -579,41 +579,41 @@ graph TD
 
 ### Components
 
-- **mongos** — the router. Your app talks only to mongos; it knows which shard has which data
-- **Config Servers** — a replica set storing the cluster metadata (which chunk of data lives on which shard)
-- **Shards** — each shard is itself a replica set (data + HA)
+- **mongos** — router. Tumhara app sirf mongos se baat karta hai; ise pata hota hai konsa data konse shard pe hai
+- **Config Servers** — ek replica set jo cluster metadata store karta hai (data ka konsa chunk konse shard pe hai)
+- **Shards** — har shard khud ek replica set hota hai (data + HA dono)
 
-### Shard Key Selection — The Most Important Decision
+### Shard Key Selection — Sabse Important Decision
 
-The shard key determines how MongoDB distributes data across shards. A bad shard key creates **hot spots** — one shard gets all the traffic while others sit idle.
+Shard key decide karta hai ki MongoDB data ko shards mein kaise distribute karega. Galat shard key **hot spots** create karta hai — ek shard pe saara traffic aa jaata hai jabki baaki idle baithe rehte hain.
 
 ```javascript
-// Enable sharding on a database
+// Database pe sharding enable karo
 sh.enableSharding("mydb");
 
-// Shard the users collection by userId (hashed for even distribution)
+// users collection ko userId se shard karo (hashed for even distribution)
 sh.shardCollection("mydb.users", { userId: "hashed" });
 
-// Shard orders by customerId + createdAt (range-based — good for time-series queries)
+// orders ko customerId + createdAt se shard karo (range-based — time-series queries ke liye achha)
 sh.shardCollection("mydb.orders", { customerId: 1, createdAt: 1 });
 ```
 
-| Shard Key Type | How it works | Good for |
+| Shard Key Type | Kaise kaam karta hai | Kis liye achha hai |
 |---|---|---|
-| Range-based | Documents with close key values go to same shard | Range queries, sorted reads |
-| Hashed | Hash of the key determines shard | Even write distribution, random access |
-| Zone-based | Explicitly map key ranges to shards | Geographic data locality |
+| Range-based | Close key values wale documents same shard pe jaate hain | Range queries, sorted reads |
+| Hashed | Key ka hash decide karta hai konsa shard | Even write distribution, random access |
+| Zone-based | Key ranges ko explicitly shards se map karo | Geographic data locality |
 
-**Bad shard key signs:** monotonically increasing key (like timestamp) with range sharding — all new inserts go to one shard. Use hashed sharding for timestamps.
+**Bad shard key ke signs:** monotonically increasing key (jaise timestamp) ke saath range sharding — saare new inserts ek hi shard pe jaate hain. Timestamps ke liye hashed sharding use karo.
 
 ---
 
 ## 🔐 Transactions — Multi-Document ACID
 
-Before MongoDB 4.0, each document operation was atomic but multi-document operations were not. MongoDB 4.0 introduced **multi-document ACID transactions**, similar to SQL transactions.
+MongoDB 4.0 se pehle, har single document operation atomic tha lekin multi-document operations nahi the. MongoDB 4.0 ne **multi-document ACID transactions** introduce kiye, SQL transactions jaisa hi.
 
 ```javascript
-// Start a session
+// Session start karo
 const session = db.getMongo().startSession();
 
 try {
@@ -625,7 +625,7 @@ try {
   const users = session.getDatabase("mydb").users;
   const accounts = session.getDatabase("mydb").accounts;
 
-  // Transfer Rs 1000 from Alice to Bob
+  // Alice se Bob ko Rs 1000 transfer karo
   accounts.updateOne(
     { userId: "alice" },
     { $inc: { balance: -1000 } },
@@ -638,12 +638,12 @@ try {
     { session }
   );
 
-  // Commit — both updates happen or neither does
+  // Commit — dono updates hote hain ya koi bhi nahi
   await session.commitTransaction();
   console.log("Transfer successful");
 
 } catch (error) {
-  // Abort — rolls back all changes in this transaction
+  // Abort — is transaction ke saare changes rollback ho jaate hain
   await session.abortTransaction();
   console.error("Transfer failed, rolled back:", error);
 
@@ -652,18 +652,18 @@ try {
 }
 ```
 
-Important notes on transactions:
-- They work across multiple documents AND multiple collections
-- They require a replica set (or sharded cluster)
-- They carry performance overhead — use them only when needed
-- Keep transactions short — long-running transactions cause lock contention
-- For most use cases, embed related data in one document and rely on single-document atomicity (which is free and fast)
+Transactions ke important points:
+- Yeh multiple documents AUR multiple collections ke across kaam karte hain
+- Inko replica set (ya sharded cluster) chahiye hota hai
+- Yeh performance overhead laate hain — sirf zaroorat pe hi use karo
+- Transactions short rakho — long-running transactions lock contention create karte hain
+- Zyadatar use cases ke liye, related data ko ek document mein embed karo aur single-document atomicity pe rely karo (jo free aur fast hai)
 
 ---
 
 ## 📡 Change Streams — Real-Time Event Notifications
 
-Change Streams let your application **watch** a collection (or entire database) and react instantly when data changes — like subscribing to a live news feed of your database.
+Change Streams tumhare application ko ek collection (ya poori database) **watch** karne dete hain aur data change hote hi instantly react karne dete hain — jaise tum apne database ka ek live news feed subscribe kar rahe ho.
 
 ```mermaid
 sequenceDiagram
@@ -677,7 +677,7 @@ sequenceDiagram
 ```
 
 ```javascript
-// Watch a collection for any changes
+// Ek collection ko kisi bhi change ke liye watch karo
 const changeStream = db.orders.watch();
 
 changeStream.on("change", (change) => {
@@ -697,7 +697,7 @@ changeStream.on("change", (change) => {
   }
 });
 
-// Watch with a filter pipeline — only care about high-value orders
+// Filter pipeline ke saath watch karo — sirf high-value orders ki fikar karo
 const pipeline = [
   { $match: {
       operationType: "insert",
@@ -708,12 +708,12 @@ const pipeline = [
 const filteredStream = db.orders.watch(pipeline, { fullDocument: "updateLookup" });
 ```
 
-Change Streams are built on the **oplog** (operations log) — the same mechanism used by replica set replication. They are resumable — if your listener crashes, you can resume from a **resume token** so no events are missed.
+Change Streams **oplog** (operations log) pe built hote hain — wahi mechanism jo replica set replication use karta hai. Yeh resumable hote hain — agar tumhara listener crash ho jaaye, tum ek **resume token** se resume kar sakte ho, koi event miss nahi hota.
 
-**Use cases for Change Streams:**
-- Push notifications when an order ships
-- Invalidate cache when data changes
-- Sync MongoDB data to Elasticsearch for full-text search
+**Change Streams ke use cases:**
+- Order ship hone pe push notification bhejna
+- Data change hone pe cache invalidate karna
+- MongoDB data ko Elasticsearch mein sync karna full-text search ke liye
 - Audit logs
 - Real-time dashboards
 
@@ -760,7 +760,7 @@ graph TD
 
 ## 🚀 Real-World Example: E-Commerce Product Catalog
 
-A product catalog is MongoDB's sweet spot — products have wildly different attributes (a shirt has size/color, a laptop has RAM/CPU, a book has ISBN/author).
+Ek product catalog MongoDB ka sweet spot hai — products ke attributes bilkul alag-alag hote hain (ek shirt ke size/color hote hain, laptop ke RAM/CPU, book ke ISBN/author).
 
 ```javascript
 // Clothing product
@@ -783,7 +783,7 @@ A product catalog is MongoDB's sweet spot — products have wildly different att
   "ratings": { "avg": 4.3, "count": 128 }
 }
 
-// Electronics product — completely different shape, same collection
+// Electronics product — bilkul alag shape, same collection
 {
   "_id": ObjectId("..."),
   "type": "electronics",
@@ -802,7 +802,10 @@ A product catalog is MongoDB's sweet spot — products have wildly different att
 }
 ```
 
-In PostgreSQL you would need an EAV (Entity-Attribute-Value) table or JSONB column — both are clunky. MongoDB handles this naturally.
+PostgreSQL mein tumhe iske liye EAV (Entity-Attribute-Value) table ya JSONB column chahiye hota — dono hi clunky hain. MongoDB isko naturally handle kar leta hai.
+
+> [!tip]
+> Jaise Flipkart ya Amazon pe alag-alag category ke products ka listing page dekho — shirt ke filters alag hain, laptop ke alag. Backend mein yeh sab ek hi "products" collection mein reh sakte hain, bina kisi rigid schema ke.
 
 ---
 
@@ -810,17 +813,17 @@ In PostgreSQL you would need an EAV (Entity-Attribute-Value) table or JSONB colu
 
 | Concept | Core idea |
 |---|---|
-| Document model | Self-contained JSON-like BSON documents, schema-flexible |
-| BSON | Binary JSON with extra types: ObjectId, Date, Int64, BinData |
-| Embedding vs Referencing | Embed for read-heavy/bounded; Reference for write-heavy/shared/large |
+| Document model | Self-contained JSON jaisi BSON documents, schema-flexible |
+| BSON | Extra types wali Binary JSON: ObjectId, Date, Int64, BinData |
+| Embedding vs Referencing | Read-heavy/bounded ke liye Embed; write-heavy/shared/large ke liye Reference |
 | CRUD | insertOne/Many, find/findOne, updateOne with $set/$push/$pull, deleteOne |
 | Query operators | $gt/$lt/$in/$regex/$elemMatch/$exists/$and/$or |
 | Aggregation pipeline | $match → $group → $sort → $project → $lookup → $unwind |
-| Indexes | Single, compound, text, geospatial, partial, sparse — use explain() to verify |
+| Indexes | Single, compound, text, geospatial, partial, sparse — explain() se verify karo |
 | Atlas | Managed cloud MongoDB with Search, Triggers, Charts, Backups |
-| Replica sets | Primary + Secondaries with automatic failover for HA |
-| Sharding | Horizontal scale via shard key — hashed for even write distribution |
-| Transactions | Multi-document ACID since 4.0 — use sparingly, prefer single-doc atomicity |
-| Change Streams | Real-time oplog-based event streaming, resumable via resume token |
+| Replica sets | Primary + Secondaries with automatic failover, HA ke liye |
+| Sharding | Shard key se horizontal scale — even write distribution ke liye hashed use karo |
+| Transactions | 4.0 se multi-document ACID — sparingly use karo, single-doc atomicity ko prefer karo |
+| Change Streams | Real-time oplog-based event streaming, resume token se resumable |
 
-> The golden rule of MongoDB: **design your schema around your queries, not around your data**. Know what you will read most, and model your documents so that read satisfies in one trip.
+> Golden rule of MongoDB: **apna schema queries ke around design karo, data ke around nahi**. Pehle yeh jaano ki tum kya sabse zyada read karoge, aur documents ko waise model karo ki woh read ek hi trip mein satisfy ho jaaye.

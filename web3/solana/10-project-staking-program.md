@@ -1,22 +1,22 @@
 # Build a Solana Token + Staking Program
 
-> A complete, production-style project: custom SPL token + staking program where users lock tokens to earn time-weighted rewards.
+> Ek complete, production-style project: apna custom SPL token + staking program jahan users tokens lock karke time-weighted rewards kamayenge.
 
 ---
 
-## 🗺️ What We Are Building
+## 🗺️ Kya Bana Rahe Hain
 
-Imagine a bank that pays you interest for keeping your money deposited. The longer your money stays in, the more interest you earn. That is exactly what a staking program does — except instead of a bank, the rules live in immutable code on Solana.
+Socho ek bank hai jo tumhare deposit pe interest deta hai. Jitna zyada time paisa jama rehta hai, utna zyada interest milta hai. Staking program bilkul yahi karta hai — bas bank ki jagah, rules immutable code mein likhe hote hain Solana pe.
 
-By the end of this chapter you will have:
+Is chapter ke end tak tumhare paas hoga:
 
-1. A custom SPL token (your project's currency)
-2. An Anchor smart contract where users stake that token and earn rewards over time
-3. A minimal TypeScript frontend that connects Phantom wallet and calls your program
+1. Ek custom SPL token (tumhare project ki currency)
+2. Ek Anchor smart contract jahan users woh token stake karke time ke saath rewards kamate hain
+3. Ek minimal TypeScript frontend jo Phantom wallet se connect hokar tumhara program call karta hai
 
 ---
 
-## 🧭 Full Architecture Overview
+## 🧭 Poora Architecture Overview
 
 ```mermaid
 graph TD
@@ -45,11 +45,11 @@ graph TD
 
 ---
 
-## 🏗️ Part 1 — Create a Custom SPL Token
+## 🏗️ Part 1 — Custom SPL Token Banana
 
-### What is an SPL Token?
+### SPL Token Kya Hota Hai?
 
-Think of Solana's token standard (SPL) like a factory blueprint. The blueprint (the Token Program) already knows how to make any token. You just tell it: "I want a token with 9 decimal places, and I am the only one who can mint new ones." The factory stamps out a **Mint account** — the master record of your token.
+Solana ke token standard (SPL) ko ek factory blueprint jaisa socho. Blueprint (Token Program) ko pehle se pata hai koi bhi token kaise banana hai. Tumhe bas itna batana hai: "mujhe ek token chahiye jiske 9 decimal places hon, aur naye tokens sirf main mint kar sakoon." Factory ek **Mint account** stamp kar deti hai — tumhare token ki master identity.
 
 ```mermaid
 graph LR
@@ -63,28 +63,28 @@ graph LR
     TreasuryATA -->|"transfer()"| UserATA
 ```
 
-### Key Concepts Before You Code
+### Code Likhne Se Pehle Ke Key Concepts
 
-| Term | Real-World Analogy | What it Does |
+| Term | Real-World Analogy | Kya Karta Hai |
 |------|-------------------|--------------|
-| Mint | The printing press | The authority that creates new tokens |
-| Mint Authority | The person who owns the press | Only this keypair can mint new tokens |
-| ATA (Associated Token Account) | Your bank account for one currency | Holds a specific token for one wallet |
-| Freeze Authority | A lock on the press | Can freeze token accounts (optional) |
+| Mint | Printing press | Woh authority jo naye tokens create karti hai |
+| Mint Authority | Press ka malik | Sirf yehi keypair naye tokens mint kar sakta hai |
+| ATA (Associated Token Account) | Tumhara ek currency ke liye bank account | Ek specific token ko ek wallet ke liye hold karta hai |
+| Freeze Authority | Press pe lock | Token accounts freeze kar sakta hai (optional) |
 
-### When to Use a Custom Token
+### Custom Token Kab Use Karna Hai
 
-**Use when:**
-- You are building a DeFi protocol, game, or DAO that needs its own currency
-- You want users to earn, spend, or stake a unit of value specific to your project
+**Use karo jab:**
+- Tum DeFi protocol, game, ya DAO bana rahe ho jise apni currency chahiye
+- Tum chahte ho users tumhare project ke liye specific value ka unit earn, spend, ya stake karein
 
-**Do NOT use when:**
-- You just need to transfer SOL — use SOL directly
-- You are building a simple NFT — use Metaplex instead
+**MAT use karo jab:**
+- Sirf SOL transfer karna hai — SOL directly use karo
+- Simple NFT bana rahe ho — Metaplex use karo
 
 ---
 
-### 📦 Setup: Install Dependencies
+### 📦 Setup: Dependencies Install Karo
 
 ```bash
 # Create project folder
@@ -104,9 +104,9 @@ anchor init staking-program
 
 ---
 
-### 📝 TypeScript: Create and Deploy Your Token
+### 📝 TypeScript: Token Create Aur Deploy Karo
 
-Create `scripts/create-token.ts`:
+`scripts/create-token.ts` banao:
 
 ```typescript
 import {
@@ -191,7 +191,7 @@ async function createToken() {
 createToken().catch(console.error);
 ```
 
-Run it:
+Run karo:
 
 ```bash
 # First generate a treasury keypair
@@ -208,13 +208,13 @@ npx ts-node scripts/create-token.ts
 
 ## ⚙️ Part 2 — Staking Anchor Program (Rust)
 
-### How Staking Works — The Analogy
+### Staking Kaise Kaam Karta Hai — Analogy
 
-Picture a coat check at a restaurant. You hand over your coat (tokens), get a ticket (UserStakeInfo account), and when you return, you get your coat back PLUS a tip that grew the longer you left it. The coat room (Pool Vault) is locked — only the staking program can open it.
+Ek restaurant ka coat check counter imagine karo. Tum apna coat (tokens) de dete ho, badle mein ek ticket (UserStakeInfo account) milta hai, aur jab wapas aate ho to coat ke saath ek tip bhi milta hai jo jitna zyada time tumne chhoda utna bada hota hai. Coat room (Pool Vault) locked hota hai — sirf staking program hi use khol sakta hai.
 
 ### PDA Structure
 
-PDAs (Program Derived Addresses) are accounts owned by your program. No private key exists for them — the program itself is the only one who can move funds out.
+PDAs (Program Derived Addresses) aise accounts hain jo tumhare program ke owned hote hain. Inka koi private key exist hi nahi karta — program khud hi in accounts se funds move kar sakta hai.
 
 ```mermaid
 graph TD
@@ -243,9 +243,9 @@ graph TD
 
 ---
 
-### Full Anchor Program
+### Poora Anchor Program
 
-Inside `staking-program/programs/staking-program/src/lib.rs`:
+`staking-program/programs/staking-program/src/lib.rs` ke andar:
 
 ```rust
 use anchor_lang::prelude::*;
@@ -709,7 +709,7 @@ pub enum StakingError {
 
 ---
 
-### Reward Calculation — Explained Simply
+### Reward Calculation — Simple Bhasha Mein
 
 ```mermaid
 sequenceDiagram
@@ -732,21 +732,21 @@ sequenceDiagram
     Program->>User: transfer earned tokens
 ```
 
-The formula is intentionally simple:
+Formula jaan-boojh kar simple rakha hai:
 ```
 rewards = amount_staked × time_elapsed × reward_rate ÷ scale_factor
 ```
 
-In production you would add:
-- Reward rate decay over time
+Production mein tum yeh add karoge:
+- Time ke saath reward rate decay
 - Maximum reward caps
-- APY-based calculations using basis points
+- Basis points use karke APY-based calculations
 
 ---
 
 ### TypeScript Tests
 
-Create `tests/staking-program.ts`:
+`tests/staking-program.ts` banao:
 
 ```typescript
 import * as anchor from "@coral-xyz/anchor";
@@ -908,7 +908,7 @@ describe("staking-program", () => {
 });
 ```
 
-Run tests:
+Tests run karo:
 
 ```bash
 cd staking-program
@@ -919,12 +919,12 @@ anchor test
 
 ### Trade-offs: Reward Models
 
-| Model | How It Works | Pros | Cons |
+| Model | Kaise Kaam Karta Hai | Fayde | Nuksan |
 |-------|-------------|------|------|
-| Time-weighted (this chapter) | rewards ∝ time × amount | Simple, predictable | Inflation can be high |
-| Emissions-based | fixed tokens/day split among all stakers | Fair as pool grows | Reward per user drops as more stake |
-| NFT-boosted | NFT holders earn more | Engages community | Complex to implement |
-| Lock-up periods | stake X days, earn more | Reduces sell pressure | Less flexible for users |
+| Time-weighted (yeh chapter) | rewards ∝ time × amount | Simple, predictable | Inflation zyada ho sakta hai |
+| Emissions-based | fixed tokens/day sabhi stakers mein split | Pool badhne pe fair | Zyada stakers aane pe per-user reward gir jata hai |
+| NFT-boosted | NFT holders zyada kamate hain | Community engage hoti hai | Implement karna complex |
+| Lock-up periods | X din stake karo, zyada kamao | Sell pressure kam hoti hai | Users ke liye kam flexible |
 
 ---
 
@@ -1140,36 +1140,36 @@ export function StakingDashboard() {
 
 ## 🔒 Security Checklist
 
-Before going to mainnet, verify every item:
+Mainnet pe jaane se pehle har item verify karo:
 
-| Risk | What Can Go Wrong | How We Handle It |
+| Risk | Kya Galat Ho Sakta Hai | Hum Kaise Handle Karte Hain |
 |------|-----------------|------------------|
-| Integer overflow | Reward math produces wrong numbers | `checked_mul`, `checked_add` everywhere |
-| Wrong signer | Someone drains the vault | `constraint = user_stake_info.owner == user.key()` |
-| PDA seed collision | Two accounts get the same address | Unique seeds per account type |
-| Re-entrancy | Callback exploits | Solana's account model prevents this natively |
-| Admin key loss | Pool stuck forever | Store admin key in a multisig in production |
-| Vault drain | Rewards exceed vault balance | Fund the vault BEFORE users stake |
+| Integer overflow | Reward math galat numbers de sakta hai | Har jagah `checked_mul`, `checked_add` |
+| Wrong signer | Koi vault drain kar sakta hai | `constraint = user_stake_info.owner == user.key()` |
+| PDA seed collision | Do accounts ko same address mil jaye | Har account type ke liye unique seeds |
+| Re-entrancy | Callback exploits | Solana ka account model isse naturally rok deta hai |
+| Admin key loss | Pool hamesha ke liye stuck ho jaye | Production mein admin key ek multisig mein rakho |
+| Vault drain | Rewards vault balance se zyada ho jayein | Users ke stake karne SE PEHLE vault ko fund karo |
 
 ---
 
-## 📊 When to Use / When NOT to Use a Staking Program
+## 📊 Staking Program Kab Use Karo / Kab Nahi
 
-### Use Staking When:
-- You want users to hold your token long-term (reduces sell pressure)
-- You need a governance mechanism (stakers = voters)
-- You are building DeFi with liquidity incentives
-- You want a loyalty system with token rewards
+### Staking Use Karo Jab:
+- Tum chahte ho users long-term tumhara token hold karein (sell pressure kam hoti hai)
+- Governance mechanism chahiye (stakers = voters)
+- Liquidity incentives ke saath DeFi bana rahe ho
+- Token rewards wala loyalty system chahiye
 
-### Do NOT Use Staking When:
-- Your project has no token economy — do not add one just to seem like DeFi
-- Your reward rate is not funded — empty vaults = broken promises
-- You have not audited the math — reward exploits are catastrophic
-- You need instant liquidity — lock-up periods hurt user experience for certain apps
+### Staking MAT Use Karo Jab:
+- Tumhare project mein koi token economy nahi hai — sirf DeFi jaisa dikhne ke liye ek mat jodo
+- Tumhara reward rate funded nahi hai — empty vaults matlab broken promises
+- Tumne math audit nahi karwaya — reward exploits catastrophic hote hain
+- Instant liquidity chahiye — lock-up periods kuch apps ke liye user experience kharab karte hain
 
 ---
 
-## 🧩 How PDAs Fit Together — Full Map
+## 🧩 PDAs Kaise Fit Hote Hain — Poora Map
 
 ```mermaid
 graph LR
@@ -1226,39 +1226,40 @@ spl-token transfer <MINT> <REWARD_AMOUNT> <POOL_VAULT_ADDRESS> --fund-recipient
 
 ## 🗝️ Key Takeaways
 
-1. **SPL tokens follow a factory pattern** — one Token Program handles all tokens; you just create a Mint account with your own rules.
+1. **SPL tokens ek factory pattern follow karte hain** — ek Token Program sabhi tokens handle karta hai; tum bas apne rules ke saath ek Mint account create karte ho.
 
-2. **PDAs are the backbone of Solana programs** — they are accounts with no private key, owned by your program, signed using seed-based authority.
+2. **PDAs Solana programs ka backbone hain** — yeh aise accounts hain jinka koi private key nahi hota, tumhare program ke owned, seed-based authority se signed.
 
-3. **Always settle rewards before changing stake amounts** — calculate based on the old amount, then update. Order matters.
+3. **Stake amount badalne se pehle hamesha rewards settle karo** — purane amount ke basis pe calculate karo, phir update karo. Order matter karta hai.
 
-4. **Use `checked_*` math everywhere** — `checked_mul`, `checked_add`, `checked_sub` prevent overflow silently corrupting your reward calculations.
+4. **Har jagah `checked_*` math use karo** — `checked_mul`, `checked_add`, `checked_sub` overflow ko silently tumhare reward calculations kharab karne se rokte hain.
 
-5. **PDA vault signatures use signer_seeds** — when the program needs to move tokens OUT of a vault, it signs with the same seeds that created the vault PDA.
+5. **PDA vault signatures signer_seeds use karte hain** — jab program ko vault se tokens BAAHAR move karne hote hain, woh unhi seeds se sign karta hai jinse vault PDA banaya gaya tha.
 
-6. **`init_if_needed` is your friend for user accounts** — create the UserStakeInfo on first stake, reuse on every subsequent call.
+6. **`init_if_needed` user accounts ke liye best friend hai** — pehle stake pe UserStakeInfo create karo, har baad wali call mein reuse karo.
 
-7. **The staking formula is simple but the edge cases are not** — empty vault, zero stake, first stake, multiple stakes all need careful handling.
+7. **Staking formula simple hai lekin edge cases nahi** — empty vault, zero stake, first stake, multiple stakes — sabko carefully handle karna padta hai.
 
-8. **Test with `anchor test` locally first** — the local validator advances time predictably, making reward tests reliable.
+8. **Pehle locally `anchor test` se test karo** — local validator time ko predictably advance karta hai, isliye reward tests reliable rehte hain.
 
-9. **Fund the reward vault before launch** — a vault with no reward tokens will fail on claim. Always pre-fund based on your projected reward emission.
+9. **Launch se pehle reward vault fund karo** — bina reward tokens wala vault claim pe fail ho jayega. Apne projected reward emission ke basis pe hamesha pre-fund karo.
 
-10. **Audits are not optional for mainnet** — math exploits in staking programs have drained millions. Get a professional audit before real tokens are involved.
+10. **Mainnet ke liye audits optional nahi hain** — staking programs mein math exploits ne millions drain kar diye hain. Real tokens involve karne se pehle professional audit karwao.
 
 ---
 
-## 📚 What To Build Next
+## 📚 Aage Kya Banayein
 
 | Extension | Difficulty | Description |
 |-----------|-----------|-------------|
-| Lock-up periods | Medium | Require minimum stake duration before unstake |
-| Tiered rewards | Medium | Higher rate for longer stakes |
-| Governance voting | Hard | Staked tokens = voting power on proposals |
-| Auto-compounding | Hard | Claim rewards and re-stake automatically |
-| Multi-token rewards | Hard | Earn Token B for staking Token A |
-| NFT reward boosts | Expert | NFT holders earn multiplied rewards |
+| Lock-up periods | Medium | Unstake se pehle minimum stake duration required karo |
+| Tiered rewards | Medium | Longer stakes ke liye higher rate |
+| Governance voting | Hard | Staked tokens = proposals pe voting power |
+| Auto-compounding | Hard | Rewards claim karke automatically re-stake karo |
+| Multi-token rewards | Hard | Token A stake karke Token B kamao |
+| NFT reward boosts | Expert | NFT holders ko multiplied rewards milte hain |
 
 ---
 
-*Next Chapter: Governance Program — Build On-Chain Voting With Your Staked Tokens*
+*Next Chapter: Governance Program — Apne Staked Tokens Se On-Chain Voting Banao*
+</content>

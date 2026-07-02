@@ -21,37 +21,37 @@
 
 ## 🌍 What is Replication and Why Does it Exist? {#what-is-replication}
 
-**Analogy:** Imagine a famous book. The original author has one handwritten manuscript. If that manuscript burns, the story is gone forever. Smart publishers make many printed copies — stored in libraries around the world. If one library burns down, the story survives. Readers can also borrow from their nearest library instead of travelling to the original.
+**Analogy:** Socho ek famous kitaab hai. Original author ke paas sirf ek handwritten manuscript hai. Agar wo manuscript jal jaaye, toh story hamesha ke liye gayab. Smart publishers isliye kaafi saari printed copies bana ke duniya bhar ki libraries mein rakh dete hain. Ek library jal bhi jaaye, toh baaki jagah story zinda rehti hai. Aur readers apni nearest library se hi kitaab utha sakte hain, original tak jaane ki zaroorat nahi.
 
-**Database replication** is the same idea. It means keeping **copies of your data on multiple machines** (called **replicas** or **nodes**).
+**Database replication** bhi bilkul yehi concept hai. Iska matlab hai **apna data multiple machines pe copy karke rakhna** (inhe **replicas** ya **nodes** kehte hain).
 
-### Why do we replicate?
+### Replication kyun karte hain?
 
-| Goal | Problem Solved | Real Example |
+| Goal | Kaunsa Problem Solve Hota Hai | Real Example |
 |------|----------------|--------------|
-| **High Availability** | If one server dies, another takes over | Netflix stays online when an AWS region fails |
-| **Read Scaling** | Spread read queries across many nodes | Instagram serving billions of photo reads |
-| **Disaster Recovery** | Geographic backup if a data center burns | Banks with backup sites in different cities |
-| **Low Latency** | Serve data from a node close to the user | Spotify serving users from EU/US/Asia replicas |
+| **High Availability** | Ek server mar jaaye toh doosra sambhal le | Netflix chalta rehta hai jab AWS ka ek region down ho jaaye |
+| **Read Scaling** | Read queries ko kaafi saare nodes pe baant do | Instagram jo billions photo reads serve karta hai |
+| **Disaster Recovery** | Data center jal jaaye toh geographic backup ho | Banks jinke different cities mein backup sites hote hain |
+| **Low Latency** | User ke paas wale node se data serve karo | Spotify jo EU/US/Asia replicas se users ko serve karta hai |
 
-### The core challenge
+### Asli challenge kya hai?
 
-The hard part is not copying data. The hard part is **keeping copies in sync** when data keeps changing. Every strategy in this chapter is a different answer to: *"How do we handle writes on multiple machines?"*
+Data copy karna mushkil nahi hai. Mushkil hai copies ko **sync mein rakhna** jab data hardam badalta rehta hai. Is chapter ki har strategy ek hi sawaal ka alag jawab hai: *"Multiple machines pe writes kaise handle karein?"*
 
 ---
 
 ## 🏛️ Single-Leader Replication (Master-Slave) {#single-leader-replication}
 
-**Analogy:** A newspaper office. One editor-in-chief (the **leader**) approves all changes to the newspaper. Printing presses around the country (the **followers**) receive copies and print them. No printing press can add its own articles — only the editor-in-chief can do that.
+**Analogy:** Ek newspaper office socho. Ek editor-in-chief (yaani **leader**) hi newspaper mein saare changes approve karta hai. Desh bhar ki printing presses (yaani **followers**) copies receive karke print karti hain. Koi bhi printing press apna khud ka article add nahi kar sakti — sirf editor-in-chief hi kar sakta hai.
 
-This is the most common replication model. Also called **master-slave** or **primary-replica** replication.
+Ye sabse common replication model hai. Isse **master-slave** ya **primary-replica** replication bhi kehte hain.
 
-### How it works
+### Ye kaam kaise karta hai
 
-1. All **writes** (INSERT, UPDATE, DELETE) go to the **leader node only**.
-2. The leader logs these changes and sends them to **followers** (asynchronously or synchronously).
-3. **Reads** can be served by followers (but may be slightly stale — we cover this in replication lag).
-4. If the leader dies, one follower is **promoted** to become the new leader.
+1. Saare **writes** (INSERT, UPDATE, DELETE) sirf **leader node** pe hi jaate hain.
+2. Leader in changes ko log karta hai aur **followers** ko bhejta hai (async ya sync).
+3. **Reads** followers se serve ho sakte hain (lekin thoda stale ho sakte hain — ye replication lag section mein cover karenge).
+4. Agar leader mar jaaye, toh ek follower ko naya leader **promote** kar diya jaata hai.
 
 ```mermaid
 graph TD
@@ -71,17 +71,17 @@ graph TD
 
 ### Synchronous vs Asynchronous replication
 
-**Synchronous:** The leader waits for at least one follower to confirm it received the write before telling the client "success."
-- Pro: No data loss if leader dies.
-- Con: Slow — one slow follower blocks all writes.
+**Synchronous:** Leader tab tak wait karta hai jab tak kam se kam ek follower confirm na kar de ki usne write receive kar liya, tabhi client ko "success" bolta hai.
+- Pro: Leader mar jaaye toh bhi data loss nahi hota.
+- Con: Slow hai — ek slow follower saare writes ko block kar sakta hai.
 
-**Asynchronous:** The leader writes to its own log and immediately tells the client "success." Followers catch up later.
-- Pro: Fast writes.
-- Con: If the leader dies before followers catch up, recent writes are lost.
+**Asynchronous:** Leader apne khud ke log mein likh ke turant client ko "success" bol deta hai. Followers baad mein catch up karte hain.
+- Pro: Writes fast hote hain.
+- Con: Agar followers catch up karne se pehle hi leader mar jaaye, toh recent writes lost ho jaate hain.
 
-Most real systems use **semi-synchronous**: one follower is sync, the rest are async. PostgreSQL calls this `synchronous_standby_names`.
+Real systems mostly **semi-synchronous** use karte hain: ek follower sync hota hai, baaki sab async. PostgreSQL isse `synchronous_standby_names` kehta hai.
 
-### Failover: what happens when the leader dies?
+### Failover: leader marne pe kya hota hai?
 
 ```mermaid
 sequenceDiagram
@@ -100,34 +100,34 @@ sequenceDiagram
     Follower1->>Follower2: Replicate
 ```
 
-**Steps in automatic failover:**
-1. Detect leader is dead (timeout-based heartbeats).
-2. Pick the follower with the most up-to-date data.
-3. Promote it to leader.
-4. Tell all other followers to sync from the new leader.
-5. Update config / DNS / load balancer.
+**Automatic failover ke steps:**
+1. Detect karo ki leader mar gaya (timeout-based heartbeats se).
+2. Sabse up-to-date data wale follower ko pick karo.
+3. Usko leader promote karo.
+4. Baaki saare followers ko naye leader se sync karne bolo.
+5. Config / DNS / load balancer update karo.
 
-**Danger:** If the old leader comes back alive, you now have two nodes thinking they are leader — a **split-brain** scenario. Tools like Patroni (covered later) handle this safely.
+**Khatra:** Agar purana leader wapis zinda ho jaaye, toh ab do nodes khud ko leader samajhne lagenge — isse **split-brain** scenario kehte hain. Patroni jaise tools (aage cover karenge) isse safely handle karte hain.
 
-### When to use Single-Leader
+### Single-Leader kab use karein
 
-**Use it when:**
-- You need simple setup and well-understood failure modes.
-- Most of your traffic is reads (read replicas help enormously).
-- You can tolerate a short downtime window during failover (seconds to minutes).
-- Examples: PostgreSQL, MySQL, most traditional databases.
+**Use karo jab:**
+- Simple setup chahiye aur failure modes well-understood ho.
+- Zyaadatar traffic reads ka hai (read replicas bahut help karte hain).
+- Failover ke waqt thoda downtime (seconds se minutes) tolerate kar sakte ho.
+- Examples: PostgreSQL, MySQL, zyaadatar traditional databases.
 
-**Do NOT use it when:**
-- You need writes from multiple geographic regions simultaneously (latency to single leader is too high).
-- You need zero-downtime write availability — a single leader is a single point of failure for writes.
+**Use MAT karo jab:**
+- Multiple geographic regions se ek saath writes chahiye (single leader tak latency bahut zyaada ho jaayegi).
+- Zero-downtime write availability chahiye — single leader writes ke liye single point of failure hai.
 
 ---
 
 ## 🌐 Multi-Leader Replication {#multi-leader-replication}
 
-**Analogy:** Google Docs. You and your colleague can both type in the same document at the same time, even if one of you is in Tokyo and the other in New York. Both edits are accepted. But what happens if you both edit the same sentence simultaneously? That is the conflict problem.
+**Analogy:** Google Docs socho. Tum aur tumhara colleague ek hi document mein ek saath type kar sakte ho, chahe ek Tokyo mein ho aur doosra New York mein. Dono ke edits accept ho jaate hain. Lekin agar dono ek hi sentence ek saath edit kar de toh? Wahi conflict problem hai.
 
-In multi-leader replication, **any leader node can accept writes**. Changes then flow to all other leaders.
+Multi-leader replication mein **koi bhi leader node writes accept kar sakta hai**. Changes fir baaki saare leaders tak pahunchte hain.
 
 ```mermaid
 graph LR
@@ -154,44 +154,44 @@ graph LR
     style L3 fill:#e74c3c,color:#fff
 ```
 
-### The conflict problem
+### Conflict wala problem
 
-Both Leader A and Leader B accept a write to the same row at the same time. Now they disagree. Who wins?
+Leader A aur Leader B, dono ek hi row pe ek hi time pe write accept kar lete hain. Ab dono ka data alag hai. Jeetega kaun?
 
 **Example conflict:**
 ```
 Leader A: UPDATE users SET email = 'alice@gmail.com' WHERE id = 1;
 Leader B: UPDATE users SET email = 'alice@yahoo.com' WHERE id = 1;
--- Both succeed locally. Now what?
+-- Dono locally succeed ho gaye. Ab kya?
 ```
 
-### Conflict resolution strategies
+### Conflict resolve karne ki strategies
 
 #### 1. Last Write Wins (LWW)
 
-Each write gets a timestamp. The write with the later timestamp wins.
+Har write ko ek timestamp milta hai. Jiska timestamp baad ka hota hai, wo jeet jaata hai.
 
 ```
 alice@gmail.com  — timestamp: 10:00:01.123
-alice@yahoo.com  — timestamp: 10:00:01.456  ← This wins
+alice@yahoo.com  — timestamp: 10:00:01.456  ← Ye jeetega
 ```
 
-**Problem:** Clocks on different machines are never perfectly synced (clock skew). A write that happened "later" in real life might have an earlier timestamp. You **will** silently lose data.
+**Problem:** Alag-alag machines ke clocks kabhi perfectly sync nahi hote (clock skew). Jo write real life mein "baad mein" hua, uska timestamp pehle ka bhi ho sakta hai. Isse tum **chupke se data loss** kar baithoge.
 
-**Use LWW only when:** Data loss is acceptable (like caches or session data). Cassandra uses LWW by default.
+**LWW sirf tab use karo jab:** Data loss chalta ho (jaise caches ya session data). Cassandra by default LWW use karta hai.
 
 #### 2. CRDTs (Conflict-free Replicated Data Types)
 
-**Analogy:** A vote counter. Two people can add votes independently. When you merge, you just add them together. There is no conflict because the data structure is designed to merge automatically.
+**Analogy:** Ek vote counter socho. Do log independently votes add kar sakte hain. Merge karte waqt bas dono ke numbers add ho jaate hain. Koi conflict hi nahi hota kyunki data structure hi merge hone ke liye design kiya gaya hai.
 
-CRDTs are special data structures where all concurrent updates can be merged **without any conflict**:
+CRDTs special data structures hain jahan saare concurrent updates **bina kisi conflict ke** merge ho jaate hain:
 
 | CRDT Type | Example | Merge Rule |
 |-----------|---------|------------|
-| **G-Counter** | Page views | Always add, never subtract |
-| **OR-Set** | Shopping cart items | Merge sets, track tombstones for deletes |
-| **LWW-Register** | Single value | Last write wins (but with vector clocks, not wall-clock) |
-| **MV-Register** | Text field | Keep all concurrent values, show conflict to user |
+| **G-Counter** | Page views | Hamesha add karo, kabhi subtract nahi |
+| **OR-Set** | Shopping cart items | Sets merge karo, deletes ke liye tombstones track karo |
+| **LWW-Register** | Single value | Last write wins (lekin wall-clock nahi, vector clocks se) |
+| **MV-Register** | Text field | Saare concurrent values rakho, user ko conflict dikhao |
 
 ```python
 # Conceptual G-Counter CRDT
@@ -223,7 +223,7 @@ print(n0.value())  # 5 — always correct, no matter order of merges
 
 #### 3. Application-Level Conflict Resolution
 
-Your application code decides the winner. The database sends all conflicting versions to your app, and your logic picks one.
+Tumhara application code khud decide karta hai winner kaun hoga. Database saare conflicting versions tumhare app ko bhej deta hai, aur tumhara logic ek chunta hai.
 
 ```python
 def resolve_conflict(versions):
@@ -231,27 +231,27 @@ def resolve_conflict(versions):
     return max(versions, key=lambda v: len([f for f in v.values() if f]))
 ```
 
-Used by: CouchDB (exposes conflicts to application).
+Use hota hai: CouchDB mein (jo conflicts application ko expose karta hai).
 
-### When to use Multi-Leader
+### Multi-Leader kab use karein
 
-**Use it when:**
-- Users are spread across the globe and you cannot afford the latency of writing to a single region.
-- You need write availability even if a data center goes down.
-- Your data types can be modeled as CRDTs or you can write solid conflict resolution logic.
+**Use karo jab:**
+- Users duniya bhar mein faile hain aur single region ko write karne ki latency afford nahi kar sakte.
+- Ek data center down ho jaaye tab bhi write availability chahiye.
+- Tumhara data CRDTs se model ho sakta hai ya tum solid conflict resolution logic likh sakte ho.
 
-**Do NOT use it when:**
-- You need strong consistency (e.g., bank account balances — you cannot have two ledgers disagreeing).
-- Your team is small — conflict resolution bugs are subtle and dangerous.
-- Most of your data has conflicts that cannot be automatically resolved.
+**Use MAT karo jab:**
+- Strong consistency chahiye (jaise bank account balances — do ledgers disagree nahi kar sakte).
+- Team chhoti hai — conflict resolution bugs subtle aur dangerous hote hain.
+- Zyaadatar data ke conflicts automatically resolve nahi ho sakte.
 
 ---
 
 ## 🌀 Leaderless Replication (Dynamo-Style) {#leaderless-replication}
 
-**Analogy:** A town hall vote. There is no single mayor who makes all decisions. Instead, any citizen can propose a new rule. But for the rule to pass, a **majority** of citizens must agree (quorum). If you get enough votes, the change is accepted.
+**Analogy:** Ek town hall vote socho. Koi ek mayor nahi hai jo saare decisions leta ho. Iske bajaye, koi bhi citizen naya rule propose kar sakta hai. Lekin rule paas hone ke liye **majority** citizens ka agree karna zaruri hai (quorum). Agar enough votes mil gaye, change accept ho jaata hai.
 
-This is how **Amazon Dynamo**, **Apache Cassandra**, and **Riak** work. There is no designated leader. Any node can accept reads and writes.
+Isi tarah **Amazon Dynamo**, **Apache Cassandra**, aur **Riak** kaam karte hain. Koi designated leader hota hi nahi. Koi bhi node reads aur writes accept kar sakta hai.
 
 ```mermaid
 graph TD
@@ -280,23 +280,22 @@ graph TD
     style N3 fill:#27ae60,color:#fff
 ```
 
-### Quorum reads and writes
+### Quorum reads aur writes
 
-The key parameters are:
-- **N** = total number of replicas
-- **W** = number of nodes that must confirm a write
-- **R** = number of nodes you must read from
+Key parameters ye hain:
+- **N** = total replicas ki sankhya
+- **W** = kitne nodes ko write confirm karna zaruri hai
+- **R** = kitne nodes se read karna zaruri hai
 
-**The rule for consistency: `W + R > N`**
+**Consistency ka rule: `W + R > N`**
 
-If W + R > N, there must be **at least one overlap** — at least one node you read from must have seen the latest write. This guarantees you get fresh data.
+Agar W + R > N ho, toh guarantee milta hai ki kam se kam **ek overlap** hoga — matlab jin nodes se tum read kar rahe ho, unme se kam se kam ek ne latest write dekha hoga. Isse fresh data milna guaranteed hai.
 
 ```
 Example: N=5, W=3, R=3
 W + R = 6 > 5 ✅  → Consistent reads
-
 Example: N=5, W=2, R=2
-W + R = 4 < 5 ✅  → May read stale data (but faster)
+W + R = 4 < 5 ✅  → Stale data mil sakta hai (lekin fast hai)
 ```
 
 ```python
@@ -321,71 +320,71 @@ def read(key, N=5, R=3):
     return max(responses, key=lambda r: r.version)
 ```
 
-### Sloppy Quorum and Hinted Handoff
+### Sloppy Quorum aur Hinted Handoff
 
-**Problem:** What if some of the N designated nodes for a key are unreachable (network partition)?
+**Problem:** Agar kisi key ke liye designated N nodes mein se kuch unreachable ho jaayein (network partition ki wajah se) toh?
 
-**Analogy:** Your regular doctor is on vacation. You go to a substitute doctor who is not on your usual team. They treat you and write notes saying "pass this to Dr. Smith when she's back."
+**Analogy:** Tumhara regular doctor vacation pe hai. Tum ek substitute doctor ke paas jaate ho jo tumhari usual team mein nahi hai. Wo treat karke notes likhta hai: "Dr. Smith wapis aaye toh usko pass kar dena."
 
-**Sloppy Quorum:** Accept writes on any W healthy nodes, even if they are not the normal replicas for that key.
+**Sloppy Quorum:** Kisi bhi healthy W nodes pe writes accept kar lo, chahe wo us key ke normal replicas na hon.
 
-**Hinted Handoff:** The substitute node stores the write with a "hint" — "this data belongs to Node 3, forward it when Node 3 comes back."
+**Hinted Handoff:** Substitute node write ko ek "hint" ke saath store karta hai — "ye data Node 3 ka hai, wo wapis aaye toh forward kar dena."
 
 ```
 Normal replicas for key "user:123" → Nodes 1, 2, 3
-Node 3 is down → Write goes to Node 4 with hint: "forward to Node 3"
-Node 3 comes back → Node 4 sends the hinted data to Node 3
+Node 3 down hai → Write Node 4 pe jaata hai hint ke saath: "forward to Node 3"
+Node 3 wapis aata hai → Node 4 hinted data Node 3 ko bhej deta hai
 ```
 
-This increases **availability** but means `W + R > N` no longer guarantees you read the latest write — you might be reading from the substitute nodes.
+Isse **availability** badh jaati hai, lekin ab `W + R > N` ye guarantee nahi deta ki tumhe latest write mil hi jaayega — ho sakta hai tum substitute nodes se read kar rahe ho.
 
-### Anti-entropy and Read Repair
+### Anti-entropy aur Read Repair
 
-Nodes must eventually sync up. Two mechanisms:
+Nodes ko eventually sync hona hi padta hai. Do mechanisms hote hain:
 
-**Read Repair:** When you read from R nodes and one returns stale data, the client notices the discrepancy and writes the fresh value back to the stale node.
+**Read Repair:** Jab tum R nodes se read karte ho aur ek node stale data return kare, client ye discrepancy notice karke fresh value stale node pe wapis likh deta hai.
 
-**Anti-entropy:** A background process constantly compares nodes (using Merkle trees to find differences efficiently) and copies missing data.
+**Anti-entropy:** Ek background process constantly nodes ko compare karta rehta hai (Merkle trees use karke efficiently differences dhundhta hai) aur missing data copy kar deta hai.
 
-### When to use Leaderless
+### Leaderless kab use karein
 
-**Use it when:**
-- You need extreme availability (no single point of failure for writes).
-- You can tolerate eventual consistency (social media likes, IoT sensor data, shopping carts).
-- You need to survive multiple node failures gracefully.
+**Use karo jab:**
+- Extreme availability chahiye (writes ke liye koi single point of failure na ho).
+- Eventual consistency tolerate ho sakti hai (social media likes, IoT sensor data, shopping carts).
+- Multiple node failures graceful tarike se survive karne hain.
 
-**Do NOT use it when:**
-- You need strong consistency (financial transactions — you cannot have split quorum on a bank balance).
-- Your team is not experienced with tuning N/W/R values — wrong tuning silently causes data loss.
-- You have complex relational data with foreign keys and constraints.
+**Use MAT karo jab:**
+- Strong consistency chahiye (financial transactions — bank balance pe split quorum nahi chal sakta).
+- Team ko N/W/R values tune karne ka experience nahi hai — galat tuning chupke se data loss karta hai.
+- Complex relational data hai jisme foreign keys aur constraints hain.
 
 ---
 
 ## ⏱️ Replication Lag — The Fundamental Problem {#replication-lag}
 
-**Analogy:** You update your Twitter profile picture. You refresh your own profile and still see the old picture. You refresh again and see the new one. This happened because different page loads hit different replicas, and not all replicas had caught up yet.
+**Analogy:** Tumne apni Twitter profile picture update ki. Apni hi profile refresh karo toh purani picture dikhti hai. Fir se refresh karo toh nayi dikh jaati hai. Aisa isliye hua kyunki alag-alag page loads alag replicas pe hit hue, aur sab replicas abhi tak catch up nahi hue the.
 
-**Replication lag** is the delay between a write hitting the leader and that write appearing on followers. In async replication, this lag is always non-zero.
+**Replication lag** us delay ko kehte hain jo leader pe write hone aur followers pe wo write dikhne ke beech hota hai. Async replication mein ye lag hamesha non-zero hota hai.
 
-### Why lag exists
+### Lag kyun hota hai
 
 ```
 Time: 0ms  → Client writes to leader
 Time: 2ms  → Leader writes to its WAL
 Time: 5ms  → Leader sends change to Follower 1
 Time: 8ms  → Follower 1 applies the change
--- Lag = 8ms in this case
--- But under load, lag can be seconds or even minutes
+-- Is case mein Lag = 8ms
+-- Lekin load ke under, lag seconds ya minutes tak bhi ja sakta hai
 ```
 
 ### Problem 1: Read-Your-Writes Consistency
 
-After you write something, you should always see your own write. But if your read goes to a stale follower, you might not.
+Kuch write karne ke baad, tumhe apna khud ka write dikhna hi chahiye. Lekin agar tumhara read kisi stale follower pe chala jaaye, toh nahi dikhega.
 
 **Solution strategies:**
-1. After a write, **always read from the leader** for a short window (e.g., 1 minute).
-2. The client tracks its **last write timestamp**. Any follower serving a read must have data up to at least that timestamp; otherwise route to leader.
-3. **Sticky sessions:** Route a user's reads to the same replica consistently.
+1. Write ke baad, thodi der (jaise 1 minute) tak **hamesha leader se read** karo.
+2. Client apna **last write timestamp** track kare. Jo follower read serve kar raha hai, uska data kam se kam us timestamp tak hona chahiye; warna leader pe route karo.
+3. **Sticky sessions:** Ek user ke saare reads consistently ek hi replica pe route karo.
 
 ```python
 # Example: Read-your-writes using write timestamp
@@ -405,17 +404,17 @@ def get_profile(user_id):
 
 ### Problem 2: Monotonic Reads
 
-**Analogy:** You read a social media post with 10 comments. You refresh and now see 8 comments. That is disorienting — data seems to go backward in time.
+**Analogy:** Tum ek social media post padhte ho jisme 10 comments hain. Refresh karte ho aur ab 8 comments dikhte hain. Ye confusing hai — jaise data time mein peeche chala gaya ho.
 
-**Monotonic reads** guarantee that if you read a value at time T, you will never read an older version of that value later.
+**Monotonic reads** ye guarantee dete hain ki agar tumne time T pe koi value padhi, toh baad mein us value ka usse purana version kabhi nahi padhoge.
 
-**Solution:** Pin each user to a specific replica. All reads for that user go to the same follower. If that follower is down, pick another one (but accept you might show stale data for a moment).
+**Solution:** Har user ko ek specific replica se pin kar do. Us user ke saare reads usi follower pe jaayein. Wo follower down ho jaaye toh doosra pick karo (lekin thodi der stale data dikhne ka risk accept karo).
 
 ### Problem 3: Consistent Prefix Reads
 
-**Analogy:** You see the answer to a question before you see the question itself, because they were written to different shards and replicated at different speeds.
+**Analogy:** Tum kisi sawaal ka jawab, sawaal se pehle dekh lete ho — kyunki dono alag-alag shards pe likhe gaye the aur alag speed se replicate hue.
 
-**Solution:** Ensure causally related writes go to the same partition, or use **vector clocks** to track causality.
+**Solution:** Causally related writes ko ek hi partition pe bhejo, ya causality track karne ke liye **vector clocks** use karo.
 
 ---
 
@@ -423,27 +422,27 @@ def get_profile(user_id):
 
 ### Method 1: Statement-Based Replication
 
-The leader logs every **SQL statement** it executed and sends those statements to followers, which re-execute them.
+Leader jo bhi **SQL statement** execute karta hai wo log karta hai aur followers ko bhej deta hai, jo usse dobara execute karte hain.
 
 ```sql
 -- Leader executes and ships this statement:
 UPDATE orders SET status = 'shipped' WHERE created_at < NOW();
 ```
 
-**The fatal flaw:** `NOW()` on the follower runs at a different time than on the leader. You get different results.
+**Sabse badi khaamiyaan:** `NOW()` follower pe leader se alag time pe run hoga. Result alag aa jaayega.
 
-Other dangers:
-- `RAND()`, `UUID()` — different values on each node.
-- Auto-increment columns — same row gets different IDs.
-- Triggers and stored procedures may behave differently.
+Aur bhi khatre:
+- `RAND()`, `UUID()` — har node pe alag values.
+- Auto-increment columns — same row ko alag-alag IDs mil jaayenge.
+- Triggers aur stored procedures ka behaviour alag ho sakta hai.
 
-**Verdict:** Fragile. MySQL used this early on and had many bugs. Mostly abandoned now.
+**Verdict:** Fragile hai. MySQL ne shuru mein ye use kiya tha aur bahut bugs aaye. Ab mostly abandon kar diya gaya hai.
 
 ### Method 2: WAL Shipping (Write-Ahead Log)
 
-**Analogy:** Instead of sending instructions ("paint the wall blue"), you send a photo of the finished wall byte-for-byte.
+**Analogy:** Instructions bhejne ki jagah ("wall ko blue paint karo"), tum finished wall ka photo byte-for-byte bhej dete ho.
 
-Every database writes changes to a **WAL** (Write-Ahead Log) before applying them. With WAL shipping, the exact log bytes are sent to replicas, which replay them.
+Har database changes ko apply karne se pehle ek **WAL** (Write-Ahead Log) mein likhta hai. WAL shipping mein, exact log bytes replicas ko bheje jaate hain, jo unhe replay karte hain.
 
 ```
 Leader WAL:
@@ -454,16 +453,16 @@ Leader WAL:
 → Follower receives exact bytes, replays exactly the same disk change
 ```
 
-**Pro:** No ambiguity. Byte-for-byte identical result.  
-**Con:** The WAL format is deeply tied to the **storage engine version**. You cannot replicate from PostgreSQL 15 to PostgreSQL 16 using WAL shipping if the format changed. Zero-downtime upgrades become hard.
+**Pro:** Koi ambiguity nahi. Byte-for-byte identical result.
+**Con:** WAL format **storage engine version** se deeply tied hai. Agar format badla ho toh PostgreSQL 15 se 16 tak WAL shipping se replicate nahi kar sakte. Zero-downtime upgrades mushkil ho jaate hain.
 
-**Used by:** PostgreSQL streaming replication (its primary replication mechanism).
+**Use hota hai:** PostgreSQL streaming replication (iska primary replication mechanism).
 
 ### Method 3: Logical Replication (Row-Based)
 
-**Analogy:** Instead of sending the raw paint strokes, you send a description: "Row 42 in the users table, column email changed from 'old@x.com' to 'new@x.com'."
+**Analogy:** Raw paint strokes bhejne ki jagah, tum ek description bhejte ho: "users table ki row 42, column email 'old@x.com' se 'new@x.com' ho gaya."
 
-The leader sends **logical changes** — which row changed, which columns, old value, new value — instead of raw WAL bytes.
+Leader raw WAL bytes ke bajaye **logical changes** bhejta hai — kaunsi row change hui, kaunse columns, purani value, nayi value.
 
 ```
 Logical replication message:
@@ -476,24 +475,24 @@ Logical replication message:
 ```
 
 **Pros:**
-- Can replicate between **different PostgreSQL versions** (cross-version upgrade path).
-- Can replicate to **different databases entirely** (PostgreSQL to Kafka to ElasticSearch).
-- Can replicate **specific tables only**, not the whole database.
-- The format is stable and documented.
+- **Different PostgreSQL versions** ke beech replicate kar sakte ho (cross-version upgrade path).
+- **Bilkul alag databases** tak bhi replicate kar sakte ho (PostgreSQL se Kafka se ElasticSearch).
+- **Sirf specific tables** replicate kar sakte ho, poora database nahi.
+- Format stable aur documented hai.
 
 **Cons:**
-- Slightly more CPU overhead to decode.
-- Replicating schema changes (DDL) is trickier.
+- Decode karne mein thoda zyaada CPU overhead.
+- Schema changes (DDL) replicate karna trickier hai.
 
-**Used by:** PostgreSQL logical replication, Debezium (CDC), pglogical.
+**Use hota hai:** PostgreSQL logical replication, Debezium (CDC), pglogical.
 
 ### Quick Comparison
 
 | Method | Pros | Cons | Use When |
 |--------|------|------|----------|
-| **Statement-based** | Simple, small log size | Fragile with non-deterministic functions | Never for production |
+| **Statement-based** | Simple, chhota log size | Non-deterministic functions ke saath fragile | Production mein kabhi nahi |
 | **WAL Shipping** | Exact copy, reliable | Version-locked, opaque format | Same-version PostgreSQL HA |
-| **Logical** | Cross-version, flexible, subscribable | More overhead, DDL complexity | Upgrades, CDC, cross-system sync |
+| **Logical** | Cross-version, flexible, subscribable | Zyaada overhead, DDL complexity | Upgrades, CDC, cross-system sync |
 
 ---
 
@@ -501,9 +500,9 @@ Logical replication message:
 
 ### Patroni — PostgreSQL High Availability
 
-**Analogy:** Patroni is the "election manager" for your PostgreSQL cluster. It watches your nodes, notices when the leader dies, runs a safe election, and promotes a new leader — all automatically.
+**Analogy:** Patroni tumhare PostgreSQL cluster ka "election manager" hai. Ye nodes ko watch karta rehta hai, leader marne pe notice kar leta hai, safe election chalata hai, aur automatically naye leader ko promote kar deta hai.
 
-Patroni uses **etcd, Consul, or ZooKeeper** as a distributed configuration store (the "ballot box") to prevent split-brain.
+Patroni **etcd, Consul, ya ZooKeeper** ko distributed configuration store ("ballot box") ki tarah use karta hai taaki split-brain na ho.
 
 ```yaml
 # patroni.yml — basic configuration
@@ -562,7 +561,7 @@ sequenceDiagram
     HAProxy->>Patroni2: Route all writes here
 ```
 
-**Checking cluster status:**
+**Cluster status check karna:**
 ```bash
 patronictl -c /etc/patroni.yml list
 
@@ -581,11 +580,11 @@ patronictl -c /etc/patroni.yml switchover my-postgres-cluster --master node2 --c
 
 ### PgBouncer — Connection Pooling
 
-**Analogy:** A PostgreSQL connection is like a hotel room. Each client needs their own room. But hotel rooms are expensive. A concierge (PgBouncer) lets 1000 guests share 20 rooms — because most guests are not in their room at any given moment.
+**Analogy:** PostgreSQL connection ek hotel room jaisa hai. Har client ko apna khud ka room chahiye. Lekin hotel rooms mehenge hote hain. Ek concierge (PgBouncer) 1000 guests ko sirf 20 rooms share karwa deta hai — kyunki zyaadatar guests kisi bhi waqt apne room mein nahi hote.
 
-PostgreSQL spawns a **process per connection** (forked). Each connection uses ~5-10MB of RAM and some CPU. At 1000 concurrent connections, that is 5-10GB just for connection overhead.
+PostgreSQL har connection ke liye ek **process spawn** karta hai (forked). Har connection ~5-10MB RAM aur kuch CPU use karta hai. 1000 concurrent connections pe, sirf connection overhead ke liye 5-10GB lag jaata hai.
 
-PgBouncer sits between your app and PostgreSQL, maintaining a **small pool** of real connections and multiplexing thousands of app connections onto them.
+PgBouncer tumhari app aur PostgreSQL ke beech baithta hai, real connections ka ek **chhota pool** maintain karta hai aur hazaaron app connections ko unpe multiplex kar deta hai.
 
 ```
 App connections: 1000 clients
@@ -620,7 +619,7 @@ server_idle_timeout = 600
 client_idle_timeout = 0
 ```
 
-**With a replication setup (reads to replicas, writes to leader):**
+**Replication setup ke saath (reads replicas ko, writes leader ko):**
 ```ini
 [databases]
 # Writes go to leader
@@ -630,17 +629,17 @@ mydb_write = host=leader.db.internal port=5432 dbname=mydb
 mydb_read = host=replica-lb.db.internal port=5432 dbname=mydb
 ```
 
-Your app then connects to `mydb_write` for writes and `mydb_read` for reads.
+Tumhari app phir writes ke liye `mydb_write` aur reads ke liye `mydb_read` se connect karti hai.
 
 ---
 
 ## 📊 Read Replicas for Analytics {#read-replicas-for-analytics}
 
-**Analogy:** A busy restaurant kitchen. All orders go through the head chef (leader). But for nutritional analysis reports, you do not need the head chef — a kitchen assistant (read replica) can pull together that data without blocking new orders.
+**Analogy:** Ek busy restaurant kitchen socho. Saare orders head chef (leader) se hi guzarte hain. Lekin nutritional analysis report ke liye tumhe head chef ki zaroorat nahi — ek kitchen assistant (read replica) naye orders ko block kiye bina wo data nikaal sakta hai.
 
-Heavy analytics queries (full table scans, aggregations over millions of rows, long-running reports) can **cripple** your primary database, blocking normal traffic.
+Heavy analytics queries (full table scans, millions rows pe aggregations, long-running reports) tumhare primary database ko **crawl** kar sakti hain, normal traffic ko block karte hue.
 
-### Pattern: Offload analytics to a dedicated replica
+### Pattern: Analytics ko dedicated replica pe offload karo
 
 ```mermaid
 graph TD
@@ -656,7 +655,7 @@ graph TD
     style Replica2 fill:#9b59b6,color:#fff
 ```
 
-### PostgreSQL: creating a read replica
+### PostgreSQL: read replica banana
 
 ```bash
 # On the replica server — clone the primary
@@ -683,13 +682,13 @@ SELECT
 FROM pg_stat_replication;
 ```
 
-### Tips for analytics replicas
+### Analytics replicas ke liye tips
 
-1. **Set `hot_standby_feedback = on`** on the analytics replica — tells the primary not to vacuum rows that the analytics query might still need (prevents `canceling statement due to conflict with recovery` errors).
+1. **`hot_standby_feedback = on`** analytics replica pe set karo — ye primary ko batata hai ki jin rows ki analytics query ko abhi bhi zaroorat ho sakti hai unhe vacuum na kare (isse `canceling statement due to conflict with recovery` errors nahi aate).
 
-2. **Use `max_standby_streaming_delay`** to give long queries time to finish before the replica applies conflicting WAL.
+2. **`max_standby_streaming_delay`** use karo — taaki conflicting WAL apply karne se pehle long queries ko finish hone ka time mil jaaye.
 
-3. **Consider a slightly larger `work_mem`** on the analytics replica — sorting and aggregating big datasets benefits from more memory.
+3. Analytics replica pe **thoda bada `work_mem`** rakhna consider karo — bade datasets sort/aggregate karne mein zyaada memory se fayda milta hai.
 
 ```sql
 -- On analytics replica: temporarily allow higher work_mem for a session
@@ -713,29 +712,29 @@ ORDER BY 1;
 
 | Dimension | Single-Leader | Multi-Leader | Leaderless |
 |-----------|--------------|--------------|------------|
-| **Write scalability** | Limited (one node) | High (any leader) | Very high (any node) |
-| **Read scalability** | High (many replicas) | High | High |
+| **Write scalability** | Limited (ek node) | High (koi bhi leader) | Very high (koi bhi node) |
+| **Read scalability** | High (kaafi replicas) | High | High |
 | **Consistency** | Strong (sync) / Eventual (async) | Eventual | Tunable (W+R>N) |
-| **Conflict handling** | No conflicts | Complex (LWW/CRDT) | Read repair |
-| **Failover** | Automatic (Patroni etc.) | Continuous (no single point) | Automatic |
+| **Conflict handling** | Koi conflict nahi | Complex (LWW/CRDT) | Read repair |
+| **Failover** | Automatic (Patroni etc.) | Continuous (koi single point nahi) | Automatic |
 | **Complexity** | Low | High | Medium-High |
 | **Examples** | PostgreSQL, MySQL | CouchDB, multi-DC MySQL | Cassandra, DynamoDB, Riak |
 
 ### Consistency Guarantees Comparison
 
-| Guarantee | Description | Provided By |
+| Guarantee | Description | Kaun Deta Hai |
 |-----------|-------------|-------------|
-| **Read-your-writes** | You see your own writes | Sticky routing to leader |
-| **Monotonic reads** | Never read older data after newer | Pin user to one replica |
-| **Consistent prefix** | Never see out-of-order writes | Same partition for related writes |
-| **Strong consistency** | Every read sees the latest write | Sync replication + quorum |
-| **Eventual consistency** | All replicas converge eventually | Async replication (all models) |
+| **Read-your-writes** | Apna khud ka write dikhta hai | Sticky routing to leader |
+| **Monotonic reads** | Nayi data ke baad kabhi purani nahi dikhti | Pin user to one replica |
+| **Consistent prefix** | Writes kabhi out-of-order nahi dikhte | Same partition for related writes |
+| **Strong consistency** | Har read latest write dekhta hai | Sync replication + quorum |
+| **Eventual consistency** | Saare replicas eventually converge ho jaate hain | Async replication (all models) |
 
 ### Replication Method Comparison
 
 | Method | Data Loss Risk | Cross-version | Size | Use Case |
 |--------|---------------|---------------|------|----------|
-| Statement-based | High (non-determinism) | Yes | Small | Avoid |
+| Statement-based | High (non-determinism) | Yes | Small | Avoid karo |
 | WAL Shipping | None | No | Medium | Same-version HA |
 | Logical | Low | Yes | Medium | Upgrades, CDC |
 
@@ -743,34 +742,25 @@ ORDER BY 1;
 
 ## 🔑 Key Takeaways {#key-takeaways}
 
-**1. Replication solves three problems:** high availability (survive node death), read scaling (spread read load), and disaster recovery (geographic redundancy). Pick your strategy based on which problem is most important.
-
-**2. Single-leader is the safe default.** It is simple, well-understood, and handles most production workloads. PostgreSQL with Patroni is a battle-tested choice for 99% of applications.
-
-**3. Multi-leader is powerful but dangerous.** Conflict resolution bugs are subtle and can silently corrupt data. Only use it if your write latency requirements truly demand multi-region writes.
-
-**4. Leaderless (Dynamo-style) gives you tunable trade-offs.** With W+R>N you get consistency. Below that threshold, you get speed. Cassandra and DynamoDB use this model — excellent for high-throughput, eventual-consistency workloads.
-
-**5. Async replication always has lag.** This is not a bug — it is the price of performance. But you must account for read-your-writes consistency and monotonic reads in your application code. Ignoring lag causes confusing user-facing bugs.
-
-**6. Know your replication method:**
-- Statement-based: avoid.
-- WAL shipping: great for same-version standby.
-- Logical replication: use for upgrades, CDC pipelines, cross-system sync.
-
-**7. W + R > N is the quorum rule.** For any leaderless or quorum-based system, this formula tells you whether your read is guaranteed to overlap with your latest write.
-
-**8. PgBouncer is almost always necessary in production.** PostgreSQL's per-connection process model does not scale to thousands of app connections. PgBouncer in `transaction` pool mode is the standard solution.
-
-**9. Read replicas are free analytics infrastructure.** You are already paying for replication — route your heavy BI queries to a dedicated replica and protect your primary from analytical load.
-
-**10. Patroni + etcd is the gold standard for PostgreSQL HA.** It handles split-brain safely (via distributed lock), automatic failover, and provides a REST API and CLI for cluster management.
+- **Replication teen problems solve karta hai:** high availability (node marne pe survive), read scaling (read load baantna), aur disaster recovery (geographic redundancy). Jo problem sabse zaroori ho, uske hisaab se strategy chuno.
+- **Single-leader safe default hai.** Simple hai, well-understood hai, aur zyaadatar production workloads handle kar leta hai. Patroni ke saath PostgreSQL 99% applications ke liye battle-tested choice hai.
+- **Multi-leader powerful hai lekin risky bhi.** Conflict resolution bugs subtle hote hain aur chupke se data corrupt kar sakte hain. Isse tabhi use karo jab write latency requirements sach mein multi-region writes maangte hon.
+- **Leaderless (Dynamo-style) tunable trade-offs deta hai.** W+R>N se consistency milti hai. Uss threshold ke neeche, speed milti hai. Cassandra aur DynamoDB isi model pe chalte hain — high-throughput, eventual-consistency workloads ke liye badhiya.
+- **Async replication mein hamesha lag hota hai.** Ye bug nahi hai — performance ki keemat hai. Lekin apne application code mein read-your-writes consistency aur monotonic reads ka dhyan rakhna zaruri hai. Lag ignore karoge toh confusing user-facing bugs aayenge.
+- **Apna replication method jaano:**
+  - Statement-based: avoid karo.
+  - WAL shipping: same-version standby ke liye great.
+  - Logical replication: upgrades, CDC pipelines, cross-system sync ke liye use karo.
+- **W + R > N quorum ka rule hai.** Kisi bhi leaderless ya quorum-based system ke liye, ye formula batata hai ki tumhara read latest write ke saath overlap guaranteed hai ya nahi.
+- **PgBouncer production mein almost hamesha zaruri hota hai.** PostgreSQL ka per-connection process model hazaaron app connections tak scale nahi karta. `transaction` pool mode mein PgBouncer standard solution hai.
+- **Read replicas free analytics infrastructure hain.** Tum already replication ke liye pay kar rahe ho — apni heavy BI queries dedicated replica pe route karo aur apne primary ko analytical load se bachao.
+- **PostgreSQL HA ke liye Patroni + etcd gold standard hai.** Ye split-brain ko safely handle karta hai (distributed lock ke zariye), automatic failover deta hai, aur cluster management ke liye REST API aur CLI provide karta hai.
 
 ---
 
 > **Further Reading:**
-> - *Designing Data-Intensive Applications* by Martin Kleppmann (Chapters 5-6) — the definitive resource on this topic
+> - *Designing Data-Intensive Applications* by Martin Kleppmann (Chapters 5-6) — is topic ka definitive resource
 > - PostgreSQL docs: [Streaming Replication](https://www.postgresql.org/docs/current/warm-standby.html), [Logical Replication](https://www.postgresql.org/docs/current/logical-replication.html)
 > - [Patroni documentation](https://patroni.readthedocs.io/)
-> - Amazon Dynamo paper (2007) — foundational paper for leaderless replication
-> - [CRDTs explained](https://crdt.tech/) — interactive visualizations of conflict-free data types
+> - Amazon Dynamo paper (2007) — leaderless replication ka foundational paper
+> - [CRDTs explained](https://crdt.tech/) — conflict-free data types ke interactive visualizations

@@ -1,7 +1,7 @@
 # 🔑 Chapter 06: Wallets and Keys
 
-> **Target audience:** Developers new to Web3 who understand basic programming but have never touched crypto before.
-> **Goal:** Understand how cryptographic identity works in Ethereum — from raw entropy to a MetaMask address.
+> **Target audience:** Developers jo Web3 mein naye hain — coding aati hai, lekin crypto pehli baar touch kar rahe ho.
+> **Goal:** Samjho ki Ethereum mein cryptographic identity kaise kaam karti hai — raw randomness se lekar MetaMask ke address tak.
 
 ---
 
@@ -23,13 +23,13 @@
 
 ## 🧩 The Big Misconception: Wallets Don't Store Coins {#the-big-misconception}
 
-Here is the single most important mental model shift you need to make as a Web3 developer:
+Sabse pehle ek mental model clear kar lo, kyunki yeh poori Web3 samajhne ki neev hai:
 
-> **A crypto wallet does NOT store cryptocurrency. It stores cryptographic keys.**
+> **Crypto wallet cryptocurrency store NAHI karta. Woh sirf cryptographic keys store karta hai.**
 
-Your ETH, tokens, and NFTs live on the blockchain — a global database replicated across thousands of nodes worldwide. Nobody "has" your coins physically. What you actually own is the **private key** that proves you have the right to move those assets.
+Tumhara ETH, tokens, NFTs — sab blockchain pe rehte hain, ek global database jo duniya bhar ke hazaaron nodes pe replicate hota hai. Koi bhi tumhare coins ko "physically apne paas nahi rakhta." Jo cheez tum actually "own" karte ho, woh hai **private key** — jo prove karti hai ki un assets ko move karne ka haq tumhare paas hai.
 
-Think of it this way:
+Isko aise socho:
 
 | Traditional Banking | Web3 Equivalent |
 |---|---|
@@ -38,93 +38,97 @@ Think of it this way:
 | Bank (third party) | Cryptographic proof (trustless) |
 | Debit card | Hardware wallet / browser extension |
 
-When your wallet is "hacked," the attacker didn't steal coins from a file. They obtained your private key and used it to sign transactions that transferred ownership — all perfectly valid from the blockchain's perspective.
+Jab kisi ka wallet "hack" hota hai, to attacker ne kisi file se coins nahi chura liye. Usne tumhari private key haasil kar li aur usse transactions sign kar di — jo blockchain ke nazariye se bilkul valid hain. Blockchain ko koi farak nahi padta ki key kaise mili — agar signature match karta hai, transaction ho jayegi. Bilkul waise hi jaise agar koi tumhara UPI PIN jaan le, to Paytm ya GPay ko yeh pata nahi chalega ki transaction "asli tum" ne ki ya kisi aur ne.
 
 ---
 
 ## 🔐 Private Keys — The Root of Everything {#private-keys}
 
-### What does a private key look like?
+### Private key dikhti kaisi hai?
 
-A private key is just a random 256-bit number. When displayed, it is typically shown as a 64-character hexadecimal string:
+Private key bas ek random 256-bit number hai. Jab display hoti hai, to typically 64-character hexadecimal string ke roop mein:
 
 ```
 Private Key:
 0x4c0883a69102937d6231471b5dbb6e538eba2ef8ab6d4b2c6e5e5e5e5e5e5e5
 ```
 
-That's it. 32 bytes. A number between 1 and 2²⁵⁶ − 1.
+Bas itna hi. 32 bytes. Ek number jo 1 aur 2²⁵⁶ − 1 ke beech kahin bhi ho sakta hai.
 
-### How is it generated?
+### Yeh generate kaise hoti hai?
 
-A private key must be generated from **cryptographically secure randomness** (CSPRNG). It must never be guessable. Here's the process in pseudocode:
+Private key **cryptographically secure randomness** (CSPRNG) se generate honi chahiye. Yeh kabhi bhi guess-able nahi honi chahiye. Process kuch aise hai:
 
 ```
-1. Generate 256 bits of secure random entropy
-2. Verify the result is within the valid secp256k1 curve range
-3. That number IS your private key
+1. 256 bits ki secure random entropy generate karo
+2. Verify karo ki result secp256k1 curve ki valid range mein hai
+3. Woh number hi tumhari private key hai
 ```
 
-In code (Node.js example):
+Code mein (Node.js example):
 
 ```javascript
 import { randomBytes } from 'crypto';
 
-// Generate 32 random bytes = 256 bits
+// 32 random bytes generate karo = 256 bits
 const privateKey = randomBytes(32).toString('hex');
 console.log('Private Key:', privateKey);
 // Output: 4c0883a69102937d6231471b5dbb6e538eba2ef8ab6d4b2c...
 ```
 
-### Why you NEVER share your private key
+### Private key kabhi share kyun nahi karni chahiye
 
-Whoever knows the private key **IS** you, from the blockchain's perspective. There is no recovery mechanism, no customer support, no reversal. If someone obtains your private key:
+Jisko bhi private key pata hai, blockchain ke nazariye se woh insaan **tum hi ho**. Koi recovery mechanism nahi, koi customer support nahi, koi reversal nahi. Agar kisi ne tumhari private key haasil kar li:
 
-- They can sign transactions as you
-- They can drain every asset from every account derived from it
-- You cannot revoke or change it (the key is the identity)
+- Woh tumhari taraf se transactions sign kar sakta hai
+- Us key se derive hue har account ka har asset drain kar sakta hai
+- Tum us key ko revoke ya change nahi kar sakte (key hi tumhari identity hai)
 
-**Rule:** Your private key should never appear in source code, be pasted into a chat, or be stored in plain text anywhere. Use environment variables at minimum; use a secrets manager in production.
+**Rule:** Private key kabhi source code mein nahi honi chahiye, kisi chat mein paste nahi honi chahiye, ya kahin plain text mein store nahi honi chahiye. Minimum environment variables use karo; production mein secrets manager use karo.
+
+> [!warning]
+> Yeh Ethereum ka credit card CVV nahi hai jo galti se leak hone pe bank block kar dega. Yahan koi "bank" hai hi nahi — leak ho gayi to funds gaye, permanently.
 
 ---
 
 ## 🌐 Public Keys — Your Shareable Identity {#public-keys}
 
-A public key is **mathematically derived from the private key** using elliptic curve cryptography — specifically the **secp256k1** curve (the same curve Bitcoin uses).
+Public key **private key se mathematically derive** hoti hai — elliptic curve cryptography use karke, specifically **secp256k1** curve (wahi curve jo Bitcoin bhi use karta hai).
 
 ```
 Public Key = Private Key × G
 ```
 
-Where `G` is a fixed "generator point" on the secp256k1 curve. This is **one-way**: you can compute the public key from the private key in milliseconds, but computing the private key from the public key would require more compute than currently exists on Earth.
+Jahan `G` secp256k1 curve pe ek fixed "generator point" hai. Yeh operation **one-way** hai: private key se public key milliseconds mein nikaal sakte ho, lekin public key se private key nikaalna itna compute maangega jitna abhi Earth pe available hi nahi hai.
 
-An uncompressed Ethereum public key is 65 bytes (1 prefix byte `04` + 32 bytes X + 32 bytes Y):
+Ek uncompressed Ethereum public key 65 bytes ki hoti hai (1 prefix byte `04` + 32 bytes X + 32 bytes Y):
 
 ```
 Public Key (uncompressed):
 04
   b4632d08485ff1df2db55b9dafd23347d1c47a457072a1e87be26896549a8737
   8ec2b0f99ed8d3b7b4e89b7c8c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5
+
 ```
 
-The public key is safe to share — it is your cryptographic identity. It is used to verify signatures without revealing the private key.
+Public key share karna safe hai — yeh tumhari cryptographic identity hai. Isse signatures verify kiye jaate hain, without private key kabhi reveal kiye.
 
 ---
 
 ## 📍 Wallet Addresses — The Shortened Public Face {#wallet-addresses}
 
-An Ethereum address is derived from the public key through a specific hashing process. You do not use the full 64-byte public key directly — it is too long to be practical.
+Ethereum address, public key se ek specific hashing process ke through derive hota hai. Poore 64-byte public key ko direct use nahi karte — woh practical use ke liye bahut lamba hai.
 
 ### Derivation Steps
 
 ```
-1. Take the 64-byte uncompressed public key (strip the 04 prefix)
-2. Hash it with keccak256  →  produces a 32-byte (256-bit) hash
-3. Take the LAST 20 bytes (40 hex characters) of that hash
-4. Prepend "0x"
+1. 64-byte uncompressed public key lo (04 prefix hata do)
+2. Usko keccak256 se hash karo → 32-byte (256-bit) hash milta hai
+3. Us hash ke AAKHRI 20 bytes (40 hex characters) lo
+4. Aage "0x" laga do
 ```
 
-Result: a 42-character Ethereum address.
+Result: ek 42-character Ethereum address.
 
 ```
 Public Key (64 bytes):
@@ -137,7 +141,7 @@ Last 20 bytes → Address:
 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 ```
 
-> **Note:** keccak256 is NOT the same as SHA3-256. Ethereum uses an earlier draft of Keccak before it was standardized as SHA3. Always use a library that explicitly says `keccak256` — do not substitute `sha3`.
+> **Note:** keccak256, SHA3-256 ke barabar NAHI hai. Ethereum, Keccak ke ek earlier draft ko use karta hai jo SHA3 ke roop mein standardize hone se pehle wala version tha. Hamesha aisi library use karo jo explicitly `keccak256` bole — `sha3` se substitute mat karo.
 
 ### Key Derivation Flow
 
@@ -159,28 +163,28 @@ flowchart TD
 
 ## 🌱 BIP-39 Seed Phrases — One Backup to Rule Them All {#bip-39-seed-phrases}
 
-### The Problem Seed Phrases Solve
+### Seed phrase kaunsa problem solve karti hai?
 
-If every account has its own private key, and you have dozens of accounts, you need to back up dozens of private keys. That's impractical. BIP-39 (Bitcoin Improvement Proposal 39) solves this with a **mnemonic seed phrase**.
+Agar har account ki apni alag private key ho, aur tumhare paas dozen accounts hain, to tumhe dozen private keys backup karni padengi. Yeh impractical hai. BIP-39 (Bitcoin Improvement Proposal 39) isko ek **mnemonic seed phrase** se solve karta hai.
 
-### What is a Seed Phrase?
+### Seed Phrase kya hoti hai?
 
-A seed phrase (also called a mnemonic or recovery phrase) is a list of **12 or 24 common English words** chosen from a standardized list of 2048 words:
+Seed phrase (jisse mnemonic ya recovery phrase bhi bolte hain) **12 ya 24 common English words** ki list hoti hai, jo 2048 words ki ek standardized list se chuni jaati hai:
 
 ```
 witch collapse practice feed shame open despair creek road again ice least
 ```
 
-These words encode a large random number (128 bits for 12 words, 256 bits for 24 words) in a human-readable format that is:
-- Easier to write down accurately than hex
-- Easier to verify (built-in checksum)
-- Language-agnostic in structure (wordlists exist for multiple languages)
+Yeh words ek bade random number ko (12 words ke liye 128 bits, 24 words ke liye 256 bits) human-readable format mein encode karte hain, jo:
+- Hex se zyada accurately likhne mein aasaan hai
+- Verify karna aasaan hai (built-in checksum ke saath)
+- Structure mein language-agnostic hai (multiple languages ke liye wordlists available hain)
 
 ### Analogy
 
-Think of the seed phrase as the **master key to a key cabinet**. The cabinet has infinite numbered slots, each slot containing a different private key for a different account. The seed phrase doesn't just give you one key — it gives you the cabinet itself, and therefore every key inside it, forever.
+Seed phrase ko socho jaise ek **key cabinet ki master key**. Cabinet mein infinite numbered slots hain, har slot mein alag account ke liye alag private key hai. Seed phrase sirf ek key nahi deti — poora cabinet de deti hai, aur isliye uske andar ki har key bhi, hamesha ke liye.
 
-### How Seed Phrases Generate Keys
+### Seed Phrase Keys Kaise Generate Karti Hai
 
 ```mermaid
 flowchart TD
@@ -197,21 +201,22 @@ flowchart TD
     style D fill:#d4edda,stroke:#28a745
 ```
 
-### The Conversion Steps
+### Conversion Steps
 
 ```
 1. Mnemonic words
         ↓  (BIP-39: words → entropy + checksum)
-2. Raw entropy (128 or 256 bits)
+2. Raw entropy (128 ya 256 bits)
         ↓  (PBKDF2-HMAC-SHA512, 2048 rounds, salt = "mnemonic" + optional passphrase)
 3. 512-bit binary seed
         ↓  (BIP-32 root key derivation via HMAC-SHA512)
 4. Master Extended Private Key (xprv)
         ↓  (child key derivation — HD Wallet)
-5. Individual private keys for each account/address
+5. Har account/address ke liye individual private keys
 ```
 
-> **Critical:** Your seed phrase IS your private key(s). Back it up on paper in a physically secure location. Never photograph it, type it into any website, or store it in a password manager connected to the internet.
+> [!warning]
+> **Critical:** Tumhari seed phrase hi tumhari private key(s) hai. Isko kaagaz pe likh ke physically secure jagah pe rakho. Kabhi photo mat kheencho, kisi website pe type mat karo, ya internet se connected password manager mein store mat karo.
 
 ---
 
@@ -219,16 +224,16 @@ flowchart TD
 
 ### Hierarchical Deterministic (HD) Wallets
 
-An HD wallet (BIP-32) generates a tree of key pairs from a single seed. "Deterministic" means: given the same seed, you always get the exact same tree of keys. "Hierarchical" means: the tree is structured by purpose, coin type, account, and address index.
+Ek HD wallet (BIP-32) ek hi seed se key pairs ka poora tree generate karta hai. "Deterministic" ka matlab: same seed doge to hamesha exact same tree of keys milega. "Hierarchical" ka matlab: tree purpose, coin type, account, aur address index ke hisaab se structured hai.
 
-This lets you:
-- Generate unlimited addresses from one seed
-- Restore all your accounts from one seed phrase
-- Organize accounts into logical groups
+Isse tum:
+- Ek hi seed se unlimited addresses generate kar sakte ho
+- Ek hi seed phrase se apne saare accounts restore kar sakte ho
+- Accounts ko logical groups mein organize kar sakte ho
 
-### Derivation Paths Explained
+### Derivation Paths Samjho
 
-A derivation path describes how to navigate the HD tree to reach a specific key:
+Derivation path batata hai ki HD tree mein navigate karke ek specific key tak kaise pahunchna hai:
 
 ```
 m / purpose' / coin_type' / account' / change / address_index
@@ -236,21 +241,21 @@ m / purpose' / coin_type' / account' / change / address_index
 
 | Segment | Meaning | Ethereum Value |
 |---|---|---|
-| `m` | Master key (root) | always `m` |
+| `m` | Master key (root) | hamesha `m` |
 | `44'` | Purpose (BIP-44 standard) | `44'` |
-| `60'` | Coin type | `60'` for Ethereum |
-| `0'` | Account index | `0'` = first account |
-| `0` | Change (0=external, 1=internal) | `0` for receiving |
-| `0` | Address index | `0` = first address |
+| `60'` | Coin type | Ethereum ke liye `60'` |
+| `0'` | Account index | `0'` = pehla account |
+| `0` | Change (0=external, 1=internal) | receiving ke liye `0` |
+| `0` | Address index | `0` = pehla address |
 
-The apostrophe `'` means **hardened derivation** — the child key cannot be derived from the parent public key alone, adding an extra security layer.
+Apostrophe `'` ka matlab hai **hardened derivation** — child key parent public key se akele derive nahi ki ja sakti, isse ek extra security layer milti hai.
 
-**MetaMask default path:** `m/44'/60'/0'/0/0`
+**MetaMask ka default path:** `m/44'/60'/0'/0/0`
 
 ```
-m/44'/60'/0'/0/0  →  First Ethereum address
-m/44'/60'/0'/0/1  →  Second Ethereum address
-m/44'/60'/0'/0/2  →  Third Ethereum address
+m/44'/60'/0'/0/0  →  Pehla Ethereum address
+m/44'/60'/0'/0/1  →  Dusra Ethereum address
+m/44'/60'/0'/0/2  →  Teesra Ethereum address
 ```
 
 ---
@@ -259,115 +264,119 @@ m/44'/60'/0'/0/2  →  Third Ethereum address
 
 ### Hot Wallets
 
-A hot wallet is **connected to the internet**. The private key (or seed) exists on a device that has internet access.
+Hot wallet **internet se connected** hota hai. Private key (ya seed) us device pe exist karti hai jiske paas internet access hai.
 
 | Pros | Cons |
 |---|---|
-| Convenient, instant transactions | Exposed to malware, phishing, browser exploits |
-| Free | Private key could be exfiltrated remotely |
-| Good for small, frequent transactions | Not suitable for large holdings |
+| Convenient, instant transactions | Malware, phishing, browser exploits ka risk |
+| Free | Private key remotely exfiltrate ho sakti hai |
+| Chhote, frequent transactions ke liye achha | Bade holdings ke liye suitable nahi |
 
 Examples: MetaMask (browser extension), Rainbow (mobile), Coinbase Wallet (mobile)
 
+Isko socho jaise apne Paytm/PhonePe app ka wallet balance — daily use ke liye perfect, lekin usmein apni saari zindagi ki savings mat rakho.
+
 ### Cold Wallets
 
-A cold wallet keeps the private key **offline at all times**.
+Cold wallet private key ko **hamesha offline** rakhta hai.
 
 | Pros | Cons |
 |---|---|
-| Private key never touches the internet | Less convenient |
-| Immune to remote attacks | Physical theft/loss is a risk |
-| Ideal for large holdings | Costs money (hardware) |
+| Private key kabhi internet ko touch nahi karti | Kam convenient |
+| Remote attacks se immune | Physical theft/loss ka risk |
+| Bade holdings ke liye ideal | Hardware ke liye paise lagte hain |
 
-Examples: Paper wallets (literally written/printed keys), air-gapped computers
+Examples: Paper wallets (literally likhi/print ki hui keys), air-gapped computers
+
+Isko socho jaise bank locker mein rakha sona — safe hai, lekin roz nikaal ke use nahi karoge.
 
 ### Hardware Wallets
 
-A hardware wallet is a physical USB device that stores private keys in a **secure element chip** (tamper-resistant hardware). Transactions are signed *inside* the device — the private key never leaves the chip.
+Hardware wallet ek physical USB device hai jo private keys ko **secure element chip** (tamper-resistant hardware) mein store karta hai. Transactions device ke *andar* sign hoti hain — private key chip se bahar kabhi nahi jaati.
 
 | Pros | Cons |
 |---|---|
-| Private key never exported in plaintext | Costs $50–$250 |
-| Works with MetaMask and other software | Can be lost/damaged |
-| Screen shows transaction details before signing | Setup takes time |
+| Private key plaintext mein kabhi export nahi hoti | $50–$250 lagte hain |
+| MetaMask aur baaki software ke saath kaam karta hai | Lost/damage ho sakta hai |
+| Screen pe transaction details signing se pehle dikhti hain | Setup mein time lagta hai |
 
 Examples: Ledger (Nano X, Nano S Plus), Trezor (Model T, Model One), Coldcard
 
 ### Browser Extension Wallets
 
-Browser extensions like MetaMask inject a `window.ethereum` JavaScript object into web pages. This is how dApps (decentralized applications) request wallet interactions.
+MetaMask jaise browser extensions web pages mein ek `window.ethereum` JavaScript object inject karte hain. Isi se dApps (decentralized applications) wallet interactions request karte hain.
 
 ```
-User visits dApp → dApp calls window.ethereum.request() →
-MetaMask popup appears → User approves → Transaction signed →
-Signed transaction broadcast to network
+User dApp visit karta hai → dApp window.ethereum.request() call karta hai →
+MetaMask popup aata hai → User approve karta hai → Transaction sign hoti hai →
+Signed transaction network pe broadcast hoti hai
 ```
 
 ---
 
 ## 🦊 MetaMask Setup Walkthrough {#metamask-setup}
 
-MetaMask is the most widely used browser wallet and is the standard for connecting to Ethereum dApps. Here is the setup flow a new user experiences:
+MetaMask sabse zyada use hone wala browser wallet hai aur Ethereum dApps se connect karne ka standard hai. Naya user jo setup flow experience karta hai woh yeh hai:
 
-### Step 1: Install the Extension
+### Step 1: Extension Install Karo
 
-Navigate to [metamask.io](https://metamask.io) and install the extension for Chrome, Firefox, Brave, or Edge. Always install from the official browser extension store — phishing sites distribute fake MetaMask extensions.
+[metamask.io](https://metamask.io) pe jao aur Chrome, Firefox, Brave, ya Edge ke liye extension install karo. Hamesha official browser extension store se hi install karo — phishing sites fake MetaMask extensions distribute karti hain, exactly jaise fake banking apps Play Store ki jagah kisi random link se distribute hoti hain.
 
-### Step 2: Create a New Wallet
+### Step 2: Naya Wallet Banao
 
-On first launch, choose "Create a new wallet." MetaMask will ask you to set a **local password** — this encrypts the wallet data stored in your browser's local storage. This password does NOT protect your funds from someone who has your seed phrase; it only prevents local access on your device.
+Pehli baar launch karne pe "Create a new wallet" choose karo. MetaMask tumse ek **local password** set karne ko kahega — yeh browser ke local storage mein rakha wallet data encrypt karta hai. Yeh password tumhare funds ko us insaan se protect NAHI karta jiske paas tumhari seed phrase hai; yeh sirf tumhare device pe local access rokta hai.
 
-### Step 3: Secure Your Seed Phrase
+### Step 3: Apni Seed Phrase Secure Karo
 
-MetaMask generates a 12-word BIP-39 seed phrase and displays it once. You must:
+MetaMask ek 12-word BIP-39 seed phrase generate karta hai aur ek baar dikhata hai. Tumhe:
 
-1. Write it on paper (not a screenshot, not in a notes app)
-2. Store the paper somewhere physically secure
-3. Consider making a second physical copy stored in a different location
-4. Complete MetaMask's verification step (re-entering words in order)
+1. Isko kaagaz pe likhna hai (screenshot nahi, notes app mein nahi)
+2. Us kaagaz ko physically secure jagah rakhna hai
+3. Ek doosri physical copy alag location pe rakhne ke baare mein sochna hai
+4. MetaMask ka verification step complete karna hai (words order mein wapas type karke)
 
-### Step 4: Your First Address
+### Step 4: Tumhara Pehla Address
 
-MetaMask derives your first Ethereum address at path `m/44'/60'/0'/0/0` and displays it. This address is public — you can share it to receive ETH or tokens.
+MetaMask path `m/44'/60'/0'/0/0` pe tumhara pehla Ethereum address derive karta hai aur dikhata hai. Yeh address public hai — ETH ya tokens receive karne ke liye isko share kar sakte ho, bilkul apne UPI ID jaise.
 
-### Step 5: Connect to a dApp
+### Step 5: dApp Se Connect Karo
 
-When you visit a dApp and click "Connect Wallet," the dApp calls:
+Jab tum kisi dApp pe jaake "Connect Wallet" click karte ho, dApp yeh call karta hai:
 
 ```javascript
 const accounts = await window.ethereum.request({
   method: 'eth_requestAccounts'
 });
-// accounts[0] is your address
+// accounts[0] tumhara address hai
 ```
 
-MetaMask shows a popup asking for permission. Connecting only shares your address — it does NOT give the dApp permission to spend your funds. Spending requires a separate transaction approval.
+MetaMask ek popup dikhata hai permission maangte hue. Connect karne se sirf tumhara address share hota hai — isse dApp ko tumhare funds spend karne ki permission NAHI milti. Spending ke liye alag se transaction approval chahiye.
 
 ---
 
 ## ✅ Checksum Addresses (EIP-55) {#checksum-addresses}
 
-### The Problem
+### Problem
 
-Ethereum addresses are hex strings. They are case-insensitive at the protocol level:
+Ethereum addresses hex strings hain. Protocol level pe yeh case-insensitive hote hain:
 
 ```
-0xd8da6bf26964af9d7eed9e03e53415d37aa96045  ← all lowercase
-0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045  ← all uppercase
+0xd8da6bf26964af9d7eed9e03e53415d37aa96045  ← sab lowercase
+0xD8DA6BF26964AF9D7EED9E03E53415D37AA96045  ← sab uppercase
 ```
 
-Both are the same address. But typos in addresses are catastrophic — funds sent to a wrong address are lost forever.
+Dono same address hain. Lekin address mein typo hona catastrophic hota hai — galat address pe bheja gaya fund hamesha ke liye gaya, IRCTC ki tarah "no refund" nahi, balki literally koi bhi refund possible hi nahi.
 
 ### EIP-55: Mixed-Case Checksum
 
-EIP-55 encodes a checksum directly into the capitalization of the hex characters. The algorithm:
+EIP-55 hex characters ki capitalization mein hi ek checksum encode kar deta hai. Algorithm:
 
 ```
-1. Take the lowercase hex address (without 0x prefix)
-2. Compute keccak256 of that string
-3. For each character in the address:
-   - If the corresponding nibble in the hash is >= 8, capitalize the letter
-   - Otherwise, leave it lowercase (digits are unaffected)
+1. Address ka lowercase hex lo (0x prefix ke bina)
+2. Us string ka keccak256 compute karo
+3. Address ke har character ke liye:
+   - Agar hash mein corresponding nibble >= 8 hai, letter capitalize karo
+   - Warna lowercase hi rehne do (digits pe koi asar nahi)
 ```
 
 Result:
@@ -376,56 +385,55 @@ Result:
 Checksum Address: 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045
 ```
 
-Notice the mixed capitalization — it looks random but encodes validation information. When software receives a checksum address and finds a capitalization mismatch, it warns you before sending.
+Yeh mixed capitalization dekho — random lagta hai lekin isme validation information encoded hai. Jab software ko checksum address milta hai aur capitalization match nahi hoti, to woh bhejne se pehle warn kar deta hai.
 
 ```javascript
 import { getAddress } from 'ethers';
 
-// Converts any valid address format to checksum form
+// Kisi bhi valid address format ko checksum form mein convert karta hai
 const checksummed = getAddress('0xd8da6bf26964af9d7eed9e03e53415d37aa96045');
 // → '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
 ```
 
-> **Always display and store addresses in EIP-55 checksum format** in your applications. Most Ethereum libraries (ethers.js, viem, web3.js) do this automatically.
+> [!tip]
+> Apne applications mein **hamesha addresses ko EIP-55 checksum format mein display aur store karo**. Zyada tar Ethereum libraries (ethers.js, viem, web3.js) yeh automatically kar deti hain.
 
 ---
 
 ## 🗂️ Key Takeaways {#key-takeaways}
 
-| Concept | One-Liner |
-|---|---|
-| Wallet | Stores keys, NOT coins. Coins live on-chain. |
-| Private Key | 32 random bytes. Whoever has it controls your funds. NEVER share. |
-| Public Key | Derived from private key via secp256k1. Safe to share. |
-| Address | Last 20 bytes of keccak256(public key). Your on-chain identity. |
-| Seed Phrase | 12/24 words that deterministically generate all your keys. |
-| HD Wallet | Tree of keys from one seed. Derivation path selects a branch. |
-| Hot Wallet | Online. Convenient. Higher risk. |
-| Cold Wallet | Offline. Inconvenient. Lower risk. |
-| Hardware Wallet | Private key lives in tamper-resistant chip. Best of both. |
-| EIP-55 | Capitalization encodes a checksum. Protects against typos. |
+- **Wallet** — Keys store karta hai, coins NAHI. Coins on-chain rehte hain.
+- **Private Key** — 32 random bytes. Jiske paas hai, uske paas tumhare funds ka control hai. KABHI share mat karo.
+- **Public Key** — Private key se secp256k1 ke through derive hoti hai. Share karna safe hai.
+- **Address** — keccak256(public key) ke aakhri 20 bytes. Tumhari on-chain identity.
+- **Seed Phrase** — 12/24 words jo tumhari saari keys deterministically generate karte hain.
+- **HD Wallet** — Ek seed se keys ka tree. Derivation path ek branch select karta hai.
+- **Hot Wallet** — Online. Convenient. Zyada risk.
+- **Cold Wallet** — Offline. Kam convenient. Kam risk.
+- **Hardware Wallet** — Private key tamper-resistant chip mein rehti hai. Dono ka best combo.
+- **EIP-55** — Capitalization ek checksum encode karti hai. Typos se bachaata hai.
 
 ---
 
 ## 📝 Quiz {#quiz}
 
-Test your understanding before moving on:
+Aage badhne se pehle apni understanding test kar lo:
 
 **Question 1**
 
-You visit a new dApp and click "Connect Wallet." MetaMask asks for permission and you approve. The dApp now:
+Tum ek naye dApp pe jaate ho aur "Connect Wallet" click karte ho. MetaMask permission maangta hai aur tum approve kar dete ho. Ab dApp:
 
-- A) Has read access to your private key
-- B) Can send transactions on your behalf without further approval
-- C) Knows your public address only
-- D) Has decrypted your seed phrase
+- A) Tumhari private key tak read access rakhta hai
+- B) Bina further approval ke tumhari taraf se transactions bhej sakta hai
+- C) Sirf tumhara public address jaanta hai
+- D) Tumhari seed phrase decrypt kar chuka hai
 
 <details>
 <summary>Answer</summary>
 
-**C — Knows your public address only.**
+**C — Sirf tumhara public address jaanta hai.**
 
-Connecting a wallet only shares your Ethereum address with the dApp. The private key never leaves MetaMask. Every transaction still requires a separate signature approval in the MetaMask popup.
+Wallet connect karne se sirf tumhara Ethereum address dApp ke saath share hota hai. Private key kabhi MetaMask se bahar nahi jaati. Har transaction ke liye phir bhi MetaMask popup mein alag se signature approval chahiye hoti hai.
 
 </details>
 
@@ -433,21 +441,21 @@ Connecting a wallet only shares your Ethereum address with the dApp. The private
 
 **Question 2**
 
-A colleague says: "I lost my Ledger hardware wallet in a fire, but I have my 12-word seed phrase written on paper. All my ETH is gone."
+Ek colleague kehta hai: "Meri Ledger hardware wallet aag mein jal gayi, lekin mere paas 12-word seed phrase kaagaz pe likhi hui hai. Mera saara ETH gaya."
 
-Is your colleague correct?
+Kya tumhara colleague sahi hai?
 
-- A) Yes — the private key was stored in the burned Ledger
-- B) No — they can restore their wallet on a new Ledger or any BIP-39-compatible wallet using the seed phrase
-- C) Yes — the seed phrase only works with Ledger devices
-- D) No — but they need to contact Ledger support to recover their funds
+- A) Haan — private key jali hui Ledger mein hi store thi
+- B) Nahi — woh naye Ledger pe ya kisi bhi BIP-39-compatible wallet pe apni seed phrase se wallet restore kar sakte hain
+- C) Haan — seed phrase sirf Ledger devices ke saath hi kaam karti hai
+- D) Nahi — lekin funds recover karne ke liye Ledger support se contact karna padega
 
 <details>
 <summary>Answer</summary>
 
-**B — They can restore on any BIP-39-compatible wallet.**
+**B — Woh kisi bhi BIP-39-compatible wallet pe restore kar sakte hain.**
 
-The seed phrase is the root of all keys. It is device-independent and vendor-independent. Buying a new Ledger, Trezor, or installing MetaMask and importing the seed phrase will restore every account and address exactly as before. The ETH is perfectly safe.
+Seed phrase hi saari keys ki root hai. Yeh device-independent aur vendor-independent hai. Naya Ledger ya Trezor kharid ke, ya MetaMask install karke seed phrase import karne se, har account aur address bilkul waisa hi restore ho jayega jaisa pehle tha. ETH poori tarah safe hai.
 
 </details>
 
@@ -455,7 +463,7 @@ The seed phrase is the root of all keys. It is device-independent and vendor-ind
 
 **Question 3**
 
-What is the derivation path for the third Ethereum address (index 2) in the first account of a standard MetaMask wallet?
+Ek standard MetaMask wallet ke first account mein teesre Ethereum address (index 2) ka derivation path kya hoga?
 
 - A) `m/44'/60'/0'/0/2`
 - B) `m/44'/60'/2'/0/0`
@@ -467,7 +475,7 @@ What is the derivation path for the third Ethereum address (index 2) in the firs
 
 **A — `m/44'/60'/0'/0/2`**
 
-The address index is the last segment of the path. Index 0 = first address, index 1 = second address, index 2 = third address. The account index (third segment) and other segments remain at 0 for the default account.
+Address index path ka last segment hota hai. Index 0 = pehla address, index 1 = dusra address, index 2 = teesra address. Account index (third segment) aur baaki segments default account ke liye 0 pe hi rehte hain.
 
 </details>
 
@@ -475,11 +483,11 @@ The address index is the last segment of the path. Index 0 = first address, inde
 
 ## 🔗 Further Reading
 
-- [BIP-39 Specification](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) — the mnemonic standard
+- [BIP-39 Specification](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) — mnemonic standard
 - [BIP-32 Specification](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki) — HD wallet derivation
 - [EIP-55](https://eips.ethereum.org/EIPS/eip-55) — checksum address encoding
-- [Ethereum Yellow Paper](https://ethereum.github.io/yellowpaper/paper.pdf) — keccak256 and address derivation
-- [learnmeabitcoin.com/technical/keys](https://learnmeabitcoin.com/technical/keys) — excellent visual explainer of key derivation
+- [Ethereum Yellow Paper](https://ethereum.github.io/yellowpaper/paper.pdf) — keccak256 aur address derivation
+- [learnmeabitcoin.com/technical/keys](https://learnmeabitcoin.com/technical/keys) — key derivation ka excellent visual explainer
 
 ---
 

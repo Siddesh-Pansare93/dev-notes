@@ -1,34 +1,36 @@
 # 🔍 Chapter 8: Subqueries
 
-> A query within a query — the SQL equivalent of nesting one thought inside another.
+> Query ke andar query — SQL ka wo trick jahan ek sochne wali cheez ke andar dusri sochne wali cheez ghusa dete ho.
 
 ---
 
-## 🧠 What Is a Subquery?
+## 🧠 Subquery Hota Kya Hai?
 
-A **subquery** (also called an *inner query* or *nested query*) is a complete `SELECT` statement placed inside another SQL statement. The outer statement is called the **outer query** or **main query**.
+Socho tum Zomato pe order kar rahe ho aur pehle "sabse zyada rating wale restaurants" dhundhte ho, phir unme se "jo abhi open hai" filter karte ho. Ye do-step sochne wala process hi subquery hai — ek query ke result ko dusri query ke andar use karna.
+
+Ek **subquery** (jise *inner query* ya *nested query* bhi kehte hain) ek complete `SELECT` statement hota hai jo kisi doosre SQL statement ke andar bitha diya jata hai. Bahar wale statement ko **outer query** ya **main query** kehte hain.
 
 ```sql
 SELECT name
 FROM users
 WHERE id IN (
-    SELECT user_id FROM posts WHERE likes > 100   -- this is the subquery
+    SELECT user_id FROM posts WHERE likes > 100   -- ye hai subquery
 );
 ```
 
-The database engine runs the inner query first, then uses its result to execute the outer query.
+Database engine pehle andar wali query chalata hai, uska result nikalta hai, aur fir usi result ko use karke bahar wali query chalata hai.
 
-Subqueries can appear in:
-- `WHERE` clauses (most common)
-- `FROM` clauses (as a derived table)
-- `SELECT` clauses (as a scalar expression)
-- `HAVING` clauses
+Subqueries ye jagah pe use ho sakti hain:
+- `WHERE` clause mein (sabse common)
+- `FROM` clause mein (derived table ki tarah)
+- `SELECT` clause mein (scalar expression ki tarah)
+- `HAVING` clause mein
 
 ---
 
-## 📐 Schema Used in This Chapter
+## 📐 Is Chapter Mein Use Hone Wala Schema
 
-All examples use a simple social network schema:
+Saare examples ek simple social network schema pe based hain:
 
 ```sql
 users   (id, name, email, created_at)
@@ -38,24 +40,24 @@ likes   (id, user_id, post_id, created_at)
 
 ---
 
-## 🔢 Types of Subqueries
+## 🔢 Subqueries Ke Types
 
-### 1. Scalar Subquery — Returns One Value
+### 1. Scalar Subquery — Ek Value Return Karta Hai
 
-A **scalar subquery** returns exactly **one row and one column**. It can be used anywhere a single value is expected.
+**Scalar subquery** exactly **ek row aur ek column** return karta hai. Jahan bhi ek single value ki zarurat ho, wahan iska use kar sakte ho.
 
 ```sql
--- Get each user's name alongside the total number of posts in the database
+-- Har user ka naam aur database mein total posts count saath mein dikhao
 SELECT
     name,
     (SELECT COUNT(*) FROM posts) AS total_posts_in_db
 FROM users;
 ```
 
-If the subquery returns more than one row or more than one column, the database will throw an error. Scalar subqueries are often used in `SELECT` or `WHERE` to compare against a single computed value.
+Agar subquery ek se zyada row ya column return kare, to database error de dega. Scalar subqueries usually `SELECT` ya `WHERE` mein use hote hain jab kisi ek computed value se compare karna ho.
 
 ```sql
--- Find users who registered after the very first user
+-- Wo users dhundo jo sabse pehle wale user ke baad register hue
 SELECT name, created_at
 FROM users
 WHERE created_at > (SELECT MIN(created_at) FROM users);
@@ -63,12 +65,12 @@ WHERE created_at > (SELECT MIN(created_at) FROM users);
 
 ---
 
-### 2. Row Subquery — Returns One Row, Multiple Columns
+### 2. Row Subquery — Ek Row, Multiple Columns
 
-A **row subquery** returns one row with multiple columns. It is compared using the row constructor syntax.
+**Row subquery** ek row return karta hai jisme multiple columns hote hain. Isse compare karne ke liye row constructor syntax use hota hai.
 
 ```sql
--- Find a user whose (name, email) exactly matches a known pair
+-- Wo user dhundo jiska (name, email) exactly match kare ek known pair se
 SELECT *
 FROM users
 WHERE (name, email) = (
@@ -76,56 +78,56 @@ WHERE (name, email) = (
 );
 ```
 
-> Row subqueries are supported in PostgreSQL and MySQL. SQL Server and Oracle have more limited support — you may need to rewrite these as separate scalar subqueries joined by `AND`.
+> Row subqueries PostgreSQL aur MySQL mein support hote hain. SQL Server aur Oracle mein support limited hai — wahan tumhe ye alag-alag scalar subqueries banake `AND` se jodne padenge.
 
 ---
 
-### 3. Table Subquery (Derived Table / Inline View) — Returns Multiple Rows
+### 3. Table Subquery (Derived Table / Inline View) — Multiple Rows Return Karta Hai
 
-A **table subquery** returns multiple rows and is used inside the `FROM` clause. It must be given an alias. This is also called a **derived table** or **inline view**.
+**Table subquery** multiple rows return karta hai aur `FROM` clause ke andar use hota hai. Isko ek alias dena zaruri hai. Isse **derived table** ya **inline view** bhi kehte hain.
 
 ```sql
--- Find the average like count across all posts, then find posts above that average
+-- Pehle sabhi posts ka average like count nikalo, fir us average se upar wale posts dhundo
 SELECT p.title, p.like_count
 FROM (
     SELECT post_id, COUNT(*) AS like_count
     FROM likes
     GROUP BY post_id
-) AS post_likes                          -- alias is required
+) AS post_likes                          -- alias dena zaruri hai
 JOIN posts p ON p.id = post_likes.post_id
 WHERE post_likes.like_count > 10;
 ```
 
-The inner query runs first and its result is treated like a temporary table for the outer query.
+Andar wali query pehle chalti hai aur uska result outer query ke liye ek temporary table jaisa treat hota hai.
 
 ---
 
-### 4. Correlated Subquery — References the Outer Query
+### 4. Correlated Subquery — Outer Query Ko Reference Karta Hai
 
-A **correlated subquery** references a column from the outer query. Because of this dependency, it must be re-executed **once for every row** in the outer query. This makes it powerful but potentially slow on large datasets.
+**Correlated subquery** outer query ke kisi column ko reference karta hai. Is dependency ki wajah se, ye outer query ki **har row ke liye ek baar** dobara chalta hai. Isse ye powerful to hai, par bade dataset pe slow ho sakta hai.
 
 ```sql
--- Find all users who have posted more than the average number of posts
+-- Wo users dhundo jinhone average se zyada posts likhe hain
 SELECT u.name
 FROM users u
 WHERE (
-    SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id   -- references outer u.id
+    SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id   -- outer u.id ko reference kar raha hai
 ) > (
     SELECT AVG(post_count)
     FROM (SELECT COUNT(*) AS post_count FROM posts GROUP BY user_id) AS counts
 );
 ```
 
-The inner `SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id` runs once for **each row in `users`**. If there are 100,000 users, that subquery runs 100,000 times. Prefer a `JOIN` with `GROUP BY` for large tables.
+Andar wali `SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id` query `users` table ki **har ek row** ke liye chalti hai. Agar 100,000 users hain, to ye subquery 100,000 baar chalegi. Bade tables ke liye `JOIN` with `GROUP BY` use karna better hai.
 
 ---
 
-## 🎯 WHERE with Subquery
+## 🎯 WHERE Ke Saath Subquery
 
-The most common pattern — filter rows based on values returned by a subquery.
+Sabse common pattern — subquery ke result ke basis pe rows filter karna.
 
 ```sql
--- Find all users who have made at least one post
+-- Wo saare users dhundo jinhone kam se kam ek post kiya ho
 SELECT name
 FROM users
 WHERE id IN (
@@ -133,10 +135,10 @@ WHERE id IN (
 );
 ```
 
-You can also use comparison operators with scalar subqueries:
+Scalar subqueries ke saath comparison operators bhi use kar sakte ho:
 
 ```sql
--- Find users who posted more than the average number of posts
+-- Wo users dhundo jinhone average se zyada posts kiye hain
 SELECT name
 FROM users
 WHERE (
@@ -148,14 +150,14 @@ WHERE (
 
 ---
 
-## ⚡ EXISTS vs IN — An Important Performance Choice
+## ⚡ EXISTS vs IN — Ek Important Performance Choice
 
-Both `EXISTS` and `IN` test whether rows satisfy a condition, but they behave differently under the hood.
+`EXISTS` aur `IN` dono ye check karte hain ki rows kisi condition ko satisfy karte hain ya nahi, par ye internally alag tarike se kaam karte hain.
 
 ### EXISTS
 
 ```sql
--- Find users who have at least one post
+-- Wo users dhundo jinke kam se kam ek post hai
 SELECT name
 FROM users u
 WHERE EXISTS (
@@ -163,14 +165,14 @@ WHERE EXISTS (
 );
 ```
 
-- The subquery only needs to find **one matching row** and stops immediately (short-circuit evaluation).
-- Returns `TRUE` or `FALSE` — the actual columns selected inside `EXISTS` don't matter (`SELECT 1` is conventional).
-- Performs well when the inner table is large because it stops at the first match.
+- Subquery ko sirf **ek matching row** chahiye hoti hai, mile toh turant ruk jaata hai (short-circuit evaluation) — bilkul jaise IRCTC pe tatkal ticket book karte waqt ek seat mili nahi ki booking confirm ho jaati hai, baaki seats check karne ki zarurat nahi.
+- Ye `TRUE` ya `FALSE` return karta hai — `EXISTS` ke andar kaunse columns select kiye hain wo matter nahi karta (`SELECT 1` conventional hai).
+- Jab andar wali table badi ho, tab acha perform karta hai kyunki pehle match pe hi ruk jaata hai.
 
 ### IN
 
 ```sql
--- Same query using IN
+-- Same query, IN use karke
 SELECT name
 FROM users
 WHERE id IN (
@@ -178,38 +180,38 @@ WHERE id IN (
 );
 ```
 
-- The subquery runs completely first and loads **all matching values** into memory.
-- Then the outer query checks each row against that full list.
-- Can be slower when the subquery returns a large result set.
+- Subquery pehle **poori** chalti hai aur saare matching values ko memory mein load kar leta hai.
+- Fir outer query har row ko us poori list se check karti hai.
+- Jab subquery ka result set bada ho, tab slow ho sakta hai.
 
 ### General Guideline
 
 | Scenario | Prefer |
 |---|---|
-| Inner table is large | `EXISTS` |
-| Inner result set is small | `IN` |
-| Checking for non-existence | `NOT EXISTS` (safer) |
-| Simple value list (`IN (1, 2, 3)`) | `IN` (no subquery involved) |
+| Inner table badi hai | `EXISTS` |
+| Inner result set chota hai | `IN` |
+| Non-existence check karna ho | `NOT EXISTS` (safer) |
+| Simple value list (`IN (1, 2, 3)`) | `IN` (subquery involved nahi hai) |
 
-### The NULL Trap with NOT IN
+### NOT IN Ka NULL Trap
 
-This is one of the most common SQL bugs for beginners.
+Ye beginners ke liye sabse common SQL bugs mein se ek hai.
 
 ```sql
--- This looks correct but may return ZERO rows if any user_id is NULL in posts
+-- Ye dekhne mein sahi lagta hai par ZERO rows return kar sakta hai agar posts mein koi user_id NULL ho
 SELECT name
 FROM users
 WHERE id NOT IN (
-    SELECT user_id FROM posts   -- if ANY user_id is NULL here, result is empty!
+    SELECT user_id FROM posts   -- agar yahan KOI bhi user_id NULL hai, to poora result empty ho jaayega!
 );
 ```
 
-In SQL, `x NOT IN (1, 2, NULL)` evaluates to `UNKNOWN` (not `TRUE`) because `x != NULL` is always `UNKNOWN`. When any value in the `IN` list is `NULL`, `NOT IN` returns no rows.
+SQL mein, `x NOT IN (1, 2, NULL)` `UNKNOWN` evaluate hota hai (`TRUE` nahi), kyunki `x != NULL` hamesha `UNKNOWN` hota hai. Jab `IN` list mein koi bhi value `NULL` ho, `NOT IN` koi row return nahi karta.
 
-**The safe alternative:**
+**Safe alternative:**
 
 ```sql
--- Use NOT EXISTS instead — handles NULLs correctly
+-- Iske badle NOT EXISTS use karo — NULLs ko sahi tarike se handle karta hai
 SELECT name
 FROM users u
 WHERE NOT EXISTS (
@@ -217,16 +219,17 @@ WHERE NOT EXISTS (
 );
 ```
 
-> **Rule:** Always prefer `NOT EXISTS` over `NOT IN` unless you are certain the subquery will never return a `NULL`.
+> [!warning]
+> **Rule:** Hamesha `NOT EXISTS` ko `NOT IN` se zyada prefer karo, jab tak tumhe 100% pata na ho ki subquery kabhi `NULL` return nahi karegi.
 
 ---
 
-## 📋 Subquery in FROM Clause (Derived Table)
+## 📋 FROM Clause Mein Subquery (Derived Table)
 
-Using a subquery in `FROM` lets you pre-aggregate or transform data before joining or filtering.
+`FROM` mein subquery use karne se tum join ya filter karne se pehle data ko pre-aggregate ya transform kar sakte ho.
 
 ```sql
--- Find the most popular post (by likes) for each user
+-- Har user ka sabse popular post (likes ke hisab se) dhundo
 SELECT u.name, top_posts.title, top_posts.like_count
 FROM users u
 JOIN (
@@ -247,16 +250,17 @@ WHERE top_posts.like_count = (
 );
 ```
 
-> For complex derived-table logic like this, a CTE is usually more readable. See the CTE preview at the end of this chapter.
+> [!info]
+> Itni complex derived-table logic ke liye CTE usually zyada readable hota hai. Chapter ke end mein CTE ka preview dekho.
 
 ---
 
-## 🧮 Subquery in SELECT Clause (Scalar Subquery per Row)
+## 🧮 SELECT Clause Mein Subquery (Har Row Ke Liye Scalar Subquery)
 
-A scalar subquery in `SELECT` runs once per row of the outer query and returns a single value displayed as a column.
+`SELECT` mein scalar subquery outer query ki har row ke liye ek baar chalta hai aur ek single value column ki tarah dikhata hai.
 
 ```sql
--- Show each user's name and how many posts they have written
+-- Har user ka naam aur usne kitne posts likhe hain, dono dikhao
 SELECT
     u.name,
     u.email,
@@ -264,10 +268,10 @@ SELECT
 FROM users u;
 ```
 
-This is essentially a correlated subquery — it runs once per user row. For small tables this is fine; for large tables prefer a `LEFT JOIN` with `GROUP BY`:
+Ye basically ek correlated subquery hi hai — har user row ke liye ek baar chalta hai. Chote tables ke liye ye theek hai; bade tables ke liye `LEFT JOIN` with `GROUP BY` prefer karo:
 
 ```sql
--- Faster equivalent using JOIN
+-- JOIN use karke faster equivalent
 SELECT
     u.name,
     u.email,
@@ -281,15 +285,15 @@ GROUP BY u.id, u.name, u.email;
 
 ## 🔀 ALL / ANY / SOME Operators
 
-These operators compare a value against a **set** returned by a subquery.
+Ye operators ek value ko subquery se return hue **set** se compare karte hain.
 
 ### ANY / SOME
 
-`ANY` and `SOME` are synonyms. The condition is true if it holds for **at least one** value in the subquery result.
+`ANY` aur `SOME` synonyms hain. Condition true hota hai agar wo subquery result mein **kam se kam ek** value ke liye sahi ho.
 
 ```sql
--- Find users whose post count is greater than ANY single user's post count
--- (i.e., not the lowest poster)
+-- Wo users dhundo jinka post count kisi bhi ek single user se zyada hai
+-- (matlab, sabse kam poster nahi hai)
 SELECT name
 FROM users
 WHERE (SELECT COUNT(*) FROM posts WHERE user_id = users.id)
@@ -298,44 +302,44 @@ WHERE (SELECT COUNT(*) FROM posts WHERE user_id = users.id)
 
 ### ALL
 
-The condition must hold for **every** value in the subquery result.
+Condition **har** value ke liye sahi hona chahiye.
 
 ```sql
--- Find users whose post count is greater than ALL other users' post counts
--- (i.e., the top poster)
+-- Wo users dhundo jinka post count sabse zyada hai (baaki sabse zyada)
 SELECT name
 FROM users
 WHERE (SELECT COUNT(*) FROM posts WHERE user_id = users.id)
     >= ALL (SELECT COUNT(*) FROM posts GROUP BY user_id);
 ```
 
-| Operator | Meaning |
+| Operator | Matlab |
 |---|---|
-| `= ANY` | Equal to at least one value (equivalent to `IN`) |
-| `> ANY` | Greater than at least one value (greater than the minimum) |
-| `> ALL` | Greater than every value (greater than the maximum) |
-| `< ALL` | Less than every value (less than the minimum) |
+| `= ANY` | Kam se kam ek value ke barabar (`IN` ke equivalent) |
+| `> ANY` | Kam se kam ek value se zyada (minimum se zyada) |
+| `> ALL` | Har value se zyada (maximum se zyada) |
+| `< ALL` | Har value se kam (minimum se kam) |
 
-> `ALL` / `ANY` with `NULL` values in the subquery can produce unexpected `UNKNOWN` results — the same NULL trap applies here.
+> [!warning]
+> Subquery mein agar `NULL` values ho to `ALL` / `ANY` unexpected `UNKNOWN` results de sakte hain — yahan bhi wahi NULL trap lagu hota hai.
 
 ---
 
-## 📊 Correlated vs Non-Correlated: Performance Implications
+## 📊 Correlated vs Non-Correlated: Performance Ka Farak
 
 | | Non-Correlated | Correlated |
 |---|---|---|
-| **Definition** | Inner query does not reference outer query | Inner query references a column from outer query |
-| **Executions** | Runs once | Runs once per outer row |
-| **Performance** | Generally fast | Can be slow on large tables (N subquery calls) |
+| **Definition** | Inner query outer query ko reference nahi karti | Inner query outer query ke column ko reference karti hai |
+| **Executions** | Ek baar chalti hai | Outer ki har row ke liye ek baar chalti hai |
+| **Performance** | Generally fast | Bade tables pe slow ho sakta hai (N subquery calls) |
 | **Use case** | Static filtering, lookup lists | Per-row comparisons, existence checks |
-| **Alternative** | Often replaceable with a `JOIN` | Often replaceable with a `JOIN` + aggregation |
+| **Alternative** | Zyada tar `JOIN` se replace ho sakta hai | Zyada tar `JOIN` + aggregation se replace ho sakta hai |
 
 **Non-correlated example:**
 
 ```sql
 SELECT name FROM users
 WHERE id IN (SELECT user_id FROM posts WHERE likes > 50);
--- Inner query runs ONCE, produces a list, outer query filters against it
+-- Inner query ek hi baar chalti hai, ek list banati hai, outer query us list se filter karta hai
 ```
 
 **Correlated example:**
@@ -343,30 +347,30 @@ WHERE id IN (SELECT user_id FROM posts WHERE likes > 50);
 ```sql
 SELECT name FROM users u
 WHERE EXISTS (SELECT 1 FROM posts p WHERE p.user_id = u.id AND p.likes > 50);
--- Inner query runs once PER USER ROW
+-- Inner query PER USER ROW ek baar chalti hai
 ```
 
 ---
 
-## 🤔 When to Use a Subquery vs a JOIN
+## 🤔 Subquery Use Karein Ya JOIN?
 
-JOINs are the workhorse of SQL and are usually faster because query optimizers are heavily tuned for them. Subqueries add overhead, especially correlated ones.
+JOINs SQL ka workhorse hain aur usually faster hote hain kyunki query optimizers JOINs ke liye heavily tuned hote hain. Subqueries thoda overhead add karte hain, especially correlated wale.
 
 | Situation | Recommendation |
 |---|---|
-| Aggregating before filtering | Subquery in `FROM` (or CTE) |
-| Checking existence | `EXISTS` subquery |
-| Filtering by a list of IDs | `IN` subquery (or `JOIN`) |
-| Retrieving columns from related table | `JOIN` — usually faster |
-| Complex intermediate transformation | CTE (cleaner than nested subqueries) |
-| One-off scalar value | Scalar subquery in `SELECT` is fine |
+| Filter se pehle aggregate karna ho | `FROM` mein subquery (ya CTE) |
+| Existence check karna ho | `EXISTS` subquery |
+| IDs ki list se filter karna ho | `IN` subquery (ya `JOIN`) |
+| Related table se columns nikalne ho | `JOIN` — usually faster |
+| Complex intermediate transformation | CTE (nested subqueries se cleaner) |
+| One-off scalar value | `SELECT` mein scalar subquery theek hai |
 
 ```sql
--- Subquery approach (readable but may be slower)
+-- Subquery approach (readable, par slow ho sakta hai)
 SELECT name FROM users
 WHERE id IN (SELECT user_id FROM posts WHERE created_at > '2024-01-01');
 
--- JOIN approach (often faster, especially with indexes)
+-- JOIN approach (often faster, especially indexes ke saath)
 SELECT DISTINCT u.name
 FROM users u
 JOIN posts p ON p.user_id = u.id
@@ -375,17 +379,17 @@ WHERE p.created_at > '2024-01-01';
 
 ---
 
-## 🌐 Cross-Database Syntax Differences
+## 🌐 Databases Ke Beech Syntax Ka Farak
 
-Most subquery syntax is standard SQL and works identically across databases. The main differences are in **derived table aliasing** and **row subquery support**.
+Zyada tar subquery syntax standard SQL hai aur sab databases mein same tarike se kaam karta hai. Main farak hota hai **derived table aliasing** aur **row subquery support** mein.
 
-### Derived Table Alias Requirement
+### Derived Table Alias Ki Requirement
 
 ```sql
--- PostgreSQL / MySQL / SQL Server — alias required
+-- PostgreSQL / MySQL / SQL Server — alias zaruri hai
 SELECT * FROM (SELECT id FROM users) AS u;
 
--- Oracle — alias required, AS keyword is optional on table aliases
+-- Oracle — alias zaruri hai, table aliases pe AS keyword optional hai
 SELECT * FROM (SELECT id FROM users) u;
 ```
 
@@ -395,13 +399,13 @@ SELECT * FROM (SELECT id FROM users) u;
 -- PostgreSQL / MySQL — supported
 WHERE (col1, col2) = (SELECT col1, col2 FROM ...)
 
--- SQL Server / Oracle — not supported natively; rewrite as:
+-- SQL Server / Oracle — natively supported nahi; isse aise likho:
 WHERE col1 = (SELECT col1 FROM ...) AND col2 = (SELECT col2 FROM ...)
 ```
 
 ### LATERAL / CROSS APPLY (Advanced)
 
-When a subquery in `FROM` needs to reference the outer query (a correlated derived table), different databases use different syntax:
+Jab `FROM` ke andar wali subquery ko outer query reference karni ho (yani correlated derived table), alag-alag databases mein alag syntax hota hai:
 
 ```sql
 -- PostgreSQL
@@ -415,7 +419,7 @@ FROM users u
 CROSS APPLY (SELECT TOP 1 title FROM posts WHERE user_id = u.id ORDER BY created_at DESC) AS recent;
 
 -- MySQL (8.0+)
--- LATERAL is supported from MySQL 8.0
+-- LATERAL MySQL 8.0 se support hota hai
 SELECT u.name, recent.title
 FROM users u,
 LATERAL (SELECT title FROM posts WHERE user_id = u.id ORDER BY created_at DESC LIMIT 1) AS recent;
@@ -428,9 +432,9 @@ LATERAL (SELECT title FROM posts WHERE user_id = u.id ORDER BY created_at DESC F
 
 ---
 
-## 🧪 Real Examples with Social Network Schema
+## 🧪 Social Network Schema Ke Saath Real Examples
 
-### Example 1: Find Users Who Posted More Than Average
+### Example 1: Average Se Zyada Post Karne Wale Users Dhundo
 
 ```sql
 SELECT u.name, COUNT(p.id) AS post_count
@@ -447,7 +451,7 @@ HAVING COUNT(p.id) > (
 );
 ```
 
-### Example 2: Find Users Who Liked Their Own Posts
+### Example 2: Jinhone Apni Hi Post Ko Like Kiya Unhe Dhundo
 
 ```sql
 SELECT DISTINCT u.name
@@ -456,12 +460,12 @@ WHERE EXISTS (
     SELECT 1
     FROM likes l
     JOIN posts p ON p.id = l.post_id
-    WHERE l.user_id = u.id       -- the liker is the user
-      AND p.user_id = u.id       -- the post author is also the user
+    WHERE l.user_id = u.id       -- liker hi user hai
+      AND p.user_id = u.id       -- post ka author bhi wahi user hai
 );
 ```
 
-### Example 3: Find the Most Popular Post Per User
+### Example 3: Har User Ka Sabse Popular Post Dhundo
 
 ```sql
 SELECT u.name, p.title, like_counts.cnt AS likes
@@ -485,16 +489,17 @@ WHERE like_counts.cnt = (
 );
 ```
 
-> This query is starting to get complex. This is exactly when a **CTE** shines — see the preview below.
+> [!tip]
+> Ye query ab thodi complex hone lagi hai. Yahi wo jagah hai jahan **CTE** kaam aata hai — niche preview dekho.
 
 ---
 
-## 👀 CTEs — A Preview (Full Chapter Coming)
+## 👀 CTEs — Ek Preview (Poora Chapter Aa Raha Hai)
 
-When subqueries get deeply nested, they become hard to read and debug. **Common Table Expressions (CTEs)** let you name subqueries and reference them like temporary tables.
+Jab subqueries bahut zyada nested ho jaati hain, to unhe padhna aur debug karna mushkil ho jaata hai. **Common Table Expressions (CTEs)** tumhe subqueries ko naam dene dete hain aur unhe temporary tables ki tarah reference karne dete hain — Swiggy ke order mein alag-alag steps ko naam dene jaisa (cart_total, delivery_fee, final_amount) taki poora flow saaf dikhe.
 
 ```sql
--- Same "most popular post per user" query — much more readable with CTEs
+-- "Har user ka sabse popular post" wali query — CTEs ke saath kaafi zyada readable
 WITH like_counts AS (
     SELECT post_id, COUNT(*) AS cnt
     FROM likes
@@ -513,26 +518,26 @@ JOIN like_counts lc ON lc.post_id = p.id
 JOIN max_likes_per_user mlpu ON mlpu.user_id = u.id AND mlpu.max_cnt = lc.cnt;
 ```
 
-CTEs use the `WITH` keyword and are supported in PostgreSQL, MySQL 8.0+, SQL Server, and Oracle. Full coverage in Chapter 9.
+CTEs `WITH` keyword use karte hain aur PostgreSQL, MySQL 8.0+, SQL Server, aur Oracle mein supported hain. Poori coverage Chapter 9 mein.
 
 ---
 
 ## ✅ Key Takeaways
 
-- A **subquery** is a `SELECT` inside another SQL statement; the inner query runs first.
-- **Scalar subquery** returns one value; **table subquery** returns rows and lives in `FROM`; **correlated subquery** references the outer query.
-- Use `EXISTS` instead of `IN` for large datasets — it short-circuits at the first match.
-- **Never use `NOT IN`** when the subquery might return `NULL` — use `NOT EXISTS` instead.
-- `ANY` / `SOME` = at least one match; `ALL` = every value must match.
-- Correlated subqueries run **once per outer row** — they can be slow; prefer a `JOIN` when possible.
-- `JOIN` + `GROUP BY` is usually faster than a correlated scalar subquery in `SELECT`.
-- When subqueries get complex and nested, reach for **CTEs** for readability.
+- **Subquery** ek `SELECT` hota hai jo doosre SQL statement ke andar hota hai; inner query pehle chalti hai.
+- **Scalar subquery** ek value return karta hai; **table subquery** rows return karta hai aur `FROM` mein rehta hai; **correlated subquery** outer query ko reference karta hai.
+- Bade datasets ke liye `IN` ke bajaye `EXISTS` use karo — ye pehle match pe hi short-circuit ho jaata hai.
+- **`NOT IN` kabhi mat use karo** jab subquery `NULL` return kar sakti ho — iske badle `NOT EXISTS` use karo.
+- `ANY` / `SOME` = kam se kam ek match; `ALL` = har value match hona chahiye.
+- Correlated subqueries outer ki **har row ke liye ek baar** chalti hain — ye slow ho sakti hain; jab possible ho `JOIN` prefer karo.
+- `SELECT` mein correlated scalar subquery se usually `JOIN` + `GROUP BY` faster hota hai.
+- Jab subqueries complex aur nested ho jaayein, readability ke liye **CTEs** ka use karo.
 
 ---
 
 ## 📝 Quiz
 
-**Question 1:** You run the following query and get zero results, even though you know some users have no posts. What is the bug?
+**Question 1:** Tumne ye query chalayi aur zero results mile, jabki tumhe pata hai ki kuch users ke koi posts nahi hain. Bug kya hai?
 
 ```sql
 SELECT name FROM users
@@ -542,13 +547,13 @@ WHERE id NOT IN (SELECT user_id FROM posts);
 <details>
 <summary>Answer</summary>
 
-The `posts` table likely has rows where `user_id` is `NULL`. `NOT IN` with a `NULL` in the list evaluates to `UNKNOWN` for every row, so no rows are returned. Fix: use `NOT EXISTS` instead, or add `WHERE user_id IS NOT NULL` inside the subquery.
+`posts` table mein shayad koi rows aisi hain jaha `user_id` `NULL` hai. `NOT IN` jab list mein `NULL` ho to har row ke liye `UNKNOWN` evaluate hota hai, isliye koi row return nahi hoti. Fix: `NOT EXISTS` use karo, ya subquery ke andar `WHERE user_id IS NOT NULL` add karo.
 
 </details>
 
 ---
 
-**Question 2:** What is the difference between these two queries in terms of how many times the inner query executes?
+**Question 2:** In dono queries mein, inner query kitni baar execute hoti hai — usme kya farak hai?
 
 ```sql
 -- Query A
@@ -563,15 +568,15 @@ WHERE EXISTS (SELECT 1 FROM posts p WHERE p.user_id = u.id AND p.likes > 100);
 <details>
 <summary>Answer</summary>
 
-**Query A** is non-correlated — the inner query runs **once**, produces a list of user IDs, and the outer query filters against that list.
+**Query A** non-correlated hai — inner query **ek hi baar** chalti hai, user IDs ki ek list banati hai, aur outer query us list se filter karti hai.
 
-**Query B** is correlated — the inner query runs **once per row in `users`**. If there are 50,000 users, the inner query runs 50,000 times. However, `EXISTS` short-circuits at the first match, which can make it faster than `IN` when the inner table is large and matches are found early.
+**Query B** correlated hai — inner query `users` ki **har row ke liye ek baar** chalti hai. Agar 50,000 users hain, to inner query 50,000 baar chalegi. Lekin `EXISTS` pehle match pe short-circuit ho jaata hai, jisse ye `IN` se faster ho sakta hai jab inner table badi ho aur matches jaldi mil jaayein.
 
 </details>
 
 ---
 
-**Question 3:** Rewrite this correlated subquery in `SELECT` using a `JOIN` instead:
+**Question 3:** `SELECT` mein is correlated subquery ko `JOIN` use karke rewrite karo:
 
 ```sql
 SELECT
@@ -592,6 +597,6 @@ LEFT JOIN posts p ON p.user_id = u.id
 GROUP BY u.id, u.name;
 ```
 
-The `LEFT JOIN` ensures users with zero posts still appear (with `post_count = 0`), matching the behavior of the scalar subquery which would return `0` for users with no posts.
+`LEFT JOIN` ye ensure karta hai ki zero posts wale users bhi result mein dikhein (`post_count = 0` ke saath), bilkul waisa hi jaisa scalar subquery karta — no-posts wale users ke liye `0` return karta.
 
 </details>

@@ -1,42 +1,42 @@
 # Chapter 2: Proof of History and Solana Architecture
 
-> "Speed is not a feature. It is the architecture." — how Solana thinks about blockchain design.
+> "Speed is not a feature. It is the architecture." — Solana blockchain design ko aise dekhta hai.
 
 ---
 
-## 🧭 Who This Chapter Is For
+## 🧭 Ye Chapter Kiske Liye Hai
 
-You understand what a blockchain is. You know about wallets, transactions, and maybe even smart contracts. But Solana feels *different* — it processes 65,000+ transactions per second while Ethereum manages around 15-30. Why? The answer is not one single trick. It is six interlocking innovations that work together like gears in a machine.
+Tumhe pata hai blockchain kya hota hai. Wallets, transactions, smart contracts — sab jaanta hai tu. Lekin Solana kuch *alag* feel hota hai — ye 65,000+ transactions per second process karta hai jabki Ethereum sirf 15-30 handle kar pata hai. Kyun? Answer koi ek trick nahi hai. Ye six interlocking innovations hain jo ek machine ke gears ki tarah saath mein kaam karte hain.
 
-By the end of this chapter you will understand each gear: what it does, why it exists, and how it connects to the others.
-
----
-
-## 🕰️ Proof of History — The Blockchain's Clock
-
-### The Problem: Everyone Disagrees on Time
-
-Imagine 1,000 people scattered across the world trying to agree on the order of events without a shared clock. Alice says "I signed the contract at 3:00 PM." Bob says "No, that was 3:02 PM." Who is right? Without a trusted, shared clock, you cannot agree on order without a lot of back-and-forth communication.
-
-Traditional blockchains solve this by including timestamps in blocks and letting validators agree on them through consensus. But consensus takes time — nodes must talk to each other, vote, and wait. The more you talk, the slower you go.
-
-**Solana's insight:** What if you could *prove* that time has passed without asking anyone else?
+Is chapter ke end tak tumhe har gear samajh aa jayega: woh kya karta hai, kyun exist karta hai, aur baaki gears se kaise connect hota hai.
 
 ---
 
-### The Notary Stamp Analogy
+## 🕰️ Proof of History — Blockchain Ka Ghadi (Clock)
 
-Think of a notary public. When you bring a document to a notary, they stamp it with a date and sign it. The stamp is cryptographic proof that the document existed at that moment. You do not need to ask the notary "did this happen?" — the stamp *proves* it.
+### Problem: Sabko Time Pe Disagreement Hai
 
-Proof of History (PoH) is a cryptographic notary that runs continuously. It creates an unforgeable record that proves an event happened *before* another event.
+Socho 1,000 log duniya bhar mein bikhre hue hain aur bina shared clock ke events ka order decide karna chahte hain. Alice bolti hai "Maine contract 3:00 PM pe sign kiya." Bob bolta hai "Nahi, woh 3:02 PM tha." Sahi kaun hai? Bina ek trusted, shared clock ke, tum bina bohot saari back-and-forth communication ke order pe agree nahi kar sakte.
 
-> **Key insight:** PoH is NOT a consensus mechanism. It is a cryptographic clock. Consensus (Tower BFT) runs *on top of* PoH.
+Traditional blockchains isko solve karte hain blocks mein timestamps daal ke aur validators ko consensus se agree karwa ke. Lekin consensus mein time lagta hai — nodes ko ek dusre se baat karni padti hai, vote karna padta hai, wait karna padta hai. Jitni zyada baat, utna slow.
+
+**Solana ka insight:** Kya ho agar tum *prove* kar sako ki time guzar gaya hai, bina kisi se puche?
 
 ---
 
-### How PoH Works — The SHA-256 Hash Chain
+### Notary Stamp Wali Analogy
 
-PoH works by running SHA-256 hash operations in a continuous loop — feeding each output back as the next input. This is called a **Verifiable Delay Function (VDF)**.
+Ek notary public ko socho. Jab tum ek document lekar notary ke paas jaate ho, woh usko date ke saath stamp karta hai aur sign karta hai. Woh stamp cryptographic proof hai ki document us moment pe exist karta tha. Tumhe notary se "kya ye hua tha?" puchhne ki zarurat nahi — stamp khud *prove* kar deta hai.
+
+Proof of History (PoH) ek cryptographic notary hai jo continuously chalta rehta hai. Ye ek unforgeable record banata hai jo prove karta hai ki ek event doosre event *se pehle* hua.
+
+> **Key insight:** PoH consensus mechanism NAHI hai. Ye ek cryptographic clock hai. Consensus (Tower BFT) PoH ke *upar* chalta hai.
+
+---
+
+### PoH Kaise Kaam Karta Hai — SHA-256 Hash Chain
+
+PoH SHA-256 hash operations ko ek continuous loop mein chalata hai — har output ko wapas next input ke tor pe feed karta hai. Isko **Verifiable Delay Function (VDF)** bolte hain.
 
 ```
 hash_0 = SHA256("genesis")
@@ -47,17 +47,17 @@ hash_3 = SHA256(hash_2)
 hash_N = SHA256(hash_N-1)
 ```
 
-Each computation takes a tiny but non-zero amount of time. You cannot skip steps — you *must* compute hash_1 before you can compute hash_2. This means that if you see hash_100, you know that the machine ran *at least 100 hash operations* to produce it.
+Har computation thoda sa time leta hai, chahe kitna hi chhota kyu na ho. Tum steps skip nahi kar sakte — hash_1 compute karna hi padega hash_2 nikalne se pehle. Iska matlab hai — agar tum hash_100 dekhte ho, toh tumhe pata hai machine ne *kam se kam 100 hash operations* run kiye hain use produce karne ke liye.
 
-**Including events:** When a transaction arrives, the PoH recorder includes it in the chain:
+**Events include karna:** Jab ek transaction aata hai, PoH recorder usko chain mein include kar deta hai:
 
 ```
 hash_3 = SHA256(hash_2)
-hash_4 = SHA256(hash_3 + transaction_data)   ← transaction baked in
+hash_4 = SHA256(hash_3 + transaction_data)   ← transaction bake ho gaya
 hash_5 = SHA256(hash_4)
 ```
 
-Now hash_4 contains proof that the transaction existed *after* hash_3 and *before* hash_5. This is an unforgeable timestamp — no clock needed, no committee needed.
+Ab hash_4 mein proof hai ki transaction hash_3 *ke baad* aur hash_5 *se pehle* exist karta tha. Ye ek unforgeable timestamp hai — na koi clock chahiye, na koi committee.
 
 ---
 
@@ -77,42 +77,42 @@ graph LR
     style F fill:#f0a500,color:#000
 ```
 
-**What this gives us:**
-- Proof that `tx_alice_sends_1_SOL` happened *before* `tx_bob_buys_NFT`
-- Proof that exactly N hash operations separated them (measurable elapsed time)
-- No external clock. No committee vote. Just math.
+**Isse kya milta hai:**
+- Proof ki `tx_alice_sends_1_SOL` `tx_bob_buys_NFT` *se pehle* hua
+- Proof ki exactly N hash operations dono ke beech mein the (measurable elapsed time)
+- Koi external clock nahi. Koi committee vote nahi. Sirf math.
 
 ---
 
-### Why PoH Enables High Throughput
+### PoH High Throughput Kyun Enable Karta Hai
 
-In a normal blockchain, validators must send messages to each other to agree on the order of transactions. This is expensive in time and bandwidth.
+Normal blockchain mein, validators ko ek dusre ko messages bhejne padte hain transactions ka order agree karne ke liye. Ye time aur bandwidth mein mehnga hota hai.
 
-With PoH, the **order of events is already proven**. Validators do not need to debate "did this happen before that?" — the PoH sequence *is* the answer. They only need to agree on the validity of transactions, not their order.
+PoH ke saath, **events ka order pehle se hi proven hai**. Validators ko debate nahi karna padta "ye pehle hua ya woh?" — PoH sequence hi *answer* hai. Unhe sirf transactions ki validity pe agree karna hai, order pe nahi.
 
-This is the key throughput unlock. Less communication = less waiting = more transactions per second.
-
----
-
-## 🗳️ Tower BFT — Consensus Built on the Clock
-
-### The Committee Analogy
-
-Imagine a board of directors voting on whether to approve a budget. Normally, they argue for hours because each member arrived at a different meeting time and has different information. Now imagine every director is synchronized to the exact same atomic clock and has read the same pre-circulated document. Voting takes minutes instead of hours.
-
-Tower BFT is Solana's consensus mechanism. It is based on PBFT (Practical Byzantine Fault Tolerance) but redesigned to take advantage of PoH.
+Yahi throughput ka main unlock hai. Kam communication = kam waiting = zyada transactions per second.
 
 ---
 
-### How Tower BFT Works
+## 🗳️ Tower BFT — Clock Ke Upar Bana Consensus
 
-1. **PoH gives a common timeline** — all validators can see the PoH sequence and agree on where they are in time.
+### Committee Wali Analogy
 
-2. **Validators vote on PoH hashes** — instead of voting on "I think block X is valid," validators vote on "I lock my vote at PoH hash #12345."
+Ek board of directors ko socho jo budget approve karne pe vote kar rahe hain. Normally woh ghanton bahas karte hain kyunki har member alag meeting time pe aaya hai aur uske paas alag information hai. Ab socho har director exact same atomic clock se synchronized hai aur usne wahi pre-circulated document padha hai. Voting ghanton ki jagah minutes mein ho jaati hai.
 
-3. **Lockout escalation** — each vote has a *lockout period*. If you vote on slot 100, you cannot vote against slot 100 for 2 more slots. If you vote again, lockout doubles (4 slots, then 8, then 16...). This exponentially increases the cost of switching your vote, making double-voting extremely expensive.
+Tower BFT Solana ka consensus mechanism hai. Ye PBFT (Practical Byzantine Fault Tolerance) pe based hai, lekin PoH ka fayda uthane ke liye redesign kiya gaya hai.
 
-4. **Finality** — once a vote has accumulated enough stake behind it (2/3+ of staked SOL), the transaction is finalized.
+---
+
+### Tower BFT Kaise Kaam Karta Hai
+
+1. **PoH ek common timeline deta hai** — saare validators PoH sequence dekh sakte hain aur agree kar sakte hain ki woh time mein kahan hain.
+
+2. **Validators PoH hashes pe vote karte hain** — "mujhe lagta hai block X valid hai" pe vote karne ki jagah, validators vote karte hain "main apna vote lock kar raha hun PoH hash #12345 pe."
+
+3. **Lockout escalation** — har vote ka ek *lockout period* hota hai. Agar tumne slot 100 pe vote kiya, toh tum agle 2 slots tak slot 100 ke against vote nahi kar sakte. Agar tum dobara vote karte ho, lockout double ho jata hai (4 slots, phir 8, phir 16...). Ye vote switch karne ka cost exponentially badha deta hai, jisse double-voting bohot mehenga ho jaata hai.
+
+4. **Finality** — jab ek vote ne kaafi stake accumulate kar liya (2/3+ staked SOL ka), transaction finalize ho jaata hai.
 
 ```
 Validator A votes: slot 100 → lockout: 2 slots
@@ -120,42 +120,42 @@ Validator A votes: slot 101 → slot 100 lockout: 4 slots, slot 101 lockout: 2
 Validator A votes: slot 102 → slot 100 lockout: 8 slots, ...
 ```
 
-**The result:** Solana achieves finality in ~400ms, compared to Ethereum's ~12 minutes for probabilistic finality.
+**Result:** Solana ~400ms mein finality achieve karta hai, jabki Ethereum ko probabilistic finality ke liye ~12 minutes lagte hain.
 
 | Property | Tower BFT (Solana) | PBFT (classic) |
 |---|---|---|
-| Messaging rounds | 1 (PoH removes need) | 3+ |
-| Finality time | ~400ms | Seconds to minutes |
-| Relies on | PoH timestamps | Synchronized clocks |
-| Fault tolerance | 1/3 of validators | 1/3 of validators |
+| Messaging rounds | 1 (PoH need hata deta hai) | 3+ |
+| Finality time | ~400ms | Seconds se minutes |
+| Depend karta hai | PoH timestamps pe | Synchronized clocks pe |
+| Fault tolerance | 1/3 validators | 1/3 validators |
 
 ---
 
-## 📡 Turbine — Getting Blocks to Everyone Fast
+## 📡 Turbine — Blocks Ko Sabtak Fast Pahunchana
 
-### The Newspaper Distribution Analogy
+### Newspaper Distribution Wali Analogy
 
-Imagine you print 10,000 newspapers and need to deliver them to 10,000 houses. If you drive to each house yourself, it takes all day. Instead, you give 100 papers to 100 distributors, each distributor gives 10 papers to 10 more people, and suddenly everyone has a paper in minutes.
+Socho tum 10,000 newspapers print karte ho aur unhe 10,000 ghar tak deliver karna hai. Agar tum khud har ghar drive karke jao, poora din lag jayega. Iski jagah, tum 100 papers 100 distributors ko de do, har distributor 10 papers 10 aur logo ko de deta hai, aur suddenly sabke paas newspaper minutes mein pahunch jaata hai.
 
-That is Turbine.
-
----
-
-### The Bandwidth Bottleneck
-
-As validators increase, sending a full block to all validators at once becomes impossible. A 128MB block sent to 1,000 validators at 1Gbps would take ~1,024 seconds. Solana processes blocks every 400ms — that math does not work.
+Yahi hai Turbine.
 
 ---
 
-### How Turbine Solves It
+### Bandwidth Ka Bottleneck
 
-Turbine breaks each block into small pieces called **shreds** (like BitTorrent chunks). The leader (current block producer) sends shreds to a tree of validators:
+Jaise-jaise validators badhte hain, ek full block ko saare validators ko ek saath bhejna impossible ho jaata hai. Ek 128MB block ko 1,000 validators tak 1Gbps pe bhejne mein ~1,024 seconds lagenge. Solana har 400ms mein ek block process karta hai — ye math kaam nahi karega.
 
-1. **Layer 0:** The leader sends shreds to ~200 validators (neighborhood leaders).
-2. **Layer 1:** Each neighborhood leader forwards shreds to ~200 more validators.
-3. **Layer 2:** Repeat until all ~1,000+ validators have all shreds.
+---
 
-Each validator only handles a fraction of the data, and the work fans out in parallel across the tree.
+### Turbine Isko Kaise Solve Karta Hai
+
+Turbine har block ko chhote pieces mein tod deta hai jinhe **shreds** kehte hain (BitTorrent chunks jaisa). Leader (current block producer) validators ke ek tree ko shreds bhejta hai:
+
+1. **Layer 0:** Leader ~200 validators ko shreds bhejta hai (neighborhood leaders).
+2. **Layer 1:** Har neighborhood leader ~200 aur validators ko shreds forward karta hai.
+3. **Layer 2:** Repeat tab tak jab tak saare ~1,000+ validators ko saare shreds mil na jaayein.
+
+Har validator sirf data ka ek chhota fraction handle karta hai, aur kaam tree mein parallel fan-out hota hai.
 
 ```mermaid
 graph TD
@@ -179,37 +179,37 @@ graph TD
     style N3 fill:#14F195,color:#000
 ```
 
-**Each shred also contains erasure codes** (like RAID on a hard drive). Even if some validators drop shreds, the full block can be reconstructed from any sufficient subset. This tolerates packet loss without retransmission.
+**Har shred mein erasure codes bhi hote hain** (hard drive ke RAID jaisa). Agar kuch validators shreds drop bhi kar dein, toh bhi full block kisi bhi sufficient subset se reconstruct ho sakta hai. Isse packet loss bina retransmission ke tolerate ho jaata hai.
 
-| Approach | Bandwidth at Leader | Scales with validators? |
+| Approach | Leader Pe Bandwidth | Validators Ke Saath Scale Karta Hai? |
 |---|---|---|
-| Direct broadcast | O(N) — sends full block to everyone | No |
-| Turbine tree | O(log N) — sends only to first layer | Yes |
-| Turbine + erasure codes | O(log N) + fault tolerant | Yes |
+| Direct broadcast | O(N) — sabko full block bhejta hai | Nahi |
+| Turbine tree | O(log N) — sirf first layer ko bhejta hai | Haan |
+| Turbine + erasure codes | O(log N) + fault tolerant | Haan |
 
 ---
 
-## 🌊 Gulf Stream — Forwarding Transactions Before the Block is Ready
+## 🌊 Gulf Stream — Block Ready Hone Se Pehle Transactions Forward Karna
 
-### The Restaurant Pre-Order Analogy
+### Restaurant Pre-Order Wali Analogy
 
-Imagine a restaurant where you have to wait until a table is free before the chef starts cooking your food. Inefficient. Now imagine you call ahead, pre-order, and when you arrive your meal is already cooking. That is Gulf Stream.
-
----
-
-### The Traditional Mempool Problem
-
-Most blockchains maintain a **mempool** — a waiting room where unconfirmed transactions sit until a validator picks them up. When the network is busy, transactions can sit in the mempool for minutes or hours. Validators also waste time downloading and processing the mempool.
+Ek restaurant socho jaha tumhe wait karna padta hai table free hone tak, uske baad hi chef tumhara khana banana start karta hai. Inefficient. Ab socho tum pehle hi call karke pre-order kar dete ho, aur jab tum pahunchte ho tumhara khana already ban raha hota hai. Yahi hai Gulf Stream — jaise Swiggy pe pehle se order daal do, restaurant pahunchne se pehle hi cooking start ho jaati hai.
 
 ---
 
-### How Gulf Stream Works
+### Traditional Mempool Ka Problem
 
-Solana has **no global mempool**. Instead:
+Zyada tar blockchains ek **mempool** maintain karte hain — ek waiting room jaha unconfirmed transactions baithe rehte hain jab tak koi validator unhe pick nahi karta. Jab network busy hota hai, transactions mempool mein minutes ya hours tak baithe rehte hain. Validators bhi apna time waste karte hain mempool download aur process karne mein.
 
-1. Solana's validator schedule is known in advance (via PoH — you can calculate who the next leader will be).
-2. Your wallet/client **forwards your transaction directly to the expected next leader** (and a few leaders ahead).
-3. The leader already has your transaction when their slot begins — they do not wait for a mempool download.
+---
+
+### Gulf Stream Kaise Kaam Karta Hai
+
+Solana ke paas **koi global mempool nahi hai**. Iski jagah:
+
+1. Solana ka validator schedule pehle se pata hota hai (PoH ke through — tum calculate kar sakte ho agla leader kaun hoga).
+2. Tumhara wallet/client **tumhara transaction directly expected next leader ko forward kar deta hai** (aur kuch leaders aage bhi).
+3. Jab leader ka slot start hota hai, unke paas tumhara transaction already hota hai — unhe mempool download ka wait nahi karna padta.
 
 ```mermaid
 sequenceDiagram
@@ -218,44 +218,44 @@ sequenceDiagram
     participant NextLeader as Next Leader (slot N+1)
     participant Network
 
-    User->>CurrentLeader: Send transaction
-    CurrentLeader->>NextLeader: Forward transaction (Gulf Stream)
-    Note over NextLeader: Transaction already cached\nbefore slot begins
-    NextLeader->>Network: Include in block immediately
+    User->>CurrentLeader: Transaction bhejta hai
+    CurrentLeader->>NextLeader: Transaction forward karta hai (Gulf Stream)
+    Note over NextLeader: Transaction pehle se cache mein hai\nslot start hone se pehle
+    NextLeader->>Network: Block mein turant include karta hai
     Network->>User: Confirmation ✅
 ```
 
 **Benefits:**
-- Transactions are pre-loaded into the leader's cache.
-- No global mempool = no mempool congestion or gas auctions (mostly).
-- Confirmation time drops because there is no mempool wait.
+- Transactions leader ke cache mein pehle se load ho jaate hain.
+- Global mempool nahi hai = mempool congestion ya gas auctions nahi hote (mostly).
+- Confirmation time kam ho jaata hai kyunki mempool wait hi nahi hai.
 
-**Trade-off:** If the leader you sent to gets skipped (they go offline), your transaction must be retried with a new leader. Solana transactions have a recent blockhash expiry (~90 seconds) to handle this.
-
----
-
-## ⚡ Sealevel — Running Thousands of Contracts at Once
-
-### The Highway vs. Single Lane Analogy
-
-Ethereum's EVM is like a single-lane road. Every transaction drives through one at a time. Even if 1,000 transactions are completely unrelated — Alice paying Bob, Carol minting an NFT, Dave swapping tokens — they all wait in a single queue.
-
-Sealevel is like a 50-lane highway. Unrelated transactions drive in parallel.
+**Trade-off:** Agar jis leader ko tumne bheja woh skip ho jaaye (offline ho jaaye), toh tumhara transaction naye leader ke saath retry karna padega. Solana transactions mein recent blockhash expiry (~90 seconds) hoti hai isko handle karne ke liye.
 
 ---
 
-### How Sealevel Enables Parallelism
+## ⚡ Sealevel — Ek Saath Hazaron Contracts Chalana
 
-Every Solana transaction must declare upfront which **accounts it will read and write**. This is not optional — the runtime enforces it.
+### Highway vs. Single Lane Wali Analogy
+
+Ethereum ka EVM ek single-lane road jaisa hai. Har transaction ek-ek karke drive karta hai. Chahe 1,000 transactions bilkul unrelated hi kyu na ho — Alice Bob ko paisa de rahi hai, Carol NFT mint kar rahi hai, Dave tokens swap kar raha hai — sab ek hi single queue mein wait karte hain.
+
+Sealevel ek 50-lane highway jaisa hai. Unrelated transactions parallel mein drive karte hain.
+
+---
+
+### Sealevel Parallelism Kaise Enable Karta Hai
+
+Har Solana transaction ko pehle se declare karna padta hai ki woh kaunse **accounts read aur write karega**. Ye optional nahi hai — runtime isko enforce karta hai.
 
 ```rust
-// A transaction always specifies accounts it touches
+// Ek transaction hamesha specify karta hai ki woh kaunse accounts touch karega
 AccountMeta::new(alice_pubkey, false),        // writable: false (read only)
 AccountMeta::new(bob_pubkey, true),           // writable: true
 AccountMeta::new(token_program_id, false),    // program (executable)
 ```
 
-Because accounts are declared in advance, the Sealevel runtime can look at a batch of transactions and ask: "Do any of these touch the same writable account?" If not — run them in parallel.
+Kyunki accounts pehle se declare kiye jaate hain, Sealevel runtime transactions ka ek batch dekh sakta hai aur puch sakta hai: "Kya inme se koi same writable account ko touch karta hai?" Agar nahi — toh unhe parallel mein run kar do.
 
 ---
 
@@ -282,47 +282,47 @@ graph TD
     style Solana fill:#9945FF,color:#fff
 ```
 
-**The Sealevel scheduler:**
-1. Takes all transactions in a batch.
-2. Builds a dependency graph based on shared writable accounts.
-3. Groups independent transactions into parallel execution threads.
-4. Transactions that *do* share writable accounts are serialized (one after another) within their group.
+**Sealevel scheduler kya karta hai:**
+1. Ek batch ke saare transactions leta hai.
+2. Shared writable accounts ke basis pe ek dependency graph banata hai.
+3. Independent transactions ko parallel execution threads mein group karta hai.
+4. Jo transactions shared writable accounts touch karte hain, unhe apne group ke andar serialize (ek ke baad ek) kar diya jaata hai.
 
 ---
 
-### What This Means for Your Programs
+### Iska Tumhare Programs Ke Liye Kya Matlab Hai
 
 ```rust
-// Program A: Token transfer — touches only Alice and Bob's accounts
-// Program B: NFT mint — touches only Carol's mint account
-// → These run SIMULTANEOUSLY on different CPU cores
+// Program A: Token transfer — sirf Alice aur Bob ke accounts touch karta hai
+// Program B: NFT mint — sirf Carol ke mint account ko touch karta hai
+// → Ye SIMULTANEOUSLY alag CPU cores pe chalenge
 
-// Program C: DEX swap — touches liquidity pool account
-// Program D: Another DEX swap — also touches the same pool account
-// → These must be SERIALIZED (same writable account conflict)
+// Program C: DEX swap — liquidity pool account touch karta hai
+// Program D: Doosra DEX swap — wahi pool account bhi touch karta hai
+// → Inhe SERIALIZE karna padega (same writable account conflict)
 ```
 
-**Design implication:** Programs that touch fewer shared accounts are more parallelizable. If you design a program that forces every transaction through a single shared account, you have created a bottleneck (like a single-lane checkpoint on your 50-lane highway).
+**Design implication:** Jo programs kam shared accounts touch karte hain, woh zyada parallelizable hote hain. Agar tum aisa program design karte ho jisme har transaction ek hi shared account se guzarna padta hai, toh tumne apni 50-lane highway pe ek single-lane checkpoint bana diya hai — bottleneck.
 
 | Execution Model | Solana (Sealevel) | Ethereum (EVM) |
 |---|---|---|
-| Transaction ordering | Parallel where possible | Always sequential |
-| Account pre-declaration | Required | Not required |
+| Transaction ordering | Jaha possible ho, parallel | Hamesha sequential |
+| Account pre-declaration | Required | Required nahi |
 | Throughput ceiling | Multi-core hardware limit | Single-core limit |
-| Developer responsibility | Declare all accounts | Nothing extra |
-| Contention risk | Shared writable accounts | N/A (always serialized) |
+| Developer responsibility | Saare accounts declare karna | Kuch extra nahi |
+| Contention risk | Shared writable accounts | N/A (hamesha serialized) |
 
 ---
 
-## 🏗️ Validator Architecture — Who Runs the Network
+## 🏗️ Validator Architecture — Network Kaun Chalata Hai
 
-### Leader Selection — The Rotating Chairperson
+### Leader Selection — Rotating Chairperson
 
-Think of a round-robin meeting where each person gets exactly 4 minutes to speak (their slot). The order is determined in advance by how much stake each validator has. More stake = more frequent turns to speak (produce blocks).
+Ek round-robin meeting socho jaha har person ko exactly 4 minutes milte hain bolne ke liye (unka slot). Order pehle se decide hota hai ki har validator ke paas kitna stake hai. Zyada stake = bolne (block produce karne) ke zyada frequent turns.
 
-**Each slot lasts 400ms.** A leader gets 4 consecutive slots (one epoch-level assignment), totaling 1.6 seconds to produce blocks.
+**Har slot 400ms ka hota hai.** Ek leader ko 4 consecutive slots milte hain (ek epoch-level assignment), total 1.6 seconds blocks produce karne ke liye.
 
-The schedule is computed from the previous epoch's stake weights and published on-chain. Every validator (and every client) knows who the next 432,000 leaders will be before they produce a single block.
+Schedule previous epoch ke stake weights se compute hota hai aur on-chain publish ho jaata hai. Har validator (aur har client) ko pata hota hai agle 432,000 leaders kaun honge, ek bhi block produce hone se pehle.
 
 ```mermaid
 sequenceDiagram
@@ -331,26 +331,26 @@ sequenceDiagram
     participant V2 as Validator B (30% stake)
     participant V3 as Validator C (50% stake)
 
-    Epoch->>V1: You lead slots 0-3
-    Epoch->>V2: You lead slots 4-7
-    Epoch->>V3: You lead slots 8-15 (more stake = more slots)
-    Epoch->>V1: You lead slots 16-19
-    Note over V1,V3: Rotation continues for entire epoch (~2-3 days)
+    Epoch->>V1: Tum slots 0-3 lead karoge
+    Epoch->>V2: Tum slots 4-7 lead karoge
+    Epoch->>V3: Tum slots 8-15 lead karoge (zyada stake = zyada slots)
+    Epoch->>V1: Tum slots 16-19 lead karoge
+    Note over V1,V3: Rotation poore epoch tak chalta rehta hai (~2-3 din)
 ```
 
 ---
 
-### Staking — How Validators Earn Trust
+### Staking — Validators Trust Kaise Kamate Hain
 
-Staking in Solana is how the network assigns economic weight to validators:
+Solana mein staking ka matlab hai network validators ko economic weight assign karta hai:
 
-1. **Delegators** (token holders) stake SOL to a validator they trust.
-2. The validator's **vote power** in Tower BFT is proportional to delegated stake.
-3. Validators earn **inflation rewards** for voting correctly and producing valid blocks.
-4. Validators can be **slashed** (penalized) for double-voting (equivocation).
+1. **Delegators** (token holders) apna SOL kisi validator ko stake karte hain jispe unhe trust hai.
+2. Validator ka **vote power** Tower BFT mein delegated stake ke proportional hota hai.
+3. Validators **inflation rewards** kamate hain sahi vote karne aur valid blocks produce karne ke liye.
+4. Validators **slash** (penalize) ho sakte hain double-voting (equivocation) ke liye.
 
 ```typescript
-// Example: Delegating stake via @solana/web3.js
+// Example: @solana/web3.js se stake delegate karna
 import {
   Connection,
   Keypair,
@@ -362,9 +362,9 @@ import {
 } from "@solana/web3.js";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
-const staker = Keypair.generate(); // your wallet
+const staker = Keypair.generate(); // tumhara wallet
 
-// Create a stake account
+// Ek stake account banao
 const stakeAccount = Keypair.generate();
 const createStakeAccountTx = StakeProgram.createAccount({
   fromPubkey: staker.publicKey,
@@ -377,7 +377,7 @@ const createStakeAccountTx = StakeProgram.createAccount({
   lamports: 1_000_000_000, // 1 SOL = 1,000,000,000 lamports
 });
 
-// Delegate to a validator
+// Ek validator ko delegate karo
 const validatorVoteAccount = new PublicKey("VALIDATOR_VOTE_ACCOUNT_PUBKEY");
 const delegateTx = StakeProgram.delegate({
   stakePubkey: stakeAccount.publicKey,
@@ -391,96 +391,96 @@ await sendAndConfirmTransaction(connection, delegateTx, [staker]);
 
 ---
 
-### Vote Transactions — The Heartbeat of Consensus
+### Vote Transactions — Consensus Ka Heartbeat
 
-Every validator sends **vote transactions** on every slot — roughly every 400ms. These votes:
-- Confirm which PoH hash (slot) the validator has verified.
-- Count toward Tower BFT finality.
-- Cost ~0.000005 SOL each and are paid by the validator.
+Har validator har slot pe **vote transactions** bhejta hai — roughly har 400ms mein. Ye votes:
+- Confirm karte hain ki validator ne kaunsa PoH hash (slot) verify kiya hai.
+- Tower BFT finality mein count hote hain.
+- Har ek ki cost ~0.000005 SOL hoti hai jo validator khud pay karta hai.
 
-This is why validators need constant uptime. A validator that stops voting loses rewards and the network loses their vote weight for finality.
+Isiliye validators ko constant uptime chahiye. Jo validator voting rok deta hai, woh rewards khota hai aur network finality ke liye unka vote weight kho deta hai.
 
 ```
-Validator → Network: "I have verified slot #123456789, hash 0xABCD..."
-           → This vote is a real Solana transaction on-chain
-           → Tower BFT aggregates votes to determine finality
+Validator → Network: "Maine slot #123456789 verify kar liya hai, hash 0xABCD..."
+           → Ye vote ek real Solana transaction hai on-chain
+           → Tower BFT saare votes aggregate karke finality decide karta hai
 ```
 
 **Key numbers:**
 - ~1 vote transaction per slot (400ms)
-- ~2,500 vote transactions per validator per day
-- ~1,500+ active validators on mainnet
+- ~2,500 vote transactions per validator per din
+- ~1,500+ active validators mainnet pe
 
 ---
 
-## 🔀 How It All Fits Together
+## 🔀 Sab Kuch Kaise Fit Hota Hai
 
-The six innovations are not independent. They form a pipeline:
+Ye six innovations independent nahi hain. Ye ek pipeline banate hain:
 
 ```mermaid
 graph LR
-    A["PoH\n🕰️ Cryptographic clock\nproves order of events"] --> B["Tower BFT\n🗳️ Consensus uses\nPoH timestamps\n(no messaging for time)"]
-    A --> C["Gulf Stream\n🌊 Leader schedule\nknown from PoH\n(send txns early)"]
-    B --> D["Turbine\n📡 Propagate blocks\nfast via shred tree"]
-    C --> E["Sealevel\n⚡ Parallel execution\nof verified txns"]
+    A["PoH\n🕰️ Cryptographic clock\nevents ka order prove karta hai"] --> B["Tower BFT\n🗳️ Consensus PoH\ntimestamps use karta hai\n(time ke liye messaging nahi)"]
+    A --> C["Gulf Stream\n🌊 Leader schedule\nPoH se pata hai\n(txns pehle bhejo)"]
+    B --> D["Turbine\n📡 Blocks fast\npropagate shred tree se"]
+    C --> E["Sealevel\n⚡ Verified txns ka\nparallel execution"]
     D --> E
     E --> F["Validators\n🏗️ Leader rotation\nstaking, voting"]
     F --> A
 ```
 
-1. **PoH** provides a verifiable sequence (the clock).
-2. **Tower BFT** uses that clock for fast consensus.
-3. **Gulf Stream** uses the known leader schedule to pre-route transactions.
-4. **Turbine** distributes blocks efficiently across validators.
-5. **Sealevel** processes transactions in parallel using declared account access.
-6. **Validators** vote, rotate, and restart the cycle.
+1. **PoH** ek verifiable sequence deta hai (clock).
+2. **Tower BFT** us clock ko fast consensus ke liye use karta hai.
+3. **Gulf Stream** known leader schedule use karke transactions pre-route karta hai.
+4. **Turbine** blocks ko validators ke beech efficiently distribute karta hai.
+5. **Sealevel** declared account access use karke transactions parallel mein process karta hai.
+6. **Validators** vote karte hain, rotate hote hain, aur cycle restart karte hain.
 
-Remove any one component and the system degrades significantly.
+Koi bhi ek component hata do, poora system significantly degrade ho jaata hai.
 
 ---
 
-## When to Use / When NOT to Use These Concepts
+## Kab Use Karo / Kab Nahi — In Concepts Ko
 
-### When Solana's Architecture Shines
+### Solana Ka Architecture Kaha Shine Karta Hai
 
-- **High-frequency trading or DeFi** — sub-second finality, parallel execution, no mempool congestion.
-- **Gaming and NFTs with many simultaneous users** — Sealevel handles independent transactions in parallel.
-- **Applications needing predictable low fees** — no gas auctions (fees are nearly fixed at ~0.000005 SOL per signature).
-- **Real-time applications** — 400ms block times, ~400ms finality for most transactions.
+- **High-frequency trading ya DeFi** — sub-second finality, parallel execution, mempool congestion nahi.
+- **Gaming aur NFTs jisme bohot saare simultaneous users hon** — Sealevel independent transactions parallel mein handle karta hai.
+- **Predictable low fees chahiye jaha** — gas auctions nahi hote (fees almost fixed hain ~0.000005 SOL per signature).
+- **Real-time applications** — 400ms block times, ~400ms finality zyada tar transactions ke liye.
 
-### When to Think Carefully (Trade-offs)
+### Kaha Soch-Samajh Ke Decide Karo (Trade-offs)
 
-- **Programs with shared global state** — if every user must write to the same account (e.g., a single counter), Sealevel cannot parallelize. Design your data layout carefully.
-- **Very complex transactions** — Solana has a compute unit limit per transaction. Ethereum can do more per transaction because EVM has higher per-tx compute limits (with gas).
-- **Decentralization concerns** — running a Solana validator requires high-end hardware (256GB+ RAM, fast NVMe, 1Gbps+ connection). This raises the hardware bar compared to Ethereum.
-- **Restart recovery** — Solana has historically had network outages during heavy spam attacks. The architecture is improving but is not yet as battle-hardened as Ethereum for extreme edge cases.
+- **Shared global state wale programs** — agar har user ko same account pe likhna hai (jaise ek single counter), Sealevel parallelize nahi kar payega. Apna data layout carefully design karo.
+- **Bohot complex transactions** — Solana mein per-transaction compute unit limit hoti hai. Ethereum ek transaction mein zyada kaam kar sakta hai kyunki EVM ka per-tx compute limit zyada hai (gas ke saath).
+- **Decentralization ki concern** — Solana validator chalane ke liye high-end hardware chahiye (256GB+ RAM, fast NVMe, 1Gbps+ connection). Ye hardware ka bar Ethereum ke muqable zyada high kar deta hai.
+- **Restart recovery** — Solana mein historically heavy spam attacks ke time network outages hue hain. Architecture improve ho raha hai, lekin abhi Ethereum jitna battle-hardened nahi hai extreme edge cases ke liye.
 
 ---
 
 ## 🔑 Key Takeaways
 
-| Concept | What It Is | Problem It Solves |
+| Concept | Kya Hai | Kaunsa Problem Solve Karta Hai |
 |---|---|---|
-| **Proof of History** | SHA-256 hash chain = cryptographic clock | Proves order of events without committee vote |
-| **Tower BFT** | PBFT-based consensus on top of PoH | Fast finality (~400ms) with fewer messages |
-| **Turbine** | Block shredding + tree propagation | Bandwidth bottleneck as validators scale |
-| **Gulf Stream** | Mempool-less tx forwarding to next leader | Reduces confirmation time, eliminates mempool |
-| **Sealevel** | Parallel smart contract execution | Utilizes multi-core CPUs, massively increases throughput |
-| **Validator / Leader** | Stake-weighted rotating block producers | Decentralized block production with economic incentives |
+| **Proof of History** | SHA-256 hash chain = cryptographic clock | Bina committee vote ke events ka order prove karta hai |
+| **Tower BFT** | PBFT-based consensus, PoH ke upar | Fast finality (~400ms), kam messages ke saath |
+| **Turbine** | Block shredding + tree propagation | Validators scale karne pe bandwidth bottleneck solve karta hai |
+| **Gulf Stream** | Mempool-less tx forwarding next leader ko | Confirmation time kam karta hai, mempool khatam karta hai |
+| **Sealevel** | Parallel smart contract execution | Multi-core CPUs use karta hai, throughput massively badhata hai |
+| **Validator / Leader** | Stake-weighted rotating block producers | Economic incentives ke saath decentralized block production |
 
-**Three sentences to remember forever:**
+**Teen sentences jo hamesha yaad rakhna:**
 
-1. PoH is a clock, not a consensus mechanism — it proves that time passed using a hash chain, so nodes never have to argue about event order.
-2. Sealevel runs unrelated transactions in parallel because every Solana transaction must declare its accounts upfront, making conflicts detectable before execution.
-3. All six innovations (PoH, Tower BFT, Gulf Stream, Turbine, Sealevel, validators) are a single integrated pipeline — removing one piece collapses the throughput advantages.
+1. PoH ek clock hai, consensus mechanism nahi — ye hash chain use karke prove karta hai ki time guzra hai, isliye nodes ko event order pe kabhi bahas nahi karni padti.
+2. Sealevel unrelated transactions parallel mein chalata hai kyunki har Solana transaction ko apne accounts pehle se declare karna padta hai, jisse conflicts execution se pehle hi detectable ho jaate hain.
+3. In sabhi six innovations (PoH, Tower BFT, Gulf Stream, Turbine, Sealevel, validators) ek hi integrated pipeline hai — ek piece hataoge toh throughput ka fayda collapse ho jaayega.
 
 ---
 
-## 📚 What to Read Next
+## 📚 Aage Kya Padhna Hai
 
-- **Chapter 3: Accounts and Programs** — Solana's data model (everything is an account) and how programs (smart contracts) work.
+- **Chapter 3: Accounts and Programs** — Solana ka data model (sab kuch ek account hai) aur programs (smart contracts) kaise kaam karte hain.
 - **Chapter 4: Writing Your First Program in Rust** — Anchor framework, instruction handlers, account validation.
-- **Chapter 5: Tokens on Solana** — The SPL Token program, minting, burning, and associated token accounts.
+- **Chapter 5: Tokens on Solana** — SPL Token program, minting, burning, aur associated token accounts.
 
 ---
 

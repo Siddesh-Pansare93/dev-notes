@@ -3,28 +3,28 @@
 > **Chapter 5** | Solidity for Smart Contract Developers
 > Difficulty: Beginner | Estimated Reading Time: ~20 minutes
 
-Control flow is how your program decides **what to do next**. In Solidity, you use familiar constructs — `if`, `for`, `while` — but with blockchain-specific constraints that can cost real money if ignored. This chapter covers every control flow tool available in Solidity, along with the gotchas that trip up developers coming from JavaScript, Python, or other high-level languages.
+Control flow matlab tumhara program decide kaise karta hai **aage kya karna hai**. Solidity mein tumhe familiar cheezein milengi — `if`, `for`, `while` — bilkul JavaScript jaisi dikhne wali. Lekin yahan blockchain-specific limitations hain jo agar ignore kiye toh seedha tumhare paise (asli paise, ETH ke roop mein) doob sakte hain. Is chapter mein Solidity ke saare control flow tools cover karenge, aur wo saari gotchas bhi jo JavaScript, Python ya kisi bhi high-level language se aane wale devs ko trip karati hain.
 
 ---
 
-## 🧠 Before You Start: The Gas Reality
+## 🧠 Shuru Karne Se Pehle: Gas Ki Reality
 
-Every line of code in Solidity costs **gas** — a fee paid to the Ethereum network for computation. Loops are the biggest source of unexpected gas bills and even transaction failures. Keep this in mind throughout the chapter; we will revisit it specifically in the loops sections.
+Socho Ethereum ek IRCTC ka server hai — har request (yaani har line of code) ka ek cost hai jo tumhe **gas** ke form mein pay karna padta hai Ethereum network ko. Loops sabse bada source hain unexpected gas bills ka, aur kabhi kabhi transaction fail bhi ho jaata hai bas gas khatam hone ki wajah se. Yeh baat poore chapter mein dimaag mein rakhna — loops wale section mein isko dobara detail se dekhenge.
 
 ---
 
 ## 🔢 Comparison Operators
 
-Before writing conditionals, you need to compare values. Solidity supports the standard set:
+Conditionals likhne se pehle values ko compare karna aana chahiye. Solidity mein standard set available hai:
 
-| Operator | Meaning              | Example         |
-|----------|----------------------|-----------------|
-| `==`     | Equal to             | `x == 10`       |
-| `!=`     | Not equal to         | `x != 0`        |
-| `<`      | Less than            | `x < 100`       |
-| `>`      | Greater than         | `x > 0`         |
-| `<=`     | Less than or equal   | `x <= limit`    |
-| `>=`     | Greater than or equal| `x >= minimum`  |
+| Operator | Matlab                | Example         |
+|----------|------------------------|-----------------|
+| `==`     | Barabar hai            | `x == 10`       |
+| `!=`     | Barabar nahi hai       | `x != 0`        |
+| `<`      | Chota hai              | `x < 100`       |
+| `>`      | Bada hai               | `x > 0`         |
+| `<=`     | Chota ya barabar       | `x <= limit`    |
+| `>=`     | Bada ya barabar        | `x >= minimum`  |
 
 ```solidity
 uint256 balance = 50;
@@ -36,28 +36,28 @@ bool isZero = balance == 0;        // false
 
 ## ⚙️ Logical Operators
 
-Combine multiple conditions with logical operators:
+Multiple conditions ko combine karne ke liye logical operators use karte hain:
 
-| Operator | Meaning | Example                    |
-|----------|---------|----------------------------|
-| `&&`     | AND     | `x > 0 && x < 100`        |
-| `\|\|`   | OR      | `x == 0 \|\| x > 1000`    |
-| `!`      | NOT     | `!isActive`                |
+| Operator | Matlab | Example                    |
+|----------|--------|-----------------------------|
+| `&&`     | AND    | `x > 0 && x < 100`        |
+| `\|\|`   | OR     | `x == 0 \|\| x > 1000`    |
+| `!`      | NOT    | `!isActive`                |
 
 ### Short-Circuit Evaluation
 
-Solidity evaluates `&&` and `||` using **short-circuit logic**:
+Kya hota hai jab Solidity `&&` aur `||` evaluate karta hai? Ek **short-circuit logic** follow karta hai:
 
-- For `A && B`: if `A` is `false`, `B` is **never evaluated**.
-- For `A || B`: if `A` is `true`, `B` is **never evaluated**.
+- `A && B` ke liye: agar `A` `false` hai, toh `B` **kabhi evaluate hi nahi hoga**.
+- `A || B` ke liye: agar `A` `true` hai, toh `B` **kabhi evaluate hi nahi hoga**.
 
-This matters for gas efficiency. Place the cheapest or most-likely-to-resolve condition first:
+Yeh gas efficiency ke liye matter karta hai. Sabse sasta ya sabse zyada likely resolve hone wala condition pehle rakho — bilkul Swiggy pe pehle "cash hai kya" check karo, phir hi "restaurant open hai kya" ka expensive database call maro:
 
 ```solidity
-// Good: cheap check first, expensive check only if needed
+// Good: sasta check pehle, expensive check tabhi jab zarurat ho
 if (isActive && expensiveCheck()) { ... }
 
-// Wasteful: expensiveCheck() runs even when !isActive
+// Wasteful: expensiveCheck() chalega even jab !isActive ho
 if (expensiveCheck() && isActive) { ... }
 ```
 
@@ -65,25 +65,25 @@ if (expensiveCheck() && isActive) { ... }
 
 ## ⚠️ Solidity-Specific: No Floating Point
 
-Solidity has **no floating point numbers**. There is no `float`, `double`, or `decimal` type. All numbers are integers.
+Solidity mein **floating point numbers hote hi nahi hain**. Koi `float`, `double`, ya `decimal` type available nahi hai. Sab kuch integer hai.
 
-This means **integer division truncates** — it drops the remainder completely:
+Iska matlab: **integer division truncate ho jaata hai** — remainder poora hi drop ho jaata hai:
 
 ```solidity
 uint256 a = 7;
 uint256 b = 2;
-uint256 result = a / b;  // result is 3, NOT 3.5
+uint256 result = a / b;  // result 3 hoga, 3.5 NAHI
 
-uint256 percent = (75 * 100) / 200;  // 37, not 37.5
+uint256 percent = (75 * 100) / 200;  // 37, 37.5 nahi
 ```
 
-**Best practice:** Multiply before dividing to preserve precision:
+**Best practice:** Divide karne se pehle multiply karo, taaki precision bachi rahe:
 
 ```solidity
-// Wrong order — loses precision
-uint256 bad  = (1 / 3) * 300;  // 0! (1/3 = 0 in integer math)
+// Galat order — precision loss
+uint256 bad  = (1 / 3) * 300;  // 0! (integer math mein 1/3 = 0)
 
-// Correct order — multiply first
+// Sahi order — pehle multiply
 uint256 good = (1 * 300) / 3;  // 100
 ```
 
@@ -91,7 +91,7 @@ uint256 good = (1 * 300) / 3;  // 100
 
 ## 🔀 if / else if / else Statements
 
-The most fundamental control flow. The syntax is identical to JavaScript or C:
+Sabse fundamental control flow. Syntax bilkul JavaScript ya C jaisa hai:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -114,21 +114,24 @@ contract GradeChecker {
 }
 ```
 
-**Rules to remember:**
-- Curly braces `{}` are optional for single-line bodies, but always use them — omitting braces is a common source of bugs.
-- Conditions must evaluate to a `bool`. Solidity does **not** treat non-zero integers as truthy (unlike JavaScript or C).
+**Yaad rakhne wale rules:**
+- Curly braces `{}` single-line bodies ke liye optional hain, lekin hamesha use karo — braces skip karna bugs ka common source hai.
+- Conditions ka result `bool` hi hona chahiye. Solidity JavaScript ya C ki tarah non-zero integers ko truthy nahi maanta.
 
 ```solidity
 uint256 x = 1;
-if (x) { }        // COMPILE ERROR — x is not a bool
-if (x != 0) { }   // Correct
+if (x) { }        // COMPILE ERROR — x bool nahi hai
+if (x != 0) { }   // Sahi
 ```
+
+> [!warning]
+> Yeh sabse common mistake hai jo JS devs karte hain shuru mein — `if (x)` likh dete hain expecting ki non-zero truthy chalega. Solidity mein nahi chalega, compiler seedha error dega.
 
 ---
 
 ## ❓ Ternary Operator
 
-A compact way to write a simple `if/else` that returns a value:
+Simple `if/else` ko compact tarike se likhne ka tareeka, jab tumhe seedha value chahiye ho:
 
 ```solidity
 // syntax: condition ? valueIfTrue : valueIfFalse
@@ -137,13 +140,13 @@ uint256 fee = isVIP ? 0 : 100;
 string memory label = (balance > 1000) ? "whale" : "regular";
 ```
 
-Use the ternary for simple assignments. For anything more complex, use a full `if/else` block for readability.
+Simple assignments ke liye ternary use karo. Agar logic thoda complex ho raha hai, toh readability ke liye full `if/else` block use karna better hai.
 
 ---
 
 ## 🔁 for Loops
 
-The `for` loop is the workhorse of Solidity iteration. Syntax:
+`for` loop Solidity mein iteration ka workhorse hai. Syntax:
 
 ```solidity
 for (initialization; condition; update) {
@@ -178,7 +181,7 @@ contract ControlFlow {
                 return int256(i);
             }
         }
-        return -1;  // not found
+        return -1;  // nahi mila
     }
 }
 ```
@@ -186,86 +189,86 @@ contract ControlFlow {
 ### Common Patterns
 
 ```solidity
-// Counting down
+// Countdown
 for (uint256 i = 10; i > 0; i--) {
-    // i goes 10, 9, 8 ... 1
+    // i jaayega 10, 9, 8 ... 1
 }
 
-// Step by 2
+// 2 ke step mein
 for (uint256 i = 0; i < 100; i += 2) {
-    // even numbers only
+    // sirf even numbers
 }
 
-// Cache array length to save gas
+// Gas bachane ke liye array length cache karo
 uint256 len = myArray.length;
 for (uint256 i = 0; i < len; i++) {
-    // reading .length inside the loop re-reads storage each iteration
+    // loop ke andar .length read karna har baar storage se dobara read karta hai
 }
 ```
 
-### Gas Considerations for for Loops
+### for Loops Mein Gas Ka Hisaab
 
-Every iteration costs gas. If your array grows unbounded, a `sumArray()` call that works today may **revert out of gas** next month when the array has 10,000 elements:
+Har iteration gas kharch karta hai. Agar tumhara array unbounded grow karta hai, toh jo `sumArray()` function aaj kaam kar raha hai, agle mahine jab array mein 10,000 elements ho jaayenge, tab **gas khatam hoke revert ho sakta hai**:
 
-- Cache `array.length` outside the loop (avoids repeated storage reads).
-- Prefer `uint256` for loop counters — it matches the EVM's native word size.
-- Avoid writing to storage inside tight loops; accumulate in memory and write once.
+- `array.length` ko loop ke bahar cache karo (bar bar storage read se bachta hai).
+- Loop counters ke liye `uint256` prefer karo — yeh EVM ke native word size se match karta hai.
+- Tight loops ke andar storage mein likhna avoid karo; memory mein accumulate karo aur ek hi baar likho.
 
 ---
 
 ## 🔄 while Loops
 
-Use `while` when you do not know ahead of time how many iterations you need:
+`while` tab use karo jab tumhe pehle se pata na ho kitni baar loop chalega:
 
 ```solidity
 function countDigits(uint256 number) public pure returns (uint256 count) {
     if (number == 0) return 1;
     while (number > 0) {
         count++;
-        number /= 10;  // integer division drops the last digit
+        number /= 10;  // integer division last digit drop kar deta hai
     }
 }
 ```
 
-### Infinite Loop Danger
+### Infinite Loop Ka Khatra
 
-A `while (true)` loop with no exit will consume all gas and revert. Always ensure your exit condition is reachable:
+`while (true)` loop jisme exit hi nahi hai, woh saara gas kha jaayega aur revert ho jaayega. Hamesha confirm karo ki exit condition reachable hai:
 
 ```solidity
-// DANGEROUS — if target never found, runs forever until gas runs out
+// KHATARNAAK — agar target kabhi na mile, hamesha chalega jab tak gas khatam na ho
 while (numbers[i] != target) {
     i++;
 }
 
-// SAFE — add a bounds check
+// SAFE — bounds check add karo
 while (i < numbers.length && numbers[i] != target) {
     i++;
 }
 ```
 
-The Ethereum block gas limit (currently ~30 million gas) acts as an automatic kill switch — the transaction reverts and all state changes are rolled back — but the user still **pays for the gas consumed up to the revert**. Do not rely on the gas limit as a safety net.
+Ethereum block gas limit (currently ~30 million gas) ek automatic kill switch ki tarah kaam karta hai — transaction revert ho jaata hai aur saare state changes wapas roll back ho jaate hain — lekin user ko phir bhi **revert hone tak jitna gas consume hua utna pay karna padta hai**. Gas limit ko safety net samajhkar bharosa mat karo.
 
 ---
 
 ## 🔃 do-while Loops
 
-A `do-while` loop always executes the body **at least once**, then checks the condition:
+`do-while` loop body ko **kam se kam ek baar** zaroor run karta hai, phir condition check karta hai:
 
 ```solidity
 uint256 i = 0;
 do {
     i++;
 } while (i < 5);
-// i is now 5
+// ab i = 5
 ```
 
-In practice, `do-while` is rare in Solidity. Use it when your logic requires one guaranteed execution before the condition check — for example, processing a value before deciding whether to repeat.
+Practically, Solidity mein `do-while` kaafi rare use hota hai. Isko tab use karo jab tumhare logic ko condition check karne se pehle ek guaranteed execution chahiye ho — jaise ek value process karna phir decide karna ki repeat karna hai ya nahi.
 
 ---
 
-## ⏭️ break and continue
+## ⏭️ break aur continue
 
-**`break`** exits the loop immediately:
+**`break`** loop ko turant exit kar deta hai:
 
 ```solidity
 function hasValue(uint256[] memory arr, uint256 target) public pure returns (bool) {
@@ -277,99 +280,99 @@ function hasValue(uint256[] memory arr, uint256 target) public pure returns (boo
     return false;
 }
 
-// Using break explicitly
+// break explicitly use karna
 for (uint256 i = 0; i < arr.length; i++) {
     if (arr[i] == target) {
         found = true;
-        break;  // stop looping, jump past the for block
+        break;  // looping band, seedha for block ke baad jump
     }
 }
 ```
 
-**`continue`** skips the rest of the current iteration and moves to the next one:
+**`continue`** current iteration ka baaki part skip karke agle iteration pe chala jaata hai:
 
 ```solidity
 function sumEvenOnly(uint256[] memory arr) public pure returns (uint256 total) {
     for (uint256 i = 0; i < arr.length; i++) {
         if (arr[i] % 2 != 0) {
-            continue;  // skip odd numbers
+            continue;  // odd numbers skip karo
         }
         total += arr[i];
     }
 }
 ```
 
-Both are useful for keeping loop bodies clean and avoiding deeply nested `if` blocks.
+Dono hi loop bodies ko clean rakhne aur deeply nested `if` blocks se bachne mein useful hain.
 
 ---
 
-## 📋 Loops Over Arrays: Patterns and Best Practices
+## 📋 Arrays Pe Loops: Patterns Aur Best Practices
 
-| Pattern | Use Case | Notes |
-|---------|----------|-------|
-| Simple iteration | Read all elements | Cache `.length`; avoid writes inside loop |
-| Early exit with `return` | Search / find first | Most gas-efficient when match is early |
-| Filter with `continue` | Sum/process subset | Cleaner than nested `if` |
-| Reverse iteration | Safe removal from end | Avoids index shifting issues |
+| Pattern | Kab Use Karein | Notes |
+|---------|-----------------|-------|
+| Simple iteration | Saare elements read karne ke liye | `.length` cache karo; loop ke andar writes avoid karo |
+| `return` se early exit | Search / pehla match dhundhna | Jab match jaldi mil jaaye toh sabse gas-efficient |
+| `continue` se filter | Subset sum/process karna | Nested `if` se cleaner |
+| Reverse iteration | End se safe removal | Index shifting ke issues se bachata hai |
 
 ```solidity
-// Reverse iteration — safe for deleting the last element
+// Reverse iteration — last element delete karne ke liye safe
 for (uint256 i = arr.length; i > 0; i--) {
     uint256 element = arr[i - 1];
-    // process element
+    // element process karo
 }
 ```
 
-**Never modify an array's length while forward-iterating** — it creates off-by-one bugs.
+**Forward-iterate karte waqt array ki length kabhi modify mat karo** — isse off-by-one bugs create hote hain.
 
 ---
 
-## ⛽ Why Long Loops Can Fail: The Block Gas Limit
+## ⛽ Long Loops Kyun Fail Hote Hain: Block Gas Limit
 
-Every Ethereum block has a gas limit (~30 million gas). A single transaction cannot exceed this. If your loop body costs 5,000 gas and your array has 10,000 elements, you need 50 million gas — **impossible in one transaction**.
+Har Ethereum block ka ek gas limit hota hai (~30 million gas). Ek single transaction isse exceed nahi kar sakta. Agar tumhara loop body 5,000 gas kharch karta hai aur array mein 10,000 elements hain, toh tumhe 50 million gas chahiye — **ek transaction mein impossible**.
 
-The transaction reverts. Your users get no result and still pay gas fees. This is a real production failure mode, not a theoretical concern.
+Transaction revert ho jaata hai. Users ko koi result nahi milta aur phir bhi gas fees pay karni padti hai. Yeh ek real production failure mode hai, koi theoretical concern nahi.
 
-**Rule:** Never write an unbounded loop that operates on user-supplied or ever-growing data in a single transaction.
+**Rule:** User-supplied ya hamesha badhte data pe ek hi transaction mein kabhi unbounded loop mat likho.
 
 ---
 
-## 🗺️ The Mapping Iteration Problem
+## 🗺️ Mapping Iteration Problem
 
-Solidity mappings (`mapping(address => uint256)`) are hash tables. Unlike arrays, they have **no internal list of keys**. The EVM stores values at deterministic storage slots but provides no way to enumerate them.
+Solidity mappings (`mapping(address => uint256)`) hash tables hote hain. Arrays ke unlike, inke paas **keys ki koi internal list nahi hoti**. EVM values ko deterministic storage slots mein store karta hai, lekin unko enumerate karne ka koi tareeka provide nahi karta.
 
 ```solidity
 mapping(address => uint256) public balances;
 
-// THIS IS IMPOSSIBLE — you cannot do this natively:
+// YEH IMPOSSIBLE HAI — natively aise nahi kar sakte:
 // for each key in balances { ... }
 ```
 
-Why? Because the mapping only knows how to look up a value by key. It stores nothing about which keys have been used. Asking "give me all keys" is like asking a hash table to reverse-enumerate itself — the information simply is not there.
+Kyun? Kyunki mapping sirf yeh jaanta hai ki ek key se value kaise nikaalna hai. Yeh kuch bhi track nahi karta ki konsi keys use hui hain. "Mujhe saari keys do" poochna aisa hai jaise ek hash table se kaho apne aap ko reverse-enumerate kare — woh information wahan exist hi nahi karti.
 
-**The workaround:** Maintain a separate array of keys alongside the mapping:
+**Workaround:** Mapping ke saath ek alag array maintain karo jisme keys track hon — bilkul Zomato jaise apne restaurants ka mapping (ID → details) rakhta hai, saath hi ek list bhi rakhta hai ki "kaunse restaurant IDs exist karte hain":
 
 ```solidity
 mapping(address => uint256) public balances;
-address[] public holders;   // track who has a balance
+address[] public holders;   // track karo kisne balance rakha hai
 
 function deposit() public payable {
     if (balances[msg.sender] == 0) {
-        holders.push(msg.sender);  // register new holder
+        holders.push(msg.sender);  // naye holder ko register karo
     }
     balances[msg.sender] += msg.value;
 }
 
-// Now you can iterate holders[] and look up balances[holder]
+// Ab holders[] pe iterate karke balances[holder] lookup kar sakte ho
 ```
 
-This pattern adds storage cost per new key but makes iteration possible.
+Is pattern se har new key pe storage cost badhta hai, lekin iteration possible ho jaata hai.
 
 ---
 
-## 📄 Pattern: Pagination / Chunking for Large Datasets
+## 📄 Pattern: Large Datasets Ke Liye Pagination / Chunking
 
-When you need to process more data than fits in one transaction, break it into pages:
+Jab tumhe ek transaction mein fit hone se zyada data process karna ho, toh usko pages mein todo — bilkul jaise Flipkart apna product listing ek saath nahi dikhata, page by page dikhata hai:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -379,52 +382,55 @@ contract PaginatedProcessor {
     address[] public holders;
     mapping(address => uint256) public balances;
 
-    /// @notice Process a slice of holders. Call repeatedly with increasing offset.
-    /// @param offset  Starting index (0 for first page)
-    /// @param limit   Number of items to process per call (e.g. 100)
+    /// @notice holders ka ek slice process karo. Badhte offset ke saath baar baar call karo.
+    /// @param offset  Starting index (pehle page ke liye 0)
+    /// @param limit   Har call mein kitne items process karne hain (jaise 100)
     function processPage(uint256 offset, uint256 limit)
         public
         returns (uint256 processed)
     {
         uint256 end = offset + limit;
         if (end > holders.length) {
-            end = holders.length;  // clamp to actual length
+            end = holders.length;  // actual length tak clamp karo
         }
 
         for (uint256 i = offset; i < end; i++) {
             address holder = holders[i];
-            // do something with balances[holder]
+            // balances[holder] ke saath kuch karo
             processed++;
         }
     }
 
-    /// @notice How many holders exist — caller uses this to know when to stop.
+    /// @notice Kitne holders exist karte hain — caller isse pata karta hai kab rukna hai.
     function totalHolders() public view returns (uint256) {
         return holders.length;
     }
 }
 ```
 
-The caller (a script, a UI, or another contract) calls `processPage(0, 100)`, then `processPage(100, 100)`, and so on until `offset >= totalHolders()`. Each call stays well within the block gas limit.
+Caller (koi script, UI, ya doosra contract) pehle `processPage(0, 100)` call karega, phir `processPage(100, 100)`, aur aise hi tab tak jab tak `offset >= totalHolders()` na ho jaaye. Har call block gas limit ke andar hi rehta hai.
+
+> [!tip]
+> Yeh exact wahi pattern hai jo IRCTC ya kisi bhi bade platform ka "load more" / pagination API use karta hai — ek saath sab kuch fetch mat karo, chunks mein karo.
 
 ---
 
 ## ✅ Key Takeaways
 
-1. **Conditions must be `bool`** — Solidity does not coerce integers to true/false.
-2. **No floating point** — integer division truncates; multiply before dividing to preserve precision.
-3. **Short-circuit evaluation** — put cheap or likely-to-resolve conditions first in `&&` and `||`.
-4. **Every iteration costs gas** — cache `array.length`, avoid storage writes inside loops.
-5. **Unbounded loops fail** — if your array can grow forever, your loop will eventually hit the block gas limit and revert.
-6. **Mappings cannot be iterated natively** — track keys in a parallel array.
-7. **Use pagination** — for large datasets, process in fixed-size chunks across multiple transactions.
-8. **`break` and `continue`** clean up loop logic and can save gas by exiting early.
+1. **Conditions `bool` hone chahiye** — Solidity integers ko true/false mein coerce nahi karta.
+2. **Floating point hota hi nahi** — integer division truncate hoti hai; precision ke liye multiply karo phir divide.
+3. **Short-circuit evaluation** — `&&` aur `||` mein sasta ya likely-to-resolve condition pehle rakho.
+4. **Har iteration gas kharch karta hai** — `array.length` cache karo, loops ke andar storage writes avoid karo.
+5. **Unbounded loops fail hote hain** — agar array hamesha badh sakta hai, toh tumhara loop kabhi na kabhi block gas limit hit karega aur revert hoga.
+6. **Mappings natively iterate nahi ho sakti** — keys ko parallel array mein track karo.
+7. **Pagination use karo** — bade datasets ke liye, multiple transactions mein fixed-size chunks mein process karo.
+8. **`break` aur `continue`** loop logic clean karte hain aur early exit se gas bhi bacha sakte hain.
 
 ---
 
 ## 📝 Quiz
 
-**Question 1:** What does the following expression evaluate to, and why?
+**Question 1:** Yeh expression kya evaluate hoga, aur kyun?
 
 ```solidity
 uint256 result = (1 / 3) * 300;
@@ -433,13 +439,13 @@ uint256 result = (1 / 3) * 300;
 <details>
 <summary>Answer</summary>
 
-`result` is `0`. Integer division happens left-to-right: `1 / 3` evaluates to `0` (truncated), then `0 * 300 = 0`. The fix is to multiply first: `(1 * 300) / 3 = 100`.
+`result` `0` hoga. Integer division left-to-right hoti hai: `1 / 3` evaluate hota hai `0` (truncated), phir `0 * 300 = 0`. Fix yeh hai ki pehle multiply karo: `(1 * 300) / 3 = 100`.
 
 </details>
 
 ---
 
-**Question 2:** You have a `mapping(address => uint256) public scores` with 5,000 entries. You want to find the highest score. What is wrong with the following approach, and how would you fix it?
+**Question 2:** Tumhare paas `mapping(address => uint256) public scores` hai jisme 5,000 entries hain. Tumhe highest score dhundhna hai. Neeche diye approach mein kya galat hai, aur kaise fix karoge?
 
 ```solidity
 function highestScore() public view returns (uint256 max) {
@@ -450,13 +456,13 @@ function highestScore() public view returns (uint256 max) {
 <details>
 <summary>Answer</summary>
 
-Two problems: (1) Mappings have no `.length` property — this will not compile. (2) Even if it did, iterating 5,000 entries may exceed the block gas limit. The fix: maintain a parallel `address[] public participants` array and track the max score off-chain or via a paginated on-chain function that reads `scores[participants[i]]`.
+Do problems hain: (1) Mappings ki koi `.length` property nahi hoti — yeh compile hi nahi hoga. (2) Agar ho bhi jaata, toh 5,000 entries iterate karna block gas limit exceed kar sakta hai. Fix: ek parallel `address[] public participants` array maintain karo aur max score ko off-chain track karo, ya ek paginated on-chain function banao jo `scores[participants[i]]` read kare.
 
 </details>
 
 ---
 
-**Question 3:** Given this loop, under what condition will the transaction revert even if the logic is correct?
+**Question 3:** Neeche diye loop mein, logic sahi hone ke bawajood transaction kis condition mein revert hoga?
 
 ```solidity
 function distributeRewards(address[] memory recipients) public {
@@ -469,7 +475,7 @@ function distributeRewards(address[] memory recipients) public {
 <details>
 <summary>Answer</summary>
 
-If `recipients` is large enough that the total gas consumed exceeds the block gas limit (~30 million gas). Each iteration writes to storage (an expensive operation, ~5,000–20,000 gas per write). With thousands of recipients, the transaction runs out of gas and reverts — all state changes are rolled back and the caller still pays the gas used. Fix: use a paginated approach or process in off-chain batches.
+Agar `recipients` itna bada ho ki total gas consumption block gas limit (~30 million gas) se zyada ho jaaye. Har iteration storage mein write karta hai (ek expensive operation, ~5,000–20,000 gas per write). Hazaaron recipients ke saath, transaction ka gas khatam ho jaata hai aur revert ho jaata hai — saare state changes roll back ho jaate hain aur caller ko phir bhi jitna gas use hua utna pay karna padta hai. Fix: paginated approach use karo ya off-chain batches mein process karo.
 
 </details>
 

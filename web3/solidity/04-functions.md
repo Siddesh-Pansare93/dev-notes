@@ -7,20 +7,20 @@
 
 ## 📖 Introduction
 
-Functions are the backbone of every smart contract. They define what your contract *can do* — from transferring tokens to calculating interest rates to minting NFTs. Unlike JavaScript or Python functions, Solidity functions carry extra metadata that the Ethereum Virtual Machine (EVM) needs: visibility rules, state mutation permissions, and ETH-handling capabilities.
+Functions kisi bhi smart contract ki backbone hoti hain. Yeh define karte hain ki tumhara contract *kya kar sakta hai* — tokens transfer karna ho, interest calculate karna ho, ya NFTs mint karni ho. JavaScript ya Python ke functions se Solidity ke functions thode alag hain — inke saath extra metadata bhi aata hai jo Ethereum Virtual Machine (EVM) ko chahiye hota hai: visibility rules, state mutation permissions, aur ETH handle karne ki capability.
 
-By the end of this chapter you will:
-- Write functions using the full Solidity syntax
-- Choose the right visibility and mutability modifier
-- Handle ETH inside functions
-- Understand special functions like `constructor`, `receive`, and `fallback`
-- Know what a function selector is and why it matters
+Is chapter ke end tak tum:
+- Full Solidity syntax use karke functions likh paoge
+- Sahi visibility aur mutability modifier choose kar paoge
+- Function ke andar ETH handle kar paoge
+- `constructor`, `receive`, aur `fallback` jaise special functions samajh paoge
+- Jaan paoge function selector kya hota hai aur yeh kyun important hai
 
 ---
 
 ## 1. 🧱 Function Syntax
 
-Every Solidity function follows this skeleton:
+Har Solidity function is skeleton ko follow karta hai:
 
 ```solidity
 function functionName(parameterTypes parameterNames)
@@ -32,7 +32,7 @@ function functionName(parameterTypes parameterNames)
 }
 ```
 
-Here is a minimal working example that brings all pieces together:
+Yeh raha ek minimal working example jisme sab pieces ek saath dikhte hain:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -68,17 +68,17 @@ contract FunctionDemo {
 }
 ```
 
-Each keyword is deliberate. Let's break them all down.
+Har keyword yahan soch samajh ke daala gaya hai. Chalo ek ek karke sabko samajhte hain.
 
 ---
 
 ## 2. 👁️ Visibility Modifiers
 
-Visibility controls *who* can call a function. There are four options.
+Visibility control karti hai *kaun* function ko call kar sakta hai. Iske chaar options hote hain.
 
 ### 2.1 `public`
 
-Anyone can call it — external accounts (EOAs), other contracts, or the contract itself.
+Koi bhi ise call kar sakta hai — external accounts (EOAs), doosre contracts, ya khud yeh contract bhi.
 
 ```solidity
 contract Token {
@@ -91,11 +91,11 @@ contract Token {
 }
 ```
 
-> Note: When you mark a *state variable* as `public`, Solidity auto-generates a free getter function for it. Writing `uint256 public totalSupply` is equivalent to also writing `function totalSupply() external view returns (uint256)`.
+> Note: Jab tum kisi *state variable* ko `public` mark karte ho, Solidity automatically uske liye ek free getter function bana deta hai. `uint256 public totalSupply` likhna waise hi hai jaise tum `function totalSupply() external view returns (uint256)` bhi likh rahe ho.
 
 ### 2.2 `private`
 
-Only the defining contract itself can call it. Not even child contracts that inherit from it.
+Sirf wahi contract ise call kar sakta hai jisme yeh define hua hai. Yahan tak ki child contracts jo inherit karte hain woh bhi nahi.
 
 ```solidity
 contract Vault {
@@ -113,11 +113,11 @@ contract Vault {
 }
 ```
 
-Use `private` for internal helper logic that must never be exposed or overridden.
+`private` use karo un internal helper logic ke liye jo kabhi bhi expose ya override nahi hone chahiye.
 
 ### 2.3 `internal`
 
-Callable by the contract itself *and* any contract that inherits from it. This is the default visibility for state variables.
+Contract khud aur uske saare inheriting contracts ise call kar sakte hain. State variables ke liye yeh default visibility hoti hai.
 
 ```solidity
 contract Animal {
@@ -139,11 +139,11 @@ contract Dog is Animal {
 }
 ```
 
-Use `internal` for logic you want child contracts to reuse but not expose publicly.
+`internal` use karo us logic ke liye jo tum chahte ho child contracts reuse karein, par public expose na ho.
 
 ### 2.4 `external`
 
-Only callable from *outside* the contract. Cannot be called internally with a direct call — you'd need `this.functionName()`, which costs extra gas.
+Sirf contract ke *bahar se* hi call kiya ja sakta hai. Andar se direct call nahi kar sakte — uske liye `this.functionName()` use karna padega, jo extra gas kharch karta hai.
 
 ```solidity
 contract Oracle {
@@ -160,9 +160,11 @@ contract Oracle {
 }
 ```
 
-`external` functions are slightly more gas-efficient than `public` for functions that accept large array parameters, because their arguments stay in `calldata` instead of being copied to `memory`.
+`external` functions `public` se thode zyada gas-efficient hote hain jab argument bade arrays ho, kyunki unke arguments `memory` mein copy hone ke bajaye `calldata` mein hi reh jaate hain.
 
 ### Visibility Quick-Reference Table
+
+Socho ye Swiggy ke access levels jaise hain — customer, delivery partner, restaurant, aur internal Swiggy team ka apna access alag alag hota hai.
 
 | Visibility | Same Contract | Derived Contract | Other Contracts | External Wallets |
 |------------|:-------------:|:----------------:|:---------------:|:----------------:|
@@ -171,17 +173,17 @@ contract Oracle {
 | `internal` | Yes           | Yes              | No              | No               |
 | `external` | No*           | No*              | Yes             | Yes              |
 
-*Can be called internally via `this.fn()` — but this costs extra gas.
+*Internally `this.fn()` se call ho sakta hai — par isme extra gas lagta hai.
 
 ---
 
 ## 3. ⚡ State Mutability Modifiers
 
-Mutability controls *what* a function is allowed to do with blockchain state.
+Mutability control karti hai ki function blockchain state ke saath *kya* kar sakta hai.
 
-### 3.1 Default (no keyword)
+### 3.1 Default (koi keyword nahi)
 
-A function with no mutability modifier can read *and* write state. These transactions cost gas.
+Jis function pe koi mutability modifier nahi hoti, woh state ko *read aur write* dono kar sakta hai. Aise transactions gas kharch karte hain.
 
 ```solidity
 contract Counter {
@@ -196,7 +198,7 @@ contract Counter {
 
 ### 3.2 `view`
 
-Promises the function will *only read* state, never modify it. Calling a `view` function externally (off-chain, e.g., from ethers.js) costs zero gas. Calling it from another contract within a transaction costs gas.
+Yeh promise karta hai ki function sirf state *read* karega, kabhi modify nahi karega. Agar tum `view` function ko externally call karo (off-chain, jaise ethers.js se), toh zero gas lagta hai. Par agar isko doosre contract se transaction ke andar call kiya jaaye, toh gas lagta hai.
 
 ```solidity
 contract BankAccount {
@@ -214,11 +216,11 @@ contract BankAccount {
 }
 ```
 
-If you accidentally write to state inside a `view` function, the compiler raises an error.
+Agar tum galti se `view` function ke andar state ko write karne ki koshish karo, compiler error de dega.
 
 ### 3.3 `pure`
 
-Promises the function will *neither read nor write* state. It only works with its own parameters. Like `view`, external `pure` calls are free.
+Yeh promise karta hai ki function *na toh state read karega, na write*. Yeh sirf apne parameters ke saath kaam karta hai. `view` ki tarah, `pure` calls bhi externally free hoti hain.
 
 ```solidity
 contract MathLib {
@@ -238,7 +240,7 @@ contract MathLib {
 
 ### 3.4 `payable`
 
-Allows the function to receive ETH. Without this keyword, sending ETH to a function causes the transaction to revert.
+Isse function ETH receive kar sakta hai. Agar yeh keyword nahi hai, aur koi function ko ETH bhejta hai, toh transaction revert ho jaayega.
 
 ```solidity
 contract CrowdFund {
@@ -257,7 +259,10 @@ contract CrowdFund {
 }
 ```
 
-`msg.value` holds the amount of wei sent with the call — only accessible in `payable` functions.
+`msg.value` mein woh wei amount hota hai jo call ke saath bheja gaya — yeh sirf `payable` functions ke andar hi accessible hota hai.
+
+> [!tip]
+> Socho `payable` ko UPI QR code jaisa — jab tak QR "payment accept karo" ke liye set nahi hai, koi bhi tumhe paise nahi bhej sakta. Waise hi bina `payable` ke function ETH accept nahi karega.
 
 ### Mutability + Visibility Matrix
 
@@ -274,7 +279,7 @@ contract CrowdFund {
 
 ### 4.1 Multiple Return Values
 
-Solidity supports returning multiple values in a single `returns` tuple.
+Solidity ek `returns` tuple mein multiple values return karne deta hai.
 
 ```solidity
 contract Calculator {
@@ -289,7 +294,7 @@ contract Calculator {
 }
 ```
 
-Callers can destructure the result:
+Caller result ko destructure kar sakta hai:
 
 ```solidity
 (uint256 q, uint256 r) = calc.divmod(17, 5);
@@ -298,7 +303,7 @@ Callers can destructure the result:
 
 ### 4.2 Named Return Variables
 
-Naming return variables lets you assign them directly without a `return` statement (implicit return). This is the style used in `calculate()` in the opening example.
+Kya hota hai? Return variables ko naam dene se tum unhe directly assign kar sakte ho bina ek `return` statement likhe (implicit return). Yehi style opening example ke `calculate()` mein use hua tha.
 
 ```solidity
 function minMax(uint256[] memory arr)
@@ -316,17 +321,19 @@ function minMax(uint256[] memory arr)
 }
 ```
 
-You can still use an explicit `return (min, max);` if you prefer — both styles compile.
+Tum chaho toh explicit `return (min, max);` bhi likh sakte ho — dono style compile ho jaate hain.
 
 ### 4.3 `memory` vs `calldata` for Reference Types
 
-When a function receives a reference type (string, bytes, arrays, structs), you must specify where that data lives.
+Jab function koi reference type (string, bytes, arrays, structs) receive karta hai, tumhe batana padta hai ki woh data kahan store hoga.
 
-| Location    | Who sets it       | Mutable? | Gas Cost  | Typical use                    |
-|-------------|-------------------|----------|-----------|-------------------------------|
-| `calldata`  | Caller's payload  | No       | Cheapest  | `external` input params        |
-| `memory`    | EVM allocates     | Yes      | Moderate  | `public`/`internal` params     |
-| `storage`   | Blockchain        | Yes      | Expensive | State variables                |
+Isko Swiggy order ki tarah socho — `calldata` matlab restaurant ka original menu jise tum edit nahi kar sakte (read-only, sirf dekh sakte ho), `memory` matlab tumne menu ki photocopy nikaali hai jisko tum apne hisaab se mark kar sakte ho, aur `storage` matlab Swiggy ke database mein permanently save hone wala order.
+
+| Location    | Kaun set karta hai | Mutable? | Gas Cost  | Typical use                    |
+|-------------|---------------------|----------|-----------|-------------------------------|
+| `calldata`  | Caller ka payload    | No       | Sabse sasta | `external` input params     |
+| `memory`    | EVM allocate karta hai | Yes    | Moderate  | `public`/`internal` params     |
+| `storage`   | Blockchain            | Yes      | Mehenga   | State variables                |
 
 ```solidity
 contract StringDemo {
@@ -351,7 +358,7 @@ contract StringDemo {
 }
 ```
 
-**Rule of thumb:** use `calldata` for `external` functions, `memory` for `public`/`internal`/`private` functions.
+**Rule of thumb:** `external` functions ke liye `calldata` use karo, aur `public`/`internal`/`private` functions ke liye `memory`.
 
 ---
 
@@ -359,7 +366,7 @@ contract StringDemo {
 
 ### 5.1 `constructor()`
 
-Runs exactly once — at deployment. Used to initialise state variables and set up ownership.
+Yeh sirf ek baar chalta hai — deployment ke time. Isse state variables initialise karte hain aur ownership set karte hain.
 
 ```solidity
 contract Owned {
@@ -373,13 +380,13 @@ contract Owned {
 }
 ```
 
-- Takes any parameters the deployer passes during deployment.
-- Does **not** have a visibility modifier (it is implicitly `public` in modern Solidity).
-- Cannot be called again after deployment.
+- Deployer jo bhi parameters deployment ke time pass kare, woh le sakta hai.
+- Iska koi visibility modifier nahi hota (modern Solidity mein yeh implicitly `public` hota hai).
+- Deployment ke baad dobara call nahi ho sakta.
 
 ### 5.2 `receive()`
 
-A special, parameter-less function that handles plain ETH transfers — i.e., calls that send ETH with *no calldata*.
+Ek special, parameter-less function jo plain ETH transfers handle karta hai — matlab jab call ke saath *koi calldata na ho*.
 
 ```solidity
 contract EtherBox {
@@ -394,17 +401,17 @@ contract EtherBox {
 }
 ```
 
-Rules for `receive()`:
-- Must be `external payable`.
+`receive()` ke rules:
+- Isse `external payable` hi hona chahiye.
 - No parameters, no return value.
-- Limited to 2300 gas when triggered by `.transfer()` or `.send()` (enough to log an event, not much else).
+- `.transfer()` ya `.send()` se trigger hone par sirf 2300 gas milta hai (bas ek event log karne jitna, aur zyada kuch nahi).
 
 ### 5.3 `fallback()`
 
-A catch-all triggered when:
-1. ETH is sent with calldata that doesn't match any function, **or**
-2. A function is called that doesn't exist on the contract, **or**
-3. ETH is sent with no calldata and there is *no* `receive()` defined.
+Ek catch-all function jo tab trigger hota hai jab:
+1. ETH calldata ke saath bheja gaya hai jo kisi bhi function se match nahi karta, **ya**
+2. Koi aisa function call kiya gaya jo contract mein exist hi nahi karta, **ya**
+3. ETH bina calldata ke bheja gaya hai aur *koi* `receive()` define nahi hai.
 
 ```solidity
 contract Proxy {
@@ -446,13 +453,14 @@ flowchart TD
     J -- No --> L["Transaction REVERTS"]
 ```
 
-> Plain ETH (no data) hits `receive()` first. Unknown calls or ETH with unrecognised data hit `fallback()`.
+> [!info]
+> Plain ETH (bina data ke) sabse pehle `receive()` ko hit karta hai. Unknown calls ya ETH jiske saath unrecognised data ho, woh `fallback()` ko hit karta hai.
 
 ---
 
 ## 6. 🔄 Function Overloading
 
-Solidity allows multiple functions with the same name as long as their *parameter types* differ. The compiler picks the right one based on the argument types.
+Solidity ek hi naam ke multiple functions allow karta hai, bas unke *parameter types* alag hone chahiye. Compiler argument types dekh ke sahi wala choose kar leta hai — bilkul waise jaise Zomato app pe "search" ek hi button hai par tumne restaurant naam se search kiya ya cuisine se, app internally alag logic chalata hai.
 
 ```solidity
 contract Converter {
@@ -473,15 +481,17 @@ contract Converter {
 }
 ```
 
-Calling `toBytes(42)` invokes the first. Calling `toBytes("hello")` invokes the second. The return type alone cannot distinguish overloads — parameter types must differ.
+`toBytes(42)` call karne se pehla wala invoke hoga. `toBytes("hello")` call karne se doosra wala. Sirf return type se overloads ko distinguish nahi kiya ja sakta — parameter types hi alag hone chahiye.
 
 ---
 
 ## 7. 🔑 Function Selectors
 
-Every public/external function on a contract is identified by its **function selector** — the first 4 bytes of the keccak-256 hash of its *canonical signature*.
+Har public/external function ki apni ek **function selector** hoti hai — uske *canonical signature* ke keccak-256 hash ke pehle 4 bytes.
 
-**Canonical signature** = `functionName(type1,type2,...)` — no spaces, no argument names.
+**Canonical signature** = `functionName(type1,type2,...)` — koi spaces nahi, koi argument names nahi.
+
+Isko soch socho jaise IRCTC PNR number hota hai — ek unique code jisse system turant pehchaan leta hai ki tumhara kaunsa booking/request hai. Waise hi selector se EVM turant pehchaan leta hai ki kaunsa function call karna hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -515,9 +525,9 @@ contract SelectorDemo {
 }
 ```
 
-When your wallet sends a transaction, the first 4 bytes of the `data` field are the selector — that's how the EVM knows which function to route the call to.
+Jab tumhara wallet transaction bhejta hai, `data` field ke pehle 4 bytes hi selector hote hain — isi se EVM ko pata chalta hai ki call kaunse function ko route karni hai.
 
-> You can look up selectors for any function at [4byte.directory](https://www.4byte.directory/).
+> Kisi bhi function ka selector [4byte.directory](https://www.4byte.directory/) pe check kar sakte ho.
 
 ---
 
@@ -525,7 +535,7 @@ When your wallet sends a transaction, the first 4 bytes of the `data` field are 
 
 ### Internal Calls (JUMP opcode)
 
-When a function calls another function *within the same contract* directly by name, the EVM uses a simple `JUMP` instruction. No new execution context is created, no `msg.sender` or `msg.value` changes.
+Jab ek function *usi contract ke andar* doosre function ko naam se directly call karta hai, EVM ek simple `JUMP` instruction use karta hai. Koi naya execution context nahi banta, `msg.sender` ya `msg.value` bhi change nahi hote.
 
 ```solidity
 contract InternalCallDemo {
@@ -543,7 +553,9 @@ contract InternalCallDemo {
 
 ### External Calls (CALL / STATICCALL opcode)
 
-Calling another contract — or calling your own contract via `this.fn()` — creates a new message call. A new execution context starts, `msg.sender` becomes the calling contract's address, and gas is metered separately.
+Doosre contract ko call karna — ya apne khud ke contract ko `this.fn()` se call karna — ek naya message call create karta hai. Naya execution context start hota hai, `msg.sender` calling contract ka address ban jaata hai, aur gas alag se meter hota hai.
+
+Isko aise socho — jaise tum Zomato app se khud order kar rahe ho (internal call, tumhara hi session hai), vs jab Zomato kisi third-party payment gateway (Razorpay/Paytm) ko call karta hai — woh ek naya, separate transaction context hai jisme identity aur risk dono change ho jaate hain.
 
 ```solidity
 interface IOracle {
@@ -575,9 +587,14 @@ contract PriceConsumer {
 | Can call `private`    | Yes                  | No                          |
 | Reentrancy risk       | No                   | Yes — apply checks-effects-interactions |
 
+> [!warning]
+> External calls ke saath hamesha checks-effects-interactions pattern follow karo — pehle apni conditions check karo, phir apni state update karo, aur sabse aakhir mein external call karo. Nahi toh reentrancy attack ho sakta hai (jaise koi malicious contract tumhare withdraw function ko baar baar call karke saara balance nikaal le, isse pehle ki tumhara balance update ho).
+
 ---
 
 ## 9. 🧩 Putting It All Together — Full Example
+
+Ab tak jo bhi seekha, sabko ek saath ek chhote se "bank" contract mein dekhte hain:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -673,57 +690,59 @@ contract SimpleBank {
 }
 ```
 
+Yeh ek chhota sa CRED wallet jaisa system hai — deposit karo, withdraw karo, balance check karo, aur owner ke paas hi emergency access hai.
+
 ---
 
 ## 🗝️ Key Takeaways
 
-1. **Visibility** (`public`, `private`, `internal`, `external`) decides *who* can call a function. Use `external` for interface functions, `internal` for shared helpers, `private` for implementation details.
+1. **Visibility** (`public`, `private`, `internal`, `external`) decide karti hai *kaun* function ko call kar sakta hai. Interface functions ke liye `external` use karo, shared helpers ke liye `internal`, aur implementation details ke liye `private`.
 
-2. **Mutability** (`view`, `pure`, `payable`, or default) describes *what the function is allowed to do*. `view` and `pure` functions are free to call off-chain. `payable` is required to receive ETH.
+2. **Mutability** (`view`, `pure`, `payable`, ya default) batati hai ki *function kya karne ki permission rakhta hai*. `view` aur `pure` functions off-chain call karne pe free hote hain. ETH receive karne ke liye `payable` zaruri hai.
 
-3. **`constructor`** runs once at deploy time. **`receive`** handles plain ETH transfers. **`fallback`** is the catch-all for unknown calls.
+3. **`constructor`** deploy time pe ek baar chalta hai. **`receive`** plain ETH transfers handle karta hai. **`fallback`** unknown calls ke liye catch-all hai.
 
-4. **`calldata`** is read-only and cheaper for `external` function parameters. **`memory`** is mutable and used for `public`/`internal` parameters.
+4. **`calldata`** read-only hai aur `external` function parameters ke liye sasta padta hai. **`memory`** mutable hai aur `public`/`internal` parameters ke liye use hota hai.
 
-5. **Function selectors** are the first 4 bytes of `keccak256(signature)`. The EVM uses them to route every external call.
+5. **Function selectors** `keccak256(signature)` ke pehle 4 bytes hote hain. EVM inhi se har external call ko route karta hai.
 
-6. **Internal calls** are cheap `JUMP` instructions. **External calls** create a new message context, change `msg.sender`, and carry reentrancy risk — always apply checks-effects-interactions.
+6. **Internal calls** sasti `JUMP` instructions hoti hain. **External calls** naya message context banate hain, `msg.sender` change karte hain, aur inme reentrancy risk hota hai — hamesha checks-effects-interactions pattern apply karo.
 
 ---
 
 ## 📝 Quiz
 
-**Q1.** You have a function that computes a Fibonacci number using only its parameter and local variables. What is the correct mutability modifier?
+**Q1.** Tumhare paas ek function hai jo sirf apne parameter aur local variables use karke Fibonacci number calculate karta hai. Sahi mutability modifier kya hoga?
 
 <details>
 <summary>Show answer</summary>
 
-`pure` — no state is read or written.
+`pure` — na koi state read ho rahi hai, na write.
 
 </details>
 
 ---
 
-**Q2.** A user sends 1 ETH directly to your contract address with no transaction data. Your contract defines both `receive()` and `fallback()`. Which function is triggered?
+**Q2.** Ek user tumhare contract address pe seedhe 1 ETH bhejta hai, bina koi transaction data ke. Tumhare contract mein `receive()` aur `fallback()` dono define hain. Kaunsa function trigger hoga?
 
 <details>
 <summary>Show answer</summary>
 
-`receive()` — plain ETH with no calldata always hits `receive()` first when it is defined.
+`receive()` — jab bhi `receive()` define ho, plain ETH (bina calldata ke) hamesha sabse pehle usi ko hit karta hai.
 
 </details>
 
 ---
 
-**Q3.** What are the first 4 bytes of `keccak256("balanceOf(address)")`? (You can compute this in Remix or any Solidity REPL.)
+**Q3.** `keccak256("balanceOf(address)")` ke pehle 4 bytes kya hain? (Remix ya kisi bhi Solidity REPL mein khud calculate kar sakte ho.)
 
 <details>
 <summary>Show answer</summary>
 
-`0x70a08231` — this is the ERC-20 `balanceOf` selector, one of the most common selectors on Ethereum.
+`0x70a08231` — yeh ERC-20 ka `balanceOf` selector hai, Ethereum pe sabse common selectors mein se ek.
 
 </details>
 
 ---
 
-*Next chapter: Modifiers and Error Handling — writing robust, reusable guard logic.*
+*Next chapter: Modifiers and Error Handling — robust, reusable guard logic likhna.*

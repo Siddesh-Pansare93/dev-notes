@@ -1,6 +1,8 @@
 # Database Engineering
 
-A comprehensive guide to database fundamentals, SQL mastery, ORMs, and distributed database systems — for developers who want to go from zero to production-ready with confidence.
+Chalo ek baat clear kar lete hain — chahe tum Node.js backend bana rahe ho ya koi bhi app, agar database sahi se samajh nahi aata, toh der-sabar mushkil hoti hi hai. Yeh guide ek complete package hai — database ke fundamentals se lekar SQL mastery, ORMs (Prisma), aur distributed database systems tak — bilkul zero se production-ready confidence tak.
+
+Socho isko IRCTC ki tarah — pehle basic ticket booking samajhna padta hai (fundamentals), phir seat selection, payment, cancellation ka pura flow (SQL), phir ek slick app banani hai jo yeh sab manage kare (ORM), aur last mein jab crores of users ek saath Tatkal book kar rahe hain toh system girna nahi chahiye (distributed systems). Yehi is guide ka safar hai.
 
 ## Table of Contents
 
@@ -16,7 +18,7 @@ A comprehensive guide to database fundamentals, SQL mastery, ORMs, and distribut
 9. [Database Design](./db-fundamentals/09-database-design.md)
 10. [SQL vs NoSQL](./db-fundamentals/10-sql-vs-nosql.md)
 
-### Part 2: SQL — From Basics to Advanced
+### Part 2: SQL — Basics se Advanced tak
 11. [Introduction to SQL](./sql/01-introduction.md)
 12. [Creating Tables](./sql/02-creating-tables.md)
 13. [DML — Insert, Update, Delete](./sql/03-dml-insert-update-delete.md)
@@ -60,8 +62,10 @@ A comprehensive guide to database fundamentals, SQL mastery, ORMs, and distribut
 
 ## Learning Path
 
+Kaha se shuru karein? Yeh depend karta hai tumhare current level pe. Neeche teen tracks hain — apna waala pick karo.
+
 ### Beginner Track
-Start here if you are new to databases or have never written SQL:
+Agar databases bilkul naye hain tumhare liye, ya kabhi SQL likha hi nahi — yahan se start karo:
 1. What Is a Database (db-fundamentals/01)
 2. The Relational Model (db-fundamentals/03)
 3. ACID Properties (db-fundamentals/05)
@@ -72,7 +76,7 @@ Start here if you are new to databases or have never written SQL:
 8. Joins (sql/06)
 
 ### Intermediate Track
-Build on your SQL foundation and start connecting databases to real applications:
+Ab jab SQL ki foundation ban gayi hai, toh isko real applications se connect karna seekho:
 1. Normalization (db-fundamentals/04)
 2. Indexes (db-fundamentals/06)
 3. Transactions (db-fundamentals/07)
@@ -84,7 +88,7 @@ Build on your SQL foundation and start connecting databases to real applications
 9. Prisma Setup through Migrations (orms/02 — 05)
 
 ### Advanced Track
-Deep dive into production-grade database engineering and distributed systems:
+Yahan hum production-grade database engineering aur distributed systems mein deep dive karte hain — jaise Zomato ya Swiggy scale pe systems kaise chalte hain:
 1. Indexes and Performance (sql/11)
 2. Transactions and Locking (sql/15)
 3. JSON in SQL (sql/13)
@@ -95,29 +99,32 @@ Deep dive into production-grade database engineering and distributed systems:
 8. Cassandra (advanced-dbms/05)
 9. Full Capstone Project (project-social-network/01 — 05)
 
-## What You'll Learn
+## Kya Seekhoge Is Guide Mein?
 
-- How databases work under the hood — storage engines, indexing, and query execution
-- The relational model, normalization, and how to design clean, efficient schemas from scratch
-- Full SQL fluency — from basic selects all the way to window functions, CTEs, triggers, and JSON queries
-- How ACID guarantees and transactions protect your data in concurrent, multi-user applications
-- When and how to reach for NoSQL databases (MongoDB, Redis, Cassandra) alongside relational ones
-- How to use Prisma in a TypeScript project — schema definition, migrations, CRUD operations, and advanced queries
-- Distributed database concepts — sharding strategies, replication patterns, consistency trade-offs, and hot spot avoidance
-- How to apply everything end-to-end on a real-world project: a social network database from requirements gathering through performance optimization
+- Databases andar se kaise kaam karte hain — storage engines, indexing, aur query execution ka pura game
+- Relational model, normalization, aur scratch se clean, efficient schemas design karna
+- Full SQL fluency — basic selects se lekar window functions, CTEs, triggers, aur JSON queries tak
+- ACID guarantees aur transactions kaise tumhara data protect karte hain jab bahut saare users ek saath likh-padh rahe hon (concurrent access)
+- NoSQL databases (MongoDB, Redis, Cassandra) kab aur kaise use karne hain relational ke saath
+- TypeScript project mein Prisma kaise use karte hain — schema define karna, migrations, CRUD operations, aur advanced queries
+- Distributed database concepts — sharding strategies, replication patterns, consistency trade-offs, aur hot spots se kaise bachna hai
+- End-to-end kaise apply karna hai sab kuch — ek real-world social network database project, requirements gathering se lekar performance optimization tak
+
+> [!tip]
+> Yeh sab dry theory nahi hai — har concept ke saath real systems ka example diya gaya hai, jaise UPI transactions ya CRED ka reward system. Isse concept memory mein chipak jaata hai.
 
 ## Prerequisites
 
-- Basic programming knowledge in any language (ORM chapters use TypeScript/Node.js examples)
-- Familiarity with the command line
-- No prior database experience is required for Part 1 and Part 2 — advanced sections in Parts 3 and 4 assume you have worked through the earlier material
+- Kisi bhi language mein basic programming knowledge (ORM chapters TypeScript/Node.js examples use karte hain)
+- Command line se thodi familiarity
+- Part 1 aur Part 2 ke liye koi prior database experience zaruri nahi — lekin Part 3 aur Part 4 ke advanced sections yeh assume karte hain ki tumne pehle waala material cover kar liya hai
 
-## How to Use This Guide
+## Is Guide Ko Kaise Use Karein
 
-1. **Follow the parts in order** — each part builds directly on the previous one; concepts introduced in fundamentals are assumed throughout the SQL and ORM chapters.
-2. **Run every query yourself** — SQL is a hands-on skill; set up a local PostgreSQL instance and type the examples as you go rather than just reading through them.
-3. **Pause at the Key Takeaways** — each chapter ends with a summary and often a short quiz; use them to confirm your understanding before moving on.
-4. **Use the capstone project as a benchmark** — if you can work through all five chapters in `project-social-network/` without looking answers up, you are ready for production database work.
-5. **Revisit the advanced sections when the problems are real** — sharding, replication, and distributed databases land best once you have genuine experience with SQL; come back to Part 4 when you encounter these challenges at work.
+1. **Parts ko order mein follow karo** — har part pichle part pe directly build hota hai; fundamentals mein introduce kiye gaye concepts SQL aur ORM chapters mein assume kiye jaate hain.
+2. **Har query khud run karo** — SQL ek hands-on skill hai, textbook padhke nahi aata. Local PostgreSQL instance setup karo aur examples khud type karo, sirf padhkar aage mat badho.
+3. **Key Takeaways pe ruko** — har chapter ke end mein ek summary hoti hai aur kabhi-kabhi ek chhota quiz bhi. Aage badhne se pehle apni understanding confirm kar lo.
+4. **Capstone project ko benchmark banao** — agar tum `project-social-network/` ke saare paanch chapters bina kahin answers dekhe kar sakte ho, toh samjho production database work ke liye ready ho.
+5. **Advanced sections ko tab revisit karo jab problems real hon** — sharding, replication, aur distributed databases tab best samajh aate hain jab SQL ka genuine experience ho chuka ho. Jab kaam pe yeh challenges saamne aayein, tab Part 4 pe wapas aana.
 
-Good database design is one of the highest-leverage skills a developer can have — the time you invest here will pay dividends in every application you build.
+Good database design ek aisi skill hai jiska ROI sabse zyada hota hai ek developer ke liye — yahan jo time invest karoge, woh har application mein dividends dega jo tum aage banaoge.

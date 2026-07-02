@@ -5,25 +5,25 @@
 
 ---
 
-## 🗂️ What Is the Relational Model?
+## 🗂️ Relational Model Hai Kya?
 
-In 1970, a mathematician named **Edgar F. Codd** published a paper at IBM titled *"A Relational Model of Data for Large Shared Data Banks."* This paper fundamentally changed how we think about storing and querying data — and the ideas it introduced still power almost every major database system you will use today.
+1970 mein, **Edgar F. Codd** naam ke ek mathematician ne IBM mein ek paper publish kiya tha — *"A Relational Model of Data for Large Shared Data Banks."* Yeh paper itna game-changing tha ki aaj bhi jo bhi major database tum use karte ho (Postgres, MySQL, SQL Server) — sab isi idea pe based hai.
 
-Before Codd, databases were navigational: to find a record, you had to follow pointers and links manually, like traversing a linked list. Codd proposed something radically simpler: **organize all data into tables**, and let the database engine figure out how to retrieve it.
+Codd se pehle databases "navigational" hote the — matlab kisi record ko dhundhne ke liye tumhe pointers aur links manually follow karne padte the, bilkul linked list traverse karne jaisa. Codd ne ek simple aur genius idea diya: **saara data tables mein organize karo**, aur retrieve karne ka kaam database engine pe chhod do.
 
-The relational model rests on three core ideas:
+Relational model teen core ideas pe khada hai:
 
-1. **Data is stored in tables** (called *relations* in formal mathematics).
-2. **Each table has a strict structure** — the same columns for every row.
-3. **Tables are linked to each other** through shared values, not physical pointers.
+1. **Data tables mein store hota hai** (formal mathematics mein inhe *relations* kehte hain).
+2. **Har table ka strict structure hota hai** — har row ke liye same columns.
+3. **Tables ek dusre se linked hote hain** shared values ke through, physical pointers ke through nahi.
 
-That is the entire foundation. Everything else — joins, constraints, indexes, normalization — is built on top of these three ideas.
+Bas itna hi foundation hai. Baaki sab kuch — joins, constraints, indexes, normalization — isi teen idea ke upar bana hai.
 
 ---
 
-## 📋 Tables (Relations): Rows and Columns
+## 📋 Tables (Relations): Rows aur Columns
 
-A **table** is the fundamental unit of storage in a relational database. Think of it as a spreadsheet, but with strict rules about what each column can contain.
+**Table** relational database ka fundamental storage unit hai. Isko ek spreadsheet jaisa socho, bas har column mein kya aa sakta hai uske strict rules hote hain.
 
 ```
 +----+-------------------+-----+
@@ -35,33 +35,33 @@ A **table** is the fundamental unit of storage in a relational database. Think o
 +----+-------------------+-----+
 ```
 
-This table has:
+Is table mein hai:
 - **3 columns**: `id`, `email`, `age`
-- **3 rows**: one for Alice, one for Bob, one for Carol
+- **3 rows**: ek Alice ke liye, ek Bob ke liye, ek Carol ke liye
 
 ### Rows = Records = Tuples
 
-A **row** (also called a *record* or formally a *tuple*) represents one single entity in the table. In the example above, each row is one user. Every row must conform to the column structure — you cannot have a row with a missing column or an extra column that others do not have.
+**Row** (jise *record* ya formally *tuple* bhi kehte hain) table mein ek single entity represent karta hai. Upar wale example mein, har row ek user hai. Har row ko column structure follow karna hi padega — tum kisi row mein column miss nahi kar sakte, na hi extra column daal sakte ho jo baaki rows mein nahi hai.
 
 ### Columns = Fields = Attributes
 
-A **column** (also called a *field* or formally an *attribute*) represents a single property shared across all rows. In the users table, every row has an `id`, an `email`, and an `age` — those are the columns.
+**Column** (jise *field* ya formally *attribute* bhi kehte hain) ek single property represent karta hai jo saari rows mein common hota hai. Users table mein, har row ka ek `id`, ek `email`, aur ek `age` hota hai — yehi columns hain.
 
-Columns also carry a **data type** — more on that in the Domain section below.
+Columns ka apna **data type** bhi hota hai — iske baare mein niche Domain section mein baat karenge.
 
 ---
 
 ## 🔑 Primary Key (PK)
 
-A **primary key** is one or more columns whose values **uniquely identify each row** in a table. No two rows can share the same primary key value, and a primary key column can never be NULL.
+**Primary key** ek ya zyada columns hote hain jinki value se **har row uniquely identify** hoti hai. Do rows kabhi same primary key value share nahi kar sakte, aur primary key column kabhi NULL nahi ho sakta.
 
-Think of it as the "address" of a row — if you know the primary key value, you can find exactly one row.
+Isko row ka "address" samjho — agar tumhe primary key value pata hai, to tum exactly ek row dhundh sakte ho. Bilkul Aadhaar number jaisa — do log same Aadhaar number share nahi kar sakte.
 
-### Types of Primary Keys
+### Primary Key ke Types
 
 #### 1. Surrogate Key (Auto-Increment ID)
 
-A surrogate key is an artificial identifier generated by the database. It has no real-world meaning — its only purpose is to be unique.
+Surrogate key ek artificial identifier hota hai jo database khud generate karta hai. Iska real-world mein koi matlab nahi hota — iska bas ek kaam hai: unique hona.
 
 ```sql
 -- PostgreSQL: SERIAL or GENERATED ALWAYS AS IDENTITY
@@ -91,11 +91,12 @@ CREATE TABLE users (
 -- Older Oracle (pre-12c) uses a SEQUENCE object separately
 ```
 
-> **Note on syntax differences:** The concept is identical across all databases — auto-generate a unique number for each new row — but each vendor has its own keyword for doing so. `SERIAL`, `AUTO_INCREMENT`, `IDENTITY`, and `GENERATED AS IDENTITY` all mean the same thing.
+> [!info]
+> **Syntax differences pe note:** Concept sabme same hai — har naye row ke liye automatically ek unique number generate karo — bas har vendor ka apna keyword hai. `SERIAL`, `AUTO_INCREMENT`, `IDENTITY`, aur `GENERATED AS IDENTITY` — sab ek hi cheez hain, bas naam alag-alag.
 
 #### 2. Natural Key
 
-A natural key is a real-world value that is already unique. Email addresses are a classic example.
+Natural key ek real-world value hoti hai jo already unique hoti hai. Email address iska classic example hai.
 
 ```sql
 CREATE TABLE users (
@@ -104,11 +105,11 @@ CREATE TABLE users (
 );
 ```
 
-Natural keys have one big risk: real-world uniqueness can fail. A user might change their email, or two people might share a phone number. For this reason, surrogate keys are preferred in most production systems.
+Natural keys mein ek bada risk hai: real-world uniqueness fail ho sakti hai. User apna email change kar sakta hai, ya do logo ka phone number same ho sakta hai. Isi wajah se, production systems mein zyada tar surrogate keys hi prefer ki jaati hain.
 
 #### 3. Composite Key
 
-A composite primary key uses **two or more columns together** to form a unique identifier. Neither column alone needs to be unique — only the combination.
+Composite primary key mein **do ya zyada columns milke** ek unique identifier banate hain. Akela koi column unique hone ki zarurat nahi — sirf combination unique honi chahiye.
 
 ```sql
 CREATE TABLE order_items (
@@ -119,13 +120,13 @@ CREATE TABLE order_items (
 );
 ```
 
-Here, the same `order_id` can appear many times (one order has many products), and the same `product_id` can appear many times (the same product on many orders). But a single order can only contain each product once — so the pair `(order_id, product_id)` is unique.
+Socho Swiggy ka order — ek `order_id` mein multiple `product_id` aa sakte hain (ek order mein kayi items), aur ek `product_id` multiple `order_id` mein aa sakta hai (same item alag-alag orders mein). Lekin ek order mein wahi product do baar nahi aa sakta — isliye `(order_id, product_id)` ka pair unique hai.
 
 ---
 
-## 🔗 Foreign Key (FK) and Referential Integrity
+## 🔗 Foreign Key (FK) aur Referential Integrity
 
-A **foreign key** is a column in one table whose values must match a primary key value in another table. It is the mechanism that *links tables together*.
+**Foreign key** ek column hai jiski values dusre table ke primary key values se match karni chahiye. Yehi mechanism hai jo *tables ko aapas mein link* karta hai.
 
 ```sql
 CREATE TABLE users (
@@ -141,16 +142,18 @@ CREATE TABLE posts (
 );
 ```
 
-In this example, `posts.user_id` is a foreign key that references `users.id`. Every post must belong to a user that actually exists in the `users` table.
+Is example mein, `posts.user_id` ek foreign key hai jo `users.id` ko reference karta hai. Har post kisi na kisi aise user ka hona chahiye jo `users` table mein actually exist karta ho.
 
 ### Referential Integrity
 
-**Referential integrity** is the guarantee that a foreign key value always points to a real, existing row. The database enforces this automatically:
+**Referential integrity** ek guarantee hai ki foreign key value hamesha ek real, existing row ko point karegi. Database yeh automatically enforce karta hai:
 
-- You **cannot insert** a post with `user_id = 99` if no user with `id = 99` exists.
-- You **cannot delete** a user if that user has posts pointing to them — unless you configure what to do in that case.
+- Tum ek post **insert nahi kar sakte** `user_id = 99` ke saath, agar `id = 99` wala koi user exist hi nahi karta.
+- Tum ek user **delete nahi kar sakte** agar uske posts uspe point kar rahe hain — jab tak tum yeh configure na karo ki us case mein kya karna hai.
 
-You can configure the behavior when a referenced row is deleted or updated:
+Socho jaise Zomato pe ek restaurant delete ho jaaye lekin uske orders history mein still reference ho — system usko allow nahi karega jab tak proper cleanup rule na ho.
+
+Tum configure kar sakte ho ki referenced row delete ya update hone pe kya hoga:
 
 ```sql
 CREATE TABLE posts (
@@ -165,16 +168,16 @@ CREATE TABLE posts (
 Common `ON DELETE` options:
 | Option | Behavior |
 |---|---|
-| `CASCADE` | Delete child rows automatically |
-| `SET NULL` | Set the FK column to NULL |
-| `RESTRICT` | Prevent deletion (error) |
-| `NO ACTION` | Same as RESTRICT (default in most databases) |
+| `CASCADE` | Child rows ko automatically delete kar deta hai |
+| `SET NULL` | FK column ko NULL set kar deta hai |
+| `RESTRICT` | Deletion prevent karta hai (error deta hai) |
+| `NO ACTION` | RESTRICT jaisa hi (zyada tar databases mein default) |
 
 ---
 
 ## 📐 Table Relationship Diagram
 
-Here is a visual representation of a `users` table linked to a `posts` table via a foreign key:
+Yeh raha ek visual representation — `users` table `posts` table se foreign key ke through linked hai:
 
 ```mermaid
 erDiagram
@@ -197,20 +200,20 @@ erDiagram
     USERS ||--o{ POSTS : "writes"
 ```
 
-**Reading the diagram:**
-- `||` means "exactly one" (one user)
-- `o{` means "zero or more" (a user can have zero or many posts)
-- The arrow reads: one user **writes** zero or more posts
+**Diagram kaise padhein:**
+- `||` matlab "exactly one" (ek user)
+- `o{` matlab "zero or more" (ek user ke zero ya kayi posts ho sakte hain)
+- Arrow padho: ek user **writes** zero ya zyada posts
 
 ---
 
 ## 🚫 Constraints
 
-Constraints are rules enforced by the database on the data in a column. They prevent invalid data from ever entering the table.
+Constraints woh rules hain jo database column ke data pe enforce karta hai. Yeh galat data ko table mein aane se pehle hi rok dete hain.
 
 ### UNIQUE Constraint
 
-Guarantees that no two rows have the same value in a column (or combination of columns).
+Guarantee deta hai ki kisi column (ya columns ke combination) mein do rows same value na rakhe.
 
 ```sql
 CREATE TABLE users (
@@ -219,11 +222,11 @@ CREATE TABLE users (
 );
 ```
 
-Unlike a primary key, a UNIQUE column **can** contain NULL (in most databases). NULL is considered "unknown" and two unknowns are not considered duplicates.
+Primary key ke unlike, UNIQUE column mein NULL **aa sakta hai** (zyada tar databases mein). NULL ko "unknown" mana jaata hai, aur do unknowns ko duplicate nahi maana jaata.
 
 ### NOT NULL Constraint
 
-Guarantees that a column always has a value — it can never be left empty.
+Guarantee deta hai ki column mein hamesha koi value ho — kabhi khaali nahi chhoda ja sakta.
 
 ```sql
 CREATE TABLE users (
@@ -233,11 +236,11 @@ CREATE TABLE users (
 );
 ```
 
-If you try to insert a row without providing `full_name`, the database will reject it with an error.
+Agar tum `full_name` diye bina row insert karne ki koshish karte ho, database usko error de ke reject kar dega.
 
 ### CHECK Constraint
 
-Allows you to define a custom rule using any boolean expression.
+Yeh tumhe koi bhi boolean expression use karke custom rule define karne deta hai.
 
 ```sql
 CREATE TABLE users (
@@ -253,11 +256,11 @@ CREATE TABLE products (
 );
 ```
 
-The database evaluates the CHECK expression on every INSERT and UPDATE. If it returns false, the operation is rejected.
+Database har INSERT aur UPDATE pe CHECK expression evaluate karta hai. Agar woh false return kare, to operation reject ho jaata hai.
 
 ### DEFAULT Values
 
-A DEFAULT value is used automatically when no value is provided for that column during INSERT.
+Agar INSERT ke time koi column ke liye value nahi di gayi, to DEFAULT value automatically use ho jaati hai.
 
 ```sql
 CREATE TABLE users (
@@ -269,36 +272,36 @@ CREATE TABLE users (
 );
 ```
 
-Now if you run:
+Ab agar tum yeh run karo:
 ```sql
 INSERT INTO users (email) VALUES ('alice@example.com');
 ```
 
-The database automatically fills in `role = 'viewer'`, `is_active = true`, and `created_at = <now>` without you having to specify them.
+Database automatically `role = 'viewer'`, `is_active = true`, aur `created_at = <now>` fill kar dega — tumhe yeh specify karne ki zarurat nahi.
 
 ---
 
 ## ⚡ Indexes (Preview)
 
-An **index** is a separate data structure the database maintains alongside your table to make lookups faster. Think of it like the index at the back of a textbook — instead of reading every page to find "referential integrity," you jump directly to the page number listed in the index.
+**Index** ek alag data structure hai jo database tumhare table ke saath maintain karta hai taaki lookups fast ho sakein. Bilkul textbook ke peeche wale index jaisa — "referential integrity" dhundhne ke liye har page padhne ke bajaye, tum seedha index mein diye gaye page number pe jump kar jaate ho.
 
 ```sql
 -- Create an index on the email column of users
 CREATE INDEX idx_users_email ON users (email);
 ```
 
-Without an index on `email`, finding a user by email requires scanning every single row. With an index, the database can jump directly to matching rows.
+`email` pe index ke bina, kisi user ko email se dhundhne ke liye har single row scan karni padegi. Index ke saath, database seedha matching rows pe jump kar sakta hai.
 
-**Key things to know now (details in a later chapter):**
-- Primary keys are **automatically indexed** by every major database.
-- Indexes **speed up reads** (SELECT, JOIN, WHERE) but **slow down writes** (INSERT, UPDATE, DELETE) because the index must be updated too.
-- Do not add indexes blindly — they use disk space and have a maintenance cost.
+**Abhi ke liye yeh jaan lo (details agle chapter mein):**
+- Primary keys **automatically indexed** hote hain har major database mein.
+- Indexes **reads ko fast** karte hain (SELECT, JOIN, WHERE) lekin **writes ko slow** karte hain (INSERT, UPDATE, DELETE) kyunki index bhi update karna padta hai.
+- Blindly indexes mat add karo — yeh disk space use karte hain aur inka maintenance cost hota hai.
 
 ---
 
-## 🧮 Domain: Allowed Values for a Column
+## 🧮 Domain: Column ke Allowed Values
 
-In formal relational theory, a **domain** is the set of all valid values a column can hold. In practice, domains are expressed through **data types**.
+Formal relational theory mein, **domain** un saari valid values ka set hota hai jo ek column hold kar sakta hai. Practice mein, domains **data types** ke through express hote hain.
 
 ```sql
 CREATE TABLE products (
@@ -322,17 +325,18 @@ Common data types across databases:
 | Boolean | `BOOLEAN` | `TINYINT(1)` | `BIT` |
 | UUID | `UUID` | `CHAR(36)` | `UNIQUEIDENTIFIER` |
 
-> **Note:** MySQL does not have a native BOOLEAN type — it uses `TINYINT(1)` where 0 = false and 1 = true. SQL Server uses `BIT` for the same purpose.
+> [!warning]
+> MySQL mein native BOOLEAN type nahi hota — woh `TINYINT(1)` use karta hai jahan 0 = false aur 1 = true. SQL Server isi purpose ke liye `BIT` use karta hai.
 
-Choosing the right data type is important: it enforces the domain (the database will reject a string in an INT column), it controls storage size, and it affects how comparisons and sorting work.
+Sahi data type choose karna important hai: yeh domain enforce karta hai (database INT column mein string aane pe reject kar dega), storage size control karta hai, aur comparisons aur sorting ke behavior ko affect karta hai.
 
 ---
 
-## 🏗️ Schema: The Structure Definition
+## 🏗️ Schema: Structure ki Definition
 
-A **schema** is the complete structural definition of your database — all the tables, their columns, data types, constraints, relationships, and indexes, but **no actual data**.
+**Schema** tumhare database ki complete structural definition hoti hai — saare tables, unke columns, data types, constraints, relationships, aur indexes, lekin **koi actual data nahi**.
 
-Think of the schema as the blueprint of a building. The blueprint defines the rooms and their sizes, but it is not the building itself.
+Schema ko building ka blueprint samjho. Blueprint rooms aur unke sizes define karta hai, lekin woh khud building nahi hai.
 
 ```sql
 -- This is a schema (structure, no data)
@@ -356,13 +360,13 @@ CREATE TABLE posts (
 CREATE INDEX idx_posts_user_id ON posts (user_id);
 ```
 
-In PostgreSQL and SQL Server, "schema" also has a second meaning: a named namespace inside a database (like `public.users` or `dbo.users`). When people say "database schema" in conversation, they almost always mean the first meaning — the structural definition.
+PostgreSQL aur SQL Server mein, "schema" ka ek second meaning bhi hota hai: database ke andar ek named namespace (jaise `public.users` ya `dbo.users`). Jab log conversation mein "database schema" bolte hain, to zyada tar pehle wale meaning ki hi baat kar rahe hote hain — structural definition.
 
 ---
 
-## 💻 How the Relational Model Maps to Real Code
+## 💻 Relational Model Real Code Mein Kaise Map Hota Hai
 
-When you use an ORM (Object-Relational Mapper) like Prisma, SQLAlchemy, ActiveRecord, or Hibernate, you are writing code that generates and interacts with this relational model.
+Jab tum koi ORM (Object-Relational Mapper) jaise Prisma, SQLAlchemy, ActiveRecord, ya Hibernate use karte ho, to tum aisa code likh rahe ho jo isi relational model ko generate aur usse interact karta hai.
 
 **Prisma (Node.js/TypeScript):**
 ```typescript
@@ -411,55 +415,55 @@ class Post(Base):
     user = relationship("User", back_populates="posts")
 ```
 
-Notice the 1-to-1 mapping: every concept from the relational model — primary key, foreign key, unique, not null, default — has a direct counterpart in the ORM code. The ORM translates your class definitions into the SQL `CREATE TABLE` statements shown throughout this chapter.
+Dekho, yeh 1-to-1 mapping hai: relational model ka har concept — primary key, foreign key, unique, not null, default — ka ORM code mein direct counterpart hai. ORM tumhare class definitions ko waise hi SQL `CREATE TABLE` statements mein translate kar deta hai jaise is chapter mein dikhaye gaye hain. Matlab, Prisma ya SQLAlchemy koi jaadu nahi kar rahe — bas wahi relational concepts ko developer-friendly syntax mein wrap kar rahe hain.
 
 ---
 
 ## 🎯 Key Takeaways
 
-- The relational model, invented by E.F. Codd in 1970, organizes data into **tables** made of **rows** and **columns**.
-- A **primary key** uniquely identifies each row. It can be surrogate (auto-generated), natural (real-world value), or composite (multiple columns).
-- A **foreign key** links one table to another and **referential integrity** ensures the link always points to a real row.
-- **Constraints** (UNIQUE, NOT NULL, CHECK, DEFAULT) are rules enforced by the database — they are your first line of defense against bad data.
-- A **domain** defines what values are allowed in a column; in SQL this is expressed through data types.
-- A **schema** is the structure of your database — the blueprint with no data in it.
-- **Indexes** speed up reads at the cost of slower writes; primary keys are always indexed automatically.
-- Every concept in the relational model maps directly to ORM code — ORMs are just an abstraction layer on top of these fundamentals.
+- Relational model, jo E.F. Codd ne 1970 mein invent kiya, data ko **tables** mein organize karta hai jo **rows** aur **columns** se bane hote hain.
+- **Primary key** har row ko uniquely identify karta hai. Yeh surrogate (auto-generated), natural (real-world value), ya composite (multiple columns) ho sakta hai.
+- **Foreign key** ek table ko dusre se link karta hai, aur **referential integrity** guarantee karti hai ki link hamesha ek real row ko point kare.
+- **Constraints** (UNIQUE, NOT NULL, CHECK, DEFAULT) database ke enforce kiye hue rules hain — yeh bad data ke against tumhari pehli defense line hain.
+- **Domain** define karta hai ki column mein kaunsi values allowed hain; SQL mein yeh data types ke through express hota hai.
+- **Schema** tumhare database ka structure hai — bina data ka blueprint.
+- **Indexes** reads ko fast karte hain lekin writes thodi slow ho jaati hain; primary keys hamesha automatically indexed hote hain.
+- Relational model ka har concept directly ORM code mein map hota hai — ORMs bas in fundamentals ke upar ek abstraction layer hain.
 
 ---
 
 ## 🧩 Quiz
 
-Test your understanding before moving to the next chapter.
+Agle chapter pe jaane se pehle apni understanding test karo.
 
-**Question 1:** You are designing a table for airport flight routes. Each route goes from one airport to another, and the combination of `departure_airport_code` and `arrival_airport_code` must be unique. What type of primary key would you use, and why?
+**Question 1:** Tum airport flight routes ke liye ek table design kar rahe ho. Har route ek airport se dusre airport tak jaata hai, aur `departure_airport_code` aur `arrival_airport_code` ka combination unique hona chahiye. Kaunsa type ka primary key use karoge, aur kyun?
 
 <details>
 <summary>Show Answer</summary>
 
-A **composite primary key** on `(departure_airport_code, arrival_airport_code)`. Neither column alone is unique — an airport can have many departures and many arrivals — but the same pair of airports cannot define two different routes in the same direction.
+Ek **composite primary key** on `(departure_airport_code, arrival_airport_code)`. Akela koi column unique nahi hai — ek airport ke kayi departures aur kayi arrivals ho sakte hain — lekin airports ka wahi pair usi direction mein do alag routes define nahi kar sakta.
 
 </details>
 
 ---
 
-**Question 2:** You delete a user from the `users` table. Their posts still exist in the `posts` table with `user_id` pointing to the now-deleted user. What database concept has been violated, and how could you have prevented it?
+**Question 2:** Tum `users` table se ek user delete karte ho. Uske posts abhi bhi `posts` table mein exist karte hain, `user_id` us ab-delete-ho-chuke user ko point kar raha hai. Yahan kaunsa database concept violate hua hai, aur tum isko kaise prevent kar sakte the?
 
 <details>
 <summary>Show Answer</summary>
 
-**Referential integrity** has been violated — the foreign key `posts.user_id` now points to a row that no longer exists (a "dangling reference"). You could prevent this by defining `ON DELETE CASCADE` on the foreign key (which would delete the posts automatically) or `ON DELETE RESTRICT` (which would prevent deleting the user while posts exist).
+**Referential integrity** violate hui hai — foreign key `posts.user_id` ab ek aisi row ko point kar raha hai jo exist hi nahi karti (isko "dangling reference" kehte hain). Tum isko `ON DELETE CASCADE` define karke prevent kar sakte the (jo posts ko automatically delete kar deta) ya `ON DELETE RESTRICT` se (jo user ko delete hone se rok deta jab tak posts exist karte hain).
 
 </details>
 
 ---
 
-**Question 3:** What is the difference between a PRIMARY KEY constraint and a UNIQUE constraint? Name one way they behave differently.
+**Question 3:** PRIMARY KEY constraint aur UNIQUE constraint mein kya difference hai? Ek tareeka batao jisme unka behavior alag hota hai.
 
 <details>
 <summary>Show Answer</summary>
 
-A **PRIMARY KEY** must be unique AND cannot be NULL. A **UNIQUE** constraint must be unique but **can** contain NULL values (and in most databases, multiple NULL values are allowed in a UNIQUE column, because NULL is considered "unknown" and no two unknowns are considered equal). Additionally, a table can have only one PRIMARY KEY but can have many UNIQUE constraints.
+Ek **PRIMARY KEY** unique hona chahiye AUR NULL nahi ho sakta. Ek **UNIQUE** constraint unique hona chahiye lekin usme NULL values **aa sakti hain** (aur zyada tar databases mein, UNIQUE column mein multiple NULL values allowed hain, kyunki NULL ko "unknown" maana jaata hai aur do unknowns ko equal nahi maana jaata). Iske alawa, ek table mein sirf ek hi PRIMARY KEY ho sakta hai lekin kayi UNIQUE constraints ho sakte hain.
 
 </details>
 

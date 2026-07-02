@@ -1,17 +1,13 @@
----
-tags: [security, production, audit, logging, compliance, soc2, gdpr, hipaa]
-aliases: [Audit Logging, Compliance Logging, Security Audit, AuthenticationEventPublisher]
-stage: advanced
----
-
 # Audit Logging and Compliance
 
-> [!info] For the Express/TS dev
-> In Express you log auth events with `winston` and a custom middleware. Spring Security has built-in event publishers (`AuthenticationEventPublisher`, `AuthorizationEventPublisher`) that fire structured events you just need to subscribe to. This note covers the full stack: event capture → structured storage → tamper-evidence → compliance.
+> [!info] Express/TS wale dev ke liye
+> Express mein tum auth events ko `winston` aur ek custom middleware se log karte ho — sab kuch manual hai, tumhe khud decide karna padta hai kahan pe `logger.info()` maarna hai. Spring Security mein built-in event publishers hote hain (`AuthenticationEventPublisher`, `AuthorizationEventPublisher`) jo structured events fire karte hain, tumhe bas unhe subscribe karna hai. Ye note poora pipeline cover karta hai: event capture → structured storage → tamper-evidence → compliance.
 
-## Concept / mental model
+## Concept / Mental Model
 
-### What to audit — the minimum viable audit log
+### Audit kya karna hai — minimum viable audit log
+
+Socho tum Zomato ke backend engineer ho. Ek din CEO puchta hai — "kal raat 2 baje kisi ne ek customer ka refund kyun approve kiya?" Agar tumhare paas audit log nahi hai, toh tumhare paas iska koi jawab nahi hai. Ye exactly wahi gap hai jo audit logging fill karta hai — **kisne, kya, kab, kahan se, kyun kiya** — sab kuch traceable hona chahiye.
 
 | Category | Events |
 |---|---|
@@ -22,13 +18,15 @@ stage: advanced
 | **Security events** | Suspicious patterns (many failed logins), IP blocklist hits, certificate changes |
 
 > [!tip]
-> Log *what was attempted*, not just what succeeded. A stream of 500 failed login attempts for the same user is critical context — even if no breach occurred.
+> *Jo attempt hua usko* log karo, sirf *jo success hua* usko nahi. Ek hi user ke liye 500 failed login attempts ka stream critical context hai — chahe breach hua ho ya nahi. Ye waisa hi hai jaise Paytm ka fraud detection system — agar koi ek account pe 500 baar wrong OTP try kar raha hai, toh chahe woh sab fail ho gaye ho, tumhe pata chalna chahiye ki kuch gadbad ho rahi hai.
 
 ---
 
-## Code examples
+## Code Examples
 
 ### Spring Security event publishers
+
+Kya hota hai? Spring Security internally authentication aur authorization ke har step pe events fire karta hai. Tumhe bas `@EventListener` laga ke sunna hai — jaise Node.js mein EventEmitter pe `.on()` lagate ho, waise hi yahan.
 
 ```java
 @Component
@@ -98,9 +96,11 @@ public class SecurityEventListener {
 ```
 
 > [!warning]
-> `AuthorizationDeniedEvent` is available from Spring Security 6.3+. For earlier versions, use `ApplicationEventPublisher` to manually publish events from your `PermissionEvaluator` or `@PreAuthorize` deny paths.
+> `AuthorizationDeniedEvent` Spring Security 6.3+ se available hai. Purane versions mein, apne `PermissionEvaluator` ya `@PreAuthorize` ke deny path se manually `ApplicationEventPublisher` use karke event publish karo.
 
-### Audit event table — append-only with hash chain
+### Audit event table — append-only, hash chain ke saath
+
+Kyun zaruri hai? Agar koi attacker (ya khud tumhara disgruntled admin) database mein ghus jaaye aur audit records edit ya delete kar de, toh poora audit trail bekaar ho jaata hai. Isliye hum table ko **append-only** banate hain aur ek **hash chain** lagate hain — bilkul blockchain jaisa concept, jahan har row ka hash pichhle row ke hash pe depend karta hai. Isse koi bhi row beech mein change karega toh chain toot jaayegi.
 
 ```sql
 CREATE TABLE audit_events (
@@ -135,9 +135,11 @@ REVOKE UPDATE, DELETE ON audit_events FROM app_user;
 ```
 
 > [!tip]
-> The hash chain means tampering with row N breaks the hash of row N+1, N+2, ... A daily job can verify chain integrity and alert. This is not a full cryptographic audit trail (an attacker who owns the DB can rebuild the chain) but it prevents casual tampering and satisfies many compliance auditors.
+> Hash chain ka matlab hai — row N ke saath chhedkhaani karogi toh row N+1, N+2, ... sabka hash bigad jaayega. Ek daily job chain integrity verify kar sakta hai aur alert bhej sakta hai. Ye ek full cryptographic audit trail nahi hai (jo attacker poora DB hi control karta hai woh chain rebuild kar sakta hai), lekin casual tampering rok deta hai aur zyadatar compliance auditors ko satisfy kar deta hai.
 
 ### Structured audit log format — who/what/when/where/why/result
+
+Kya hota hai? Ye entity ek "template" hai jo har audit event ko same structure mein rakhta hai — jaise IRCTC ke ticket booking system mein har transaction ka ek fixed format hota hai (PNR, kisne book kiya, kab, kitne paise).
 
 ```java
 @Entity
@@ -186,7 +188,7 @@ public class AuditEvent {
 }
 ```
 
-### Programmatic audit in service methods
+### Service methods ke andar programmatic audit
 
 ```java
 @Service
@@ -223,16 +225,16 @@ public class OrderService {
 ```
 
 > [!warning]
-> Write audit events in the *same transaction* as the business operation. If you audit in a separate transaction and the business operation rolls back, you get a false audit record of an action that didn't happen. Conversely, if the audit insert fails, you want the business operation to also roll back.
+> Audit event ko *usi transaction* mein likho jisme business operation ho raha hai. Agar tum audit ko alag transaction mein karte ho aur business operation rollback ho jaaye, toh tumhare paas ek galat audit record reh jaayega ki ek action hua jo actually hua hi nahi. Ulta bhi sach hai — agar audit insert fail hota hai, toh tum chahte ho ki business operation bhi rollback ho jaaye. Socho Swiggy ka order approve hota hai lekin audit log fail ho jaata hai — agar dono same transaction mein nahi hain, toh ho sakta hai order approve ho jaaye bina kisi trace ke ki kisne approve kiya.
 
 ---
 
-## Sensitive-field redaction in logs
+## Logs mein sensitive fields ko redact karna
 
 > [!danger]
-> **NEVER log**: passwords, raw JWTs, credit card numbers, SSNs, session tokens, OAuth2 client secrets, encryption keys. Once in logs, they're in log aggregation tools, backups, and likely outside your security perimeter.
+> **Kabhi log mat karo**: passwords, raw JWTs, credit card numbers, SSNs, session tokens, OAuth2 client secrets, encryption keys. Ek baar ye logs mein chala gaya, toh woh log aggregation tools mein, backups mein, aur likely tumhare security perimeter ke bahar bhi pahunch jaayega. Socho ek engineer debug karte waqt `console.log(req.body)` jaisa kuch Java mein karta hai aur poori request body — password sahit — log ho jaati hai. Ye ek classic mistake hai jo har company mein hoti hai.
 
-### Logback `MessageConverter` — scrub before writing
+### Logback `MessageConverter` — likhne se pehle scrub karo
 
 ```java
 public class SensitiveDataMaskingConverter extends MessageConverter {
@@ -273,6 +275,8 @@ public class SensitiveDataMaskingConverter extends MessageConverter {
 
 ### Masking helpers
 
+Ye woh chhote utility functions hain jo tum har jagah use karoge jahan sensitive data ko partially hide karke log karna ho — jaise CRED app tumhara card number `•••• •••• •••• 1234` dikhata hai, poora nahi.
+
 ```java
 public final class LogMask {
 
@@ -299,37 +303,39 @@ public final class LogMask {
 
 ---
 
-## Compliance touchpoints (high level — not legal advice)
+## Compliance touchpoints (high level — legal advice nahi hai)
+
+Ye section tumhe batayega ki tumhara audit log kin-kin compliance frameworks ke liye kaam aata hai. Agar tum kabhi ek enterprise SaaS product bana rahe ho — jaise koi B2B tool jo bade clients ko sell hota hai — toh ye teeno terms tumhe zaroor milenge.
 
 ### SOC 2
 
-SOC 2 Type II requires evidence that security controls are operating continuously. Your audit log is the primary evidence artifact.
+SOC 2 Type II ye demand karta hai ki tumhare security controls *continuously* operate ho rahe hain — sirf ek din ka snapshot kaafi nahi. Tumhara audit log hi primary evidence hai jo auditor ko dikhaya jaata hai.
 
-- **CC6.1** — logical access controls: log every login success/failure, role change
-- **CC6.3** — access removal: log user deactivation, role revocation
-- **CC7.2** — system monitoring: automated alerting on N failed logins, unusual access patterns
-- **CC9.2** — vendor management: log API key usage to third-party systems
+- **CC6.1** — logical access controls: har login success/failure, role change log karo
+- **CC6.3** — access removal: user deactivation, role revocation log karo
+- **CC7.2** — system monitoring: N failed logins, unusual access patterns pe automated alerting
+- **CC9.2** — vendor management: third-party systems ko API key usage log karo
 
 ### GDPR
 
-- **Data access logs**: log when personal data is accessed, by whom, for what purpose (`why` field)
-- **Right of erasure (Art. 17)**: log deletion requests and completion; retain *the log entry* even after the user data is deleted (log entry itself is not personal data if anonymized)
-- **Right to portability (Art. 20)**: log data export requests
-- **Data breach (Art. 33)**: within 72 hours of discovering a breach, you must notify. Your audit logs are the primary source of breach timeline evidence.
-- **Retention**: you can't keep audit logs forever — define retention periods (commonly 1–7 years). Balance against right-to-erasure.
+- **Data access logs**: personal data kab access hua, kisne, kis purpose se (`why` field) — sab log karo
+- **Right of erasure (Art. 17)**: deletion requests aur completion log karo; user data delete hone ke baad bhi *log entry* retain karo (agar anonymize kar diya jaaye toh log entry khud personal data nahi maani jaati)
+- **Right to portability (Art. 20)**: data export requests log karo
+- **Data breach (Art. 33)**: breach discover hone ke 72 hours ke andar notify karna zaruri hai. Tumhare audit logs hi breach timeline ka primary evidence hote hain.
+- **Retention**: audit logs hamesha ke liye rakh nahi sakte — retention periods define karo (commonly 1–7 saal). Right-to-erasure ke against balance karo.
 
 ### HIPAA (US Healthcare)
 
-- **§ 164.312(b)** — Audit controls: hardware, software, and procedural mechanisms to record and examine access to ePHI
-- Every access to a patient record must be logged (who, when, what, from where)
-- Log retention: minimum 6 years
-- Audit logs themselves are PHI and must be protected with the same controls as patient data
+- **§ 164.312(b)** — Audit controls: ePHI (electronic protected health information) ki access record aur examine karne ke liye hardware, software, procedural mechanisms
+- Patient record ki har access log honi chahiye (kaun, kab, kya, kahan se)
+- Log retention: minimum 6 saal
+- Audit logs khud PHI maane jaate hain, isliye unhe bhi patient data jaisi hi security se protect karna hai
 
-### Right-to-erasure vs audit log retention conflict
+### Right-to-erasure vs audit log retention ka conflict
 
-When a user exercises GDPR right-to-erasure, you must delete their personal data — but you cannot delete audit log records because they're required for compliance and legal protection.
+Ye ek interesting real-world dilemma hai. Jab koi user GDPR right-to-erasure use karta hai, tumhe uska personal data delete karna hai — lekin audit log records delete nahi kar sakte kyunki woh compliance aur legal protection ke liye zaruri hain.
 
-Resolution: **pseudonymize** the `actor` field when processing an erasure request:
+Solution: erasure request process karte waqt `actor` field ko **pseudonymize** karo — matlab identity ko hash kar do, lekin record ka existence rehne do.
 
 ```sql
 -- Replace identifying data with a pseudonym before deleting the user
@@ -375,37 +381,50 @@ const auditMiddleware = (req, res, next) => {
 };
 ```
 
-Spring's `AuthenticationEventPublisher` and `AuthorizationEventPublisher` replace manual `res.on('finish')` hooks for security events. The structured `AuditEvent` entity replaces the `winston` call. Spring's advantage: the events fire at the security layer itself — not at the HTTP layer — so they capture internal calls too (from scheduled jobs, message consumers).
+Spring ka `AuthenticationEventPublisher` aur `AuthorizationEventPublisher` manual `res.on('finish')` hooks ki jagah leta hai security events ke liye. Structured `AuditEvent` entity `winston` call ki jagah leta hai. Spring ka fayda ye hai — events security layer pe hi fire hote hain, HTTP layer pe nahi — isliye woh internal calls bhi capture karte hain (scheduled jobs, message consumers se aane wale calls bhi, jinke liye Express mein koi HTTP request hi nahi hota).
 
 ---
 
 ## Gotchas
 
 > [!danger]
-> **Logging passwords.** If your login form submits `username` + `password` and you log request bodies for debugging, you've logged plaintext passwords. Use `@RequestBody` logging filters that redact parameter names like `password`, `token`, `secret`, `authorization`.
+> **Passwords log karna.** Agar tumhara login form `username` + `password` submit karta hai aur tum debugging ke liye request bodies log karte ho, toh tumne plaintext passwords log kar diye. `@RequestBody` logging filters use karo jo `password`, `token`, `secret`, `authorization` jaise parameter names ko redact karein.
 
 > [!warning]
-> **Audit log growth.** In a busy app, audit logs grow fast. Partition the `audit_events` table by month in PostgreSQL and archive/compress old partitions. Don't let it fill your primary DB disk.
+> **Audit log ka size badhna.** Ek busy app mein audit logs bahut fast grow karte hain. `audit_events` table ko PostgreSQL mein month-wise partition karo aur purani partitions ko archive/compress karo. Isse apni primary DB disk full mat hone do.
 
 > [!warning]
-> **Async audit writes can lose events.** If you publish audit events to a queue for async processing and the app crashes before the queue is flushed, you lose events. For compliance-critical events, write synchronously in the same DB transaction. For high-volume non-critical events (page views), async is fine.
+> **Async audit writes events lose kar sakte hain.** Agar tum audit events ko async processing ke liye ek queue pe publish karte ho aur app queue flush hone se pehle crash ho jaaye, toh events lose ho jaate hain. Compliance-critical events ke liye, same DB transaction mein synchronously likho. High-volume non-critical events (jaise page views) ke liye, async theek hai.
 
 ---
 
 ## Production checklist
 
-- [ ] `AuthenticationEventPublisher` configured (Spring Security fires automatically)
-- [ ] `AuthorizationDeniedEvent` listener implemented
-- [ ] Audit table has append-only constraints (`NO UPDATE`, `NO DELETE`)
-- [ ] Hash chain implemented and daily integrity check job running
-- [ ] Sensitive fields masked in application logs (password, token, JWT)
-- [ ] PII in audit logs pseudonymized on right-to-erasure requests
-- [ ] Audit log retention policy documented (e.g., 7 years for SOC 2)
-- [ ] Partitioned audit table with archival strategy for old data
-- [ ] Alerting on N failed logins in T minutes (see [[19-Rate-Limiting-and-Abuse-Prevention]])
-- [ ] Bulk export events logged with who requested and when
-- [ ] Admin actions (role changes, user deletion) logged with `reason` field
-- [ ] Compliance mapping documented: which events satisfy which controls
+- [ ] `AuthenticationEventPublisher` configured hai (Spring Security automatically fire karta hai)
+- [ ] `AuthorizationDeniedEvent` listener implement kiya hai
+- [ ] Audit table mein append-only constraints hain (`NO UPDATE`, `NO DELETE`)
+- [ ] Hash chain implement kiya hai aur daily integrity check job chal raha hai
+- [ ] Application logs mein sensitive fields mask ho rahe hain (password, token, JWT)
+- [ ] Right-to-erasure requests pe audit logs ka PII pseudonymize ho raha hai
+- [ ] Audit log retention policy documented hai (e.g., SOC 2 ke liye 7 saal)
+- [ ] Partitioned audit table hai purani data ke liye archival strategy ke saath
+- [ ] N minutes mein N failed logins pe alerting hai (dekho [[19-Rate-Limiting-and-Abuse-Prevention]])
+- [ ] Bulk export events log ho rahe hain (kisne request kiya aur kab)
+- [ ] Admin actions (role changes, user deletion) `reason` field ke saath log ho rahe hain
+- [ ] Compliance mapping documented hai: kaunsa event kaunsa control satisfy karta hai
+
+---
+
+## Key Takeaways
+
+- Audit log ka matlab hai — kisne, kya, kab, kahan se, kyun kiya — sab traceable hona chahiye. Sirf successful actions nahi, failed attempts bhi log karo.
+- Spring Security ke `AuthenticationEventPublisher` aur `AuthorizationEventPublisher` security-layer pe events fire karte hain, isliye Express ke HTTP-middleware-based logging se zyada complete coverage milta hai (internal calls bhi capture hote hain).
+- Audit table ko append-only banao (DB-level rules se UPDATE/DELETE block karo) aur ek hash chain lagao taki tampering detect ho sake.
+- Audit event ko *hamesha* business operation ke saath same transaction mein likho — warna rollback/false-record ki mismatch ho sakti hai.
+- Kabhi bhi passwords, JWTs, credit card numbers, ya secrets log mat karo — masking converters aur helper functions use karo.
+- SOC 2, GDPR, HIPAA — teeno alag-alag cheezein maangte hain, lekin ek achha structured audit log teeno ko satisfy kar sakta hai.
+- GDPR right-to-erasure aur audit retention ka conflict resolve karne ke liye pseudonymization use karo — record delete mat karo, sirf identity hata do.
+- Audit logs bhi grow karte hain — table partitioning aur archival strategy plan karo, warna production disk full ho jaayega.
 
 ---
 

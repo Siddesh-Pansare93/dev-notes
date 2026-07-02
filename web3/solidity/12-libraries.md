@@ -5,11 +5,11 @@
 
 ---
 
-## 🧰 What Is a Library?
+## 🧰 Library Kya Hoti Hai?
 
-Imagine you are building a house. Instead of crafting every tool from scratch on the job site, you carry a **utility belt** packed with pre-built, reusable tools — a hammer, a level, a tape measure. A Solidity **library** is exactly that utility belt for your smart contracts.
+Socho tum ek ghar bana rahe ho. Ab har baar site pe naya hammer, naya tape measure banane baithoge kya? Nahi na — tum apne saath ek **tool belt** carry karte ho jisme pehle se ready tools hote hain. Solidity ki **library** bilkul yehi tool belt hai tumhare smart contracts ke liye.
 
-A library is a special kind of Solidity contract that contains **reusable logic** — pure calculations, data manipulation, validation helpers — that any contract can call. You write the code once, and every contract that needs it simply borrows it, rather than duplicating the same logic across dozens of files.
+Library ek special type ka Solidity contract hota hai jisme **reusable logic** hota hai — pure calculations, data manipulation, validation helpers — jise koi bhi contract call kar sakta hai. Code ek baar likho, aur jis bhi contract ko zaroorat ho woh bas usse borrow kar le, alag-alag files mein wahi logic baar-baar copy-paste karne ki zaroorat nahi.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -23,43 +23,45 @@ library MathHelper {
 }
 ```
 
-Libraries promote the **DRY principle** (Don't Repeat Yourself), reduce bugs, and are a cornerstone of safe, maintainable smart contract development.
+Libraries **DRY principle** (Don't Repeat Yourself) ko follow karwati hain, bugs kam karti hain, aur safe, maintainable smart contract development ki foundation hain.
 
 ---
 
-## 🆚 Library vs Contract: Key Differences
+## 🆚 Library vs Contract: Farak Kya Hai?
 
-At first glance a library looks like a contract, but it operates under strict rules that make it lighter and safer.
+Pehli nazar mein library ek contract jaisi hi dikhti hai, lekin iske kuch strict rules hote hain jo isse lighter aur safer banate hain.
 
 | Feature | Contract | Library |
 |---|---|---|
-| State variables | Yes | No |
-| Can receive ETH | Yes (if `payable`) | No |
-| Inheritance | Yes | No |
-| `payable` functions | Yes | No |
-| `selfdestruct` | Yes | No |
-| Can hold a balance | Yes | No |
-| Deployment | Always | Only if it has `external` functions |
+| State variables | Haan | Nahi |
+| ETH receive kar sakta hai | Haan (agar `payable`) | Nahi |
+| Inheritance | Haan | Nahi |
+| `payable` functions | Haan | Nahi |
+| `selfdestruct` | Haan | Nahi |
+| Balance hold kar sakta hai | Haan | Nahi |
+| Deployment | Hamesha | Sirf tab jab `external` functions ho |
 
-The key insight: **a library has no state and no ETH**. It is a collection of stateless utility functions. This constraint is what allows the Solidity compiler to safely inline library code directly into your contract (for `internal` functions), or call it via `DELEGATECALL` (for `external` functions) without risk of the library misbehaving with storage it should not touch.
+Yaad rakhne wali cheez: **library ke paas na state hoti hai, na ETH**. Yeh sirf stateless utility functions ka collection hai. Isi restriction ki wajah se Solidity compiler library code ko safely tumhare contract mein directly inline kar sakta hai (`internal` functions ke liye), ya `DELEGATECALL` ke through call kar sakta hai (`external` functions ke liye) — bina is risk ke ki library kisi storage ke saath chhed-chhaad kar de jispe uska haq nahi.
 
 ---
 
 ## ⚙️ Library Types: Internal vs External
 
-Libraries come in two deployment flavours depending on the visibility of their functions.
+Libraries do deployment flavours mein aati hain, depending on unke functions ki visibility.
 
 ### Internal Library Functions
 
-When all functions in a library are marked `internal`, the compiler **inlines** the library code directly into every contract that uses it. There is no separate deployed library contract — the bytecode is copied into the caller.
+Jab library ke saare functions `internal` marked hote hain, compiler us library ka code directly har us contract mein **inline** kar deta hai jo use use karta hai. Koi alag library contract deploy nahi hota — bytecode seedha caller ke andar copy ho jaata hai.
 
-**Pros:**
-- No extra deployment transaction or address needed
-- No runtime call overhead — slightly cheaper gas per call
-- No linking step required
+Socho jaise tum apni khud ki recipe kisi doosre ke cookbook se copy karke apni khud ki cookbook mein likh lo — koi extra kitab kharidne ki zaroorat nahi.
 
-**Cons:**
-- Every contract that uses the library carries a copy of the bytecode (increases contract size)
+**Fayde:**
+- Extra deployment transaction ya address ki zaroorat nahi
+- Runtime call overhead nahi — thoda cheaper gas per call
+- Koi linking step nahi chahiye
+
+**Nuksaan:**
+- Jo bhi contract library use karta hai, uske paas bytecode ki apni copy hoti hai (contract size badh jaata hai)
 
 ```solidity
 library SafeDiv {
@@ -72,16 +74,18 @@ library SafeDiv {
 
 ### External Library Functions
 
-When a library contains `external` (or `public`) functions, it must be **deployed to its own address** on the blockchain. Contracts that use it call those functions via **`DELEGATECALL`** — a low-level EVM opcode that runs the library's code but inside the *caller's* storage context.
+Jab library mein `external` (ya `public`) functions hote hain, use apne khud ke address pe **deploy** karna padta hai blockchain pe. Jo contracts isse use karte hain, woh **`DELEGATECALL`** ke through call karte hain — ek low-level EVM opcode jo library ka code run karta hai lekin *caller* ke storage context ke andar.
 
-**Pros:**
-- The library bytecode exists once on-chain; many contracts can point to the same address
-- Reduces the size of each consuming contract
+Yeh bilkul Ola/Uber jaisa hai — driver (library) apni khud ki gaadi (code) leke aata hai, lekin trip tumhare account (storage) pe hi record hoti hai.
 
-**Cons:**
-- Must be deployed first (its address must be known)
-- Requires a **linking** step during compilation/deployment
-- Slightly more gas overhead per call due to the `DELEGATECALL`
+**Fayde:**
+- Library bytecode on-chain sirf ek baar exist karta hai; bahut saare contracts same address ko point kar sakte hain
+- Har consuming contract ka size chhota rehta hai
+
+**Nuksaan:**
+- Pehle deploy karna padta hai (uska address pata hona chahiye)
+- Compilation/deployment ke waqt ek **linking** step chahiye
+- `DELEGATECALL` ki wajah se per-call thoda zyada gas overhead
 
 ```solidity
 library BigArrayOps {
@@ -120,25 +124,25 @@ sequenceDiagram
 
 ---
 
-## 🔗 The `using X for Y` Syntax
+## 🔗 `using X for Y` Syntax
 
-Solidity provides a powerful shorthand that lets you **attach library functions to a specific type** so they read like native methods on that type.
+Solidity ek powerful shorthand deta hai jisse tum **library functions ko kisi specific type ke saath attach** kar sakte ho, taaki woh us type ke native methods jaise dikhein.
 
 ```solidity
 using ArrayUtils for uint256[];
 ```
 
-After this declaration, any `uint256[]` variable inside the contract can call `ArrayUtils` functions as if they were its own methods. The array is automatically passed as the first argument.
+Yeh declaration likhne ke baad, contract ke andar koi bhi `uint256[]` variable `ArrayUtils` ke functions ko apne khud ke methods ki tarah call kar sakta hai. Array automatically first argument ki tarah pass ho jaata hai.
 
 ```solidity
-// Without "using"
+// "using" ke bina
 bool found = ArrayUtils.contains(myArray, 42);
 
-// With "using ArrayUtils for uint256[]"
-bool found = myArray.contains(42);   // much cleaner!
+// "using ArrayUtils for uint256[]" ke saath
+bool found = myArray.contains(42);   // kitna clean hai!
 ```
 
-You can also attach to primitive types:
+Tum primitive types pe bhi attach kar sakte ho:
 
 ```solidity
 using StringUtils for string;
@@ -147,49 +151,52 @@ string memory greeting = "hello";
 string memory upper = greeting.toUpperCase(); // "HELLO"
 ```
 
-This pattern makes code dramatically more readable — it is one of the most beloved features of Solidity libraries.
+Yeh pattern code ko kaafi zyada readable bana deta hai — Solidity libraries ke sabse pasandida features mein se ek hai yeh.
 
 ---
 
-## 🛡️ SafeMath: Why It Existed and Why It's Gone
+## 🛡️ SafeMath: Kyun Zaruri Thi, Aur Ab Kyun Gayi
 
-Before Solidity 0.8.0, integer arithmetic **silently wrapped on overflow and underflow**. For example:
+Solidity 0.8.0 se pehle, integer arithmetic **overflow aur underflow pe silently wrap** ho jaati thi. Matlab, koi error nahi, seedha galat answer mil jaata tha. Example dekho:
 
 ```solidity
 // Solidity < 0.8.0 — DANGEROUS
 uint8 x = 255;
-x = x + 1; // wraps to 0 — attacker could exploit this!
+x = x + 1; // wraps to 0 — attacker isko exploit kar sakta tha!
 ```
 
-OpenZeppelin's **SafeMath** library was the community's answer. It wrapped every arithmetic operation in a check that would `revert` on overflow, preventing entire classes of exploits like the infamous BEC token overflow attack.
+OpenZeppelin ki **SafeMath** library community ka jawaab thi. Yeh har arithmetic operation ko ek check mein wrap kar deti thi jo overflow hone pe `revert` kar de, jisse BEC token overflow attack jaise mashhoor exploits rukte the.
 
 ```solidity
 // SafeMath usage (pre-0.8)
 using SafeMath for uint256;
 
-uint256 total = a.add(b);   // reverts on overflow
-uint256 diff  = a.sub(b);   // reverts if b > a
-uint256 prod  = a.mul(b);   // reverts on overflow
+uint256 total = a.add(b);   // overflow pe revert
+uint256 diff  = a.sub(b);   // agar b > a ho to revert
+uint256 prod  = a.mul(b);   // overflow pe revert
 ```
 
-**Since Solidity 0.8.0**, the compiler itself performs overflow/underflow checks on all arithmetic by default and automatically reverts — so SafeMath is **no longer needed**. You can still use `unchecked { }` blocks for gas-sensitive code where you are certain no overflow can occur.
+**Solidity 0.8.0 se**, compiler khud hi saari arithmetic pe overflow/underflow checks by default karta hai aur automatically revert kar deta hai — isliye SafeMath **ab zaruri nahi hai**. Gas-sensitive code ke liye `unchecked { }` blocks abhi bhi use kar sakte ho, jab tumhe pakka pata ho ki overflow nahi hoga.
 
 ```solidity
-// Solidity ^0.8.0 — safe by default
+// Solidity ^0.8.0 — by default safe
 uint256 x = type(uint256).max;
-x = x + 1; // automatically reverts — no SafeMath needed!
+x = x + 1; // automatically revert — SafeMath ki zaroorat nahi!
 
-// unchecked for gas savings when you know it's safe
+// gas savings ke liye unchecked, jab pata ho ki safe hai
 unchecked {
     for (uint256 i = 0; i < arr.length; i++) { /* ... */ }
 }
 ```
 
+> [!tip]
+> Agar tum naye Solidity (0.8+) mein code likh rahe ho, to SafeMath ko import karna ek red flag hai — compiler khud yeh kaam kar deta hai. Sirf legacy code padhte waqt yeh samajhna zaruri hai.
+
 ---
 
-## 🔨 Writing Your Own Library
+## 🔨 Apni Khud ki Library Banao
 
-Let's build a practical library from scratch. The example below creates a reusable `ArrayUtils` library plus a `StringUtils` library, and consumes them in a `Registry` contract.
+Chalo ek practical library from scratch banate hain. Neeche wala example ek reusable `ArrayUtils` library aur ek `StringUtils` library banata hai, aur unhe ek `Registry` contract mein use karta hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -277,22 +284,22 @@ contract Registry {
 }
 ```
 
-**What makes a good library?**
+**Achhi library banane ke liye kya zaruri hai?**
 
-- Functions are `pure` or `view` whenever possible — no side effects
-- Use `internal` for helper logic so the compiler can inline it
-- Emit no events (events belong to contracts)
-- Accept `storage` references when operating on arrays or mappings to avoid expensive copies
+- Functions jahan tak ho sake `pure` ya `view` rakho — koi side effects nahi
+- Helper logic ke liye `internal` use karo taaki compiler use inline kar sake
+- Koi events emit mat karo (events sirf contracts ke domain mein aate hain)
+- Arrays ya mappings pe kaam karte waqt `storage` references accept karo, taaki expensive copies na banein
 
 ---
 
 ## 🌐 Popular OpenZeppelin Libraries
 
-[OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) is the gold standard library suite for Solidity. Every serious project uses at least some of these.
+[OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) Solidity ke liye gold standard library suite hai. Har serious project inme se kam se kam kuch to zaroor use karta hai. Isse tum Zomato/Swiggy jaisa soch sakte ho — jaise woh apna khud ka payment gateway banane ke bajaye Razorpay/PhonePe use karte hain, waise hi tumhe apna khud ka arithmetic ya string logic banane ke bajaye OpenZeppelin use karna chahiye.
 
 ### SafeERC20
 
-ERC-20's `transfer` and `transferFrom` functions were poorly specified — some tokens return `false` on failure instead of reverting. **SafeERC20** wraps every ERC-20 call and always reverts on failure, protecting your contract from tokens that do not meet the expected interface.
+ERC-20 ke `transfer` aur `transferFrom` functions poorly specified the — kuch tokens failure pe revert karne ke bajaye `false` return kar dete the. **SafeERC20** har ERC-20 call ko wrap karta hai aur failure pe hamesha revert karta hai, jisse tumhara contract un tokens se safe rehta hai jo expected interface follow nahi karte.
 
 ```solidity
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -300,13 +307,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 using SafeERC20 for IERC20;
 
 IERC20 token = IERC20(tokenAddress);
-token.safeTransfer(recipient, amount);         // never silently fails
+token.safeTransfer(recipient, amount);         // kabhi silently fail nahi hota
 token.safeTransferFrom(sender, recipient, amt);
 ```
 
 ### Strings
 
-Utility functions for converting numbers and addresses to their string representations — invaluable for building token URIs and on-chain metadata.
+Numbers aur addresses ko unke string representation mein convert karne ke liye utility functions — token URIs aur on-chain metadata banane ke liye kaam ke.
 
 ```solidity
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -320,7 +327,7 @@ string memory uri = string.concat("https://api.example.com/", tokenId.toString()
 
 ### Address
 
-Helpers for working with `address` types: checking if an address is a contract, making low-level calls with proper revert propagation, and sending ETH safely.
+`address` types ke saath kaam karne ke liye helpers: check karna ki address contract hai ya nahi, proper revert propagation ke saath low-level calls karna, aur ETH safely bhejna.
 
 ```solidity
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -329,25 +336,25 @@ using Address for address;
 using Address for address payable;
 
 bool isContract = target.isContract();
-target.sendValue(1 ether);             // reverts on failure, unlike .transfer()
+target.sendValue(1 ether);             // failure pe revert, `.transfer()` ke ulat
 ```
 
 ### Math
 
-Safe arithmetic utilities and convenience functions — `min`, `max`, `average`, `ceilDiv`, and more. Even though overflow protection is built-in since 0.8, `Math` offers helpful combinators that avoid the subtle bugs common in manual implementations.
+Safe arithmetic utilities aur convenience functions — `min`, `max`, `average`, `ceilDiv`, aur bhi bahut kuch. Overflow protection 0.8 se built-in hone ke bawajood, `Math` kuch helpful combinators deta hai jo manual implementations mein hone wale subtle bugs se bachate hain.
 
 ```solidity
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 uint256 smaller = Math.min(a, b);
 uint256 larger  = Math.max(a, b);
-uint256 avg     = Math.average(a, b);    // no overflow, unlike (a+b)/2
+uint256 avg     = Math.average(a, b);    // overflow nahi, (a+b)/2 ke ulat
 uint256 ceil    = Math.ceilDiv(10, 3);   // 4
 ```
 
 ### EnumerableSet
 
-A standard Solidity `mapping` is not iterable — you cannot loop over its keys. **EnumerableSet** gives you a `Set` data structure that is both O(1) for membership checks and fully iterable.
+Ek normal Solidity `mapping` iterable nahi hoti — tum uski keys pe loop nahi chala sakte. **EnumerableSet** tumhe ek `Set` data structure deta hai jo membership checks ke liye O(1) bhi hai aur fully iterable bhi.
 
 ```solidity
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -361,7 +368,7 @@ function addAdmin(address account) public {
 }
 
 function listAdmins() public view returns (address[] memory) {
-    return _admins.values();   // returns the full set as an array
+    return _admins.values();   // pura set array ki tarah return karta hai
 }
 ```
 
@@ -369,7 +376,7 @@ Variants: `AddressSet`, `UintSet`, `Bytes32Set`.
 
 ### EnumerableMap
 
-Like `EnumerableSet`, but for **key-value pairs** — a map you can iterate. Under the hood it combines a mapping with an enumerable set of keys.
+`EnumerableSet` jaisa hi, lekin **key-value pairs** ke liye — ek map jise tum iterate kar sakte ho. Under the hood yeh ek mapping ko keys ke enumerable set ke saath combine karta hai.
 
 ```solidity
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
@@ -383,60 +390,63 @@ function mint(uint256 tokenId, address owner) internal {
 }
 
 function ownerAt(uint256 index) public view returns (uint256 id, address owner) {
-    return _tokenOwners.at(index);   // iterate by position
+    return _tokenOwners.at(index);   // position ke hisaab se iterate
 }
 ```
 
 Variants: `UintToAddressMap`, `AddressToUintMap`, `Bytes32ToBytes32Map`.
 
+> [!warning]
+> Apni khud ki SafeMath, Strings, ya EnumerableSet type ki library kabhi ghar pe mat banao jab tak koi bahut special reason na ho. OpenZeppelin ki libraries thousands of hours ki auditing aur real-world battle-testing se guzri hain — reinventing the wheel karne mein bugs ka risk hi zyada hai.
+
 ---
 
 ## 🗝️ Key Takeaways
 
-- A **library** is a collection of reusable, stateless utility functions — no state variables, no ETH, no inheritance.
-- **Internal** library functions are inlined at compile time — zero deployment overhead, slightly larger contract bytecode.
-- **External** library functions are deployed separately and called via `DELEGATECALL` — one deployment, many consumers.
-- The **`using X for Y`** directive attaches library methods to a type, making call sites cleaner and more readable.
-- **SafeMath** was essential before Solidity 0.8 but is now obsolete — the compiler handles overflow automatically.
-- **OpenZeppelin** provides battle-tested libraries (SafeERC20, Strings, Address, Math, EnumerableSet, EnumerableMap) that should be your first stop before writing custom logic.
-- The golden rule: **prefer a well-audited library over hand-rolled code** whenever one exists for your use case.
+- **Library** ek reusable, stateless utility functions ka collection hai — koi state variables nahi, koi ETH nahi, koi inheritance nahi.
+- **Internal** library functions compile time pe inline ho jaate hain — zero deployment overhead, thoda bada contract bytecode.
+- **External** library functions alag se deploy hote hain aur `DELEGATECALL` ke through call hote hain — ek deployment, bahut saare consumers.
+- **`using X for Y`** directive library methods ko ek type ke saath attach karta hai, jisse call sites cleaner aur zyada readable ban jaate hain.
+- **SafeMath** Solidity 0.8 se pehle zaruri thi, ab obsolete hai — compiler overflow automatically handle karta hai.
+- **OpenZeppelin** battle-tested libraries deta hai (SafeERC20, Strings, Address, Math, EnumerableSet, EnumerableMap) jo custom logic likhne se pehle tumhara first stop hona chahiye.
+- Golden rule: **kabhi bhi audited library available ho, to hand-rolled code se better usi ko prefer karo**.
 
 ---
 
 ## 🧪 Quiz
 
-Test your understanding:
+Apni samajh test karo:
 
-**1. Which statement best describes an internal library function?**
+**1. Internal library function ko sabse best kaunsa statement describe karta hai?**
 
-- A) It is deployed to a separate address and called with `DELEGATECALL`
-- B) Its bytecode is copied directly into each contract that uses it at compile time
-- C) It can hold ETH and emit events like a regular contract
-- D) It requires a linking step before deployment
+- A) Yeh alag address pe deploy hota hai aur `DELEGATECALL` se call hota hai
+- B) Iska bytecode compile time pe har us contract mein directly copy ho jaata hai jo isse use karta hai
+- C) Yeh ETH hold kar sakta hai aur normal contract ki tarah events emit kar sakta hai
+- D) Deployment se pehle isko linking step chahiye
 
-> **Answer: B.** Internal library functions are inlined by the compiler into the consuming contract's bytecode. No separate deployment or linking is needed.
-
----
-
-**2. You are writing a Solidity 0.8.x contract and a colleague suggests wrapping all addition with SafeMath's `.add()`. What should you tell them?**
-
-- A) They are right — SafeMath is still required in 0.8
-- B) SafeMath is only needed for subtraction, not addition
-- C) Solidity 0.8+ checks overflow automatically, so SafeMath is redundant; plain `+` will revert on overflow
-- D) Use SafeMath only for `uint8` and `uint16`, not `uint256`
-
-> **Answer: C.** Since Solidity 0.8.0, arithmetic overflow and underflow cause an automatic revert. SafeMath's protection is built into the language itself.
+> **Answer: B.** Internal library functions compiler dwara consuming contract ke bytecode mein inline kar diye jaate hain. Koi alag deployment ya linking nahi chahiye.
 
 ---
 
-**3. Given the declaration `using EnumerableSet for EnumerableSet.AddressSet`, which of the following can you do that a plain `mapping(address => bool)` cannot?**
+**2. Tum ek Solidity 0.8.x contract likh rahe ho aur ek colleague suggest karta hai ki saari addition ko SafeMath ke `.add()` mein wrap karo. Unhe kya batana chahiye?**
 
-- A) Check membership in O(1) time
-- B) Prevent duplicate entries
-- C) Iterate over all addresses in the set
-- D) Store the addresses off-chain
+- A) Woh sahi hain — SafeMath 0.8 mein bhi zaruri hai
+- B) SafeMath sirf subtraction ke liye zaruri hai, addition ke liye nahi
+- C) Solidity 0.8+ khud overflow check karta hai, isliye SafeMath redundant hai; plain `+` overflow pe revert kar dega
+- D) SafeMath sirf `uint8` aur `uint16` ke liye use karo, `uint256` ke liye nahi
 
-> **Answer: C.** A plain mapping is not iterable — you cannot enumerate its keys. `EnumerableSet` adds an internal array that makes iteration possible while keeping O(1) membership checks.
+> **Answer: C.** Solidity 0.8.0 se, arithmetic overflow aur underflow automatically revert kar dete hain. SafeMath ki protection ab language mein hi built-in hai.
+
+---
+
+**3. `using EnumerableSet for EnumerableSet.AddressSet` declaration ke saath, tum aisa kya kar sakte ho jo ek plain `mapping(address => bool)` nahi kar sakta?**
+
+- A) O(1) time mein membership check karna
+- B) Duplicate entries rokna
+- C) Set ke saare addresses pe iterate karna
+- D) Addresses ko off-chain store karna
+
+> **Answer: C.** Ek plain mapping iterable nahi hoti — tum uski keys enumerate nahi kar sakte. `EnumerableSet` ek internal array add karta hai jo iteration possible banata hai, saath hi O(1) membership checks bhi maintain rakhta hai.
 
 ---
 

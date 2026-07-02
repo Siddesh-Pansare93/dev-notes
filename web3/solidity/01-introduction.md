@@ -22,68 +22,70 @@
 
 ## 🔷 What is Solidity?
 
-Solidity is a **high-level, statically typed, curly-brace programming language** designed specifically for writing **smart contracts** — self-executing programs that live on the blockchain.
+Socho tumhe blockchain pe ek "program" likhna hai jo khud-ba-khud chal jaaye, bina kisi server ke — bas ek baar deploy karo aur woh hamesha ke liye blockchain pe zinda rahega. Yehi kaam karta hai **Solidity**. Yeh ek **high-level, statically typed, curly-brace wali programming language** hai jo khaas taur pe **smart contracts** likhne ke liye banayi gayi hai — matlab aise self-executing programs jo blockchain pe rehte hain.
 
-If you have ever written JavaScript, C++, or Java, Solidity will feel familiar in syntax. It uses curly braces `{}` to define blocks, semicolons `;` to end statements, and follows a structure similar to object-oriented programming.
+Agar tumne kabhi JavaScript, C++, ya Java likha hai, toh Solidity ki syntax tumhe kaafi familiar lagegi. Isme curly braces `{}` blocks define karne ke liye use hote hain, semicolons `;` statements khatam karne ke liye, aur overall structure object-oriented programming jaisa hi hai.
 
-Here are the defining characteristics of Solidity:
+Solidity ki kuch defining characteristics samjho:
 
 | Property | Description |
 |---|---|
-| **High-level** | You write human-readable code; the compiler handles the low-level details |
-| **Statically typed** | Every variable has a declared type (`uint`, `string`, `address`, etc.) known at compile time |
-| **Curly-brace syntax** | Code blocks are delimited with `{}`, familiar to C/Java/JS developers |
-| **Contract-oriented** | The primary unit of code is a `contract`, analogous to a class in OOP |
-| **EVM-targeted** | Compiles exclusively to Ethereum Virtual Machine (EVM) bytecode |
+| **High-level** | Tum human-readable code likhte ho; compiler saare low-level details sambhal leta hai |
+| **Statically typed** | Har variable ka type declare karna padta hai (`uint`, `string`, `address`, etc.), aur compile time pe hi pata chal jaata hai |
+| **Curly-brace syntax** | Code blocks `{}` se define hote hain — C/Java/JS devs ko yeh dekh ke ghar jaisa feel aayega |
+| **Contract-oriented** | Code ki basic unit `contract` hoti hai — bilkul OOP ki `class` jaisa |
+| **EVM-targeted** | Yeh sirf aur sirf Ethereum Virtual Machine (EVM) bytecode mein compile hoti hai |
 
-Solidity was created by **Gavin Wood** (co-founder of Ethereum) and the Ethereum team, with development beginning around 2014. It was designed from the ground up to run on the **Ethereum Virtual Machine (EVM)** — the decentralized computation engine that powers Ethereum and dozens of compatible blockchains.
+Solidity ko banaya tha **Gavin Wood** (Ethereum ke co-founder) ne, Ethereum team ke saath, aur iska development shuru hua tha lagbhag 2014 mein. Isko shuru se hi **Ethereum Virtual Machine (EVM)** — jo Ethereum aur usse compatible dusre blockchains ka decentralized computation engine hai — pe chalne ke liye design kiya gaya tha.
 
 ---
 
 ## 🚀 Why Solidity?
 
-With several smart contract languages available (Vyper, Fe, Yul), why should you start with Solidity?
+Market mein aur bhi smart contract languages available hain — Vyper, Fe, Yul. Toh phir Solidity se hi kyun shuru karein?
 
-### 1. It is the Most Popular Smart Contract Language
+### 1. Yeh Sabse Popular Smart Contract Language Hai
 
-Solidity dominates the smart contract ecosystem. The vast majority of deployed contracts on Ethereum, Polygon, BNB Chain, Avalanche, and other EVM-compatible networks are written in Solidity. This is not an accident — it got there first, matured rapidly, and built a massive network effect.
+Solidity ne smart contract ecosystem pe raaj kiya hua hai. Ethereum, Polygon, BNB Chain, Avalanche, aur baaki EVM-compatible networks pe deploy hue zyadatar contracts Solidity mein hi likhe gaye hain. Yeh koi accident nahi hai — Solidity sabse pehle market mein aayi, jaldi mature hui, aur ek zabardast network effect bana liya (bilkul waise jaise WhatsApp sabse pehle messaging mein aaya toh sabne use karna shuru kar diya).
 
-### 2. Massive Ecosystem and Tooling
+### 2. Sabse Bada Ecosystem Aur Tooling
 
-Because of its popularity, Solidity has the richest ecosystem:
+Popularity ka fayda yeh hai ki Solidity ke paas sabse rich ecosystem hai:
 
 - **Frameworks**: Hardhat, Foundry, Truffle
 - **Testing libraries**: Chai, Mocha, Forge
 - **Security tools**: Slither, MythX, Echidna
 - **Auditing resources**: OpenZeppelin, ConsenSys Diligence
-- **Package libraries**: OpenZeppelin Contracts (battle-tested, reusable contracts)
+- **Package libraries**: OpenZeppelin Contracts (battle-tested, reusable contracts — jaise npm ke trusted packages)
 
-### 3. EVM Compatibility = Write Once, Deploy Anywhere
+### 3. EVM Compatibility = Ek Baar Likho, Kahin Bhi Deploy Karo
 
-Solidity targets the EVM, which means a single contract can be deployed on:
+Solidity EVM ko target karti hai, matlab ek hi contract deploy ho sakta hai:
 
 - Ethereum Mainnet
 - Polygon
-- Arbitrum and Optimism (Layer 2s)
+- Arbitrum aur Optimism (Layer 2s)
 - BNB Smart Chain
 - Avalanche C-Chain
-- Base, and many more
+- Base, aur bhi bahut saare
 
-### 4. Huge Community and Learning Resources
+Bilkul waise jaise ek React component web pe bhi chal jaata hai aur React Native ke through mobile pe bhi — same code, multiple platforms.
 
-Stack Overflow, GitHub, Discord servers, and YouTube are full of Solidity tutorials, answers, and open-source code. Finding help when you are stuck is significantly easier compared to newer, less-adopted languages.
+### 4. Zabardast Community Aur Learning Resources
+
+Stack Overflow, GitHub, Discord servers, YouTube — sab jagah Solidity ke tutorials, answers, aur open-source code bhare pade hain. Jab bhi atkoge, help dhundna kaafi aasan hai — naye, kam-adopted languages ke comparison mein.
 
 ### 5. Industry Demand
 
-Solidity developers are among the highest-paid in the software industry. Understanding Solidity opens doors to DeFi protocol development, NFT projects, DAOs, and blockchain security auditing.
+Solidity developers software industry mein sabse zyada paid logon mein aate hain. Solidity samajhna tumhe DeFi protocol development, NFT projects, DAOs, aur blockchain security auditing ke darwaaze khol deta hai — kuch aisa jaise ek Swiggy delivery partner ke liye bike chalana aana zaruri hai, waise hi Web3 dev ke liye Solidity aana zaruri hai.
 
 ---
 
 ## ⚙️ How Solidity Compiles to EVM Bytecode
 
-Before your Solidity code can run on the blockchain, it must be **compiled** — transformed from human-readable source code into machine-executable instructions the EVM understands.
+Tumhara Solidity code blockchain pe chalne se pehle **compile** hona padta hai — matlab human-readable source code ko machine-executable instructions mein badalna padta hai jo EVM samajh sake.
 
-Here is the full compilation pipeline:
+Poora compilation pipeline dekho:
 
 ```mermaid
 flowchart TD
@@ -106,68 +108,68 @@ flowchart TD
 
 ### Step-by-Step Breakdown
 
-**Step 1 — Write Solidity (.sol)**
-You write your contract logic in a `.sol` file using the Solidity language.
+**Step 1 — Solidity Likho (.sol)**
+Tum apni contract logic ek `.sol` file mein Solidity language use karke likhte ho.
 
-**Step 2 — Solc Compiles**
-The Solidity compiler (`solc`) processes your source code. It performs:
-- Syntax and type checking
-- Resolving imports and dependencies
-- Generating two critical outputs
+**Step 2 — Solc Compile Karta Hai**
+Solidity compiler (`solc`) tumhare source code ko process karta hai. Yeh karta hai:
+- Syntax aur type checking
+- Imports aur dependencies resolve karna
+- Do critical outputs generate karna
 
-**Step 3 — Two Outputs Produced**
+**Step 3 — Do Outputs Milte Hain**
 
-- **ABI (Application Binary Interface)**: A JSON description of your contract's public interface — what functions exist, what parameters they accept, and what they return. This is how frontend applications (using ethers.js or web3.js) know how to talk to your contract.
+- **ABI (Application Binary Interface)**: Yeh ek JSON hota hai jo batata hai tumhare contract ka public interface kya hai — kaunse functions hain, woh kya parameters lete hain, aur kya return karte hain. Isi ki madad se frontend apps (ethers.js ya web3.js use karke) jaante hain ki contract se kaise baat karni hai. Isko soch lo tumhare backend API ka Swagger/OpenAPI spec jaisa.
 
-- **EVM Bytecode**: A sequence of low-level opcodes (like `PUSH1`, `ADD`, `SSTORE`) that the EVM can execute. This is the actual program that gets deployed to the blockchain.
+- **EVM Bytecode**: Yeh low-level opcodes ka sequence hota hai (jaise `PUSH1`, `ADD`, `SSTORE`) jise EVM execute kar sakta hai. Yehi asli program hai jo blockchain pe deploy hota hai.
 
 **Step 4 — Deployment**
-The bytecode is sent to the network as a transaction. The network stores it permanently at a unique address. From this point on, anyone can call the contract's functions.
+Bytecode ko network pe ek transaction ke through bheja jaata hai. Network ise ek unique address pe permanently store kar deta hai. Uske baad, koi bhi us contract ke functions call kar sakta hai.
 
-> **Key insight**: The blockchain stores and executes bytecode, not Solidity. Solidity is purely a developer convenience — the EVM has never heard of it.
+> **Key insight**: Blockchain sirf bytecode store aur execute karta hai, Solidity nahi. Solidity sirf developer ki convenience ke liye hai — EVM ne kabhi Solidity ka naam bhi nahi suna.
 
 ---
 
 ## 🛠️ Setting Up Your Environment
 
-For beginners, there are two tools you need to get started immediately — no installation required.
+Beginners ke liye, do tools chahiye shuru karne ke liye — aur inme se kisi ki bhi installation nahi chahiye.
 
 ### Remix IDE (Browser-Based)
 
-**Remix** is an in-browser IDE specifically built for Solidity development. It is the fastest way to go from zero to a deployed contract.
+**Remix** ek browser-based IDE hai jo khaas taur pe Solidity development ke liye banaya gaya hai. Zero se deployed contract tak pahunchne ka yeh sabse fast tareeka hai.
 
-**Access it at**: [https://remix.ethereum.org](https://remix.ethereum.org)
+**Yahan access karo**: [https://remix.ethereum.org](https://remix.ethereum.org)
 
-What Remix gives you out of the box:
+Remix tumhe out-of-the-box kya deta hai:
 
-- A full code editor with Solidity syntax highlighting
-- A built-in Solidity compiler (multiple versions)
-- A local JavaScript VM to deploy and test contracts without spending real ETH
-- A file explorer for managing your `.sol` files
-- A deploy and interact panel to call contract functions directly in the browser
+- Solidity syntax highlighting wala full code editor
+- Built-in Solidity compiler (multiple versions ke saath)
+- Ek local JavaScript VM jisse tum bina real ETH kharch kiye contracts deploy aur test kar sakte ho
+- `.sol` files manage karne ke liye file explorer
+- Ek deploy aur interact panel jisse tum browser mein hi contract functions call kar sakte ho
 
-No npm, no terminal, no configuration files. Just open the URL and start writing code.
+Na npm chahiye, na terminal, na koi config file. Bas URL khol ke code likhna shuru kar do.
 
 ### MetaMask (Browser Wallet)
 
-**MetaMask** is a browser extension that acts as your Ethereum wallet. You will need it when you want to deploy to real testnets or mainnet.
+**MetaMask** ek browser extension hai jo tumhare Ethereum wallet ka kaam karta hai. Jab tum real testnets ya mainnet pe deploy karna chahoge, tab yeh chahiye hoga.
 
-**Install it at**: [https://metamask.io](https://metamask.io)
+**Yahan install karo**: [https://metamask.io](https://metamask.io)
 
-What MetaMask provides:
+MetaMask kya provide karta hai:
 
-- A wallet to hold ETH and tokens
-- The ability to sign and broadcast transactions from your browser
-- Connection to testnets like Sepolia (where you can get free test ETH from faucets)
-- Integration with Remix — one click connects Remix to MetaMask for real network deployments
+- ETH aur tokens rakhne ke liye ek wallet
+- Browser se hi transactions sign aur broadcast karne ki ability
+- Sepolia jaise testnets se connection (jahan tumhe faucets se free test ETH mil jaata hai)
+- Remix ke saath integration — ek click mein Remix ko MetaMask se connect karke real network pe deploy kar sakte ho
 
-> **For this chapter**: You only need Remix. MetaMask becomes important when you graduate from the built-in JavaScript VM to deploying on a real test network.
+> **Is chapter ke liye**: Sirf Remix chahiye. MetaMask tab important hoga jab tum built-in JavaScript VM se aage badh ke real test network pe deploy karoge.
 
 ---
 
 ## 📄 Your First Solidity Contract: Hello World
 
-Let us walk through a complete, working Solidity contract line by line:
+Chalo ek complete, working Solidity contract line-by-line samajhte hain:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -186,10 +188,10 @@ contract HelloWorld {
 }
 ```
 
-This contract does three things:
-1. Stores a greeting string on the blockchain
-2. Lets anyone read the current greeting
-3. Lets anyone update the greeting
+Yeh contract teen kaam karta hai:
+1. Ek greeting string ko blockchain pe store karta hai
+2. Kisi ko bhi current greeting padhne deta hai
+3. Kisi ko bhi greeting update karne deta hai
 
 ---
 
@@ -201,14 +203,14 @@ This contract does three things:
 // SPDX-License-Identifier: MIT
 ```
 
-This is a **comment** that declares the software license for your source code. SPDX stands for Software Package Data Exchange — a standardized format for expressing license information.
+Yeh ek **comment** hai jo tumhare source code ke liye software license declare karta hai. SPDX ka matlab hai Software Package Data Exchange — license information express karne ka ek standardized format.
 
-**Why it matters:**
+**Kyun zaruri hai:**
 
-- Smart contract source code published on-chain is publicly visible
-- The Solidity compiler will warn you (not error) if this line is missing
+- Smart contract source code jo on-chain publish hota hai woh publicly visible hota hai
+- Agar yeh line missing hai toh Solidity compiler warning dega (error nahi)
 - Common choices: `MIT` (permissive, open-source friendly), `GPL-3.0`, `UNLICENSED` (proprietary), `BUSL-1.1` (business source)
-- For learning projects and open-source work, `MIT` is the standard choice
+- Learning projects aur open-source work ke liye, `MIT` standard choice hai
 
 ### Line 2 — Pragma Statement
 
@@ -216,29 +218,29 @@ This is a **comment** that declares the software license for your source code. S
 pragma solidity ^0.8.0;
 ```
 
-`pragma` is a **compiler directive** — an instruction to the compiler about how to handle the file. The `solidity` pragma specifies the version(s) of the Solidity compiler that should be used.
+`pragma` ek **compiler directive** hai — compiler ko batata hai file ko kaise handle karna hai. `solidity` pragma batata hai ki kaunsi Solidity compiler version(s) use honi chahiye.
 
-Breaking down `^0.8.0`:
+`^0.8.0` ko break down karte hain:
 
 | Symbol | Meaning |
 |---|---|
-| `^` | Compatible with this version and higher minor/patch versions |
-| `0.8.0` | Minimum version required |
-| `^0.8.0` | Accepts 0.8.0 through 0.8.x, but NOT 0.9.0 |
+| `^` | Is version aur usse upar ke minor/patch versions ke saath compatible |
+| `0.8.0` | Minimum required version |
+| `^0.8.0` | 0.8.0 se 0.8.x tak accept karega, but 0.9.0 NAHI |
 
-Other pragma version patterns:
+Baaki pragma version patterns:
 
 ```solidity
-pragma solidity 0.8.20;           // Exact version only
-pragma solidity >=0.8.0 <0.9.0;  // Range: any 0.8.x version
-pragma solidity ^0.8.19;          // 0.8.19 up to (not including) 0.9.0
+pragma solidity 0.8.20;           // Sirf exact version
+pragma solidity >=0.8.0 <0.9.0;  // Range: koi bhi 0.8.x version
+pragma solidity ^0.8.19;          // 0.8.19 se leke (0.9.0 se pehle) tak
 ```
 
 ---
 
 ## 🏛️ Contract Structure Overview
 
-A Solidity contract follows a predictable structure. Think of it like a class in object-oriented programming:
+Ek Solidity contract ek predictable structure follow karta hai. Isko object-oriented programming ki class jaisa samjho:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -271,159 +273,159 @@ contract ContractName {
 ### Key Components Explained
 
 **State Variables**
-Variables declared at the contract level are stored permanently in the blockchain's storage. In our example, `string public greeting` is a state variable. The `public` keyword automatically generates a getter function, so you can read its value without writing `getGreeting()` explicitly.
+Contract level pe declare hue variables blockchain ke storage mein permanently store hote hain. Hamare example mein, `string public greeting` ek state variable hai. `public` keyword automatically ek getter function generate kar deta hai, isliye tum bina `getGreeting()` explicitly likhe uski value read kar sakte ho.
 
 **Functions**
-Functions define what the contract can do. Our contract has two:
+Functions define karte hain contract kya kar sakta hai. Hamare contract mein do hain:
 
-- `getGreeting()` — marked `view` because it only reads data and does not modify state. View functions do not cost gas when called externally.
-- `setGreeting()` — modifies state (writes to the blockchain), which costs gas (ETH) to execute.
+- `getGreeting()` — `view` marked hai kyunki yeh sirf data read karta hai, state modify nahi karta. View functions externally call karne pe gas cost nahi lete.
+- `setGreeting()` — state modify karta hai (blockchain pe likhta hai), isliye execute karne ke liye gas (ETH) lagta hai.
 
 **Visibility Modifiers**
 
-| Modifier | Accessible From |
+| Modifier | Kahan Se Access Hota Hai |
 |---|---|
-| `public` | Anywhere (inside contract, derived contracts, externally) |
-| `private` | Only inside this contract |
-| `internal` | Inside this contract and derived contracts |
-| `external` | Only from outside the contract |
+| `public` | Kahin bhi (contract ke andar, derived contracts, externally) |
+| `private` | Sirf isi contract ke andar |
+| `internal` | Isi contract aur derived contracts ke andar |
+| `external` | Sirf contract ke bahar se |
 
-**The `memory` Keyword**
-In `string memory _newGreeting`, the `memory` keyword tells Solidity this string should be stored temporarily in memory (not on-chain) for the duration of the function call. Solidity requires you to be explicit about data location for reference types like strings and arrays.
+**`memory` Keyword**
+`string memory _newGreeting` mein, `memory` keyword Solidity ko batata hai ki yeh string function call ke duration ke liye temporarily memory mein store hona chahiye (on-chain nahi). Solidity tumhe reference types (jaise strings aur arrays) ke liye data location explicitly batane ko force karta hai.
 
 ---
 
 ## 🚢 Compiling and Deploying on Remix
 
-Follow these steps to compile and deploy your Hello World contract in Remix.
+Apna Hello World contract Remix mein compile aur deploy karne ke liye yeh steps follow karo.
 
-### Step 1 — Open Remix
+### Step 1 — Remix Kholo
 
-Navigate to [https://remix.ethereum.org](https://remix.ethereum.org) in your browser.
+Browser mein [https://remix.ethereum.org](https://remix.ethereum.org) pe jaao.
 
-### Step 2 — Create a New File
+### Step 2 — Naya File Banao
 
-In the left panel under "File Explorer":
-1. Click the "contracts" folder
-2. Click the new file icon (document with a plus sign)
-3. Name it `HelloWorld.sol`
+Left panel mein "File Explorer" ke neeche:
+1. "contracts" folder pe click karo
+2. New file icon pe click karo (document with a plus sign)
+3. Naam do `HelloWorld.sol`
 
-### Step 3 — Paste the Contract Code
+### Step 3 — Contract Code Paste Karo
 
-Copy and paste the full `HelloWorld` contract code into the editor.
+Poora `HelloWorld` contract code copy karke editor mein paste kar do.
 
-### Step 4 — Compile the Contract
+### Step 4 — Contract Compile Karo
 
-1. Click the **Solidity Compiler** tab in the left sidebar (looks like a `<>` icon with an S)
-2. Under "Compiler", select version `0.8.0` or any `0.8.x` version
-3. Click the blue **"Compile HelloWorld.sol"** button
-4. A green checkmark appears if compilation succeeds
-5. If there are errors, they appear in red below — the error message will tell you the line number
+1. Left sidebar mein **Solidity Compiler** tab pe click karo (`<>` icon with an S jaisa dikhta hai)
+2. "Compiler" ke neeche, `0.8.0` ya koi bhi `0.8.x` version select karo
+3. Blue **"Compile HelloWorld.sol"** button pe click karo
+4. Compilation successful hone pe ek green checkmark aayega
+5. Agar errors hain, toh neeche red mein dikhenge — error message tumhe line number bhi bataega
 
-### Step 5 — Deploy the Contract
+### Step 5 — Contract Deploy Karo
 
-1. Click the **Deploy & Run Transactions** tab (rocket ship icon)
-2. Under "Environment", select **"Remix VM (Cancun)"** — this is a local simulated blockchain, free and instant
-3. You will see pre-funded test accounts with 100 ETH each
-4. Under "Contract", ensure `HelloWorld` is selected in the dropdown
-5. Click the orange **"Deploy"** button
+1. **Deploy & Run Transactions** tab pe click karo (rocket ship icon)
+2. "Environment" ke neeche, **"Remix VM (Cancun)"** select karo — yeh ek local simulated blockchain hai, free aur instant
+3. Tumhe pre-funded test accounts dikhenge jinme 100 ETH each hoga
+4. "Contract" ke neeche, ensure karo ki dropdown mein `HelloWorld` select hai
+5. Orange **"Deploy"** button pe click karo
 
-### Step 6 — Interact with the Contract
+### Step 6 — Contract Se Interact Karo
 
-After deployment, a new section appears at the bottom of the Deploy panel under "Deployed Contracts":
+Deployment ke baad, Deploy panel ke neeche "Deployed Contracts" ke under ek naya section aayega:
 
-- Click the dropdown arrow next to your contract address
-- You will see buttons for each public function and variable:
-  - **`greeting`** — click to read the current greeting value
-  - **`getGreeting`** — click to call and see the returned string
-  - **`setGreeting`** — type a new string in the input box, then click to update
+- Apne contract address ke saamne dropdown arrow pe click karo
+- Tumhe har public function aur variable ke liye buttons dikhenge:
+  - **`greeting`** — click karke current greeting value read karo
+  - **`getGreeting`** — click karke call karo aur returned string dekho
+  - **`setGreeting`** — input box mein naya string type karo, phir click karke update karo
 
-Congratulations — you have just deployed and interacted with your first smart contract!
+Badhai ho — tumne apna pehla smart contract deploy karke usse interact bhi kar liya!
 
 ---
 
 ## 🔒 Solidity Versions and Why Version Locking Matters
 
-Solidity is a young, rapidly evolving language. Between major versions, breaking changes and security improvements are introduced. This makes version management critical in smart contract development.
+Solidity ek young, rapidly evolving language hai. Major versions ke beech breaking changes aur security improvements introduce hote rehte hain. Isliye smart contract development mein version management critical hai.
 
-### A Brief History of Significant Versions
+### Significant Versions Ki Short History
 
 | Version | Notable Change |
 |---|---|
 | 0.4.x | Initial stable releases, basic features |
-| 0.5.x | Explicit function visibility required, `address payable` introduced |
-| 0.6.x | `virtual`/`override` keywords for inheritance |
-| 0.7.x | `receive()` and `fallback()` split into separate functions |
-| 0.8.x | **Arithmetic overflow/underflow checks built-in** (huge security improvement) |
+| 0.5.x | Explicit function visibility mandatory ho gayi, `address payable` introduce hua |
+| 0.6.x | Inheritance ke liye `virtual`/`override` keywords |
+| 0.7.x | `receive()` aur `fallback()` alag-alag functions mein split ho gaye |
+| 0.8.x | **Arithmetic overflow/underflow checks built-in** (bahut bada security improvement) |
 | 0.8.20+ | Shanghai EVM support, various optimizations |
 
-### Why Version Locking is Critical
+### Version Locking Kyun Critical Hai
 
-**1. Breaking Changes Between Versions**
-Code that compiles in `0.7.x` may fail or behave differently in `0.8.x`. Locking your version ensures your code always compiles with the compiler it was written and tested against.
+**1. Versions Ke Beech Breaking Changes**
+Jo code `0.7.x` mein compile hota hai woh `0.8.x` mein fail ho sakta hai ya alag behave kar sakta hai. Version lock karne se yeh ensure hota hai ki tumhara code hamesha usi compiler ke saath compile ho jispe likha aur test kiya gaya tha.
 
 **2. Security Implications**
-Before `0.8.0`, integer overflow and underflow were silent bugs. A `uint8` variable holding `255` would silently wrap around to `0` when you added `1`. This caused real exploits costing millions of dollars. In `0.8.0+`, this throws an automatic error. Using an old pragma on new code — or vice versa — can introduce subtle vulnerabilities.
+`0.8.0` se pehle, integer overflow aur underflow silent bugs the. Ek `uint8` variable jisme `255` hoti thi, `1` add karne pe silently `0` pe wrap around ho jaata tha. Isse real exploits hue jinme millions of dollars ka nuksaan hua. `0.8.0+` mein, yeh automatic error throw karta hai. Purane pragma pe naya code (ya ulta) chalane se subtle vulnerabilities aa sakti hain.
 
 **3. Reproducible Builds**
-When other developers (or auditors) review your code, they need to compile it the same way you did. A pinned version guarantees identical compilation results.
+Jab dusre developers (ya auditors) tumhara code review karte hain, unhe usse waisa hi compile karna hota hai jaisa tumne kiya tha. Ek pinned version identical compilation results guarantee karta hai.
 
 **4. Production Best Practice**
-In production contracts, pin to an exact version:
+Production contracts mein, exact version pe pin karo:
 
 ```solidity
 pragma solidity 0.8.20;  // Production: exact version
 ```
 
-In libraries and shared code, a caret range is acceptable:
+Libraries aur shared code mein, caret range acceptable hai:
 
 ```solidity
 pragma solidity ^0.8.0;  // Library: compatible minor versions
 ```
 
-> **Rule of thumb**: For anything you plan to deploy with real value, lock to a specific version that has been thoroughly tested and audited.
+> **Rule of thumb**: Jo bhi real value ke saath deploy karna hai, usse ek specific version pe lock karo jo thoroughly tested aur audited ho — bilkul waise jaise UPI transaction karne se pehle app version verify karna zaruri hai.
 
 ---
 
 ## ✅ Key Takeaways
 
-- **Solidity** is a statically typed, high-level, curly-brace language for writing smart contracts that run on the EVM.
+- **Solidity** ek statically typed, high-level, curly-brace language hai smart contracts likhne ke liye jo EVM pe chalte hain.
 
-- It is the **most popular smart contract language** with the largest ecosystem, community, and tooling support.
+- Yeh **sabse popular smart contract language** hai, sabse bade ecosystem, community, aur tooling support ke saath.
 
-- Solidity source code is **compiled by `solc`** into EVM bytecode (what runs on-chain) and an ABI (what frontends use to interact with the contract).
+- Solidity source code **`solc` se compile** hoke EVM bytecode (jo on-chain chalta hai) aur ABI (jo frontends contract se interact karne ke liye use karte hain) banata hai.
 
-- **Remix IDE** is the fastest way to start — browser-based, no setup, built-in compiler and local test blockchain.
+- **Remix IDE** shuru karne ka sabse fast tareeka hai — browser-based, no setup, built-in compiler aur local test blockchain.
 
-- Every Solidity file should begin with an **SPDX license identifier** and a **pragma** statement declaring the compatible compiler version.
+- Har Solidity file **SPDX license identifier** aur ek **pragma** statement se shuru honi chahiye jo compatible compiler version declare kare.
 
-- A `contract` is the fundamental unit of Solidity — it contains state variables, functions, events, and modifiers.
+- `contract` Solidity ki fundamental unit hai — isme state variables, functions, events, aur modifiers hote hain.
 
-- **Version locking is not optional** in production — Solidity introduces breaking changes between versions, and pre-0.8.0 contracts lack built-in overflow protection.
+- **Version locking production mein optional nahi hai** — Solidity versions ke beech breaking changes introduce karti hai, aur pre-0.8.0 contracts mein built-in overflow protection nahi hota.
 
-- The `public` keyword on a state variable auto-generates a getter; the `view` keyword on a function signals it reads but does not write state (no gas cost for external calls).
+- State variable pe `public` keyword automatic getter generate karta hai; function pe `view` keyword signal karta hai ki woh state read karta hai lekin modify nahi karta (external calls pe gas cost nahi lagta).
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding before moving to the next chapter.
+Agle chapter pe jaane se pehle apni understanding test karo.
 
 **Question 1**
 
-What are the two outputs produced when you compile a Solidity contract?
+Solidity contract compile karne pe do outputs milte hain — woh kya hain?
 
-- A) Source map and deployment script
-- B) ABI and EVM bytecode
-- C) Bytecode and a Solidity AST
-- D) JSON config and binary executable
+- A) Source map aur deployment script
+- B) ABI aur EVM bytecode
+- C) Bytecode aur ek Solidity AST
+- D) JSON config aur binary executable
 
 <details>
 <summary>Show Answer</summary>
 
-**B) ABI and EVM bytecode**
+**B) ABI aur EVM bytecode**
 
-The ABI (Application Binary Interface) is a JSON description of the contract's public interface used by frontends. The EVM bytecode is the compiled program that gets deployed and executed on the blockchain.
+ABI (Application Binary Interface) ek JSON description hoti hai contract ke public interface ki, jo frontends use karte hain. EVM bytecode woh compiled program hai jo blockchain pe deploy aur execute hota hai.
 
 </details>
 
@@ -431,19 +433,19 @@ The ABI (Application Binary Interface) is a JSON description of the contract's p
 
 **Question 2**
 
-What does `pragma solidity ^0.8.0;` mean?
+`pragma solidity ^0.8.0;` ka matlab kya hai?
 
-- A) The contract will only compile with exactly version 0.8.0
-- B) The contract requires version 0.8.0 or any later version, including 0.9.0
-- C) The contract is compatible with version 0.8.0 and higher 0.8.x versions, but not 0.9.0
-- D) The compiler version is automatically selected at runtime
+- A) Contract sirf exactly version 0.8.0 ke saath compile hoga
+- B) Contract ko version 0.8.0 ya usse baad ka koi bhi version chahiye, 0.9.0 sameth
+- C) Contract version 0.8.0 aur usse upar ke 0.8.x versions ke saath compatible hai, lekin 0.9.0 ke saath nahi
+- D) Compiler version runtime pe automatically select hota hai
 
 <details>
 <summary>Show Answer</summary>
 
-**C) The contract is compatible with version 0.8.0 and higher 0.8.x versions, but not 0.9.0**
+**C) Contract version 0.8.0 aur usse upar ke 0.8.x versions ke saath compatible hai, lekin 0.9.0 ke saath nahi**
 
-The caret (`^`) operator means "compatible with this version" — it allows patch and minor updates within the same major minor version but blocks the next minor increment (0.9.0). This is identical to how `^` works in npm's `package.json`.
+Caret (`^`) operator ka matlab hai "is version ke saath compatible" — yeh same major.minor version ke andar patch aur minor updates allow karta hai lekin agla minor increment (0.9.0) block kar deta hai. Yeh bilkul waisa hi hai jaise npm ke `package.json` mein `^` kaam karta hai.
 
 </details>
 
@@ -451,19 +453,19 @@ The caret (`^`) operator means "compatible with this version" — it allows patc
 
 **Question 3**
 
-Which of the following statements about the `view` keyword on a function is correct?
+`view` keyword ke baare mein niche diye statements mein se kaunsa sahi hai?
 
-- A) `view` functions can write to state variables
-- B) `view` functions cost more gas because they read from storage
-- C) `view` functions read state but do not modify it, and cost no gas when called externally
-- D) `view` is only valid for `private` functions
+- A) `view` functions state variables mein likh sakte hain
+- B) `view` functions zyada gas kharch karte hain kyunki woh storage se read karte hain
+- C) `view` functions state read karte hain lekin modify nahi karte, aur externally call karne pe koi gas nahi lagta
+- D) `view` sirf `private` functions ke liye valid hai
 
 <details>
 <summary>Show Answer</summary>
 
-**C) `view` functions read state but do not modify it, and cost no gas when called externally**
+**C) `view` functions state read karte hain lekin modify nahi karte, aur externally call karne pe koi gas nahi lagta**
 
-When a `view` function is called from outside the blockchain (by a frontend or script using a `call`, not a `send`/transaction), it executes locally on the node and does not consume gas. If called from within another state-modifying transaction, it does use gas as part of that transaction.
+Jab ek `view` function blockchain ke bahar se call hota hai (kisi frontend ya script dwara `call` use karke, `send`/transaction nahi), toh yeh node pe locally execute hota hai aur gas consume nahi karta. Agar yeh kisi state-modifying transaction ke andar se call hota hai, toh us transaction ke part ke roop mein gas use hota hai.
 
 </details>
 

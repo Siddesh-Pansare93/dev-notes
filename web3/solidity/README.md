@@ -1,6 +1,8 @@
 # Solidity & Smart Contracts
 
-A complete guide to writing, securing, and deploying smart contracts on Ethereum and EVM-compatible blockchains — from your first `Hello World` contract to production-grade DeFi protocols, NFTs, and DAOs.
+Socho ek second ke liye — tumne itne saal Node.js aur TypeScript mein backend likha hai, jahan server crash ho jaaye toh restart kar do, database mein galat data chala jaaye toh migration likh ke fix kar do. Ab ek aisi duniya imagine karo jahan tumhara code deploy hone ke baad **kabhi edit nahi ho sakta**, aur agar usmein bug hai toh log ka real paisa (crypto) chala jaayega, permanently. Yeh hai smart contracts ki duniya — aur Solidity woh language hai jisse Ethereum aur EVM-compatible blockchains (Polygon, BSC, Arbitrum, waghera) pe yeh contracts likhe jaate hain.
+
+Yeh guide tumhe zero se le jaayegi — pehle `Hello World` contract se lekar production-grade DeFi protocols, NFTs, aur DAOs tak.
 
 ## Table of Contents
 
@@ -35,8 +37,8 @@ A complete guide to writing, securing, and deploying smart contracts on Ethereum
 
 ## Learning Path
 
-### Beginner — Write your first working contract
-Start here if you have never written Solidity before. By the end of this track you will understand how contracts work, know the core types and syntax, and be able to deploy on Remix.
+### Beginner — Apna pehla working contract likho
+Agar tumne kabhi Solidity nahi likhi, toh yahan se shuru karo. Is track ke end tak tumhe pata chal jaayega ki contracts kaise kaam karte hain, core types aur syntax samajh aa jaayenge, aur Remix pe deploy karna aa jaayega.
 
 1. Chapter 01 — Introduction (EVM, Remix, Hello World, pragma)
 2. Chapter 02 — Data Types
@@ -44,8 +46,8 @@ Start here if you have never written Solidity before. By the end of this track y
 4. Chapter 04 — Functions (visibility, view/pure, payable, fallback)
 5. Chapter 05 — Control Flow (if/else, loops, break/continue)
 
-### Intermediate — Write contracts you would actually ship
-Add the data structures and OOP patterns that power real applications.
+### Intermediate — Aise contracts likho jo tum actually ship karoge
+Ab woh data structures aur OOP patterns seekhte hain jo real applications ko power dete hain.
 
 6. Chapter 06 — Arrays and Mappings
 7. Chapter 07 — Structs and Enums
@@ -56,8 +58,8 @@ Add the data structures and OOP patterns that power real applications.
 12. Chapter 12 — Libraries (SafeMath, using-for pattern)
 13. Chapter 13 — Error Handling (require, revert, assert, custom errors)
 
-### Advanced — Write contracts you would put real money into
-The chapters that separate smart contract developers from smart contract engineers.
+### Advanced — Aise contracts likho jinme tum real paisa daal sako
+Yeh woh chapters hain jo "smart contract developer" aur "smart contract engineer" mein farak karte hain.
 
 14. Chapter 14 — Gas Optimization (SSTORE/SLOAD costs, storage packing, calldata, unchecked)
 15. Chapter 15 — Security (reentrancy, overflow, front-running, DoS, flash loans, CEI pattern)
@@ -66,46 +68,59 @@ The chapters that separate smart contract developers from smart contract enginee
 
 ---
 
-## What You'll Learn
+## Tum Kya Seekhoge
 
-- How Solidity compiles to EVM bytecode and what the ABI is used for
-- All primitive and reference types: `uint`, `address`, `bytes`, `string`, `mapping`, arrays, structs, enums
-- The difference between `storage`, `memory`, and `calldata` — and why it matters for gas
-- Writing functions with correct visibility (`public`, `private`, `internal`, `external`) and mutability (`view`, `pure`, `payable`)
-- Building reusable access control with custom modifiers and OpenZeppelin's `Ownable` and `AccessControl`
-- Inheritance chains, interface-driven design, and embedded vs. linked libraries
-- Emitting and querying events for off-chain indexing and frontend UIs
-- Handling errors gracefully with `require`, `revert`, `assert`, and gas-efficient custom errors
-- Twelve gas optimization techniques including storage slot packing, `unchecked` arithmetic, and `calldata` over `memory`
-- Every major Solidity vulnerability: reentrancy, integer overflow, `tx.origin` phishing, timestamp manipulation, weak randomness, unbounded loops, flash loan attacks, and unchecked call return values
-- The Checks-Effects-Interactions (CEI) pattern and how to build a complete security pre-deployment checklist
-- Design patterns that scale: Factory, Proxy, Commit-Reveal, Pull-over-Push
-- Four production contracts built end-to-end: an ERC-20 token, an ERC-721 NFT with royalties and reveal mechanics, a DeFi staking contract, and a DAO with on-chain governance and proposal execution
-- Professional tooling: Hardhat, Ethers.js, OpenZeppelin contracts, Slither, and testnet deployment to Sepolia
+Kyun zaruri hai yeh sab samajhna? Kyunki blockchain pe "chalta hai" wala approach nahi chalta — ek bug live production mein millions of dollars le doob sakta hai. Toh yeh raha poora roadmap:
+
+- Solidity EVM bytecode mein kaise compile hoti hai, aur ABI kis kaam aata hai
+- Saare primitive aur reference types: `uint`, `address`, `bytes`, `string`, `mapping`, arrays, structs, enums
+- `storage`, `memory`, aur `calldata` mein farak — aur gas ke liye yeh kyun matter karta hai (socho jaise Zomato order ka data database mein save karna vs sirf temporary cart mein rakhna)
+- Functions ko sahi visibility (`public`, `private`, `internal`, `external`) aur mutability (`view`, `pure`, `payable`) ke saath likhna
+- Custom modifiers aur OpenZeppelin ke `Ownable` aur `AccessControl` se reusable access control banana
+- Inheritance chains, interface-driven design, aur embedded vs. linked libraries
+- Events emit karna aur query karna — off-chain indexing aur frontend UIs ke liye (jaise UPI transaction ka notification aana)
+- `require`, `revert`, `assert`, aur gas-efficient custom errors se errors gracefully handle karna
+- Barah gas optimization techniques — storage slot packing, `unchecked` arithmetic, aur `memory` ke bajaye `calldata` use karna
+- Solidity ki har major vulnerability: reentrancy, integer overflow, `tx.origin` phishing, timestamp manipulation, weak randomness, unbounded loops, flash loan attacks, aur unchecked call return values
+- Checks-Effects-Interactions (CEI) pattern, aur ek complete security pre-deployment checklist kaise banaayein
+- Design patterns jo scale karte hain: Factory, Proxy, Commit-Reveal, Pull-over-Push
+- Chaar production contracts end-to-end banaoge: ek ERC-20 token, royalties aur reveal mechanics wala ERC-721 NFT, ek DeFi staking contract, aur on-chain governance + proposal execution wala DAO
+- Professional tooling: Hardhat, Ethers.js, OpenZeppelin contracts, Slither, aur Sepolia testnet pe deployment
 
 ---
 
 ## Prerequisites
 
-- Comfortable with at least one programming language that uses curly-brace syntax (JavaScript, TypeScript, Java, C++, Go — any of these transfer well)
-- Basic understanding of what a blockchain is: transactions, blocks, wallets, and the idea of a public ledger
-- Familiarity with the command line for running npm and Hardhat scripts (only needed for Part 5 — the first four parts work entirely in the browser via Remix)
-- No prior blockchain development experience required
+Kya pehle se aana chahiye?
+
+- Kam se kam ek curly-brace syntax wali language ka comfort ho (JavaScript, TypeScript, Java, C++, Go — inme se koi bhi chalega, saara knowledge transfer ho jaata hai)
+- Blockchain kya hoti hai iska basic idea — transactions, blocks, wallets, aur public ledger ka concept
+- Command line se comfortable ho npm aur Hardhat scripts chalane ke liye (yeh sirf Part 5 ke liye chahiye — pehle chaar parts poori tarah browser mein Remix ke through ho jaate hain)
+- Pehle se blockchain development ka experience zaruri nahi hai
 
 ---
 
-## How to Use This Guide
+## Is Guide Ko Kaise Use Karo
 
-1. **Start in Remix, stay in Remix until Chapter 13.** Every example through error handling can be compiled and deployed in the browser at [remix.ethereum.org](https://remix.ethereum.org) — no local setup needed. Do not let tooling slow your momentum early on.
+1. **Remix mein shuru karo, Chapter 13 tak Remix mein hi raho.** Error handling tak har example browser mein [remix.ethereum.org](https://remix.ethereum.org) pe compile aur deploy ho sakta hai — koi local setup nahi chahiye. Shuru mein tooling ke chakkar mein apna momentum mat todo.
 
-2. **Type the code, do not copy-paste.** The muscle memory of typing `mapping(address => uint256)` and `emit Transfer(from, to, amount)` is not trivial — it is how the syntax becomes intuitive. Especially for the first ten chapters.
+2. **Code type karo, copy-paste mat karo.** `mapping(address => uint256)` aur `emit Transfer(from, to, amount)` jaisi lines apne haath se type karne ki muscle memory chhoti baat nahi hai — isi se syntax intuitive banta hai. Especially pehle das chapters ke liye.
 
-3. **Take the quizzes before moving on.** Each chapter ends with quiz questions that surface exactly the misconceptions that cause real bugs. If you cannot answer them confidently, re-read the section rather than moving forward.
+3. **Aage badhne se pehle quizzes zaroor do.** Har chapter ke end mein quiz questions hain jo exactly wahi misconceptions saamne laate hain jo real bugs ki wajah bante hain. Agar confidently answer nahi kar paate, toh aage badhne ke bajaye section dobara padho.
 
-4. **Read Chapter 15 (Security) twice.** Once as a learner, and once after you finish Chapter 17 with your own contracts in front of you. The reentrancy patterns and CEI rules look very different when you are looking at code you wrote yourself.
+4. **Chapter 15 (Security) do baar padho.** Ek baar seekhne ke liye, aur ek baar Chapter 17 khatam karne ke baad — jab tumhare saamne tumhare khud ke likhe contracts hon. Reentrancy patterns aur CEI rules bilkul alag lagenge jab tum apna khud ka code dekh rahe hoge.
 
-5. **Deploy to Sepolia before calling anything production-ready.** Chapter 17 walks you through the full Hardhat + Sepolia deployment flow. Running your contracts against a real test network — not just a Remix VM — reveals timing issues, gas edge cases, and interaction bugs that local simulation never catches.
+5. **Kisi bhi cheez ko "production-ready" bolne se pehle Sepolia pe deploy karo.** Chapter 17 tumhe poora Hardhat + Sepolia deployment flow sikhayega. Apne contracts ko ek real test network pe chalana — sirf Remix VM pe nahi — timing issues, gas edge cases, aur interaction bugs saamne laata hai jo local simulation kabhi nahi pakad paata.
 
 ---
 
-Good luck, and remember: every DeFi protocol, NFT collection, and on-chain governance system you interact with today was written by someone who started exactly where you are now.
+Good luck, aur yaad rakho: jo bhi DeFi protocol, NFT collection, aur on-chain governance system tum aaj use karte ho, woh kisi aise insaan ne likha tha jo exactly wahin se shuru hua tha jahan tum abhi ho.
+
+## Key Takeaways
+
+> [!tip]
+> - Solidity smart contracts likhne ki language hai — deploy hone ke baad code immutable ho jaata hai, isliye galtiyon ki cost bahut zyada hai
+> - Yeh guide 5 parts mein bata hai: language foundations, data structures, OOP patterns, production-grade practices, aur real projects
+> - Beginner track Remix (browser-based) mein hoti hai, advanced track Hardhat + Sepolia testnet tak jaati hai
+> - Security (Chapter 15) sabse important chapter hai — kam se kam do baar padhna hai
+> - End mein 4 real production contracts banaoge: ERC-20, ERC-721 NFT, Staking, aur DAO Governance

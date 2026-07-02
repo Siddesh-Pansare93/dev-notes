@@ -4,27 +4,27 @@
 
 ---
 
-## 🤔 What Is Prisma?
+## 🤔 Prisma Hai Kya Cheez?
 
-Prisma is a **next-generation ORM (Object-Relational Mapper)** for Node.js and TypeScript. Unlike traditional ORMs that rely on class decorators or raw SQL strings scattered throughout your code, Prisma uses a **declarative schema file** as the single source of truth for your database structure.
+Prisma ek **next-generation ORM (Object-Relational Mapper)** hai Node.js aur TypeScript ke liye. Purane zamane ke ORMs mein tumne dekha hoga — class decorators ka jhanjhat, ya phir raw SQL strings jo poore codebase mein bikhri padi hoti hain. Prisma yeh sab chhod ke ek **declarative schema file** use karta hai, jo tumhare database structure ka single source of truth banti hai.
 
-Think of Prisma as a smart translator that sits between your application code and your database. You write TypeScript — Prisma handles the SQL.
+Socho Prisma ko ek smart translator ki tarah — jo tumhare application code aur database ke beech baitha hai. Tum sirf TypeScript likhte ho, SQL likhna Prisma ka kaam hai.
 
-**Why developers love Prisma:**
+**Developers Prisma ko kyun pasand karte hain?**
 
-- **Type-safe queries** — autocomplete and compile-time errors catch bugs before they hit production
-- **Human-readable schema** — one file defines your entire database structure
-- **Auto-generated client** — no writing boilerplate DAO classes
-- **Works with multiple databases** — PostgreSQL, MySQL, SQLite, SQL Server, MongoDB, CockroachDB
+- **Type-safe queries** — autocomplete aur compile-time errors bugs ko production mein jaane se pehle hi pakad lete hain
+- **Human-readable schema** — ek hi file mein poora database structure define ho jaata hai
+- **Auto-generated client** — boilerplate DAO classes likhne ki zaroorat nahi
+- **Multiple databases ke saath kaam karta hai** — PostgreSQL, MySQL, SQLite, SQL Server, MongoDB, CockroachDB
 
 ---
 
-## 🧩 Prisma Components
+## 🧩 Prisma Ke Components
 
-Prisma is not just one tool — it's a **suite of three components** that work together:
+Prisma sirf ek tool nahi hai — yeh **teen components ka ek suite** hai, jo saath mein kaam karte hain:
 
 ### 1. Prisma Client
-The auto-generated, type-safe query builder for your application. Every time you update your schema, you regenerate the client to stay in sync.
+Yeh tumhare application ke liye auto-generated, type-safe query builder hai. Jab bhi tum apna schema update karte ho, client ko regenerate karna padta hai taaki woh schema ke saath sync mein rahe.
 
 ```typescript
 // Example: fetch all users
@@ -32,14 +32,14 @@ const users = await prisma.user.findMany();
 ```
 
 ### 2. Prisma Migrate
-A database migration tool that tracks schema changes over time. When you change your schema, Prisma Migrate generates SQL migration files and applies them to your database — keeping your database structure in version control alongside your code.
+Yeh ek database migration tool hai jo schema changes ko time ke saath track karta hai. Jab tum schema change karte ho, Prisma Migrate SQL migration files generate karta hai aur unhe database pe apply karta hai — matlab tumhara database structure bhi code ke saath version control mein rehta hai.
 
 ```bash
 npx prisma migrate dev --name add-user-table
 ```
 
 ### 3. Prisma Studio
-A **visual, browser-based database browser** built right into Prisma. You can view, add, edit, and delete records without writing any SQL. Perfect for development and debugging.
+Yeh ek **visual, browser-based database browser** hai jo Prisma ke andar hi built-in aata hai. Tum records ko dekh, add, edit, delete kar sakte ho — bina ek line SQL likhe. Development aur debugging ke liye ekdum perfect.
 
 ```bash
 npx prisma studio
@@ -50,24 +50,24 @@ npx prisma studio
 
 ## ✅ Prerequisites
 
-Before installing Prisma, make sure you have the following:
+Prisma install karne se pehle, yeh cheezein check kar lo:
 
-| Tool | Minimum Version | Check with |
+| Tool | Minimum Version | Check karo isse |
 |------|----------------|------------|
 | Node.js | v16+ | `node --version` |
 | npm | v7+ | `npm --version` |
 | yarn (optional) | v1.22+ | `yarn --version` |
 | pnpm (optional) | v7+ | `pnpm --version` |
 
-You also need access to a **database**. If you don't have one yet, don't worry — we'll cover how to spin one up with Docker, and SQLite requires zero setup.
+Ek **database** bhi chahiye hoga. Agar abhi nahi hai toh tension mat lo — hum Docker se ek spin up karna dekhenge, aur SQLite ke liye toh koi setup hi nahi chahiye.
 
 ---
 
 ## 🚀 Step-by-Step Installation
 
-### Step 1: Initialize a Node.js Project
+### Step 1: Node.js Project Initialize Karo
 
-Start fresh in a new directory:
+Ek naye directory se shuru karo:
 
 ```bash
 mkdir my-prisma-app
@@ -75,44 +75,44 @@ cd my-prisma-app
 npm init -y
 ```
 
-This creates a `package.json` file.
+Isse ek `package.json` file ban jaayegi.
 
-### Step 2: Install Prisma CLI
+### Step 2: Prisma CLI Install Karo
 
-Prisma CLI is a development tool — it helps you manage migrations and generate the client. Install it as a dev dependency:
+Prisma CLI ek development tool hai — yeh migrations manage karne aur client generate karne mein madad karta hai. Ise dev dependency ki tarah install karo:
 
 ```bash
 npm install prisma --save-dev
 ```
 
-### Step 3: Install Prisma Client
+### Step 3: Prisma Client Install Karo
 
-The Prisma Client is what your application actually uses at runtime to query the database:
+Prisma Client woh cheez hai jo tumhara application runtime pe actually use karta hai database query karne ke liye:
 
 ```bash
 npm install @prisma/client
 ```
 
-> **Note:** You need both packages. `prisma` is the CLI toolchain; `@prisma/client` is the runtime library your app imports.
+> **Note:** Dono packages chahiye. `prisma` CLI toolchain hai; `@prisma/client` runtime library hai jo tumhara app import karta hai.
 
-### Step 4: Initialize Prisma
+### Step 4: Prisma Initialize Karo
 
-Run the Prisma initializer to scaffold the required files:
+Prisma initializer run karo taaki zaruri files scaffold ho jaayein:
 
 ```bash
 npx prisma init
 ```
 
-This command creates two things:
+Yeh command do cheezein create karta hai:
 
-1. **`prisma/schema.prisma`** — your schema file
-2. **`.env`** — your environment variables file (if it doesn't already exist)
+1. **`prisma/schema.prisma`** — tumhari schema file
+2. **`.env`** — tumhari environment variables file (agar pehle se nahi hai toh)
 
 ---
 
-## 📄 The `prisma/schema.prisma` File
+## 📄 `prisma/schema.prisma` File
 
-After running `npx prisma init`, open `prisma/schema.prisma`. It will look like this:
+`npx prisma init` run karne ke baad, `prisma/schema.prisma` kholo. Kuch aisa dikhega:
 
 ```prisma
 // This is your Prisma schema file,
@@ -128,14 +128,14 @@ datasource db {
 }
 ```
 
-**Breaking it down:**
+**Isko break karke samjhte hain:**
 
-- **`generator client`** — tells Prisma to generate a JavaScript/TypeScript client
-- **`datasource db`** — defines which database engine to use and where to find it
-- **`provider`** — the database type (postgresql, mysql, sqlite, etc.)
-- **`url = env("DATABASE_URL")`** — reads the connection string from your `.env` file (never hardcode credentials!)
+- **`generator client`** — Prisma ko batata hai ki JavaScript/TypeScript client generate karna hai
+- **`datasource db`** — define karta hai ki kaunsa database engine use karna hai aur woh kahan milega
+- **`provider`** — database ka type (postgresql, mysql, sqlite, etc.)
+- **`url = env("DATABASE_URL")`** — tumhari `.env` file se connection string padhta hai (credentials kabhi hardcode mat karo!)
 
-You'll add your data models below this block. For example:
+Iske neeche tum apne data models add karoge. Jaise:
 
 ```prisma
 model User {
@@ -148,19 +148,19 @@ model User {
 
 ---
 
-## 🔑 The `.env` File and DATABASE_URL
+## 🔑 `.env` File Aur DATABASE_URL
 
-The `.env` file holds your database connection string. Prisma reads it automatically.
+`.env` file tumhara database connection string hold karti hai. Prisma ise automatically padh leta hai.
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
 ```
 
-### DATABASE_URL Formats for Every Database
+### Har Database Ke Liye DATABASE_URL Format
 
-Choose the format that matches your database:
+Apne database ke hisaab se format choose karo:
 
-**PostgreSQL** (most common in production)
+**PostgreSQL** (production mein sabse common)
 ```env
 DATABASE_URL="postgresql://dev:secret@localhost:5432/myapp?schema=public"
 ```
@@ -175,7 +175,7 @@ DATABASE_URL="mysql://dev:secret@localhost:3306/myapp"
 DATABASE_URL="sqlserver://localhost:1433;database=myapp;user=dev;password=secret"
 ```
 
-**SQLite** — easiest for learning, no server needed!
+**SQLite** — seekhne ke liye sabse aasan, koi server nahi chahiye!
 ```env
 DATABASE_URL="file:./dev.db"
 ```
@@ -185,13 +185,13 @@ DATABASE_URL="file:./dev.db"
 DATABASE_URL="mongodb://dev:secret@localhost:27017/myapp"
 ```
 
-> **Beginner tip:** Use **SQLite** when learning. It's a file-based database — no installation, no Docker, no credentials. Just change the `provider` in `schema.prisma` to `"sqlite"` and set the URL to `"file:./dev.db"`.
+> **Beginner tip:** Seekhte waqt **SQLite** use karo. Yeh ek file-based database hai — no installation, no Docker, no credentials ka jhanjhat. Bas `schema.prisma` mein `provider` ko `"sqlite"` set karo aur URL ko `"file:./dev.db"`.
 
 ---
 
-## 🐳 Setting Up with Docker + PostgreSQL
+## 🐳 Docker + PostgreSQL Ke Saath Setup
 
-If you want a real PostgreSQL database without installing it locally, Docker is the easiest path. With one command you get a fully running Postgres server:
+Agar tumhe local install kiye bina ek real PostgreSQL database chahiye, toh Docker sabse aasan raasta hai. Ek hi command se ek fully running Postgres server mil jaata hai — bilkul jaise ek click mein Zomato pe order place ho jaata hai, backend ka pura kaam ek line mein ho jaata hai:
 
 ```bash
 docker run -d \
@@ -203,31 +203,31 @@ docker run -d \
   postgres:15
 ```
 
-**What each flag does:**
+**Har flag ka kaam:**
 
 | Flag | Purpose |
 |------|---------|
-| `-d` | Run in the background (detached mode) |
-| `--name mydb` | Give the container a friendly name |
-| `-e POSTGRES_USER=dev` | Set the database username |
-| `-e POSTGRES_PASSWORD=secret` | Set the database password |
-| `-e POSTGRES_DB=myapp` | Create a database named `myapp` on startup |
-| `-p 5432:5432` | Map port 5432 from container to your machine |
-| `postgres:15` | Use the official Postgres 15 image |
+| `-d` | Background mein run karo (detached mode) |
+| `--name mydb` | Container ko ek friendly naam do |
+| `-e POSTGRES_USER=dev` | Database ka username set karo |
+| `-e POSTGRES_PASSWORD=secret` | Database ka password set karo |
+| `-e POSTGRES_DB=myapp` | Startup pe `myapp` naam ka database create karo |
+| `-p 5432:5432` | Container ka port 5432 apni machine pe map karo |
+| `postgres:15` | Official Postgres 15 image use karo |
 
-Then update your `.env`:
+Ab apni `.env` update karo:
 
 ```env
 DATABASE_URL="postgresql://dev:secret@localhost:5432/myapp?schema=public"
 ```
 
-To verify the container is running:
+Container chal raha hai ya nahi verify karne ke liye:
 
 ```bash
 docker ps
 ```
 
-To stop it later:
+Baad mein isse stop karne ke liye:
 
 ```bash
 docker stop mydb
@@ -235,15 +235,15 @@ docker stop mydb
 
 ---
 
-## ⚙️ Generating Prisma Client
+## ⚙️ Prisma Client Generate Karna
 
-Every time you modify your `schema.prisma`, you must regenerate the Prisma Client so it stays in sync with your schema:
+**Kyun zaruri hai?** Jab bhi tum apna `schema.prisma` modify karte ho, Prisma Client ko regenerate karna hi padega, warna woh purane schema ke hisaab se hi kaam karta rahega — jaise Swiggy app update na kare toh purana menu dikhata rahega.
 
 ```bash
 npx prisma generate
 ```
 
-This reads your schema and generates TypeScript types and query methods inside `node_modules/@prisma/client`. After this, you can import and use it in your code:
+Yeh tumhari schema ko padhta hai aur TypeScript types aur query methods generate karta hai `node_modules/@prisma/client` ke andar. Iske baad tum ise apne code mein import aur use kar sakte ho:
 
 ```typescript
 import { PrismaClient } from '@prisma/client';
@@ -260,13 +260,13 @@ main()
   .finally(() => prisma.$disconnect());
 ```
 
-> **Important:** Run `npx prisma generate` after every schema change. Many bugs come from forgetting this step.
+> **Important:** Har schema change ke baad `npx prisma generate` zaroor run karo. Kaafi bugs isi step ko bhoolne se aate hain.
 
 ---
 
-## 🗂️ Folder Structure of a Prisma Project
+## 🗂️ Prisma Project Ki Folder Structure
 
-After setup, your project structure will look like this:
+Setup ke baad, tumhara project structure kuch aisa dikhega:
 
 ```
 my-prisma-app/
@@ -286,20 +286,20 @@ my-prisma-app/
 └── tsconfig.json
 ```
 
-**Key rules:**
+**Yaad rakhne wale rules:**
 
-- The `prisma/` folder and `schema.prisma` should be committed to git
-- The `prisma/migrations/` folder should always be committed — it's your migration history
-- The `.env` file should **never** be committed — add it to `.gitignore`
-- Never manually edit files inside `node_modules/@prisma/client`
+- `prisma/` folder aur `schema.prisma` git mein commit hone chahiye
+- `prisma/migrations/` folder hamesha commit hona chahiye — yeh tumhara migration history hai
+- `.env` file **kabhi** commit mat karo — ise `.gitignore` mein daalo
+- `node_modules/@prisma/client` ke andar ki files manually edit mat karo
 
 ---
 
 ## 🌍 Environment-Specific Configuration
 
-Real applications run in multiple environments: development on your laptop, staging for QA testing, and production for real users. Each environment needs its own database.
+**Kya hota hai real production apps mein?** Woh multiple environments mein chalte hain — development tumhare laptop pe, staging QA testing ke liye, aur production real users ke liye. Har environment ko apna alag database chahiye — bilkul jaise IRCTC ka testing server alag hota hai aur live booking server alag.
 
-### Using Multiple `.env` Files
+### Multiple `.env` Files Use Karna
 
 ```bash
 .env                # Default (development)
@@ -307,15 +307,15 @@ Real applications run in multiple environments: development on your laptop, stag
 .env.production     # Production environment (never commit this!)
 ```
 
-### Loading the Right Environment
+### Sahi Environment Load Karna
 
-Use the `--env-file` flag or a tool like `dotenv-cli`:
+`--env-file` flag ya `dotenv-cli` jaisa tool use karo:
 
 ```bash
 npm install dotenv-cli --save-dev
 ```
 
-Then add scripts to `package.json`:
+Phir `package.json` mein scripts add karo:
 
 ```json
 {
@@ -340,11 +340,11 @@ DATABASE_URL="postgresql://staging_user:staging_pass@staging-host.com:5432/myapp
 DATABASE_URL="postgresql://prod_user:prod_pass@prod-host.com:5432/myapp_prod?schema=public&sslmode=require"
 ```
 
-> **Security tip:** In production, always require SSL (`sslmode=require`) and use environment variables provided by your hosting platform — never hardcode credentials anywhere.
+> **Security tip:** Production mein hamesha SSL required rakho (`sslmode=require`) aur apne hosting platform ke environment variables use karo — credentials ko kahin bhi hardcode mat karo.
 
-### Connection Pooling in Production
+### Production Mein Connection Pooling
 
-Production apps often use a connection pooler like **PgBouncer** or Prisma's own **Accelerate**. Add `?pgbouncer=true` for PgBouncer compatibility:
+Production apps aksar ek connection pooler use karte hain jaise **PgBouncer** ya Prisma ka apna **Accelerate**. PgBouncer compatibility ke liye `?pgbouncer=true` add karo:
 
 ```env
 DATABASE_URL="postgresql://user:pass@bouncer-host:6543/myapp?pgbouncer=true&connection_limit=1"
@@ -354,68 +354,68 @@ DATABASE_URL="postgresql://user:pass@bouncer-host:6543/myapp?pgbouncer=true&conn
 
 ## 🔭 Prisma Studio: Visual Database Browser
 
-Prisma Studio is a GUI that lets you browse and edit your database without writing SQL. Start it with:
+Prisma Studio ek GUI hai jisse tum apna database browse aur edit kar sakte ho — bina SQL likhe. Isse start karo:
 
 ```bash
 npx prisma studio
 ```
 
-It opens automatically at `http://localhost:5555`. From here you can:
+Yeh automatically `http://localhost:5555` pe khul jaata hai. Yahan se tum:
 
-- Browse all your tables and records
-- Add, edit, or delete rows
-- Filter and sort data
-- Navigate relationships between records
+- Apni saari tables aur records browse kar sakte ho
+- Rows add, edit, ya delete kar sakte ho
+- Data filter aur sort kar sakte ho
+- Records ke beech relationships navigate kar sakte ho
 
-Prisma Studio is perfect for inspecting data during development — no third-party database GUI needed.
+Development ke dauraan data inspect karne ke liye Prisma Studio ekdum perfect hai — koi third-party database GUI ki zaroorat nahi.
 
 ---
 
 ## 🗝️ Key Takeaways
 
-- Prisma is a **type-safe ORM** with three core parts: Client (queries), Migrate (migrations), Studio (GUI)
-- Install both `prisma` (CLI, dev dependency) and `@prisma/client` (runtime)
-- `npx prisma init` creates `prisma/schema.prisma` and `.env`
-- The `DATABASE_URL` format differs per database — SQLite (`file:./dev.db`) is the easiest starting point
-- Use **Docker** to run PostgreSQL locally without a full installation
-- Run `npx prisma generate` every time you change your schema
-- Never commit `.env` files — use environment variables on your hosting platform for production
-- Keep `prisma/migrations/` in version control — it's your database change history
+- Prisma ek **type-safe ORM** hai jiske teen core parts hain: Client (queries), Migrate (migrations), Studio (GUI)
+- `prisma` (CLI, dev dependency) aur `@prisma/client` (runtime) dono install karo
+- `npx prisma init` se `prisma/schema.prisma` aur `.env` ban jaate hain
+- `DATABASE_URL` ka format har database ke hisaab se alag hota hai — SQLite (`file:./dev.db`) shuruaat karne ka sabse aasan tareeka hai
+- Local pe PostgreSQL chalane ke liye **Docker** use karo, full installation ki zaroorat nahi
+- Schema change karne ke har baar `npx prisma generate` run karo
+- `.env` files kabhi commit mat karo — production ke liye hosting platform ke environment variables use karo
+- `prisma/migrations/` ko version control mein rakho — yeh tumhara database change history hai
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding before moving on:
+Aage badhne se pehle apni samajh test karo:
 
-**Question 1:** You update your `schema.prisma` to add a new field to a model. What command must you run to make sure your TypeScript code has autocomplete for the new field?
+**Question 1:** Tumne apni `schema.prisma` mein ek naya field add kiya. Konsa command chalana padega taaki tumhare TypeScript code mein us naye field ke liye autocomplete aa jaaye?
 
 <details>
 <summary>Show Answer</summary>
 
-`npx prisma generate` — This regenerates the Prisma Client from your updated schema, so TypeScript knows about the new field.
+`npx prisma generate` — Yeh tumhare updated schema se Prisma Client ko regenerate karta hai, taaki TypeScript ko naye field ke baare mein pata chal jaaye.
 
 </details>
 
 ---
 
-**Question 2:** You're building a quick prototype and don't want to set up any database server. Which `DATABASE_URL` format should you use, and what change do you need to make in `schema.prisma`?
+**Question 2:** Tum ek quick prototype bana rahe ho aur koi database server set up nahi karna chahte. Konsa `DATABASE_URL` format use karoge, aur `schema.prisma` mein kya change karna padega?
 
 <details>
 <summary>Show Answer</summary>
 
-Use SQLite: set `DATABASE_URL="file:./dev.db"` in `.env`, and change the `provider` in `schema.prisma` from `"postgresql"` to `"sqlite"`. SQLite stores data in a local file with zero server setup.
+SQLite use karo: `.env` mein `DATABASE_URL="file:./dev.db"` set karo, aur `schema.prisma` mein `provider` ko `"postgresql"` se `"sqlite"` mein badal do. SQLite data ko ek local file mein store karta hai — zero server setup.
 
 </details>
 
 ---
 
-**Question 3:** A teammate clones your repository and runs the app, but gets an error that `DATABASE_URL` is not defined. What is the most likely cause, and how do you fix it without exposing secrets?
+**Question 3:** Tumhara teammate tumhara repository clone karta hai aur app run karta hai, lekin usse error milta hai ki `DATABASE_URL` defined nahi hai. Sabse likely wajah kya hai, aur secrets expose kiye bina isse kaise fix karoge?
 
 <details>
 <summary>Show Answer</summary>
 
-The `.env` file was correctly excluded from git (via `.gitignore`), so the teammate doesn't have it locally. The fix is to create a `.env.example` file with placeholder values (like `DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"`) and commit that. Teammates copy it to `.env` and fill in their own credentials.
+`.env` file `.gitignore` ki wajah se sahi tarah se git se exclude ho gayi thi, isliye teammate ke paas woh locally nahi hai. Fix yeh hai ki ek `.env.example` file banao placeholder values ke saath (jaise `DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"`) aur usse commit karo. Teammates ise `.env` mein copy karke apne credentials daal sakte hain.
 
 </details>
 

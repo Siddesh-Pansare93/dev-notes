@@ -1,6 +1,6 @@
 # Database Fundamentals
 
-Everything you need to go from "what even is a database?" to confidently designing schemas, writing correct transactions, and choosing the right database for the job. This section is for developers who are new to databases or who want to solidify the foundational concepts that underpin every system they will ever build.
+Socho ek second — "database kya hota hai?" se leke confidently schema design karna, transactions sahi se likhna, aur apne project ke liye sahi database choose karna — is section mein yeh sab kuch cover hoga. Agar tum databases mein naye ho, ya phir foundational concepts ko pakka karna chahte ho jo har system ke neeche chhupe hote hain, yeh section tumhare liye hai.
 
 ## Table of Contents
 
@@ -28,43 +28,44 @@ Everything you need to go from "what even is a database?" to confidently designi
 
 ## Learning Path
 
-**Beginner** — Start here if databases are new to you.
+**Beginner** — Agar databases tumhare liye bilkul naye hain, yahan se start karo.
 
-Read chapters 1 → 2 → 3 in order. These three files give you the mental model: what a database is, how data is modelled conceptually, and how the relational model turns that model into tables.
+Chapters 1 → 2 → 3 order mein padho. Yeh teen files tumhe mental model dengi: database asal mein hota kya hai, data ko conceptually model kaise karte hain, aur relational model us model ko tables mein kaise badalta hai.
 
-**Intermediate** — Build your schema design intuition.
+**Intermediate** — Apni schema design ki samajh (intuition) build karo.
 
-After the core concepts, work through chapters 4 → 8 → 9. Normalization teaches you to eliminate redundancy; Joins shows you how to query across tables; Database Design Best Practices covers the naming, key, and anti-pattern decisions real teams argue over.
+Core concepts ke baad, chapters 4 → 8 → 9 pe kaam karo. Normalization sikhata hai redundancy kaise hataye; Joins dikhata hai tables ke across query kaise kare; Database Design Best Practices mein naming, keys, aur anti-patterns cover hote hain jinpe real teams bahas karti hain.
 
-**Advanced** — Understand what makes databases reliable and fast.
+**Advanced** — Samjho ki databases ko reliable aur fast kya banata hai.
 
-Tackle chapters 5 → 7 → 6 — ACID Properties, Transactions, and Indexes. These are the topics that separate developers who use databases from developers who understand them. Finish with chapter 10 to frame everything in the broader SQL vs NoSQL landscape.
+Chapters 5 → 7 → 6 tackle karo — ACID Properties, Transactions, aur Indexes. Yeh woh topics hain jo un developers ko alag karte hain jo sirf database "use" karte hain un developers se jo database ko "samajhte" hain. Chapter 10 ke saath khatam karo, jisse sab kuch SQL vs NoSQL ke bade perspective mein fit ho jaayega.
 
 ## What You'll Learn
 
-- What a database management system (DBMS) is and why plain files do not scale
-- How to model real-world problems as entities, attributes, and relationships using ER diagrams
-- How the relational model represents data as tables, rows, and columns with precise rules
-- How normalization (1NF through BCNF) eliminates data redundancy and prevents update anomalies
-- How ACID guarantees — Atomicity, Consistency, Isolation, Durability — keep your data trustworthy
-- How transactions work, what COMMIT and ROLLBACK mean, and how isolation levels affect concurrency
-- How indexes speed up reads and the trade-offs they introduce for writes and storage
-- How to write and reason about JOINs: INNER, LEFT, RIGHT, FULL OUTER, and CROSS
-- Schema design best practices: naming conventions, surrogate keys, soft deletes, UUIDs vs auto-increment, and common anti-patterns
-- The fundamental trade-offs between SQL (relational) and NoSQL (document, key-value, column-family, graph) databases and when to choose each
+- Database management system (DBMS) kya hota hai, aur plain files (jaise CSV, text files) scale kyun nahi karti
+- Real-world problems ko entities, attributes, aur relationships mein kaise model karein — ER diagrams ke through
+- Relational model data ko tables, rows, aur columns mein precise rules ke saath kaise represent karta hai
+- Normalization (1NF se BCNF tak) data redundancy kaise khatam karta hai aur update anomalies ko kaise rokta hai
+- ACID guarantees — Atomicity, Consistency, Isolation, Durability — tumhare data ko trustworthy kaise banate hain
+- Transactions kaise kaam karte hain, COMMIT aur ROLLBACK ka matlab kya hai, aur isolation levels concurrency ko kaise affect karte hain
+- Indexes reads ko fast kaise banate hain, aur iske badle writes aur storage pe kya trade-off aata hai
+- JOINs kaise likhein aur reason karein — INNER, LEFT, RIGHT, FULL OUTER, aur CROSS
+- Schema design best practices: naming conventions, surrogate keys, soft deletes, UUIDs vs auto-increment, aur common anti-patterns
+- SQL (relational) aur NoSQL (document, key-value, column-family, graph) databases ke fundamental trade-offs, aur kab kaunsa choose karna hai
 
 ## Prerequisites
 
-- Basic comfort with the command line and a text editor
-- A rough idea of what "storing data" means (no prior SQL or database experience needed)
-- Familiarity with at least one programming language helps with the code examples, but is not required
+- Command line aur text editor ke saath thoda comfort
+- "Data store karna" ka rough idea (SQL ya database ka prior experience zaruri nahi)
+- Kisi bhi ek programming language ki familiarity code examples samajhne mein help karegi, lekin zaruri nahi hai
 
 ## How to Use This Guide
 
-1. **Follow the numbered order on a first pass.** The chapters are sequenced so each one builds on the last — jumping ahead to Transactions without reading ACID Properties first will leave gaps.
-2. **Type out the SQL examples.** Passive reading of query syntax does not stick. Spin up a local PostgreSQL or SQLite instance and run every snippet you encounter.
-3. **Pause at the quizzes.** Each chapter ends with review questions. Answer them before moving on — they surface the concepts most people skim past.
-4. **Use the Learning Path tracks if you are time-constrained.** The Beginner track alone gives you enough to start writing sensible schemas. Come back for the Intermediate and Advanced tracks as your projects grow in complexity.
-5. **Revisit chapters 5 and 6 (ACID and Indexes) often.** These topics feel abstract the first time and click completely once you have debugged a race condition or a slow query in a real app.
+1. **Pehli baar numbered order follow karo.** Chapters is tarah sequence kiye gaye hain ki har ek pichle wale pe build karta hai — agar tum Transactions seedha padhoge bina ACID Properties padhe, toh gaps reh jaayenge.
+2. **SQL examples type karke practice karo.** Sirf query syntax padhna kaafi nahi hota, yeh cheez zehen mein baithti nahi. Ek local PostgreSQL ya SQLite instance spin up karo aur jo bhi snippet mile, usko khud run karo.
+3. **Quizzes pe ruko.** Har chapter ke end mein review questions hain. Aage badhne se pehle unhe answer karo — yehi woh concepts hain jinhe log skim karke aage nikal jaate hain.
+4. **Time-constrained ho toh Learning Path tracks use karo.** Beginner track akela itna de dega ki tum sensible schemas likhna start kar sako. Jaise-jaise projects complex hote jaayein, Intermediate aur Advanced tracks pe wapas aa jaana.
+5. **Chapters 5 aur 6 (ACID aur Indexes) baar-baar revisit karo.** Yeh topics pehli baar mein abstract lagte hain, aur tab poori tarah click karte hain jab tumne kisi real app mein race condition ya slow query khud debug ki ho.
 
-The fundamentals are the part of databases that never go out of date — invest time here and every framework, ORM, and cloud service you learn afterwards will make more sense.
+> [!tip]
+> Fundamentals woh part hain databases ka jo kabhi outdated nahi hote — yahan time invest karo, aur baad mein jo bhi framework, ORM, ya cloud service seekhoge, woh sab zyada sense banayega.

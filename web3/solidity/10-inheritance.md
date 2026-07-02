@@ -5,16 +5,16 @@
 
 ---
 
-## 🧠 What Is Inheritance?
+## 🧠 Inheritance Hai Kya Cheez?
 
-Think of inheritance in real life. A child inherits traits from their parents — eye colour, height tendencies, maybe a love of music. The child doesn't need to "rebuild" those traits from scratch; they already come built-in.
+Zara real life socho. Bacche ko apne parents se traits milte hain — aankhon ka colour, height, shaayad music ka shauk bhi. Bacche ko yeh sab cheezein scratch se banani nahi padtin, woh already built-in aati hain.
 
-Inheritance in Solidity works the same way. You write a **parent contract** (also called a *base contract*) with functions, state variables, and logic. Then a **child contract** (also called a *derived contract*) can **reuse everything** from that parent without copy-pasting code.
+Solidity mein inheritance bilkul isi tarah kaam karta hai. Tum ek **parent contract** (jise *base contract* bhi kehte hain) likhte ho jisme functions, state variables, aur logic hota hai. Fir ek **child contract** (jise *derived contract* kehte hain) us parent se **sab kuch reuse** kar sakta hai — bina code copy-paste kiye.
 
-This is a cornerstone of:
-- **Code reuse** — write once, use everywhere
-- **Modularity** — break complex systems into small focused contracts
-- **OpenZeppelin** — the most popular Solidity library uses deep inheritance to give you battle-tested building blocks
+Yeh teen cheezon ka foundation hai:
+- **Code reuse** — ek baar likho, sab jagah use karo
+- **Modularity** — bade complex systems ko chhote focused contracts mein todna
+- **OpenZeppelin** — sabse popular Solidity library deep inheritance use karti hai taaki tumhe battle-tested building blocks mil sakein
 
 ```
 Parent Contract  →  Child Contract inherits it  →  Grandchild Contract inherits Child
@@ -24,7 +24,7 @@ Parent Contract  →  Child Contract inherits it  →  Grandchild Contract inher
 
 ## 🌱 1. Single Inheritance
 
-The simplest form. One child, one parent.
+Sabse simple form. Ek child, ek parent — bilkul Zomato pe ek restaurant ka ek hi parent chain hone jaisa.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -61,11 +61,11 @@ contract Dog is Animal {
 }
 ```
 
-The `Dog` contract automatically gets:
-- The `name` state variable
-- The `breathe()` function
-- Its own version of `speak()` (overridden)
-- A new function `fetch()` that `Animal` doesn't have
+`Dog` contract ko automatically mil jaata hai:
+- `name` state variable
+- `breathe()` function
+- `speak()` ka apna version (overridden)
+- `fetch()` naya function jo `Animal` ke paas nahi hai
 
 **Key syntax:** `contract Child is Parent { ... }`
 
@@ -73,7 +73,7 @@ The `Dog` contract automatically gets:
 
 ## 🌳 2. Multiple Inheritance
 
-A child contract can inherit from **more than one parent**. This is useful when you want to combine capabilities.
+Ek child contract **ek se zyada parents** se bhi inherit kar sakta hai. Yeh tab kaam aata hai jab tumhe multiple capabilities combine karni ho — jaise ek app mein Ola ki ride-booking aur UPI ka payment dono features combine karna.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -98,19 +98,19 @@ contract FlyingDog is Dog, Flyable {
 }
 ```
 
-`FlyingDog` inherits from **both** `Dog` (which itself inherits from `Animal`) and `Flyable`.
+`FlyingDog` **dono** se inherit karta hai — `Dog` se (jo khud `Animal` se inherit karta hai) aur `Flyable` se.
 
 **Key syntax:** `contract Child is Parent1, Parent2 { ... }`
 
-> Order matters here — more on that in the Diamond Problem section.
+> Order yahan matter karta hai — Diamond Problem section mein iske baare mein aage baat karenge.
 
 ---
 
 ## 💎 3. The Diamond Problem & C3 Linearization
 
-### What is the Diamond Problem?
+### Diamond Problem Hai Kya?
 
-Imagine this situation:
+Yeh situation socho:
 
 ```
        Animal
@@ -120,59 +120,59 @@ Imagine this situation:
       FlyingDog
 ```
 
-Both `Dog` and `Flyable` inherit from `Animal`. When `FlyingDog` calls a function defined in `Animal`, which path does it take? `Dog → Animal` or `Flyable → Animal`? This ambiguity is the **Diamond Problem**.
+`Dog` aur `Flyable` dono `Animal` se inherit karte hain. Jab `FlyingDog`, `Animal` mein defined koi function call karta hai, toh woh kaunsa path follow kare? `Dog → Animal` ya `Flyable → Animal`? Yehi confusion **Diamond Problem** kehlata hai.
 
-Languages like C++ can produce unpredictable bugs here. Solidity solves it with a deterministic algorithm.
+C++ jaisi languages mein yeh unpredictable bugs de sakta hai. Solidity isko ek deterministic algorithm se solve karta hai.
 
-### Solidity's Solution: C3 Linearization (MRO)
+### Solidity Ka Solution: C3 Linearization (MRO)
 
-Solidity uses **C3 Linearization** (also called Method Resolution Order, MRO) to compute a single, predictable inheritance order. The rule is:
+Solidity **C3 Linearization** (jise Method Resolution Order, ya MRO bhi kehte hain) use karta hai taaki ek single, predictable inheritance order compute ho sake. Rule simple hai:
 
-> **List parents from most base to most derived, left to right**
+> **Parents ko most base se most derived tak, left se right likho**
 
 ```solidity
 // CORRECT: most base contract first
 contract FlyingDog is Animal, Dog, Flyable { }
-// Solidity will reject orderings that violate the linearization
+// Solidity un orderings ko reject kar dega jo linearization violate karti hain
 
-// If you write:
+// Agar tum likho:
 contract FlyingDog is Dog, Flyable { }
-// Solidity resolves: FlyingDog -> Flyable -> Dog -> Animal
-// (right-to-left, deepest base first)
+// Solidity resolve karega: FlyingDog -> Flyable -> Dog -> Animal
+// (right-to-left, deepest base pehle)
 ```
 
-**Practical rule of thumb:** list parents from the most general (base) to the most specific (derived). Solidity will throw a **compile error** if your ordering is ambiguous or impossible, so you can't accidentally write broken code.
+**Practical rule of thumb:** parents ko most general (base) se most specific (derived) tak list karo. Agar ordering ambiguous ya impossible hai, toh Solidity **compile error** de dega — matlab galti se bhi broken code likhne se bach jaate ho.
 
 ---
 
-## 🔑 4. `virtual` and `override` Keywords
+## 🔑 4. `virtual` aur `override` Keywords
 
-Starting in Solidity **0.8**, these keywords are **required** — not optional.
+Solidity **0.8** se yeh keywords **required** hain — optional nahi.
 
-| Keyword   | Used on          | Meaning                                          |
+| Keyword   | Kahan Use Hota Hai | Matlab                                          |
 |-----------|------------------|--------------------------------------------------|
-| `virtual` | Parent function  | "I allow child contracts to override me"         |
-| `override`| Child function   | "I am overriding my parent's version"            |
+| `virtual` | Parent function  | "Main child contracts ko mujhe override karne deta hoon"         |
+| `override`| Child function   | "Main apne parent ka version override kar raha hoon"            |
 
 ```solidity
 contract Animal {
-    // Must mark as virtual to allow overriding
+    // Overriding allow karne ke liye virtual mark karna zaruri hai
     function speak() public virtual returns (string memory) {
         return "...";
     }
 }
 
 contract Dog is Animal {
-    // Must mark as override to signal intent
+    // Intent signal karne ke liye override mark karna zaruri hai
     function speak() public override returns (string memory) {
         return "Woof!";
     }
 }
 ```
 
-### Overriding Multiple Parents
+### Multiple Parents Ko Override Karna
 
-When your function overrides implementations from **multiple** parents, list all of them:
+Jab tumhara function **multiple** parents ke implementations ko override karta hai, toh sabko list karo:
 
 ```solidity
 contract C is A, B {
@@ -182,13 +182,13 @@ contract C is A, B {
 }
 ```
 
-Omitting any parent that defines `greet()` is a **compile error**. Solidity enforces that you acknowledge every parent you are overriding.
+Agar `greet()` define karne wale kisi bhi parent ko chhod diya toh **compile error** aayega. Solidity yeh enforce karta hai ki tum jitne parents ko override kar rahe ho, unko explicitly acknowledge karo.
 
 ---
 
-## ⬆️ 5. The `super` Keyword
+## ⬆️ 5. `super` Keyword
 
-`super` calls the **next function in the inheritance chain** as determined by C3 linearization. It doesn't necessarily call the *direct* parent — it calls the next one in line.
+`super`, C3 linearization se decide hui **inheritance chain ka agla function** call karta hai. Zaruri nahi ki yeh *direct* parent ko call kare — yeh chain mein jo agla hai, usko call karta hai.
 
 ```solidity
 contract FlyingDog is Dog, Flyable {
@@ -200,13 +200,13 @@ contract FlyingDog is Dog, Flyable {
 }
 ```
 
-Think of `super` as saying: "Call the same function, but from my parent's perspective."
+`super` ko aise socho jaise tum keh rahe ho: "Same function call karo, lekin mere parent ke perspective se."
 
-You can also call a **specific parent** by name:
+Tum kisi **specific parent** ko naam se bhi call kar sakte ho:
 
 ```solidity
 function speak() public override(Dog) returns (string memory) {
-    return Dog.speak(); // calls Dog.speak() directly
+    return Dog.speak(); // Dog.speak() ko directly call karta hai
 }
 ```
 
@@ -214,24 +214,24 @@ function speak() public override(Dog) returns (string memory) {
 
 ## 🏗️ 6. Constructor Inheritance
 
-When a parent contract has a constructor with parameters, the child must pass arguments to it.
+Jab parent contract ke constructor mein parameters hote hain, toh child ko usko arguments pass karne padte hain.
 
-### Method 1: Inline in the child's header
+### Method 1: Child ke header mein inline
 
 ```solidity
 contract Dog is Animal {
     constructor(string memory _name) Animal(_name) {}
     //                              ^^^^^^^^^^^^^^^
-    //                    Passing _name up to Animal's constructor
+    //                    _name ko Animal ke constructor tak pass kar rahe hain
 }
 ```
 
-### Method 2: Inline in the child's constructor body (for computed values)
+### Method 2: Child ke constructor body mein inline (computed values ke liye)
 
 ```solidity
 contract RobotDog is Animal {
     constructor() Animal("RoboDog-9000") {}
-    // Hardcoded name passed to parent
+    // Hardcoded naam parent ko pass kiya
 }
 ```
 
@@ -239,31 +239,31 @@ contract RobotDog is Animal {
 
 ```solidity
 contract FlyingDog is Dog, Flyable {
-    // Flyable has no constructor arguments, so only Dog needs feeding
+    // Flyable ke paas constructor arguments nahi hain, isliye sirf Dog ko feed karna hai
     constructor(string memory _name) Dog(_name) {}
 }
 ```
 
-> Rule: Every parent constructor that requires arguments **must** be supplied, either in the derived contract's header or body.
+> Rule: Har us parent constructor ko arguments **zaruri** milne chahiye jo unko maangta hai, chahe derived contract ke header mein do ya body mein.
 
 ---
 
-## 👁️ 7. Visibility and Inheritance
+## 👁️ 7. Visibility Aur Inheritance
 
-Not all members of a parent contract are accessible in child contracts. Visibility determines what gets inherited.
+Parent contract ke saare members child contracts mein accessible nahi hote. Visibility decide karti hai ki kya inherit hoga.
 
-| Visibility  | Accessible Inside Child? | Accessible Outside? | Notes                            |
+| Visibility  | Child Ke Andar Accessible? | Bahar Se Accessible? | Notes                            |
 |-------------|--------------------------|---------------------|----------------------------------|
-| `public`    | Yes                      | Yes                 | Fully open                       |
-| `internal`  | Yes                      | No                  | Like "protected" in other langs  |
-| `external`  | No (directly)            | Yes                 | Only callable from outside       |
-| `private`   | **No**                   | No                  | Stays strictly in defining contract |
+| `public`    | Haan                      | Haan                 | Poori tarah open                       |
+| `internal`  | Haan                      | Nahi                  | Doosri languages ke "protected" jaisa  |
+| `external`  | Nahi (directly)            | Haan                 | Sirf bahar se hi call ho sakta hai       |
+| `private`   | **Nahi**                     | Nahi                    | Sirf defining contract mein hi rehta hai |
 
 ```solidity
 contract Parent {
-    uint256 public publicVar = 1;       // child can read and use
-    uint256 internal internalVar = 2;   // child can read and use
-    uint256 private privateVar = 3;     // child CANNOT access this
+    uint256 public publicVar = 1;       // child read aur use kar sakta hai
+    uint256 internal internalVar = 2;   // child read aur use kar sakta hai
+    uint256 private privateVar = 3;     // child isko access NAHI kar sakta
 
     function publicFunc() public virtual returns (uint256) { return publicVar; }
     function internalFunc() internal virtual returns (uint256) { return internalVar; }
@@ -272,40 +272,40 @@ contract Parent {
 
 contract Child is Parent {
     function readVars() public view returns (uint256, uint256) {
-        return (publicVar, internalVar); // both accessible
-        // privateVar would cause a compile error
+        return (publicVar, internalVar); // dono accessible hain
+        // privateVar use karne se compile error aayega
     }
 
     function callInternal() public returns (uint256) {
-        return internalFunc(); // accessible
-        // privateFunc() would cause a compile error
+        return internalFunc(); // accessible hai
+        // privateFunc() se compile error aayega
     }
 }
 ```
 
-> Key insight: `private` is the **only** visibility level that is NOT inherited. Use `internal` when you want something hidden from the outside world but still accessible to child contracts.
+> Key insight: `private` hi ek **aisi** visibility hai jo inherit NAHI hoti. Jab tumhe kuch bahar ki duniya se hide karna ho lekin child contracts ko access dena ho, toh `internal` use karo.
 
 ---
 
-## 🧪 8. Calling Parent Functions Explicitly
+## 🧪 8. Parent Functions Ko Explicitly Call Karna
 
-Beyond `super`, you can call a specific parent's function using its contract name:
+`super` ke alawa, tum kisi specific parent ka function uske contract name se bhi call kar sakte ho:
 
 ```solidity
 contract FlyingDog is Dog, Flyable {
     function whichSpeak() public returns (string memory) {
-        // Call Animal's speak directly
+        // Animal ka speak directly call karo
         return Animal.speak();   // returns "..."
 
-        // Call Dog's speak directly
+        // Dog ka speak directly call karo
         // return Dog.speak();   // returns "Woof!"
     }
 }
 ```
 
-This is useful when:
-- You need a specific ancestor's implementation (not the next in chain)
-- You want to compose outputs from multiple parents explicitly
+Yeh tab useful hai jab:
+- Tumhe kisi specific ancestor ka implementation chahiye (chain ka agla wala nahi)
+- Tum multiple parents ke outputs ko explicitly compose karna chahte ho
 
 ---
 
@@ -343,50 +343,50 @@ classDiagram
 
 ---
 
-## 🏦 9. Real-World Example: ERC-20 Token with OpenZeppelin
+## 🏦 9. Real-World Example: OpenZeppelin Ke Saath ERC-20 Token
 
-OpenZeppelin is a library of secure, audited Solidity contracts. Instead of writing token logic from scratch, you inherit from their `ERC20` contract.
+OpenZeppelin ek secure, audited Solidity contracts ki library hai. Token logic scratch se likhne ki bajaye, tum unke `ERC20` contract se inherit karte ho — bilkul jaise koi naya fintech app apna khud ka payment gateway na banakar Razorpay ka SDK use kar le.
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// Import OpenZeppelin's ERC20 implementation
+// OpenZeppelin ka ERC20 implementation import karo
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title MyToken
- * @dev A simple ERC-20 token inheriting OpenZeppelin's ERC20 + Ownable
+ * @dev OpenZeppelin ke ERC20 + Ownable se inherit karta ek simple ERC-20 token
  *
  * Inheritance chain:
  *   MyToken → ERC20, Ownable → Context
  */
 contract MyToken is ERC20, Ownable {
 
-    // Constructor feeds required args to both parent constructors
+    // Constructor dono parent constructors ko required args feed karta hai
     constructor(
         string memory tokenName,
         string memory tokenSymbol,
         uint256 initialSupply
     )
-        ERC20(tokenName, tokenSymbol)    // feeds ERC20's constructor
-        Ownable(msg.sender)              // feeds Ownable's constructor
+        ERC20(tokenName, tokenSymbol)    // ERC20 ke constructor ko feed karta hai
+        Ownable(msg.sender)              // Ownable ke constructor ko feed karta hai
     {
-        // _mint is an internal function from ERC20 — accessible because internal
+        // _mint ERC20 ka internal function hai — internal hone ki wajah se accessible hai
         _mint(msg.sender, initialSupply * 10 ** decimals());
     }
 
     /**
-     * @dev Only the owner (from Ownable) can mint new tokens
-     *      onlyOwner is a modifier inherited from Ownable
+     * @dev Sirf owner (Ownable se) naye tokens mint kar sakta hai
+     *      onlyOwner modifier Ownable se inherit hua hai
      */
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
 
     /**
-     * @dev Override decimals() from ERC20 to set 6 decimal places instead of 18
+     * @dev ERC20 ke decimals() ko override karke 18 ki jagah 6 decimal places set karo
      */
     function decimals() public pure override returns (uint8) {
         return 6;
@@ -394,9 +394,9 @@ contract MyToken is ERC20, Ownable {
 }
 ```
 
-### What `MyToken` gets for free from OpenZeppelin:
+### `MyToken` ko OpenZeppelin se muft mein kya milta hai:
 
-| From `ERC20`             | From `Ownable`          |
+| `ERC20` Se             | `Ownable` Se          |
 |--------------------------|-------------------------|
 | `transfer()`             | `owner()` view          |
 | `approve()`              | `onlyOwner` modifier    |
@@ -406,9 +406,9 @@ contract MyToken is ERC20, Ownable {
 | `allowance()`            |                         |
 | `name()`, `symbol()`     |                         |
 
-You wrote ~25 lines of meaningful business logic. OpenZeppelin wrote the other ~400 lines of battle-tested code. Inheritance made this possible.
+Tumne sirf ~25 lines ka meaningful business logic likha. OpenZeppelin ne baaki ~400 lines ka battle-tested code likh diya. Yeh sab inheritance ki wajah se mumkin hua.
 
-### OpenZeppelin's Internal Hierarchy
+### OpenZeppelin Ki Internal Hierarchy
 
 ```mermaid
 classDiagram
@@ -448,7 +448,7 @@ classDiagram
 
 ---
 
-## 📋 Full Combined Example (from the Chapter)
+## 📋 Full Combined Example (Iss Chapter Se)
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -495,12 +495,12 @@ contract Flyable {
 contract FlyingDog is Dog, Flyable {
     constructor(string memory _name) Dog(_name) {}
 
-    // Override Flyable.fly()
+    // Flyable.fly() ko override karo
     function fly() public override returns (string memory) {
         return "Super dog flies!";
     }
 
-    // Override Dog.speak() and uses super to compose behavior
+    // Dog.speak() ko override karo aur super se behavior compose karo
     function speak() public override(Dog) returns (string memory) {
         // super.speak() → Dog.speak() → "Woof!"
         return string(abi.encodePacked(super.speak(), " (from the sky)"));
@@ -508,32 +508,32 @@ contract FlyingDog is Dog, Flyable {
 }
 ```
 
-Deploying `FlyingDog("Rex")` and calling:
+`FlyingDog("Rex")` deploy karke yeh call karne par:
 - `speak()` → `"Woof! (from the sky)"`
 - `fly()` → `"Super dog flies!"`
-- `fetch()` → `"Fetching ball!"` (inherited from Dog)
-- `breathe()` → `"Breathing air"` (inherited from Animal via Dog)
-- `name()` → `"Rex"` (state variable from Animal)
+- `fetch()` → `"Fetching ball!"` (Dog se inherited)
+- `breathe()` → `"Breathing air"` (Dog ke through Animal se inherited)
+- `name()` → `"Rex"` (Animal ka state variable)
 
 ---
 
 ## ✅ Key Takeaways
 
-- **`is` keyword** declares inheritance: `contract Child is Parent`
-- **Multiple inheritance** is allowed: `contract Child is A, B`
-- **C3 linearization** gives Solidity a deterministic, compile-time-enforced resolution order — no ambiguity at runtime
-- **`virtual`** must be added to any function a parent wants to allow overriding
-- **`override`** must be added to any function a child is overriding — Solidity enforces this explicitly
-- **`super`** calls the next function in the MRO chain; `Parent.func()` calls a specific ancestor
-- **Constructor chaining** feeds parent constructors using `ParentName(args)` in the child's constructor header
-- **`private`** state variables and functions are NOT inherited — use `internal` for "protected" access
-- **OpenZeppelin** is built entirely on inheritance — understanding it unlocks the entire ecosystem
+- **`is` keyword** inheritance declare karta hai: `contract Child is Parent`
+- **Multiple inheritance** allowed hai: `contract Child is A, B`
+- **C3 linearization** Solidity ko ek deterministic, compile-time-enforced resolution order deta hai — runtime pe koi ambiguity nahi
+- **`virtual`** har us function pe lagana zaruri hai jise parent override karne dena chahta hai
+- **`override`** har us function pe lagana zaruri hai jise child override kar raha hai — Solidity yeh explicitly enforce karta hai
+- **`super`** MRO chain ka agla function call karta hai; `Parent.func()` ek specific ancestor ko call karta hai
+- **Constructor chaining** child ke constructor header mein `ParentName(args)` use karke parent constructors ko feed karta hai
+- **`private`** state variables aur functions inherit NAHI hote — "protected" jaisi access ke liye `internal` use karo
+- **OpenZeppelin** poori tarah inheritance pe bana hai — isko samajhna poore ecosystem ko unlock kar deta hai
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding. Answers are below.
+Apni samajh test karo. Answers neeche diye hain.
 
 **Question 1**
 
@@ -551,7 +551,7 @@ contract B is A {
 }
 ```
 
-Will this compile? If not, what is missing?
+Kya yeh compile hoga? Agar nahi, toh kya missing hai?
 
 ---
 
@@ -574,13 +574,13 @@ contract Derived is Base {
 }
 ```
 
-Which line will cause a compile error and why?
+Kaunsi line compile error dega aur kyun?
 
 ---
 
 **Question 3**
 
-Given this inheritance setup:
+Yeh inheritance setup dekho:
 
 ```solidity
 contract X {
@@ -596,17 +596,17 @@ contract Z is Y {
 }
 ```
 
-What does `Z.hello()` return?
+`Z.hello()` kya return karega?
 
 ---
 
 ### Answers
 
-**Answer 1:** No, it will NOT compile. `A.greet()` is missing the `virtual` keyword. In Solidity 0.8+, any function that a child intends to override must be explicitly marked `virtual` in the parent. Fix: `function greet() public virtual returns (string memory)`.
+**Answer 1:** Nahi, yeh compile NAHI hoga. `A.greet()` mein `virtual` keyword missing hai. Solidity 0.8+ mein, jo bhi function child override karna chahta hai, use parent mein explicitly `virtual` mark karna hoga. Fix: `function greet() public virtual returns (string memory)`.
 
-**Answer 2:** Line `return secret;` in `getSecret()` will cause a compile error. `secret` is marked `private` in `Base`, which means it is **not accessible** in derived contracts. `hint` is `internal`, so `getHint()` compiles fine. Fix: change `private` to `internal` if child access is needed.
+**Answer 2:** `getSecret()` mein `return secret;` waali line compile error degi. `secret`, `Base` mein `private` mark hai, matlab yeh derived contracts mein **accessible nahi** hai. `hint` `internal` hai, isliye `getHint()` bina kisi problem ke compile ho jaata hai. Fix: agar child access chahiye toh `private` ko `internal` mein badal do.
 
-**Answer 3:** `Z.hello()` returns `"Y"`. `super.hello()` in `Z` follows the C3 MRO chain, which resolves to `Y` as the next in line. `Y.hello()` returns `"Y"`. If `Z` wanted `"X"`, it would call `X.hello()` directly.
+**Answer 3:** `Z.hello()` `"Y"` return karega. `Z` mein `super.hello()`, C3 MRO chain follow karta hai, jo agla resolve karta hai `Y` pe. `Y.hello()` `"Y"` return karta hai. Agar `Z` ko `"X"` chahiye hota, toh usse `X.hello()` directly call karna padta.
 
 ---
 

@@ -2,13 +2,13 @@
 
 > "Smart contracts are immutable. Once deployed, bugs become permanent money drains."
 
-Smart contract security is not optional — it is the foundation of everything you build on-chain. Unlike traditional software where a bug fix is a server patch away, a deployed Solidity contract lives forever on the blockchain. If it has a vulnerability, attackers will find it, and there is no "rollback" button.
+Solidity mein security koi "optional feature" nahi hai — yeh poori building ki foundation hai. Socho Node.js/Express wale world mein tumse ek bug ho gaya, toh kya karte ho? `git revert`, server restart, deploy — 5 minute ka kaam. Lekin blockchain pe aisa kuch nahi hota. Ek baar contract deploy ho gaya, toh woh **hamesha ke liye** wahi rahega. Koi rollback button nahi, koi hotfix nahi. Agar usme koi loophole hai, toh attackers use dhoondh lenge — guaranteed.
 
-This chapter walks through the most critical vulnerabilities in Solidity, how they work, and how to defend against them.
+Is chapter mein hum Solidity ke sabse dangerous vulnerabilities dekhenge — woh kaise kaam karte hain, aur unse bachne ka tarika kya hai.
 
 ---
 
-## Why Security Matters So Much
+## Security Itni Important Kyun Hai?
 
 | Hack | Year | Amount Lost |
 |---|---|---|
@@ -17,7 +17,7 @@ This chapter walks through the most critical vulnerabilities in Solidity, how th
 | Ronin Bridge | 2022 | $625 million |
 | Wormhole | 2022 | $320 million |
 
-These were not exotic, theoretical attacks. Most exploited simple patterns that every developer must understand.
+Yeh koi rocket-science-level fancy attacks nahi the. Zyadatar simple, common patterns exploit hue the — jo har developer ko pata hone chahiye.
 
 ---
 
@@ -25,23 +25,25 @@ These were not exotic, theoretical attacks. Most exploited simple patterns that 
 
 ### The DAO Hack ($60M in 2016)
 
-The DAO (Decentralized Autonomous Organization) was one of the largest crowdfunding events in history, raising $150 million worth of ETH. In June 2016, an attacker exploited a reentrancy vulnerability and drained $60 million before anyone could stop it. This single event was so devastating it caused Ethereum to hard fork into Ethereum (ETH) and Ethereum Classic (ETC).
+The DAO (Decentralized Autonomous Organization) apne time ka sabse bada crowdfunding event tha — $150 million worth ka ETH raise hua tha. June 2016 mein ek attacker ne reentrancy vulnerability exploit karke $60 million nikaal liye, aur koi rok nahi paaya. Yeh event itna bada tha ki Ethereum ko hard fork karna pada — wahi se Ethereum (ETH) aur Ethereum Classic (ETC) alag hue.
 
-### How Reentrancy Works — Step by Step
+### Reentrancy Kaam Kaise Karta Hai — Step by Step
 
-Imagine a bank teller who checks your balance, hands you the cash, and *then* marks your account as withdrawn. What if you could grab the teller's hand and ask again before they make the mark?
+Socho ek bank teller hai jo pehle tumhara balance check karta hai, phir tumhe cash deta hai, aur *uske baad* tumhara account update karke likhta hai "withdrawn". Ab agar tum teller ka haath pakad ke usse baar-baar pooch lo cash update hone se pehle hi — toh kya hoga?
 
-That is reentrancy.
+Yehi hai reentrancy.
 
-Here is how it plays out:
+Step by step dekho kaise chalta hai:
 
-1. Attacker deposits a small amount of ETH into a vulnerable contract.
-2. Attacker calls `withdraw()`.
-3. The vulnerable contract sends ETH to the attacker's contract address.
-4. The attacker's contract has a `receive()` or `fallback()` function that immediately calls `withdraw()` again.
-5. Because the victim contract has NOT updated the attacker's balance yet, it still thinks the attacker has funds.
-6. The victim sends ETH again. Steps 4–6 repeat until the contract is empty.
-7. Only after the recursive calls finish does the victim contract try to update the balance — but it is too late.
+1. Attacker ek vulnerable contract mein thoda sa ETH deposit karta hai.
+2. Attacker `withdraw()` call karta hai.
+3. Vulnerable contract attacker ke contract address pe ETH bhej deta hai.
+4. Attacker ke contract mein ek `receive()` ya `fallback()` function hota hai jo turant `withdraw()` ko phir se call kar deta hai.
+5. Kyunki victim contract ne abhi tak attacker ka balance update nahi kiya, usse abhi bhi lagta hai attacker ke paas funds hain.
+6. Victim phir se ETH bhej deta hai. Steps 4-6 tab tak repeat hote hain jab tak contract khaali nahi ho jaata.
+7. Saare recursive calls khatam hone ke baad hi victim contract balance update karne ki koshish karta hai — lekin tab tak bahut der ho chuki hoti hai.
+
+Bilkul Zomato ke wallet system jaisa socho — agar refund process mein pehle paisa wallet mein credit ho jaye, aur "refund complete" flag baad mein set ho, toh tum wahi refund request 10 baar bhej ke 10x paisa le sakte ho, jab tak flag set na ho.
 
 ### Mermaid Sequence Diagram
 
@@ -121,7 +123,7 @@ contract Attacker {
 
 ### Fix 1: Checks-Effects-Interactions (CEI) Pattern
 
-The most fundamental fix: always update state BEFORE making external calls.
+Sabse fundamental fix: hamesha state pehle update karo, external call baad mein.
 
 ```solidity
 // SECURE: Checks-Effects-Interactions Pattern
@@ -150,7 +152,7 @@ contract SecureBankCEI {
 
 ### Fix 2: ReentrancyGuard (Mutex Lock)
 
-A mutex (mutual exclusion) lock prevents a function from being entered while it is already executing. OpenZeppelin provides a battle-tested version.
+Ek mutex (mutual exclusion) lock function ko dobara enter hone se rok deta hai jab tak woh pehle se chal raha ho. Iska ek battle-tested version OpenZeppelin deta hai — use hi use karo, khud reinvent mat karo.
 
 ```solidity
 // SECURE: Manual ReentrancyGuard
@@ -202,15 +204,16 @@ contract BestPracticeBank is ReentrancyGuard {
 }
 ```
 
-> **Rule:** Always use CEI pattern AND ReentrancyGuard for functions that send ETH or call external contracts.
+> [!tip]
+> **Rule:** Jo bhi function ETH bhejta hai ya external contract ko call karta hai, usme CEI pattern AUR ReentrancyGuard dono use karo — dono ka combo hi asli safety hai.
 
 ---
 
 ## 2. ➕ Integer Overflow and Underflow
 
-### The Pre-0.8 Vulnerability
+### Kya Hota Hai Pre-0.8 Vulnerability?
 
-Before Solidity 0.8.0, arithmetic did not check for overflow or underflow. Numbers just "wrapped around" like an odometer.
+Solidity 0.8.0 se pehle, arithmetic mein overflow ya underflow ka koi check nahi hota tha. Numbers bas "wrap around" ho jaate the — bilkul purane car odometer jaisa jo 999999 ke baad wapas 000000 pe aa jaata hai.
 
 ```solidity
 // VULNERABLE: Solidity < 0.8.0
@@ -228,7 +231,7 @@ contract VulnerableToken {
 }
 ```
 
-The BEC token hack in 2018 exploited overflow to generate billions of tokens from nothing.
+Socho tumhare Paytm wallet mein ₹0 balance hai aur tum ₹1 minus karne ki koshish karo — agar system underflow check na kare, toh ₹0 - ₹1 seedha ₹99,999,999... ban jaaye! Bilkul yehi hua tha 2018 mein BEC token hack mein — overflow exploit karke arabon tokens hawa se bana liye gaye the.
 
 ### Fix 1: SafeMath (Pre-0.8)
 
@@ -267,9 +270,9 @@ contract ModernToken {
 }
 ```
 
-### The `unchecked` Block — Use With Caution
+### `unchecked` Block — Zara Sambhal Ke Use Karo
 
-Sometimes you know overflow cannot happen, and you want to save gas by skipping the checks:
+Kabhi-kabhi tumhe pata hota hai ki overflow ho hi nahi sakta, aur tum gas bachana chahte ho check skip karke:
 
 ```solidity
 pragma solidity ^0.8.0;
@@ -288,7 +291,8 @@ contract GasOptimized {
 }
 ```
 
-> **Rule:** Only use `unchecked{}` when you have mathematically proven that overflow/underflow is impossible. Never use it on user-supplied values.
+> [!warning]
+> **Rule:** `unchecked{}` sirf tab use karo jab tumne mathematically proof kar liya ho ki overflow/underflow impossible hai. User-supplied values pe kabhi mat use karo.
 
 ---
 
@@ -317,12 +321,16 @@ contract VulnerableVault {
 }
 ```
 
-### tx.origin vs msg.sender — NEVER Use tx.origin for Auth
+Yeh bilkul waisa hai jaise tumhara ATM card ho aur PIN check hi na ho — koi bhi jaake paisa nikaal le. Har sensitive function ke aage guard lagana zaruri hai.
 
-This is a critical distinction:
+### tx.origin vs msg.sender — Auth Ke Liye Kabhi tx.origin Use Mat Karo
 
-- `msg.sender` — the immediate caller (could be a contract or a user)
-- `tx.origin` — the original human who started the transaction (always an EOA)
+Yeh ek critical difference hai:
+
+- `msg.sender` — jisne abhi-abhi tumhe call kiya (koi contract ho sakta hai ya user)
+- `tx.origin` — asli human jisne poori transaction chain shuru ki (hamesha ek EOA — wallet address)
+
+Isko aise socho: Swiggy pe tumne order kiya, order ne restaurant ko call kiya, restaurant ne delivery partner ko call kiya. `msg.sender` = jisne tumhe immediately call kiya (restaurant→delivery ke case mein restaurant). `tx.origin` = tum, jisne sabse pehle order daala. Agar koi beech mein fake restaurant tumhe trick karke apna link click karwa de, toh `tx.origin` phir bhi tumhi rahoge — chahe fraud beech mein ho raha ho.
 
 ```solidity
 // VULNERABLE: tx.origin authentication
@@ -380,7 +388,7 @@ contract SecureWallet {
 }
 ```
 
-### Proper Access Control with OpenZeppelin
+### OpenZeppelin Ke Saath Proper Access Control
 
 ```solidity
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -413,20 +421,24 @@ contract AdvancedProtocol is AccessControl {
 }
 ```
 
+Yeh bilkul CRED app jaisa hai — har role ka apna access level hota hai. Ek "admin" sab kuch kar sakta hai, ek "support agent" sirf refund process kar sakta hai, transaction delete nahi. `AccessControl` isi tarah ka role-based system deta hai.
+
 ---
 
 ## 4. 🏃 Front-Running (MEV)
 
-### What Is Front-Running?
+### Front-Running Hai Kya?
 
-Every transaction you submit to Ethereum goes into the public **mempool** before it is included in a block. Bots (and miners) monitor this mempool and can:
+Ethereum pe jo bhi transaction tum submit karte ho, woh block mein include hone se pehle ek public **mempool** mein jaake baithta hai. Bots (aur miners) is mempool ko dekhte rehte hain, aur woh:
 
-1. See your transaction (e.g., you are buying a token at a certain price).
-2. Submit a similar transaction with a higher gas fee.
-3. Miners include the bot's transaction first because it pays more.
-4. Your transaction executes at a worse price.
+1. Tumhara transaction dekh lete hain (jaise tum ek particular price pe token khareed rahe ho).
+2. Usi jaisa transaction submit kar dete hain, lekin zyada gas fee ke saath.
+3. Miners bot ka transaction pehle include karte hain kyunki woh zyada paisa de raha hai.
+4. Tumhara transaction baad mein execute hota hai, worse price pe.
 
-This is called **MEV (Maximal Extractable Value)**.
+Isse kehte hain **MEV (Maximal Extractable Value)**.
+
+Bilkul IRCTC Tatkal booking jaisa socho — tum form bhar rahe ho, aur koi bot tumhare click se pehle hi seat book kar leta hai kyunki uska server response zyada fast hai. Yahan bhi wahi race hai, bas paisa gas fee ke roop mein hai.
 
 ```
 Mempool (public waiting room):
@@ -440,7 +452,7 @@ Block is mined:
 
 ### Commit-Reveal Scheme
 
-For sensitive operations (like a lottery or auction), use a two-step process:
+Sensitive operations ke liye (jaise lottery ya auction), ek do-step process use karo.
 
 ```solidity
 // SECURE: Commit-Reveal Pattern for Blind Auction
@@ -485,13 +497,15 @@ contract BlindAuction {
 }
 ```
 
+Idea simple hai — pehle tum apna asli bid ek hash ke roop mein "seal" kar dete ho (commit), kisi ko pata nahi chalta amount kya hai. Baad mein, jab commit phase khatam ho jaaye, tum asli amount reveal karte ho. Bots ko manipulate karne ka koi chance nahi milta kyunki unhe pata hi nahi asli number kya tha.
+
 ---
 
 ## 5. ⏱️ Timestamp Manipulation
 
-### The Problem
+### Problem Kya Hai?
 
-`block.timestamp` is set by the miner who mines the block. Miners can adjust it by a few seconds (typically up to ~15 seconds on Ethereum). This makes it unreliable for anything requiring precise timing or randomness.
+`block.timestamp` woh miner set karta hai jo block mine kar raha hai. Miners ise thode seconds (Ethereum pe generally ~15 seconds tak) adjust kar sakte hain. Isliye precise timing ya randomness ke liye yeh unreliable hai.
 
 ```solidity
 // VULNERABLE: Timestamp used for critical logic
@@ -510,7 +524,7 @@ contract BadLottery {
 }
 ```
 
-### Safe Usage of Timestamps
+### Timestamps Ka Safe Use
 
 ```solidity
 // ACCEPTABLE: Timestamps for long durations (hours, days)
@@ -530,15 +544,16 @@ contract TimeLock {
 }
 ```
 
-> **Rule:** Use `block.timestamp` for durations of hours or longer. Never rely on it for second-level precision or randomness.
+> [!info]
+> **Rule:** `block.timestamp` ka use ghanton ya dinon wali durations ke liye karo. Second-level precision ya randomness ke liye kabhi bharosa mat karo.
 
 ---
 
 ## 6. 🎲 Weak Randomness
 
-### Why On-Chain Randomness Is Hard
+### On-Chain Randomness Itni Mushkil Kyun Hai?
 
-Everything on a blockchain is deterministic and public. There is no true randomness.
+Blockchain pe sab kuch deterministic aur public hota hai. Asli randomness jaisi cheez hoti hi nahi.
 
 ```solidity
 // VULNERABLE: Fake randomness (all of these are predictable or manipulable)
@@ -559,7 +574,7 @@ contract BadRNG {
 }
 ```
 
-A miner can see what the result would be and choose to include or discard the block to get the outcome they want.
+Ek miner pehle se dekh sakta hai result kya aayega, aur apni marzi se block include ya discard kar sakta hai apne favour mein outcome laane ke liye. Yeh bilkul waisa hai jaise koi Ludo game mein dice pehle se dekh ke roll kare.
 
 ### Fix: Chainlink VRF (Verifiable Random Function)
 
@@ -601,7 +616,7 @@ contract FairLottery is VRFConsumerBase {
 
 ### Loop DoS — Unbounded Loops
 
-If an attacker can make your array grow indefinitely, functions that loop over it will eventually cost more gas than the block limit allows, permanently breaking them.
+Agar attacker tumhare array ko infinitely bada kar sakta hai, toh us array pe loop chalane wale functions eventually block gas limit se zyada gas maang lenge, aur permanently break ho jaayenge.
 
 ```solidity
 // VULNERABLE: Loop over a user-controlled array
@@ -623,7 +638,7 @@ contract VulnerableAirdrop {
 
 ### Fix: Pull Over Push Pattern
 
-Instead of the contract pushing funds to everyone, let each user pull their own funds.
+Contract khud sabko funds "push" karne ki jagah, har user apna paisa khud "pull" kare — yeh better approach hai.
 
 ```solidity
 // SECURE: Pull-over-push pattern
@@ -648,9 +663,11 @@ contract SecureAirdrop {
 }
 ```
 
+Bilkul Flipkart ke "cashback wallet" jaisa socho — Flipkart tumhe seedha bank account mein cashback push nahi karta, balki wallet mein credit kar deta hai aur tum jab chaho withdraw karo. Isse Flipkart ko ek saath lakhon logon ko transfer karne ka load nahi uthana padta.
+
 ### ETH Transfer DoS — Blocking Receive
 
-A contract with no `receive()` or `fallback()` function will revert when sent ETH. If your logic depends on a successful `transfer`, one bad recipient breaks everything.
+Jis contract mein `receive()` ya `fallback()` function nahi hai, woh ETH bheje jaane pe revert ho jaayega. Agar tumhara logic kisi successful `transfer` pe depend karta hai, toh ek hi bura recipient sab kuch break kar sakta hai.
 
 ```solidity
 // VULNERABLE: Transfer to winner can fail if winner is a contract
@@ -698,9 +715,9 @@ contract SecureAuction {
 
 ## 8. 📞 Unchecked External Calls
 
-### The Ignored Return Value
+### Ignore Ki Gayi Return Value
 
-Low-level `.call()` does not revert on failure — it returns `(bool success, bytes memory data)`. If you ignore `success`, your contract silently continues after a failed transfer.
+Low-level `.call()` failure pe khud revert nahi karta — yeh `(bool success, bytes memory data)` return karta hai. Agar tum `success` ko ignore karte ho, toh tumhara contract failed transfer ke baad bhi chupchap aage badh jaata hai.
 
 ```solidity
 // VULNERABLE: Return value ignored
@@ -720,6 +737,8 @@ contract OldStyle {
 }
 ```
 
+Yeh bilkul waisa hai jaise UPI payment fail ho jaaye lekin app ko pata hi na chale, aur woh "order confirmed" dikha de. Return value check karna mandatory hai.
+
 ```solidity
 // SECURE: Always check return values
 contract CheckedCall {
@@ -738,15 +757,16 @@ contract CheckedCall {
 }
 ```
 
-> **Rule:** Never use `.send()` (it silently fails). Always use `.call{value: ...}("")` AND check the return value.
+> [!warning]
+> **Rule:** `.send()` kabhi mat use karo (yeh chupchap fail ho jaata hai). Hamesha `.call{value: ...}("")` use karo AUR return value check karo.
 
 ---
 
 ## 9. ⚡ Flash Loan Attacks (Conceptual)
 
-Flash loans allow borrowing any amount of ETH or tokens within a single transaction, as long as the full amount is repaid before the transaction ends. They have zero collateral requirement.
+Flash loans se koi bhi amount ka ETH ya token ek hi transaction ke andar borrow kiya ja sakta hai, bas condition itni hai ki transaction khatam hone se pehle poora amount wapas karna hoga. Iske liye zero collateral chahiye.
 
-**How attackers weaponize them:**
+**Attackers inhe weaponize kaise karte hain:**
 
 ```
 1. Borrow $100M in a single transaction (no collateral needed)
@@ -756,11 +776,13 @@ Flash loans allow borrowing any amount of ETH or tokens within a single transact
 5. Keep the profit
 ```
 
+Socho koi tumhe ek din ke liye ₹100 crore udhaar de de, condition sirf itni ki shaam tak wapas kar do. Us ₹100 crore se tum market mein ek chhote token ka price artificially bahut upar chadha do, phir usi inflated price ke against loan lekar asli protocol se paisa nikaal lo, apna udhaar wapas kar do — aur profit jeb mein. Yeh sab ek hi transaction mein hota hai, isliye koi beech mein rok nahi sakta.
+
 ### Defense Strategies
 
-- **Use time-weighted average price (TWAP) oracles** like Uniswap V3 TWAP instead of spot prices. These take the average price over time, making manipulation extremely expensive.
-- **Use Chainlink price feeds** — off-chain data from multiple nodes that cannot be manipulated by on-chain trades.
-- **Add sanity checks** — if a price moves by more than X% in one block, something is wrong.
+- **Time-weighted average price (TWAP) oracles use karo** — jaise Uniswap V3 TWAP, spot price ki jagah. Yeh time ke saath average price lete hain, jisse manipulation bahut mehenga ho jaata hai.
+- **Chainlink price feeds use karo** — off-chain data multiple nodes se aata hai, jisse on-chain trades manipulate nahi kar sakte.
+- **Sanity checks add karo** — agar price ek hi block mein X% se zyada move ho jaaye, toh kuch gadbad hai.
 
 ```solidity
 // BETTER: Use Chainlink for price data instead of DEX spot price
@@ -784,7 +806,7 @@ contract SafeLendingProtocol {
 
 ## 10. ✅ The Checks-Effects-Interactions (CEI) Pattern
 
-This is the single most important pattern in Solidity security. Memorize it and apply it everywhere.
+Yeh Solidity security ka sabse important pattern hai. Ise yaad kar lo aur har jagah apply karo.
 
 ```
 CHECK  → Verify all conditions (require, revert)
@@ -830,73 +852,73 @@ contract CEITemplate {
 
 ## 🛡️ Security Checklist
 
-Use this before deploying any contract:
+Koi bhi contract deploy karne se pehle yeh checklist use karo:
 
 ### Reentrancy
-- [ ] All functions that send ETH follow the CEI pattern
-- [ ] Functions that call external contracts use `nonReentrant` modifier
-- [ ] OpenZeppelin's `ReentrancyGuard` is imported and inherited
+- [ ] ETH bhejne wale saare functions CEI pattern follow karte hain
+- [ ] External contracts call karne wale functions mein `nonReentrant` modifier hai
+- [ ] OpenZeppelin ka `ReentrancyGuard` import aur inherit kiya gaya hai
 
 ### Arithmetic
-- [ ] Using Solidity 0.8+ (built-in overflow protection)
-- [ ] Any `unchecked{}` block has a clear comment explaining why it is safe
-- [ ] No `unchecked{}` on user-supplied values
+- [ ] Solidity 0.8+ use ho raha hai (built-in overflow protection)
+- [ ] Har `unchecked{}` block mein clear comment hai ki woh safe kyun hai
+- [ ] User-supplied values pe `unchecked{}` nahi hai
 
 ### Access Control
-- [ ] Every sensitive function has an access modifier (`onlyOwner`, `onlyRole`)
-- [ ] `tx.origin` is NOT used for authentication anywhere
-- [ ] Constructor correctly sets initial ownership
-- [ ] Ownership transfer is a two-step process (propose + accept)
+- [ ] Har sensitive function ke paas access modifier hai (`onlyOwner`, `onlyRole`)
+- [ ] `tx.origin` authentication ke liye kahin bhi use NAHI hua
+- [ ] Constructor correctly initial ownership set karta hai
+- [ ] Ownership transfer ek two-step process hai (propose + accept)
 
 ### External Calls
-- [ ] All `.call()` return values are checked with `require(success, ...)`
-- [ ] `.send()` is not used anywhere
-- [ ] External contract calls are made LAST (CEI pattern)
+- [ ] Saare `.call()` return values `require(success, ...)` se check hote hain
+- [ ] `.send()` kahin bhi use nahi hua
+- [ ] External contract calls sabse LAST mein hote hain (CEI pattern)
 
 ### DoS Protection
-- [ ] No unbounded loops over user-controlled arrays
-- [ ] ETH distribution uses pull-over-push pattern
-- [ ] No critical logic depends on external call success
+- [ ] User-controlled arrays pe koi unbounded loop nahi hai
+- [ ] ETH distribution pull-over-push pattern use karta hai
+- [ ] Koi critical logic external call ke success pe depend nahi karta
 
 ### Randomness and Oracles
-- [ ] No randomness derived from `block.timestamp` or `block.difficulty`
-- [ ] Chainlink VRF used for any lottery/game randomness
-- [ ] Chainlink price feeds used instead of DEX spot prices
-- [ ] No flash-loan manipulable price sources
+- [ ] `block.timestamp` ya `block.difficulty` se koi randomness derive nahi hoti
+- [ ] Kisi bhi lottery/game randomness ke liye Chainlink VRF use hua hai
+- [ ] DEX spot price ki jagah Chainlink price feeds use hue hain
+- [ ] Koi flash-loan manipulable price source nahi hai
 
 ### Front-Running
-- [ ] Sensitive operations use commit-reveal scheme where needed
-- [ ] Order-sensitive transactions have slippage protection
+- [ ] Sensitive operations mein zaroorat pe commit-reveal scheme use hui hai
+- [ ] Order-sensitive transactions mein slippage protection hai
 
 ### General
-- [ ] Contract audited by a professional firm before mainnet
-- [ ] Tested on testnet under adversarial conditions
-- [ ] Emergency pause mechanism in place (OpenZeppelin `Pausable`)
-- [ ] Upgrade mechanism (if any) is access-controlled
+- [ ] Mainnet deploy karne se pehle contract ka professional firm se audit hua hai
+- [ ] Testnet pe adversarial conditions mein test kiya gaya hai
+- [ ] Emergency pause mechanism hai (OpenZeppelin `Pausable`)
+- [ ] Agar koi upgrade mechanism hai, toh woh access-controlled hai
 
 ---
 
 ## 💡 Key Takeaways
 
-1. **Reentrancy is the #1 killer.** Always use CEI pattern + ReentrancyGuard. Update state before making external calls.
+1. **Reentrancy hi #1 killer hai.** Hamesha CEI pattern + ReentrancyGuard use karo. External call se pehle state update karo.
 
-2. **Use Solidity 0.8+.** You get overflow/underflow protection for free. Avoid `unchecked{}` unless you are certain it is safe.
+2. **Solidity 0.8+ use karo.** Overflow/underflow protection tumhe free mein milta hai. `unchecked{}` tab tak avoid karo jab tak pakka pata na ho ki safe hai.
 
-3. **Never use tx.origin for authentication.** It can be spoofed through phishing contracts. Always use `msg.sender`.
+3. **Authentication ke liye tx.origin kabhi mat use karo.** Yeh phishing contracts ke through spoof ho sakta hai. Hamesha `msg.sender` use karo.
 
-4. **Block values are not random.** Miners control `block.timestamp` and `block.difficulty`. Use Chainlink VRF.
+4. **Block values random nahi hote.** Miners `block.timestamp` aur `block.difficulty` control karte hain. Chainlink VRF use karo.
 
-5. **Use pull over push for payments.** Never loop over arrays to send ETH. Let users withdraw their own funds.
+5. **Payments ke liye push nahi, pull use karo.** ETH bhejne ke liye arrays pe loop kabhi mat chalao. Users ko apna paisa khud withdraw karne do.
 
-6. **Always check return values.** `.call()` silently returns false on failure. `require(success)` is not optional.
+6. **Return values hamesha check karo.** `.call()` failure pe chupchap false return karta hai. `require(success)` optional nahi hai.
 
-7. **Flash loans amplify every vulnerability.** Use manipulation-resistant price oracles (Chainlink, TWAP).
+7. **Flash loans har vulnerability ko amplify karte hain.** Manipulation-resistant price oracles (Chainlink, TWAP) use karo.
 
-8. **The CEI pattern applies everywhere.** Check → Effect → Interact. In that order. Every time.
+8. **CEI pattern har jagah apply hota hai.** Check → Effect → Interact. Isi order mein. Har baar.
 
-9. **Use audited libraries.** OpenZeppelin is battle-tested by thousands of projects. Do not reinvent security primitives.
+9. **Audited libraries use karo.** OpenZeppelin hazaaron projects mein battle-tested hai. Security primitives khud reinvent mat karo.
 
-10. **Get a professional audit.** Even expert teams miss vulnerabilities. Before deploying significant value, hire auditors.
+10. **Professional audit karwao.** Expert teams bhi vulnerabilities miss kar dete hain. Significant value deploy karne se pehle auditors hire karo.
 
 ---
 
@@ -904,7 +926,7 @@ Use this before deploying any contract:
 
 **Question 1**
 
-What is wrong with this code?
+Is code mein kya galat hai?
 
 ```solidity
 function withdraw() public {
@@ -915,21 +937,21 @@ function withdraw() public {
 }
 ```
 
-A) The `require` should come before the call  
-B) The balance is zeroed after the ETH is sent, creating a reentrancy vulnerability  
-C) `msg.sender.call` should be `msg.sender.transfer`  
-D) Nothing is wrong
+A) `require` call se pehle aana chahiye  
+B) Balance ETH bhejne ke baad zero hota hai, isse reentrancy vulnerability ban jaati hai  
+C) `msg.sender.call` ki jagah `msg.sender.transfer` hona chahiye  
+D) Kuch bhi galat nahi hai
 
 <details>
 <summary>Answer</summary>
-**B** — The balance update happens AFTER the ETH transfer. An attacker's `receive()` function can call `withdraw()` again before the balance is zeroed, draining the contract. Fix: zero the balance before the call.
+**B** — Balance update ETH transfer ke BAAD hota hai. Attacker ka `receive()` function balance zero hone se pehle hi `withdraw()` ko dobara call kar sakta hai, aur contract drain ho jaata hai. Fix: call se pehle balance zero karo.
 </details>
 
 ---
 
 **Question 2**
 
-Which of these is a valid source of secure randomness in a Solidity contract?
+In mein se kaunsa Solidity contract mein secure randomness ka valid source hai?
 
 A) `block.timestamp % 100`  
 B) `keccak256(abi.encodePacked(block.number, msg.sender))`  
@@ -938,25 +960,25 @@ D) `block.difficulty`
 
 <details>
 <summary>Answer</summary>
-**C** — Chainlink VRF provides verifiable, tamper-proof randomness from off-chain sources. Options A, B, and D are all predictable by miners or can be computed in advance by anyone.
+**C** — Chainlink VRF off-chain sources se verifiable, tamper-proof randomness deta hai. Options A, B, aur D — teeno miners ke liye predictable hain ya koi bhi pehle se compute kar sakta hai.
 </details>
 
 ---
 
 **Question 3**
 
-Why should you NEVER use `tx.origin` to check if a caller is the owner?
+Owner check karne ke liye `tx.origin` kabhi kyun use nahi karna chahiye?
 
-A) It is deprecated in Solidity 0.8  
-B) A malicious contract can trick the owner into calling it, and `tx.origin` will still be the owner's address  
-C) `tx.origin` is always `address(0)` for contract-to-contract calls  
-D) It costs more gas than `msg.sender`
+A) Yeh Solidity 0.8 mein deprecated ho gaya hai  
+B) Ek malicious contract owner ko trick karke usse call karwa sakta hai, aur `tx.origin` phir bhi owner ka address rahega  
+C) Contract-to-contract calls ke liye `tx.origin` hamesha `address(0)` hota hai  
+D) Yeh `msg.sender` se zyada gas leta hai
 
 <details>
 <summary>Answer</summary>
-**B** — `tx.origin` is always the original EOA (human wallet) that started the entire transaction chain. An attacker can deploy a phishing contract, trick the owner into calling it, and then call your contract from within — `tx.origin` will pass the owner check, but `msg.sender` would correctly show the attacker's contract address. Always use `msg.sender`.
+**B** — `tx.origin` hamesha wahi asli EOA (human wallet) hota hai jisne poori transaction chain shuru ki thi. Ek attacker phishing contract deploy karke owner ko trick karke usse call karwa sakta hai, aur andar se tumhare contract ko call kar sakta hai — `tx.origin` check pass ho jaayega owner ke naam se, jabki `msg.sender` sahi tarike se attacker ke contract address ko dikhata. Hamesha `msg.sender` use karo.
 </details>
 
 ---
 
-*Next chapter: Gas Optimization — Writing efficient Solidity that does not burn your users' wallets.*
+*Next chapter: Gas Optimization — Efficient Solidity likhna jo tumhare users ke wallets ko na jalaye.*

@@ -1,53 +1,55 @@
----
-tags: [messaging, idempotency, retries, patterns]
-aliases: [Idempotency, Retries, Exactly Once]
-stage: advanced
----
-
 # Idempotency and Retries
 
-> [!info] For the Express/TS dev
-> "Exactly-once delivery" is a marketing lie in distributed systems. Real systems give you **at-least-once delivery + idempotent processing = effectively exactly-once**. Every consumer in your system MUST be idempotent. This isn't optional. Same in Node, same in Java — the patterns are universal.
+> [!info] Express/TS dev ke liye
+> "Exactly-once delivery" ek marketing jhooth hai distributed systems mein. Real systems tumhe dete hain **at-least-once delivery + idempotent processing = effectively exactly-once**. Tumhare system ka har consumer idempotent HONA CHAHIYE. Yeh optional nahi hai. Node mein bhi yahi rule, Java mein bhi yahi rule — patterns universal hain.
 
 ## Concept
 
-### Why duplicates happen
+### Duplicates hote kyun hain?
 
-- Consumer processed a message but crashed before acknowledging → broker redelivers.
-- Producer's send timed out, it retried — both attempts actually got through.
-- A retry framework (Resilience4j, Spring Retry) ran the operation 3 times.
-- A saga's compensating action was triggered twice.
-- A network proxy retried.
+Socho tum Zomato pe order place kar rahe ho aur payment ke time network glitch ho gaya. Tumne "Pay" button do baar dabaya kyunki pehli baar response nahi aaya. Ab backend ko decide karna hai — kya yeh do alag orders hain ya ek hi order ka duplicate attempt?
 
-In every microservice system, the same logical event will be processed 2+ times occasionally. Plan for it.
+Yeh exact scenario distributed systems mein har jagah hota hai:
 
-### What is idempotency
+- Consumer ne message process kar liya lekin acknowledge karne se pehle crash ho gaya → broker phir se message deliver karega (redelivery).
+- Producer ka send request timeout ho gaya, usne retry kiya — lekin dono attempts actually server tak pahunch gaye.
+- Ek retry framework (Resilience4j, Spring Retry) ne operation 3 baar chala diya.
+- Saga ka compensating action galti se do baar trigger ho gaya.
+- Beech mein baitha koi network proxy retry kar raha hai.
 
-A function `f` is idempotent if `f(f(x)) = f(x)` — running it twice has the same effect as once.
+Har microservice system mein, same logical event kabhi-kabhi 2+ baar process ho jayega. Yeh eventuality nahi hai, yeh **guarantee** hai. Isliye plan karo.
 
-**Naturally idempotent:**
+### Idempotency kya hoti hai?
+
+Ek function `f` idempotent hai agar `f(f(x)) = f(x)` — matlab usse ek baar chalao ya do baar, result same rahega.
+
+Socho UPI se paisa transfer karna vs "mark attendance" button. Attendance mark karna idempotent hai — 5 baar bhi dabao, status "Present" hi rahega. Lekin paisa transfer karna idempotent NAHI hai — 5 baar transfer karoge to 5 guna paisa chala jayega.
+
+**Naturally idempotent (safe hai repeat karna):**
 - `SET status = 'PAID' WHERE id = X`
-- `PUT /resource/123 { ... }` (replaces)
+- `PUT /resource/123 { ... }` (poora resource replace karta hai)
 - `INSERT ... ON CONFLICT DO NOTHING`
 
-**Naturally NOT idempotent:**
+**Naturally NOT idempotent (repeat karoge to disaster):**
 - `UPDATE balance = balance - 100`
-- `INSERT INTO orders (...)` (creates duplicate)
-- `POST /charge` (charges twice)
-- Sending an email
-- Calling an external API
+- `INSERT INTO orders (...)` (duplicate row bana dega)
+- `POST /charge` (customer se do baar paisa kaat lega)
+- Email bhejna
+- External API call karna
 
-### Strategies
+### Strategies — duplicates se bachne ke tarike
 
-1. **Idempotency key** — caller provides a unique ID; processor records it; rejects duplicates.
-2. **Deduplication table** — store processed message IDs.
-3. **Conditional updates** — `UPDATE ... WHERE version = expected`.
-4. **Upserts** — `INSERT ... ON CONFLICT DO UPDATE`.
-5. **State-machine guards** — only `PAID` orders can transition to `SHIPPED`; redoing the transition is a no-op.
+1. **Idempotency key** — caller ek unique ID bhejta hai; processor use record karta hai; duplicate request ko reject/cache kar deta hai.
+2. **Deduplication table** — processed message IDs ko store karo, dobara aane pe skip karo.
+3. **Conditional updates** — `UPDATE ... WHERE version = expected` — sirf tab update hoga jab state expected hai.
+4. **Upserts** — `INSERT ... ON CONFLICT DO UPDATE` — database khud duplicate handle kar deta hai.
+5. **State-machine guards** — sirf `PAID` orders hi `SHIPPED` mein transition ho sakte hain; dobara transition try karoge to kuch nahi hoga (no-op).
 
 ## Code example
 
-### Pattern 1: Idempotency key for HTTP commands
+### Pattern 1: HTTP commands ke liye Idempotency key
+
+Yeh wahi pattern hai jo Stripe use karta hai. Jab tum payment gateway ko charge karne ka request bhejte ho, tum ek `Idempotency-Key` header bhejte ho — jaise ek unique token. Agar network fail ho jaye aur tum retry karo (same key ke saath), server samajh jayega "arey yeh to wahi request hai, cached response wapas bhej do" — customer se dobara paisa nahi katega.
 
 ```java
 @RestController
@@ -81,9 +83,11 @@ class IdempotencyKey {
 }
 ```
 
-Client retries with the same `Idempotency-Key` → second call returns cached response, no double-charge. Stripe's API works this way.
+Client same `Idempotency-Key` ke saath retry karta hai → second call cached response return karta hai, double-charge nahi hota. Stripe ka API bilkul isi tarah kaam karta hai.
 
-### Pattern 2: Deduplication for message consumers (inbox pattern)
+### Pattern 2: Message consumers ke liye Deduplication (Inbox pattern)
+
+Ab socho tum Kafka se "order placed" events consume kar rahe ho aur har order ke liye confirmation email bhej rahe ho. Agar same event 2 baar deliver ho gaya (broker ki wajah se), toh customer ko 2 emails chali jayengi. Isse rokne ke liye hum ek "inbox table" banate hain — jaise ek register jisme likha hota hai "yeh event ID already process ho chuka hai."
 
 ```java
 @Entity
@@ -117,11 +121,13 @@ class OrderEventListener {
 }
 ```
 
-The `inbox.save` is in the **same transaction** as the work. If the side effect rolls back, so does the inbox record — and a redelivery will properly reprocess.
+`inbox.save` **same transaction** mein hai jitna asli kaam hai. Agar side effect rollback hota hai, toh inbox record bhi rollback ho jayega — aur agli baar redelivery aayegi to properly reprocess hoga.
 
-> [!warning] If your side effect is external (email, payment), the transaction won't include it. You can still get duplicate emails. Use Pattern 4 (state machine) or accept the risk.
+> [!warning] Agar tumhara side effect external hai (email, payment), toh transaction usko cover nahi karega. Duplicate email fir bhi jaa sakti hai. Pattern 4 (state machine) use karo ya risk accept karo.
 
-### Pattern 3: Conditional / state-machine updates
+### Pattern 3: Conditional / State-machine updates
+
+Yeh mera favorite pattern hai kyunki database khud duplicate ko handle kar leta hai — koi extra table nahi chahiye. Idea simple hai: `UPDATE` statement mein ek `WHERE` condition daal do jo sirf tabhi true hogi jab state abhi tak change nahi hui.
 
 ```java
 @Service
@@ -148,9 +154,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 }
 ```
 
-Calling `markPaid` twice → second call updates 0 rows. Safe.
+`markPaid` ko do baar call karo → second call 0 rows update karega (kyunki status already `PENDING` se `PAID` ho chuka hai). Bilkul safe.
 
 ### Pattern 4: Upsert
+
+Postgres ka `ON CONFLICT DO NOTHING` bhi ek clean solution hai — jaise IRCTC waiting list mein same PNR dobara insert karne ki koshish karo, database khud reject kar de.
 
 ```sql
 INSERT INTO order_events (event_id, order_id, type, payload, created_at)
@@ -170,6 +178,8 @@ int saveIfNew(...);
 
 ### Retries with backoff (producer side)
 
+Ab baat karte hain retries ki. Jab tumhara downstream service (jaise payment gateway) temporarily down hai, tum turant fail nahi hona chahte — tum thoda wait karke retry karna chahte ho. Lekin "thoda wait" bhi smart hona chahiye, warna sab clients ek saath retry karke downstream ko phir se gira denge.
+
 ```yaml
 resilience4j:
   retry:
@@ -186,7 +196,7 @@ resilience4j:
           - com.example.BadRequestException
 ```
 
-> [!warning] Always retry only **idempotent** operations or operations with idempotency keys. See [[../10-Microservices/08-Resilience4j]].
+> [!warning] Sirf **idempotent** operations ko hi retry karo, ya jinke paas idempotency keys hain. Dekho [[../10-Microservices/08-Resilience4j]].
 
 ### Retries with backoff (consumer side / Spring Kafka)
 
@@ -205,7 +215,7 @@ DefaultErrorHandler errorHandler(KafkaTemplate<String, Object> tpl) {
 }
 ```
 
-### Random jitter
+### Random jitter — Kyun zaruri hai?
 
 ```
 attempt 1: wait 1s
@@ -213,7 +223,7 @@ attempt 2: wait 2s + jitter(0–1s)
 attempt 3: wait 4s + jitter(0–2s)
 ```
 
-Without jitter, all clients retry at the same instant after a downstream blip → thundering herd.
+Socho Diwali sale ke time Flipkart ka payment service thoda slow ho gaya. Agar tumhare paas jitter nahi hai, toh saare failed requests **exact same second** pe retry karenge — jaise ek saath 10,000 log ek hi darwaze se ghusne ki koshish kare. Isse downstream service phir se crash ho jayega. Jitter ek random extra delay add karta hai taaki retries alag-alag time pe spread ho jayein. Isko **thundering herd** problem kehte hain, aur jitter iska solution hai.
 
 ## Express/Node comparison
 
@@ -237,30 +247,30 @@ app.post("/api/charges", async (req, res) => {
 | Resilience4j Retry | `axios-retry`, `cockatiel` |
 | Spring Kafka error handler | manual try/catch + retry topic |
 
-Identical patterns; identical pitfalls.
+Pattern bilkul identical hain; pitfalls bhi identical hain. Chahe tum Express likho ya Spring Boot, distributed systems ke rules nahi badalte.
 
-## Gotchas
+## Gotchas — yahan log common mistakes karte hain
 
-> [!danger] Naively retrying POSTs
-> `axios-retry` retries any 5xx by default. Without idempotency keys, you'll double-create resources. Configure to retry only idempotent methods OR ensure handlers are idempotent.
+> [!danger] Naively POSTs retry karna
+> `axios-retry` default mein kisi bhi 5xx ko retry kar deta hai. Bina idempotency keys ke, tum resources double-create kar doge. Sirf idempotent methods retry karne ke liye configure karo, YA handlers ko idempotent banao.
 
-> [!danger] "It's just a duplicate, no big deal"
-> Until the duplicate is a $10,000 charge, a duplicate email to a CEO, a duplicate shipment. Treat duplicates as production bugs and design them out.
+> [!danger] "Arre yeh sirf ek duplicate hai, koi badi baat nahi"
+> Jab tak woh duplicate ek ₹10,000 ka charge nahi ban jata, ya CEO ko duplicate email nahi jati, ya duplicate shipment nahi bhejta. Duplicates ko production bugs samjho aur unhe design se hi khatam karo.
 
-> [!warning] Idempotency keys need a TTL
-> Don't store them forever — table grows infinitely. 24-hour TTL is typical for HTTP idempotency keys; longer for events.
+> [!warning] Idempotency keys ko TTL chahiye
+> Unhe forever store mat karo — table infinitely badhta jayega. HTTP idempotency keys ke liye 24-hour TTL typical hai; events ke liye thoda zyada rakh sakte ho.
 
-> [!warning] Race conditions with idempotency tables
-> Two concurrent retries arrive simultaneously. Both check "does key exist?" — both see no, both proceed. Use a unique constraint on the key + handle the constraint violation as "duplicate."
+> [!warning] Idempotency tables mein race conditions
+> Do concurrent retries ek saath aate hain. Dono check karte hain "kya key exist karti hai?" — dono ko "nahi" milta hai, dono proceed kar jaate hain. Isliye key pe **unique constraint** lagao aur constraint violation ko "duplicate hai" ki tarah handle karo.
 
 > [!warning] Time-boxed operations
-> If a message takes longer than the broker's visibility/heartbeat timeout, it's redelivered while the first is still processing. Either: shorten work, lengthen timeout, or use idempotent handlers.
+> Agar message process karne mein broker ke visibility/heartbeat timeout se zyada time lag gaya, toh woh redeliver ho jayega jabki pehla wala abhi bhi process ho raha hai. Options: kaam chhota karo, timeout badhao, ya idempotent handlers use karo.
 
-> [!warning] Side effects outside the transaction
-> The inbox pattern protects DB side effects. `restClient.post(...)` to a third party doesn't roll back. For those: idempotency keys on **the third party's** side, or use [[../10-Microservices/11-Outbox-Pattern]].
+> [!warning] Transaction ke bahar side effects
+> Inbox pattern sirf DB side effects ko protect karta hai. `restClient.post(...)` kisi third party ko — woh rollback nahi hoga. Uske liye: **third party ke side** pe idempotency keys use karo, ya [[../10-Microservices/11-Outbox-Pattern]] dekho.
 
-> [!tip] Make the producer responsible for the event ID
-> Don't use the broker's auto-generated message ID — that's per-delivery, not per-event. Generate a UUID at the producer and put it in headers; consumers dedupe on **that**.
+> [!tip] Producer ko event ID ki responsibility do
+> Broker ka auto-generated message ID use mat karo — woh per-delivery hota hai, per-event nahi. Producer pe hi ek UUID generate karo aur headers mein daalo; consumers **usी** pe dedupe karein.
 
 ## Related
 - [[01-Messaging-Concepts]]
@@ -270,3 +280,15 @@ Identical patterns; identical pitfalls.
 - [[../10-Microservices/08-Resilience4j]]
 - [[../10-Microservices/11-Outbox-Pattern]]
 - [[../10-Microservices/10-Saga-Pattern]]
+
+## Key Takeaways
+
+- At-least-once delivery + idempotent processing = effectively exactly-once. "Exactly-once" delivery khud se exist nahi karta.
+- Duplicates guaranteed hote hain distributed systems mein — network retries, consumer crashes, retry frameworks, sab isme contribute karte hain.
+- Idempotency key pattern (Stripe-style) HTTP commands ke liye best hai — client retry kare toh cached response mile.
+- Inbox pattern (dedup table + same transaction) Kafka/RabbitMQ consumers ke liye best hai — lekin external side effects (email, payment) is protection ke bahar hain.
+- Conditional updates (`WHERE status = 'PENDING'`) sabse clean solution hai jab possible ho — extra table ki zaroorat nahi.
+- `ON CONFLICT DO NOTHING/UPDATE` database-level deduplication deta hai.
+- Retries hamesha exponential backoff + jitter ke saath karo, warna thundering herd problem ho jayega.
+- Idempotency keys pe TTL lagao, aur unique constraint se race conditions roko.
+- Producer-generated event ID (UUID) use karo dedup ke liye, broker ke auto message ID pe bharosa mat karo.

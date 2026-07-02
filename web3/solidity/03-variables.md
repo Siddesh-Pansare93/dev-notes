@@ -5,31 +5,31 @@
 
 ---
 
-## 🗺️ What You'll Learn
+## 🗺️ Kya Seekhoge Is Chapter Mein
 
-- The three categories of variables in Solidity and where each lives
-- How the EVM stores data and why it matters for gas costs
-- Security pitfalls around `tx.origin` vs `msg.sender`
-- When to reach for `constant` vs `immutable` to save gas
-- A mental model for Storage, Memory, Calldata, and Stack
-
----
-
-## 🧠 The Big Picture
-
-In most programming languages, variables just "live in RAM" while your program runs. Solidity is different because your code runs on a blockchain — a globally shared, permanent ledger. That means where a variable lives has enormous consequences for:
-
-- **Cost** — writing to the blockchain costs real money (gas)
-- **Persistence** — some variables survive forever; others vanish after a function call
-- **Access control** — who can read or write the variable
-
-Solidity has four distinct data locations and three conceptual categories of variables. Let's map them all.
+- Solidity mein variables ke teen categories aur har ek kahan "rehta" hai
+- EVM data ko kaise store karta hai aur ye gas cost ko kaise affect karta hai
+- `tx.origin` vs `msg.sender` ka security wala pitfall
+- Gas bachane ke liye `constant` vs `immutable` kab use karna hai
+- Storage, Memory, Calldata, aur Stack ka ek mental model
 
 ---
 
-## 1. 🏛️ State Variables — The Blockchain Database
+## 🧠 Bada Picture
 
-State variables are declared **at the contract level**, outside any function. They are stored permanently on the Ethereum blockchain in the contract's **storage slot** — think of it like a key-value database that belongs exclusively to your contract.
+Zyada tar programming languages mein variables bas "RAM mein rehte hain" jab tak program chal raha hai. Solidity alag hai kyunki tumhara code blockchain pe chalta hai — ek globally shared, permanent ledger. Iska matlab, variable kahan store ho raha hai, uska seedha asar padta hai:
+
+- **Cost** — blockchain pe likhna real paisa (gas) kharch karta hai
+- **Persistence** — kuch variables hamesha ke liye rehte hain; kuch function call khatam hote hi gayab ho jaate hain
+- **Access control** — variable ko kaun padh sakta hai ya likh sakta hai
+
+Solidity mein data ke chaar alag locations hain aur variables ke teen conceptual categories. Chalo sabko map karte hain.
+
+---
+
+## 1. 🏛️ State Variables — Blockchain Ka Database
+
+State variables **contract level pe** declare hote hain, kisi function ke bahar. Ye Ethereum blockchain pe permanently store hote hain contract ke **storage slot** mein — isko socho ek key-value database jaisa jo sirf tumhare contract ka apna hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -48,16 +48,16 @@ contract BankAccount {
 
 ### 1a. Default Values
 
-Every state variable in Solidity is **zero-initialised** — you never have uninitialized garbage like in C/C++.
+Solidity mein har state variable **zero-initialised** hota hai — C/C++ jaisa uninitialized garbage yahan kabhi nahi milega.
 
 | Type | Default Value |
 |------|--------------|
 | `uint` / `int` | `0` |
 | `bool` | `false` |
-| `address` | `address(0)` — the zero address |
+| `address` | `address(0)` — zero address |
 | `bytes` / `string` | `""` — empty |
-| `enum` | First member (index `0`) |
-| Mapping | All keys map to their zero value |
+| `enum` | Pehla member (index `0`) |
+| Mapping | Saari keys apne zero value pe map hoti hain |
 | Array (dynamic) | Empty array |
 
 ### 1b. Visibility Modifiers
@@ -71,26 +71,27 @@ contract VisibilityDemo {
 }
 ```
 
-> **Pro tip:** `public` on a state variable tells the compiler to auto-generate a free getter function with the same name. You do NOT need to write `getBalance()` yourself — just declare `uint256 public balance`.
+> [!tip]
+> `public` state variable pe lagane se compiler khud-b-khud ek free getter function bana deta hai same naam se. Tumhe khud `getBalance()` likhne ki zarurat nahi — bas `uint256 public balance` declare karo, kaam ho gaya. Zomato ke app jaisa socho — restaurant ka naam public hai, tumhe alag se "restaurant ka naam batao" wala API call nahi karna padta, seedha dikh jaata hai.
 
-### 1c. Gas Cost Implications
+### 1c. Gas Cost Ka Panga
 
-Writing to storage is one of the most expensive EVM operations:
+Storage mein likhna EVM ke sabse expensive operations mein se ek hai:
 
 | Operation | Approximate Gas |
 |-----------|----------------|
-| `SSTORE` — writing a **new** non-zero value | ~20,000 gas |
-| `SSTORE` — updating an **existing** non-zero value | ~5,000 gas |
-| `SSTORE` — resetting a value to **zero** | ~5,000 gas (but you get a refund) |
-| `SLOAD` — reading from storage | ~100–2,100 gas (cold vs warm) |
+| `SSTORE` — **naya** non-zero value likhna | ~20,000 gas |
+| `SSTORE` — **existing** non-zero value update karna | ~5,000 gas |
+| `SSTORE` — value ko zero pe reset karna | ~5,000 gas (lekin refund milta hai) |
+| `SLOAD` — storage se padhna | ~100–2,100 gas (cold vs warm) |
 
-**Rule of thumb:** minimise the number of storage writes in a single transaction.
+**Rule of thumb:** ek hi transaction mein storage writes jitna kam ho sake utna kam rakho.
 
 ---
 
-## 2. ⚡ Local Variables — Gone When the Function Returns
+## 2. ⚡ Local Variables — Function Khatam, Variable Gayab
 
-Local variables are declared **inside a function**. They exist only for the duration of that function call and are stored in the EVM's **stack** or **memory** — never on the blockchain.
+Local variables **function ke andar** declare hote hain. Ye sirf us function call ke duration tak zinda rehte hain aur EVM ke **stack** ya **memory** mein store hote hain — blockchain pe kabhi nahi.
 
 ```solidity
 contract Calculator {
@@ -108,15 +109,15 @@ contract Calculator {
 ```
 
 **Key facts:**
-- Local variables of value types (`uint`, `bool`, `address`, etc.) live on the **stack**.
-- Local variables of reference types (`string`, `bytes`, arrays, structs) must be annotated with a data location: `memory` or `storage`.
-- They cost **no permanent storage gas** — you only pay for the computation (CPU opcodes).
+- Value type (`uint`, `bool`, `address` etc.) wale local variables **stack** pe rehte hain.
+- Reference type (`string`, `bytes`, arrays, structs) wale local variables ke saath data location bataana zaroori hai: `memory` ya `storage`.
+- Ye **koi permanent storage gas** nahi lete — sirf computation (CPU opcodes) ka paisa lagta hai.
 
 ---
 
-## 3. 🌐 Global Variables — The Blockchain's Context
+## 3. 🌐 Global Variables — Blockchain Ka Context
 
-Solidity provides a set of **globally available variables and functions** that give you access to information about the current transaction, block, and chain. You do not declare these — they are always in scope.
+Solidity tumhe kuch **globally available variables aur functions** deta hai jo current transaction, block, aur chain ke baare mein info dete hain. Inhe declare karne ki zarurat nahi — ye hamesha scope mein already available hote hain.
 
 ### 3a. Message Context (`msg.*`)
 
@@ -137,10 +138,10 @@ contract MsgDemo {
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `msg.sender` | `address` | The immediate caller of the current function |
-| `msg.value` | `uint256` | Wei sent along with the call |
-| `msg.data` | `bytes calldata` | Complete calldata payload |
-| `msg.sig` | `bytes4` | Function selector (first 4 bytes of calldata) |
+| `msg.sender` | `address` | Current function ka immediate caller |
+| `msg.value` | `uint256` | Call ke saath bheja gaya wei |
+| `msg.data` | `bytes calldata` | Poora calldata payload |
+| `msg.sig` | `bytes4` | Function selector (calldata ke pehle 4 bytes) |
 
 ### 3b. Block Context (`block.*`)
 
@@ -160,7 +161,8 @@ contract BlockDemo {
 }
 ```
 
-> **Warning on `block.timestamp`:** Validators can manipulate the timestamp by a small margin (~15 seconds). Never use it as a source of randomness or for precise timing in high-value logic.
+> [!warning]
+> **`block.timestamp` ka warning:** Validators timestamp ko thoda-bahut (~15 seconds) manipulate kar sakte hain. Isko kabhi bhi randomness ke source ya high-value logic mein precise timing ke liye use mat karo.
 
 ### 3c. Transaction Context (`tx.*`)
 
@@ -175,15 +177,17 @@ contract TxDemo {
 
 ### 3d. 🚨 CRITICAL SECURITY: `tx.origin` vs `msg.sender`
 
-This is one of the most dangerous mistakes a new Solidity developer can make.
+Ye ek sabse dangerous mistake hai jo naya Solidity developer kar sakta hai.
 
 ```
 User (EOA) → calls → MaliciousContract → calls → VulnerableWallet
 ```
 
-In the above call chain:
-- Inside `VulnerableWallet`, `msg.sender` = `MaliciousContract`
-- Inside `VulnerableWallet`, `tx.origin` = `User (EOA)`
+Upar wali call chain mein:
+- `VulnerableWallet` ke andar, `msg.sender` = `MaliciousContract`
+- `VulnerableWallet` ke andar, `tx.origin` = `User (EOA)`
+
+Socho tum Zomato pe login ho (`tx.origin` = tum), lekin tumne galti se ek fake link click kar diya jo background mein ek malicious contract ko call karta hai, jo aage tumhare wallet contract ko call karta hai. Agar wallet sirf `tx.origin` check karega, toh usko lagega "haan ye owner hi hai" — kyunki original signer toh tum hi ho! Yehi phishing ka poora khel hai.
 
 **Vulnerable code:**
 ```solidity
@@ -211,7 +215,8 @@ contract SecureWallet {
 }
 ```
 
-> **Rule:** Almost always use `msg.sender` for access control. Only use `tx.origin` in very rare cases where you explicitly need the original EOA signer — and even then, think twice.
+> [!tip]
+> **Rule:** Access control ke liye lagbhag hamesha `msg.sender` use karo. `tx.origin` ko sirf un rare cases mein use karo jaha tumhe explicitly original EOA signer chahiye ho — aur tab bhi do baar soch lo.
 
 ### 3e. Address Utilities
 
@@ -226,11 +231,11 @@ contract AddressDemo {
 
 ---
 
-## 4. 🔒 Constants and Immutables — Gas-Saving Hardcoded Values
+## 4. 🔒 Constants Aur Immutables — Gas Bachane Wale Hardcoded Values
 
 ### 4a. `constant`
 
-A `constant` is evaluated at **compile time**. Its value is baked directly into the bytecode wherever it is used — there is no storage slot allocated.
+`constant` **compile time** pe evaluate hota hai. Iski value directly bytecode mein bake ho jaati hai jahan bhi use hoti hai — koi storage slot allocate nahi hota.
 
 ```solidity
 contract TokenConfig {
@@ -245,14 +250,14 @@ contract TokenConfig {
 }
 ```
 
-**Rules for `constant`:**
-- Must be assigned at the point of declaration.
-- Only works for value types and `string`/`bytes` literals.
-- Cannot reference state variables or call functions (except pure ones like `keccak256`).
+**`constant` ke rules:**
+- Declaration ke waqt hi assign karna padega.
+- Sirf value types aur `string`/`bytes` literals ke liye kaam karta hai.
+- State variables ko reference nahi kar sakta ya functions call nahi kar sakta (except pure wale jaise `keccak256`).
 
 ### 4b. `immutable`
 
-An `immutable` is assigned **once** — in the constructor — and can never change after deployment. Unlike `constant`, it can be computed at runtime (e.g., from a constructor argument).
+`immutable` **sirf ek baar** assign hota hai — constructor mein — aur deployment ke baad kabhi badal nahi sakta. `constant` ke ulat, ye runtime pe compute ho sakta hai (jaise constructor argument se).
 
 ```solidity
 contract Ownable {
@@ -270,35 +275,35 @@ contract Ownable {
 }
 ```
 
-**Rules for `immutable`:**
-- Assigned in the constructor (or inline for simple cases in Solidity ≥0.8.8).
-- Can use constructor arguments and runtime values.
-- After the constructor runs, the value is frozen into the deployment bytecode.
+**`immutable` ke rules:**
+- Constructor mein assign hota hai (ya inline, simple cases mein Solidity ≥0.8.8 se).
+- Constructor arguments aur runtime values use kar sakta hai.
+- Constructor chalne ke baad, value deployment bytecode mein freeze ho jaati hai.
 
 ### 4c. Gas Comparison
 
 | Variable Type | Storage Slot | Read Cost | Write Cost |
 |---------------|-------------|-----------|------------|
-| Regular state var | Yes | ~100–2,100 gas (SLOAD) | ~5,000–20,000 gas (SSTORE) |
-| `immutable` | No (bytecode) | ~3 gas (CODECOPY) | One-time in constructor |
-| `constant` | No (inlined) | ~3 gas (literal) | None — compile time |
+| Regular state var | Haan | ~100–2,100 gas (SLOAD) | ~5,000–20,000 gas (SSTORE) |
+| `immutable` | Nahi (bytecode) | ~3 gas (CODECOPY) | Ek baar constructor mein |
+| `constant` | Nahi (inlined) | ~3 gas (literal) | Kuch nahi — compile time |
 
-**Savings are significant.** If you have a value that never changes (e.g., a fee rate, a token address), always prefer `constant` or `immutable`.
+**Savings kaafi significant hain.** Agar koi value kabhi badalti nahi (jaise fee rate, ek token address), toh hamesha `constant` ya `immutable` prefer karo.
 
 ---
 
 ## 5. 🗄️ Storage vs Memory vs Calldata vs Stack
 
-This is the most conceptually important section. Solidity forces you to be explicit about *where* data lives.
+Ye section conceptually sabse important hai. Solidity tumhe explicitly batana padta hai ki data *kahan* rehta hai.
 
-### Data Location Rules
+### Data Location Ke Rules
 
-1. **State variables** always live in **Storage**.
-2. **Function parameters and return values** default to **Memory** for reference types inside the contract, and can be **Calldata** for `external` function inputs.
-3. **Local value types** live on the **Stack**.
-4. You must annotate reference types (`string`, `bytes`, arrays, structs) in function signatures.
+1. **State variables** hamesha **Storage** mein rehte hain.
+2. **Function parameters aur return values** contract ke andar reference types ke liye default **Memory** hote hain, aur `external` function inputs ke liye **Calldata** ho sakte hain.
+3. **Local value types** **Stack** pe rehte hain.
+4. Function signatures mein reference types (`string`, `bytes`, arrays, structs) ko annotate karna padega.
 
-### 5a. Storage — Permanent and Expensive
+### 5a. Storage — Permanent Aur Mehnga
 
 ```solidity
 contract StorageExample {
@@ -338,7 +343,7 @@ contract MemoryExample {
 }
 ```
 
-### 5c. Calldata — Read-Only Input (Cheapest for External Functions)
+### 5c. Calldata — Read-Only Input (External Functions Ke Liye Sabse Sasta)
 
 ```solidity
 contract CalldataExample {
@@ -359,11 +364,12 @@ contract CalldataExample {
 }
 ```
 
-> **When to use `calldata`:** Use it for `external` function parameters that are reference types and that you do not need to modify. It skips the copy that `memory` would make, saving gas especially for large arrays or strings.
+> [!info]
+> **`calldata` kab use karein:** `external` function parameters ke liye jo reference types hain aur jinhe tumhe modify nahi karna — waha `calldata` use karo. Ye woh copy skip kar deta hai jo `memory` banata, isse bade arrays ya strings pe kaafi gas bachta hai. Bilkul IRCTC ke tatkal booking jaisa — jo data sirf padhna hai use directly source se hi padho, alag se copy banane ki zarurat nahi.
 
-### 5d. Stack — Tiny and Implicit
+### 5d. Stack — Chhota Aur Implicit
 
-The EVM stack holds up to **1024 slots** of 32 bytes each. Local value-type variables and intermediate expression results live here automatically. You rarely think about it explicitly, but you will encounter the **"Stack too deep"** compiler error if a single function has too many local variables (~16 local variables is typically the limit before the compiler cannot access them all).
+EVM stack mein maximum **1024 slots** hote hain, har ek 32 bytes ka. Local value-type variables aur intermediate expression results automatically yahi rehte hain. Tum shayad hi kabhi isके baare mein directly sochte ho, lekin **"Stack too deep"** compiler error tab milega jab ek single function mein bohot zyada local variables ho jayein (~16 local variables typically limit hai jiske baad compiler unko access nahi kar pata).
 
 ```solidity
 contract StackDemo {
@@ -377,11 +383,11 @@ contract StackDemo {
 }
 ```
 
-**Fix for "Stack too deep":** Extract logic into smaller helper functions, or pack related variables into a `struct` stored in `memory`.
+**"Stack too deep" ka fix:** Logic ko chhote helper functions mein tod do, ya related variables ko ek `struct` mein pack karke `memory` mein store karo.
 
 ---
 
-## 📊 Mermaid Diagram — Data Locations in the EVM
+## 📊 Mermaid Diagram — EVM Mein Data Locations
 
 ```mermaid
 graph TD
@@ -418,35 +424,35 @@ graph TD
 
 ## 📋 Master Comparison Table
 
-| Category | Where Stored | Persists? | Gas Cost | Modifiable? | Declared Where |
+| Category | Kahan Store Hota Hai | Persist Karta Hai? | Gas Cost | Modify Ho Sakta Hai? | Kahan Declare Hota Hai |
 |----------|-------------|-----------|----------|-------------|----------------|
-| State variable | Storage (blockchain) | Yes — forever | High (SSTORE/SLOAD) | Yes | Contract level |
-| `constant` | Bytecode (inlined) | Yes — in code | Minimal (~3 gas read) | No | Contract level |
-| `immutable` | Bytecode (frozen) | Yes — in code | Minimal (~3 gas read) | Constructor only | Contract level |
-| Local (value type) | Stack | No — per call | Minimal | Yes | Inside function |
-| Local (reference type `memory`) | Memory | No — per call | Moderate | Yes (copy) | Inside function |
-| Local (reference type `storage`) | Storage (reference) | Yes (same slot) | High (same as state) | Yes (in-place) | Inside function |
-| Function param (`calldata`) | Calldata | No — per call | Minimal (no copy) | No | Function signature |
-| Function param (`memory`) | Memory | No — per call | Moderate (copied in) | Yes | Function signature |
-| `msg.sender` / `block.*` | EVM context | No — per call | Minimal (opcode) | No | Built-in global |
+| State variable | Storage (blockchain) | Haan — hamesha ke liye | High (SSTORE/SLOAD) | Haan | Contract level |
+| `constant` | Bytecode (inlined) | Haan — code mein | Minimal (~3 gas read) | Nahi | Contract level |
+| `immutable` | Bytecode (frozen) | Haan — code mein | Minimal (~3 gas read) | Sirf constructor mein | Contract level |
+| Local (value type) | Stack | Nahi — per call | Minimal | Haan | Function ke andar |
+| Local (reference type `memory`) | Memory | Nahi — per call | Moderate | Haan (copy) | Function ke andar |
+| Local (reference type `storage`) | Storage (reference) | Haan (same slot) | High (state jaisa hi) | Haan (in-place) | Function ke andar |
+| Function param (`calldata`) | Calldata | Nahi — per call | Minimal (no copy) | Nahi | Function signature |
+| Function param (`memory`) | Memory | Nahi — per call | Moderate (copied in) | Haan | Function signature |
+| `msg.sender` / `block.*` | EVM context | Nahi — per call | Minimal (opcode) | Nahi | Built-in global |
 
 ---
 
 ## 🔑 Key Takeaways
 
-1. **Storage is precious.** Every write to a state variable costs real money. Batch updates, cache values in memory locals, and avoid redundant writes.
+1. **Storage precious hai.** Har state variable write real paisa kharch karta hai. Updates ko batch karo, values ko memory locals mein cache karo, aur redundant writes se bacho.
 
-2. **`constant` > `immutable` > state variable** — in that order for gas efficiency, when each is applicable. Ask "does this value need to change?" If no, make it `constant` or `immutable`.
+2. **`constant` > `immutable` > state variable** — gas efficiency ke hisaab se yahi order hai, jab bhi applicable ho. Khud se pucho "kya ye value badlegi?" Agar nahi, toh `constant` ya `immutable` bana do.
 
-3. **Never use `tx.origin` for access control.** It is vulnerable to phishing/relay attacks. Always use `msg.sender`.
+3. **Access control ke liye `tx.origin` kabhi use mat karo.** Ye phishing/relay attacks ke liye vulnerable hai. Hamesha `msg.sender` use karo.
 
-4. **`calldata` over `memory`** for external function parameters you don't need to modify. It's free to read and avoids a copy.
+4. **`memory` ke bajaye `calldata`** un external function parameters ke liye jinhe tumhe modify nahi karna. Padhna free hai aur copy bhi nahi banti.
 
-5. **`storage` references are dangerous.** When you write `MyStruct storage ref = myStructVar;` inside a function and modify `ref`, you are modifying the on-chain state — no different from modifying `myStructVar` directly.
+5. **`storage` references dangerous hain.** Jab tum `MyStruct storage ref = myStructVar;` likhte ho function ke andar aur `ref` ko modify karte ho, tab tum actual on-chain state modify kar rahe ho — bilkul waisa hi jaisa `myStructVar` ko directly modify karna.
 
-6. **Default values are zero.** You never read garbage from an uninitialized variable in Solidity — but double check your logic doesn't depend on this to mask a bug.
+6. **Default values zero hote hain.** Solidity mein tum kabhi bhi uninitialized variable se garbage nahi padhoge — lekin double check kar lo ki tumhara logic kisi bug ko chhupane ke liye isi zero-default pe depend na kare.
 
-7. **Stack depth = 1024, accessible slots ~= 16.** If your function grows complex, break it up. "Stack too deep" is a compiler error, not a runtime one.
+7. **Stack depth = 1024, accessible slots ~= 16.** Agar tumhara function complex ho raha hai, use tod do. "Stack too deep" ek compiler error hai, runtime wala nahi.
 
 ---
 
@@ -503,39 +509,39 @@ contract CheatSheet {
 
 ## 📝 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apna samajh test kar lo.
 
-**Q1.** You have a contract with:
+**Q1.** Tumhare paas ek contract hai:
 ```solidity
 uint256 public constant RATE = 500;
 uint256 public rateVar = 500;
 ```
-Which is cheaper to read in a function, and why?
+Kaunsa function ke andar padhna sasta hai, aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-`RATE` (the constant) is cheaper. A `constant` is inlined into the bytecode at compile time, so reading it is essentially free (~3 gas, like reading a literal). `rateVar` is a state variable in storage — reading it costs an SLOAD, which can be 100–2,100 gas depending on whether the slot is "warm" (already accessed this transaction) or "cold".
+`RATE` (constant wala) sasta hai. `constant` compile time pe bytecode mein inline ho jaata hai, isliye ise padhna basically free hai (~3 gas, ek literal padhne jaisa). `rateVar` ek state variable hai storage mein — ise padhne mein SLOAD lagta hai, jo 100–2,100 gas ho sakta hai depend karta hai slot "warm" hai (isi transaction mein pehle access ho chuka) ya "cold".
 
 </details>
 
 ---
 
-**Q2.** A user calls `ContractA.doStuff()`, which internally calls `ContractB.withdraw()`. Inside `ContractB.withdraw()`, what are the values of `msg.sender` and `tx.origin`?
+**Q2.** Ek user `ContractA.doStuff()` call karta hai, jo internally `ContractB.withdraw()` ko call karta hai. `ContractB.withdraw()` ke andar, `msg.sender` aur `tx.origin` ki values kya hongi?
 
 <details>
 <summary>Answer</summary>
 
-- `msg.sender` = **the address of `ContractA`** — it is the immediate caller of `ContractB.withdraw()`.
-- `tx.origin` = **the original EOA (human wallet)** that initiated the top-level transaction by calling `ContractA.doStuff()`.
+- `msg.sender` = **`ContractA` ka address** — ye `ContractB.withdraw()` ka immediate caller hai.
+- `tx.origin` = **original EOA (human wallet)** jisne top-level transaction shuru kiya tha `ContractA.doStuff()` ko call karke.
 
-This is why using `tx.origin` for access control is dangerous: a malicious contract (ContractA) could trick a legitimate owner into calling it, and the malicious contract could then call your contract where `tx.origin == owner` would still pass — allowing unauthorized actions.
+Isi wajah se access control ke liye `tx.origin` use karna dangerous hai: ek malicious contract (ContractA) kisi legitimate owner ko trick karke apna function call karwa sakta hai, aur phir woh malicious contract tumhare contract ko call kar sakta hai jahan `tx.origin == owner` phir bhi pass ho jayega — isse unauthorized actions ho sakte hain.
 
 </details>
 
 ---
 
-**Q3.** What will the compiler output if you write this function?
+**Q3.** Agar tum ye function likhoge toh compiler kya output dega?
 
 ```solidity
 function getData(uint256[] calldata items) external pure returns (uint256[] calldata) {
@@ -549,7 +555,7 @@ function getData(uint256[] calldata items) external pure returns (uint256[] call
 
 **Compiler error:** `TypeError: Expression has to be an lvalue.`
 
-`calldata` variables are **read-only**. You cannot assign to them. If you need to modify the array, change the parameter location to `memory`:
+`calldata` variables **read-only** hote hain. Inko assign nahi kar sakte. Agar array modify karna hai, toh parameter location ko `memory` mein badal do:
 
 ```solidity
 function getData(uint256[] memory items) external pure returns (uint256[] memory) {
@@ -558,19 +564,19 @@ function getData(uint256[] memory items) external pure returns (uint256[] memory
 }
 ```
 
-Note that this is slightly more expensive because the calldata is copied into memory on entry.
+Dhyan rahe ye thoda zyada expensive hoga kyunki calldata entry pe memory mein copy hoti hai.
 
 </details>
 
 ---
 
-## 🔗 What's Next
+## 🔗 Aage Kya
 
-In **Chapter 4 — Functions in Solidity**, we'll explore:
+**Chapter 4 — Functions in Solidity** mein hum explore karenge:
 - Function visibility (`public`, `private`, `internal`, `external`)
 - State mutability (`pure`, `view`, `payable`)
-- Function modifiers and how to build reusable access-control guards
-- Fallback and receive functions for handling plain ETH transfers
+- Function modifiers aur reusable access-control guards kaise banayein
+- Fallback aur receive functions plain ETH transfers handle karne ke liye
 
 ---
 

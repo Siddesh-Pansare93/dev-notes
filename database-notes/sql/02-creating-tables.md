@@ -1,37 +1,37 @@
 # Creating Databases and Tables (DDL)
 
-> **Chapter 2** | SQL From Scratch Series  
+> **Chapter 2** | SQL From Scratch Series
 > **Difficulty:** Beginner | **Reading time:** ~25 min
 
 ---
 
-## What is DDL?
+## DDL kya hota hai?
 
-**DDL (Data Definition Language)** is the subset of SQL used to *define and structure* your database. Think of it as the architect's toolkit — you use DDL to draw the blueprint before any data ever flows in.
+**DDL (Data Definition Language)** SQL ka woh part hai jo tumhare database ka *structure* define karta hai. Socho tum ek naya ghar bana rahe ho — DDL matlab architect ka blueprint. Pehle building ka structure decide hota hai (kitne rooms, konsi wall kahan), tab jaake furniture (data) andar aata hai.
 
-The core DDL statements are:
+Core DDL statements ye hain:
 
 | Statement | Purpose |
 |---|---|
-| `CREATE DATABASE` | Make a new database |
-| `CREATE TABLE` | Define a table and its columns |
-| `ALTER TABLE` | Modify an existing table structure |
-| `DROP TABLE` | Permanently delete a table |
-| `TRUNCATE TABLE` | Remove all rows, keep the structure |
+| `CREATE DATABASE` | Naya database banao |
+| `CREATE TABLE` | Table aur uske columns define karo |
+| `ALTER TABLE` | Existing table ka structure badlo |
+| `DROP TABLE` | Table ko permanently delete karo |
+| `TRUNCATE TABLE` | Saare rows hatao, structure rakho |
 
 ---
 
 ## 🏗️ CREATE DATABASE
 
-Before you can store anything, you need a database — a named container that holds your tables.
+Kuch bhi store karne se pehle tumhe ek database chahiye — ek named container jisme tumhare saare tables rahenge. Zomato ke app ko socho: pehle "Zomato" naam ka ek bada building banega, uske andar hi restaurants, orders, users ke alag-alag rooms (tables) honge.
 
 ```sql
 CREATE DATABASE my_app;
 ```
 
-This syntax works identically in PostgreSQL, MySQL, and SQL Server. Oracle uses a different concept (a "database" in Oracle is the entire server instance; what you typically create is a **schema** or **pluggable database**).
+Ye syntax PostgreSQL, MySQL, aur SQL Server mein identical hai. Oracle mein concept thoda alag hai (Oracle mein "database" pura server instance hota hai; tum jo banate ho woh usually ek **schema** ya **pluggable database** hota hai).
 
-### Optional: Check before creating
+### Optional: Create karne se pehle check karo
 
 ```sql
 -- PostgreSQL
@@ -45,38 +45,39 @@ IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'my_app')
     CREATE DATABASE my_app;
 ```
 
-> **Tip:** Always use `IF NOT EXISTS` in scripts that may be re-run — it prevents an error if the database already exists.
+> [!tip]
+> Scripts mein jo baar-baar run ho sakte hain, unme hamesha `IF NOT EXISTS` use karo — isse agar database pehle se hai to error nahi aayega.
 
 ---
 
-## 🔀 Switching Databases (USE / \c)
+## 🔀 Database Switch Karna (USE / \c)
 
-After creating a database, you need to tell your client which one to work in.
+Database banane ke baad, apne client ko batana padta hai ki kaunse database mein kaam karna hai. Jaise UPI app mein pehle account select karte ho — "kis bank account se payment karni hai" — waise hi yahan "kis database ke andar kaam karna hai".
 
 | Database | Command | Example |
 |---|---|---|
 | **MySQL / SQL Server** | `USE database_name;` | `USE my_app;` |
 | **PostgreSQL (psql CLI)** | `\c database_name` | `\c my_app` |
-| **PostgreSQL (code)** | Connection string parameter | `dbname=my_app` in connection URL |
-| **Oracle** | Connect to schema directly | `ALTER SESSION SET CURRENT_SCHEMA = my_app;` |
+| **PostgreSQL (code)** | Connection string parameter | `dbname=my_app` connection URL mein |
+| **Oracle** | Directly schema se connect karo | `ALTER SESSION SET CURRENT_SCHEMA = my_app;` |
 
 ```sql
 -- MySQL and SQL Server
 USE my_app;
 
--- PostgreSQL (in psql terminal)
+-- PostgreSQL (psql terminal mein)
 \c my_app
 ```
 
-Once you switch, every statement you write targets tables inside that database.
+Ek baar switch karne ke baad, tumhara har statement us database ke andar ke tables ko target karega.
 
 ---
 
-## 📋 CREATE TABLE — Full Syntax
+## 📋 CREATE TABLE — Poora Syntax
 
-The `CREATE TABLE` statement defines a new table: its name, columns, data types, and constraints.
+`CREATE TABLE` statement se naya table define hota hai: uska naam, columns, data types, aur constraints.
 
-**Basic structure (identical across all major databases):**
+**Basic structure (sabhi major databases mein same):**
 
 ```sql
 CREATE TABLE table_name (
@@ -87,7 +88,7 @@ CREATE TABLE table_name (
 );
 ```
 
-**Minimal working example:**
+**Sabse minimal working example:**
 
 ```sql
 CREATE TABLE users (
@@ -105,10 +106,10 @@ CREATE TABLE IF NOT EXISTS users (
 );
 ```
 
-`IF NOT EXISTS` works in PostgreSQL, MySQL, and SQL Server (SQL Server uses a different pattern, shown below).
+`IF NOT EXISTS` PostgreSQL, MySQL, aur SQL Server mein kaam karta hai (SQL Server mein tables ke liye thoda alag pattern hota hai, neeche dekho).
 
 ```sql
--- SQL Server pattern (no IF NOT EXISTS for tables)
+-- SQL Server pattern (tables ke liye IF NOT EXISTS nahi hota)
 IF OBJECT_ID('dbo.users', 'U') IS NULL
     CREATE TABLE users (
         id   INT,
@@ -118,48 +119,55 @@ IF OBJECT_ID('dbo.users', 'U') IS NULL
 
 ---
 
-## 🔢 Column Data Types — Comprehensive Guide
+## 🔢 Column Data Types — Poori Guide
 
-Choosing the right data type is one of the most important decisions in database design. The wrong type wastes storage, causes bugs, or silently truncates data.
+Sahi data type choose karna database design ka sabse important decision hota hai. Galat type storage waste karta hai, bugs create karta hai, ya silently data truncate kar deta hai — jaise Ola mein galat vehicle type select karne se poora ride hi mismatch ho jaaye.
 
 ### Integers
 
+**Kya hota hai?** Integer types whole numbers store karte hain — koi decimal nahi. Farak sirf ye hai ki kitni "range" cover karni hai.
+
 | Type | Storage | Range | Notes |
 |---|---|---|---|
-| `TINYINT` | 1 byte | 0–255 (unsigned) / -128–127 | MySQL only |
-| `SMALLINT` | 2 bytes | -32,768 to 32,767 | All major DBs |
-| `INT` / `INTEGER` | 4 bytes | ~-2.1B to 2.1B | All major DBs |
-| `BIGINT` | 8 bytes | ~-9.2 quintillion to 9.2Q | All major DBs |
+| `TINYINT` | 1 byte | 0–255 (unsigned) / -128–127 | Sirf MySQL mein |
+| `SMALLINT` | 2 bytes | -32,768 to 32,767 | Sab major DBs mein |
+| `INT` / `INTEGER` | 4 bytes | ~-2.1B to 2.1B | Sab major DBs mein |
+| `BIGINT` | 8 bytes | ~-9.2 quintillion to 9.2Q | Sab major DBs mein |
 
 ```sql
--- Use INT for most IDs and counts
--- Use BIGINT when you expect more than 2 billion rows (social media scale)
--- Use SMALLINT for small lookup tables (status codes, etc.)
+-- Zyada IDs aur counts ke liye INT use karo
+-- Agar 2 billion se zyada rows expect ho (jaise Instagram scale) to BIGINT use karo
+-- Chhote lookup tables ke liye (status codes waghera) SMALLINT use karo
 
 user_id   BIGINT,
 age       SMALLINT,
 quantity  INT
 ```
 
-### Decimals and Floating Point
+### Decimals aur Floating Point
 
-| Type | Exact? | Use Case |
+**Kyun zaruri hai?** Agar tum paise (money) store kar rahe ho — jaise Paytm wallet balance — to exact precision chahiye, warna paisa idhar-udhar ho sakta hai.
+
+| Type | Exact hai? | Use Case |
 |---|---|---|
-| `DECIMAL(p, s)` / `NUMERIC(p, s)` | Yes (exact) | Money, measurements where precision matters |
-| `FLOAT` | No (approximate) | Scientific data where small rounding is acceptable |
-| `REAL` | No (approximate) | Same as FLOAT but lower precision |
+| `DECIMAL(p, s)` / `NUMERIC(p, s)` | Haan (exact) | Money, measurements jahan precision matter kare |
+| `FLOAT` | Nahi (approximate) | Scientific data jahan thoda rounding chalta hai |
+| `REAL` | Nahi (approximate) | FLOAT jaisa hi but kam precision |
 
-`DECIMAL(10, 2)` means up to 10 digits total, 2 after the decimal point. This is the standard for storing money.
+`DECIMAL(10, 2)` ka matlab hai kul 10 digits, jisme se 2 decimal point ke baad. Ye money store karne ka standard tarika hai.
 
 ```sql
-price       DECIMAL(10, 2),   -- e.g., 99999999.99
-tax_rate    DECIMAL(5, 4),    -- e.g., 0.0825
+price       DECIMAL(10, 2),   -- jaise, 99999999.99
+tax_rate    DECIMAL(5, 4),    -- jaise, 0.0825
 weight_kg   FLOAT
 ```
 
-> **Rule of thumb:** Never use `FLOAT` or `REAL` for money. Floating-point arithmetic introduces rounding errors (0.1 + 0.2 = 0.30000000000000004 in binary).
+> [!warning]
+> Money ke liye kabhi bhi `FLOAT` ya `REAL` use mat karo. Floating-point arithmetic mein rounding errors aati hain (binary mein 0.1 + 0.2 = 0.30000000000000004 hota hai). Socho CRED bill mein 1 paisa idhar-udhar ho jaaye — chalega kya?
 
 ### Text Types
+
+**Kya hota hai?** Text store karne ke liye alag-alag types hote hain — kuch fixed length, kuch variable, kuch unlimited.
 
 | Type | PostgreSQL | MySQL | SQL Server | Oracle |
 |---|---|---|---|---|
@@ -168,10 +176,10 @@ weight_kg   FLOAT
 | Unlimited text | `TEXT` | `TEXT` | `VARCHAR(MAX)` | `CLOB` |
 | Unicode variable | `TEXT` (default UTF-8) | `NVARCHAR(n)` | `NVARCHAR(n)` | `NVARCHAR2(n)` |
 
-**Key differences:**
-- **SQL Server** distinguishes between `VARCHAR` (ASCII) and `NVARCHAR` (Unicode). For international apps, always use `NVARCHAR`.
-- **Oracle** uses `VARCHAR2` instead of `VARCHAR` (VARCHAR is technically reserved in Oracle).
-- **PostgreSQL** stores everything as UTF-8 by default, so `TEXT` and `VARCHAR(n)` are functionally equivalent internally.
+**Zaruri differences:**
+- **SQL Server** `VARCHAR` (ASCII) aur `NVARCHAR` (Unicode) mein farak karta hai. International apps ke liye (jaise Hindi, emoji support chahiye) hamesha `NVARCHAR` use karo.
+- **Oracle** `VARCHAR` ki jagah `VARCHAR2` use karta hai (VARCHAR technically Oracle mein reserved hai).
+- **PostgreSQL** default mein sab kuch UTF-8 mein store karta hai, isliye `TEXT` aur `VARCHAR(n)` internally functionally same hote hain.
 
 ```sql
 -- PostgreSQL
@@ -191,18 +199,21 @@ username    VARCHAR2(50),
 bio         CLOB
 ```
 
-> **When to use CHAR vs VARCHAR:** Use `CHAR(n)` only for truly fixed-length data (country codes: `CHAR(2)`, phone extensions). For everything else, `VARCHAR(n)` is more space-efficient.
+> [!info]
+> **CHAR vs VARCHAR kab use karein:** `CHAR(n)` sirf tabhi use karo jab data truly fixed-length ho (country codes: `CHAR(2)`, phone extensions). Baaki sab jagah `VARCHAR(n)` zyada space-efficient hota hai.
 
 ### Boolean
+
+**Kya hota hai?** True/False store karne ka type — jaise "is_active" flag, "order_delivered" flag waghera.
 
 | Database | Type | True Value | False Value |
 |---|---|---|---|
 | **PostgreSQL** | `BOOLEAN` | `TRUE`, `'t'`, `'yes'`, `1` | `FALSE`, `'f'`, `'no'`, `0` |
 | **MySQL** | `BOOLEAN` / `TINYINT(1)` | `1` | `0` |
 | **SQL Server** | `BIT` | `1` | `0` |
-| **Oracle** | No native boolean* | — | — |
+| **Oracle** | Native boolean nahi hai* | — | — |
 
-*Oracle added `BOOLEAN` in Oracle Database 23c, but in most production Oracle environments you'll use `NUMBER(1)` (0 or 1) or `CHAR(1)` ('Y' or 'N').
+*Oracle ne `BOOLEAN` Oracle Database 23c mein add kiya, lekin zyadatar production Oracle environments mein tum `NUMBER(1)` (0 ya 1) ya `CHAR(1)` ('Y' ya 'N') use karoge.
 
 ```sql
 -- PostgreSQL / MySQL
@@ -215,18 +226,20 @@ is_active   BIT DEFAULT 1,
 is_active   NUMBER(1) DEFAULT 1 CHECK (is_active IN (0, 1))
 ```
 
-### Date and Time
+### Date aur Time
+
+**Kyun zaruri hai?** Ek order kab place hua, kab deliver hua — ye track karne ke liye sahi date/time type choose karna zaruri hai, especially jab users alag-alag timezones (Mumbai vs US) se ho.
 
 | Type | Description | PostgreSQL | MySQL | SQL Server | Oracle |
 |---|---|---|---|---|---|
-| Date only | Year, month, day | `DATE` | `DATE` | `DATE` | `DATE` |
-| Time only | Hours, minutes, seconds | `TIME` | `TIME` | `TIME` | — |
-| Date + Time | No timezone | `TIMESTAMP` | `DATETIME` | `DATETIME` | `TIMESTAMP` |
-| Date + Time (TZ-aware) | With timezone offset | `TIMESTAMPTZ` | — | `DATETIMEOFFSET` | `TIMESTAMP WITH TIME ZONE` |
+| Sirf Date | Year, month, day | `DATE` | `DATE` | `DATE` | `DATE` |
+| Sirf Time | Hours, minutes, seconds | `TIME` | `TIME` | `TIME` | — |
+| Date + Time | Timezone nahi | `TIMESTAMP` | `DATETIME` | `DATETIME` | `TIMESTAMP` |
+| Date + Time (TZ-aware) | Timezone offset ke saath | `TIMESTAMPTZ` | — | `DATETIMEOFFSET` | `TIMESTAMP WITH TIME ZONE` |
 
 ```sql
--- PostgreSQL (most expressive)
-created_at   TIMESTAMPTZ DEFAULT NOW(),   -- stores timezone
+-- PostgreSQL (sabse expressive)
+created_at   TIMESTAMPTZ DEFAULT NOW(),   -- timezone bhi store karta hai
 event_date   DATE,
 start_time   TIME,
 
@@ -240,23 +253,25 @@ event_date   DATE,
 
 -- Oracle
 created_at   TIMESTAMP DEFAULT SYSTIMESTAMP,
-event_date   DATE   -- Oracle DATE includes time component!
+event_date   DATE   -- Oracle ka DATE mein time component bhi hota hai!
 ```
 
-> **Gotcha — Oracle DATE:** In Oracle, `DATE` stores both date AND time (down to seconds). If you only want the date part, you must truncate with `TRUNC(column)`.
+> [!warning]
+> **Gotcha — Oracle DATE:** Oracle mein, `DATE` date AUR time (seconds tak) dono store karta hai. Agar sirf date chahiye to `TRUNC(column)` se truncate karna padega.
 
-> **Best practice:** Always store timestamps in UTC. Use `TIMESTAMPTZ` in PostgreSQL or store UTC values in `DATETIME` in MySQL/SQL Server.
+> [!tip]
+> **Best practice:** Timestamps hamesha UTC mein store karo. PostgreSQL mein `TIMESTAMPTZ` use karo ya MySQL/SQL Server mein `DATETIME` mein UTC values store karo — jaise IRCTC ka server chahe kisi bhi region mein ho, ticket booking time hamesha ek standard timezone mein hi store hota hai.
 
 ### UUID (Universally Unique Identifiers)
 
-UUIDs are 128-bit identifiers — perfect for distributed systems where you can't rely on a central auto-increment counter.
+**Kya hota hai?** UUID ek 128-bit unique identifier hai — perfect for distributed systems jahan ek central auto-increment counter pe bharosa nahi kar sakte (jaise multiple servers alag-alag jagah se orders create kar rahe hon, Swiggy ke multiple regional servers ki tarah).
 
 | Database | Native Type | Storage |
 |---|---|---|
 | **PostgreSQL** | `UUID` | 16 bytes (efficient) |
-| **MySQL** | `CHAR(36)` or `BINARY(16)` | 36 bytes as string |
+| **MySQL** | `CHAR(36)` ya `BINARY(16)` | 36 bytes string ki tarah |
 | **SQL Server** | `UNIQUEIDENTIFIER` | 16 bytes |
-| **Oracle** | `RAW(16)` or `CHAR(36)` | — |
+| **Oracle** | `RAW(16)` ya `CHAR(36)` | — |
 
 ```sql
 -- PostgreSQL
@@ -271,25 +286,25 @@ id   UNIQUEIDENTIFIER DEFAULT NEWID(),
 
 ### JSON Storage
 
-Modern applications often store semi-structured data. Here's how each database handles it:
+**Kya hota hai?** Modern apps aksar semi-structured data store karte hain (jaise user preferences, ek flexible object jiska shape fix nahi hai). Har database iska alag tarike se handle karta hai:
 
 | Database | Type | Notes |
 |---|---|---|
-| **PostgreSQL** | `JSONB` (preferred) or `JSON` | `JSONB` is binary-stored, indexable, and faster for queries |
-| **MySQL** | `JSON` | Available since MySQL 5.7, has query functions |
-| **SQL Server** | `NVARCHAR(MAX)` | No native JSON type; JSON functions work on strings |
-| **Oracle** | `JSON` (21c+) or `CLOB` | Native JSON type added in Oracle 21c |
+| **PostgreSQL** | `JSONB` (preferred) ya `JSON` | `JSONB` binary-stored hai, indexable hai, aur queries ke liye fast hai |
+| **MySQL** | `JSON` | MySQL 5.7 se available, query functions ke saath |
+| **SQL Server** | `NVARCHAR(MAX)` | Native JSON type nahi hai; JSON functions strings pe kaam karte hain |
+| **Oracle** | `JSON` (21c+) ya `CLOB` | Native JSON type Oracle 21c mein add hua |
 
 ```sql
--- PostgreSQL (JSONB is almost always preferred over JSON)
+-- PostgreSQL (JSONB hamesha JSON se better hota hai)
 metadata     JSONB,
 preferences  JSONB DEFAULT '{}',
 
 -- MySQL
 metadata     JSON,
 
--- SQL Server (no native type — use NVARCHAR)
-metadata     NVARCHAR(MAX),   -- use JSON functions: JSON_VALUE(), JSON_QUERY()
+-- SQL Server (native type nahi hai — NVARCHAR use karo)
+metadata     NVARCHAR(MAX),   -- JSON functions use karo: JSON_VALUE(), JSON_QUERY()
 
 -- Oracle (21c+)
 metadata     JSON,
@@ -297,15 +312,15 @@ metadata     JSON,
 
 ### Auto-Increment Primary Keys
 
-This is one of the biggest syntax differences across databases:
+**Kyun zaruri hai?** Har row ko ek unique ID chahiye, aur usko manually track karne ke bajaye database khud increment kare — ye sabse bada syntax difference hai databases ke beech:
 
 ```sql
--- PostgreSQL: SERIAL (legacy, still widely used)
+-- PostgreSQL: SERIAL (legacy, abhi bhi widely use hota hai)
 CREATE TABLE users (
     id   SERIAL PRIMARY KEY
 );
 
--- PostgreSQL: GENERATED AS IDENTITY (SQL standard, preferred in modern code)
+-- PostgreSQL: GENERATED AS IDENTITY (SQL standard, modern code mein preferred)
 CREATE TABLE users (
     id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY
 );
@@ -318,14 +333,14 @@ CREATE TABLE users (
 -- SQL Server
 CREATE TABLE users (
     id   INT IDENTITY(1,1) PRIMARY KEY
-    -- IDENTITY(seed, increment): starts at 1, increments by 1
+    -- IDENTITY(seed, increment): 1 se start, 1-1 karke badhega
 );
 
 -- Oracle
 CREATE TABLE users (
     id   INT GENERATED AS IDENTITY PRIMARY KEY
 );
--- or using a SEQUENCE (older approach):
+-- ya SEQUENCE use karke (purana approach):
 -- CREATE SEQUENCE users_seq START WITH 1 INCREMENT BY 1;
 ```
 
@@ -333,7 +348,7 @@ CREATE TABLE users (
 
 ## 🔒 Constraints
 
-Constraints enforce rules on the data in your columns. They can be defined **inline** (on the column) or at the **table level** (after all columns).
+**Kya hota hai?** Constraints tumhare columns ke data pe rules enforce karte hain — jaise ek bouncer jo galat entry (invalid data) ko andar aane hi nahi deta. Ye **inline** (column ke saath) ya **table level** (sab columns ke baad) define ho sakte hain.
 
 ### Inline Constraints
 
@@ -349,7 +364,7 @@ CREATE TABLE users (
 
 ### Table-Level Constraints
 
-Table-level constraints are useful when a constraint spans **multiple columns** (composite keys, composite unique constraints):
+Table-level constraints tab kaam aate hain jab constraint **multiple columns** ko span kare (composite keys, composite unique constraints):
 
 ```sql
 CREATE TABLE order_items (
@@ -370,25 +385,25 @@ CREATE TABLE order_items (
 
 | Constraint | Purpose | Example |
 |---|---|---|
-| `PRIMARY KEY` | Unique, not null identifier for each row | `id INT PRIMARY KEY` |
-| `NOT NULL` | Column cannot be empty | `name VARCHAR(100) NOT NULL` |
-| `UNIQUE` | All values in column must be distinct | `email VARCHAR(255) UNIQUE` |
-| `DEFAULT` | Value used when none is provided | `status VARCHAR(20) DEFAULT 'active'` |
-| `CHECK` | Custom rule the value must satisfy | `CHECK (age >= 18)` |
-| `FOREIGN KEY` | Links to a row in another table | `REFERENCES users(id)` |
+| `PRIMARY KEY` | Har row ke liye unique, not-null identifier | `id INT PRIMARY KEY` |
+| `NOT NULL` | Column khaali nahi ho sakta | `name VARCHAR(100) NOT NULL` |
+| `UNIQUE` | Column ki saari values distinct honi chahiye | `email VARCHAR(255) UNIQUE` |
+| `DEFAULT` | Value use hogi jab kuch diya na ho | `status VARCHAR(20) DEFAULT 'active'` |
+| `CHECK` | Custom rule jo value ko satisfy karna padega | `CHECK (age >= 18)` |
+| `FOREIGN KEY` | Doosre table ki row se link karta hai | `REFERENCES users(id)` |
 
 ---
 
-## ✏️ ALTER TABLE — Modifying Existing Tables
+## ✏️ ALTER TABLE — Existing Tables Modify Karna
 
-Once a table exists and has data in it, you often need to change its structure without dropping and recreating it.
+Ek baar table exist karne lage aur usme data aa jaaye, tumhe uska structure change karna pad sakta hai — bina table ko drop aur recreate kiye. Jaise ek building already ban chuki hai, lekin ab tumhe ek extra room add karna hai — pura ghar todna nahi padta.
 
-### ADD COLUMN — Same across all databases
+### ADD COLUMN — Sab databases mein same
 
 ```sql
 ALTER TABLE users ADD COLUMN phone_number VARCHAR(20);
 
--- With a default value
+-- Default value ke saath
 ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;
 ```
 
@@ -400,20 +415,20 @@ ALTER TABLE users DROP COLUMN phone_number;
 
 -- SQL Server
 ALTER TABLE users DROP COLUMN phone_number;
--- If there's a default constraint, drop it first:
+-- Agar default constraint hai to pehle usko drop karo:
 ALTER TABLE users DROP CONSTRAINT DF_users_phone_number;
 ALTER TABLE users DROP COLUMN phone_number;
 ```
 
 ### RENAME COLUMN
 
-This is one of the most inconsistent operations across databases:
+Ye databases ke beech sabse inconsistent operation hai:
 
 ```sql
--- PostgreSQL (since v9.6)
+-- PostgreSQL (v9.6 se)
 ALTER TABLE users RENAME COLUMN username TO display_name;
 
--- MySQL (since 8.0)
+-- MySQL (8.0 se)
 ALTER TABLE users RENAME COLUMN username TO display_name;
 
 -- SQL Server
@@ -423,9 +438,9 @@ EXEC sp_rename 'users.username', 'display_name', 'COLUMN';
 ALTER TABLE users RENAME COLUMN username TO display_name;
 ```
 
-### CHANGE COLUMN TYPE
+### COLUMN TYPE Change Karna
 
-Changing a column's data type can be risky if existing data is incompatible. Always test on a copy first.
+Column ka data type change karna risky ho sakta hai agar existing data incompatible hai. Hamesha ek copy pe test karo pehle.
 
 ```sql
 -- PostgreSQL
@@ -441,7 +456,7 @@ ALTER TABLE users ALTER COLUMN age BIGINT;
 ALTER TABLE users MODIFY (age BIGINT);
 ```
 
-### Rename a Table
+### Table Rename Karna
 
 ```sql
 -- PostgreSQL
@@ -461,13 +476,13 @@ ALTER TABLE old_name RENAME TO new_name;
 
 ## 🗑️ DROP TABLE
 
-`DROP TABLE` permanently deletes a table and all its data. This cannot be undone (unless you're in a transaction or have backups).
+`DROP TABLE` ek table aur uska saara data permanently delete kar deta hai. Ye undo nahi ho sakta (jab tak tum transaction mein nahi ho ya backup nahi hai). Socho pura Zomato restaurant listing hi delete ho jaaye — koi undo button nahi hai.
 
 ```sql
--- Basic drop (errors if table doesn't exist)
+-- Basic drop (agar table exist nahi karta to error dega)
 DROP TABLE users;
 
--- Safe drop (no error if table doesn't exist) — PostgreSQL & MySQL
+-- Safe drop (error nahi dega agar table exist nahi karta) — PostgreSQL & MySQL
 DROP TABLE IF EXISTS users;
 
 -- SQL Server
@@ -477,23 +492,24 @@ IF OBJECT_ID('dbo.users', 'U') IS NOT NULL
 
 ### CASCADE vs RESTRICT
 
-When other tables have foreign keys referencing the table you're dropping:
+Jab doosre tables ke foreign keys us table ko reference kar rahe hon jise tum drop kar rahe ho:
 
 ```sql
--- PostgreSQL: drop table and all dependent objects
+-- PostgreSQL: table aur uske saare dependent objects drop karo
 DROP TABLE users CASCADE;
 
--- PostgreSQL: refuse to drop if dependencies exist (default behavior)
+-- PostgreSQL: agar dependencies exist karti hain to drop karne se mana kar do (default behavior)
 DROP TABLE users RESTRICT;
 ```
 
-> **Warning:** `CASCADE` will also drop foreign key constraints in child tables — use it carefully.
+> [!warning]
+> `CASCADE` child tables ke foreign key constraints bhi drop kar dega — isse carefully use karo.
 
 ---
 
 ## ⚡ TRUNCATE TABLE
 
-`TRUNCATE` removes all rows from a table much faster than `DELETE` because it doesn't log individual row deletions. The table structure remains intact.
+`TRUNCATE` ek table ke saare rows `DELETE` se bahut fast hata deta hai kyunki ye individual row deletions log nahi karta. Table ka structure intact rehta hai.
 
 ```sql
 TRUNCATE TABLE users;
@@ -501,54 +517,54 @@ TRUNCATE TABLE users;
 
 | Feature | `DELETE` | `TRUNCATE` |
 |---|---|---|
-| Removes all rows | Yes | Yes |
-| Can have WHERE clause | Yes | No |
-| Triggers fire | Yes | Sometimes |
-| Transaction rollback | Yes (most DBs) | PostgreSQL: Yes; MySQL: No |
-| Resets auto-increment | No | Yes (MySQL/SQL Server) |
-| Speed | Slower | Much faster |
+| Saare rows remove karta hai | Haan | Haan |
+| WHERE clause ho sakta hai | Haan | Nahi |
+| Triggers fire hote hain | Haan | Kabhi-kabhi |
+| Transaction rollback | Haan (zyadatar DBs) | PostgreSQL: Haan; MySQL: Nahi |
+| Auto-increment reset karta hai | Nahi | Haan (MySQL/SQL Server) |
+| Speed | Slower | Bahut fast |
 
 ```sql
--- PostgreSQL: truncate multiple tables at once
+-- PostgreSQL: ek saath multiple tables truncate karo
 TRUNCATE TABLE posts, comments, users RESTART IDENTITY CASCADE;
 
 -- MySQL
-TRUNCATE TABLE users;  -- resets AUTO_INCREMENT counter
+TRUNCATE TABLE users;  -- AUTO_INCREMENT counter reset ho jaata hai
 
 -- SQL Server
-TRUNCATE TABLE users;  -- resets IDENTITY counter
+TRUNCATE TABLE users;  -- IDENTITY counter reset ho jaata hai
 ```
 
 ---
 
-## 📁 Schemas — Organizing Tables
+## 📁 Schemas — Tables Ko Organize Karna
 
-A **schema** is a namespace that groups related tables together within a database. Think of it like a folder inside your database.
+**Kya hota hai?** Ek **schema** ek namespace hai jo related tables ko database ke andar group karta hai. Ise apne database ke andar ek folder jaisa socho — jaise BigBasket app mein "Groceries" aur "Household" ke alag sections hote hain, waise hi ek database mein `auth` aur `blog` jaise alag schemas ho sakte hain.
 
 ```sql
--- PostgreSQL: create schemas
+-- PostgreSQL: schemas create karo
 CREATE SCHEMA auth;
 CREATE SCHEMA blog;
 CREATE SCHEMA analytics;
 
--- Create tables inside schemas
+-- Schemas ke andar tables create karo
 CREATE TABLE auth.users (...);
 CREATE TABLE blog.posts (...);
 CREATE TABLE analytics.events (...);
 
--- Reference across schemas
+-- Cross-schema reference
 SELECT u.name FROM auth.users u
 JOIN blog.posts p ON p.user_id = u.id;
 ```
 
-**MySQL note:** In MySQL, `SCHEMA` and `DATABASE` are synonyms — `CREATE SCHEMA my_app` and `CREATE DATABASE my_app` do the exact same thing. MySQL does not have sub-schemas within a database.
+**MySQL note:** MySQL mein, `SCHEMA` aur `DATABASE` synonyms hain — `CREATE SCHEMA my_app` aur `CREATE DATABASE my_app` bilkul same cheez karte hain. MySQL mein database ke andar sub-schemas nahi hote.
 
-**SQL Server:** Has the same schema concept as PostgreSQL. The default schema is `dbo` (database owner). You reference objects as `schema_name.table_name`.
+**SQL Server:** PostgreSQL jaisa hi schema concept hai. Default schema `dbo` (database owner) hai. Objects ko `schema_name.table_name` ki tarah reference karte ho.
 
-**PostgreSQL default schema:** The default schema is `public`. When you create a table without specifying a schema, it goes into `public`.
+**PostgreSQL default schema:** Default schema `public` hai. Jab tum bina schema specify kiye table create karte ho, woh `public` mein chala jaata hai.
 
 ```sql
--- These are equivalent in PostgreSQL:
+-- PostgreSQL mein ye dono equivalent hain:
 CREATE TABLE users (...);
 CREATE TABLE public.users (...);
 ```
@@ -557,27 +573,27 @@ CREATE TABLE public.users (...);
 
 ## 🚀 Full Working Example: Blog Platform Schema
 
-Let's build a real schema for a blog platform with users, posts, and comments. This example uses **PostgreSQL syntax** with notes where other databases differ.
+Chalo ek real schema banate hain ek blog platform ke liye — users, posts, aur comments ke saath. Ye example **PostgreSQL syntax** use karta hai, doosre databases ke differences ke notes ke saath.
 
 ```sql
 -- ================================================
 -- Blog Platform Schema
 -- ================================================
 
--- 1. Create and select the database
+-- 1. Database create aur select karo
 CREATE DATABASE blog_platform;
 -- \c blog_platform   (psql)
 
--- 2. Create schemas to organize tables
+-- 2. Tables organize karne ke liye schemas create karo
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE SCHEMA IF NOT EXISTS content;
 
--- 3. Users table (in auth schema)
+-- 3. Users table (auth schema mein)
 CREATE TABLE IF NOT EXISTS auth.users (
     id              INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     username        VARCHAR(50)  NOT NULL UNIQUE,
     email           VARCHAR(255) NOT NULL UNIQUE,
-    password_hash   CHAR(60)     NOT NULL,            -- bcrypt hash is always 60 chars
+    password_hash   CHAR(60)     NOT NULL,            -- bcrypt hash hamesha 60 chars ka hota hai
     display_name    VARCHAR(100),
     bio             TEXT,
     avatar_url      VARCHAR(500),
@@ -591,12 +607,12 @@ CREATE TABLE IF NOT EXISTS auth.users (
     CONSTRAINT chk_username_length CHECK (LENGTH(username) >= 3)
 );
 
--- 4. Posts table (in content schema)
+-- 4. Posts table (content schema mein)
 CREATE TABLE IF NOT EXISTS content.posts (
     id           INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id      INT          NOT NULL,
     title        VARCHAR(300) NOT NULL,
-    slug         VARCHAR(350) NOT NULL UNIQUE,        -- URL-friendly version of title
+    slug         VARCHAR(350) NOT NULL UNIQUE,        -- title ka URL-friendly version
     body         TEXT         NOT NULL,
     summary      VARCHAR(500),
     status       VARCHAR(20)  NOT NULL DEFAULT 'draft',
@@ -613,7 +629,7 @@ CREATE TABLE IF NOT EXISTS content.posts (
         CHECK (view_count >= 0)
 );
 
--- 5. Comments table (in content schema)
+-- 5. Comments table (content schema mein)
 CREATE TABLE IF NOT EXISTS content.comments (
     id         INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     post_id    INT  NOT NULL,
@@ -651,7 +667,7 @@ CREATE TABLE IF NOT EXISTS content.post_tags (
 );
 ```
 
-**MySQL equivalent for the users table (no schemas, different types):**
+**Users table ka MySQL equivalent (no schemas, different types):**
 
 ```sql
 -- MySQL version
@@ -676,22 +692,22 @@ CREATE TABLE IF NOT EXISTS users (
 
 ## 🔧 Post-Creation Alterations
 
-After the schema is live, requirements change. Here's how you'd evolve it:
+Schema live hone ke baad, requirements badalti rehti hain. Yahan hai ki tum isko kaise evolve karoge:
 
 ```sql
--- Add a follower count cache column
+-- Follower count cache column add karo
 ALTER TABLE auth.users ADD COLUMN follower_count INT NOT NULL DEFAULT 0;
 
--- Add a reading time estimate to posts
+-- Posts mein reading time estimate add karo
 ALTER TABLE content.posts ADD COLUMN reading_time_minutes SMALLINT;
 
--- Rename a poorly named column
+-- Ek badly named column ko rename karo
 ALTER TABLE content.posts RENAME COLUMN body TO content;
 
--- Drop a column that's no longer needed
+-- Ek column drop karo jo ab zaruri nahi
 ALTER TABLE auth.users DROP COLUMN avatar_url;
 
--- Widen a column that turns out to be too short
+-- Ek column ko widen karo jo bahut chhota nikla
 ALTER TABLE auth.users ALTER COLUMN display_name TYPE VARCHAR(200);
 ```
 
@@ -699,44 +715,44 @@ ALTER TABLE auth.users ALTER COLUMN display_name TYPE VARCHAR(200);
 
 ## Key Takeaways
 
-- **DDL** is for structure; DML (INSERT/UPDATE/DELETE) is for data. Keep them separate in your mind.
-- Always use `IF NOT EXISTS` / `IF EXISTS` in scripts to make them **idempotent** (safe to run multiple times).
-- Pick data types carefully: use **DECIMAL** for money, **TIMESTAMPTZ** in PostgreSQL for any datetime that users from different timezones will see.
-- **SERIAL** vs **GENERATED AS IDENTITY**: both work in PostgreSQL, but `GENERATED AS IDENTITY` is the SQL standard and preferred in new code.
-- **TRUNCATE** is not `DELETE` — it's faster but less flexible and may not fire triggers.
-- Use **schemas** to organize tables in PostgreSQL and SQL Server. In MySQL, a schema is just another word for a database.
-- Auto-increment syntax is one of the biggest cross-database gotchas: `AUTO_INCREMENT` (MySQL), `IDENTITY(1,1)` (SQL Server), `SERIAL` / `GENERATED AS IDENTITY` (PostgreSQL).
+- **DDL** structure ke liye hai; DML (INSERT/UPDATE/DELETE) data ke liye hai. Dono ko mind mein alag rakho.
+- Scripts ko **idempotent** (multiple baar run karna safe) banane ke liye hamesha `IF NOT EXISTS` / `IF EXISTS` use karo.
+- Data types carefully choose karo: money ke liye **DECIMAL** use karo, PostgreSQL mein kisi bhi datetime ke liye **TIMESTAMPTZ** use karo jise alag-alag timezones ke users dekhenge.
+- **SERIAL** vs **GENERATED AS IDENTITY**: PostgreSQL mein dono kaam karte hain, lekin `GENERATED AS IDENTITY` SQL standard hai aur naye code mein preferred hai.
+- **TRUNCATE** `DELETE` nahi hai — ye faster hai but less flexible hai aur triggers fire nahi kar sakta.
+- PostgreSQL aur SQL Server mein tables organize karne ke liye **schemas** use karo. MySQL mein, schema sirf database ka doosra naam hai.
+- Auto-increment syntax databases ke beech sabse bada cross-database gotcha hai: `AUTO_INCREMENT` (MySQL), `IDENTITY(1,1)` (SQL Server), `SERIAL` / `GENERATED AS IDENTITY` (PostgreSQL).
 
 ---
 
 ## Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni understanding test karo.
 
-**Question 1:** You're designing a table to store product prices for an e-commerce store. Which data type should you use for the price column, and why?
+**Question 1:** Tum ek e-commerce store ke liye product prices store karne wala table design kar rahe ho. Price column ke liye konsa data type use karoge, aur kyun?
 
-> A) `FLOAT(10, 2)` — it's flexible  
-> B) `DECIMAL(10, 2)` — it's exact  
-> C) `INT` — prices are just numbers  
-> D) `VARCHAR(20)` — prices can include symbols like "$"
+> A) `FLOAT(10, 2)` — flexible hai
+> B) `DECIMAL(10, 2)` — exact hai
+> C) `INT` — prices to bas numbers hi hain
+> D) `VARCHAR(20)` — prices mein "$" jaise symbols include ho sakte hain
 
-**Question 2:** You're working on a SQL Server database and need to store a user's biography (potentially thousands of characters, Unicode characters required). Which column type do you choose?
+**Question 2:** Tum SQL Server database pe kaam kar rahe ho aur user ki biography store karni hai (potentially hazaron characters, Unicode characters required). Konsa column type choose karoge?
 
-> A) `VARCHAR(MAX)`  
-> B) `NVARCHAR(MAX)`  
-> C) `TEXT`  
+> A) `VARCHAR(MAX)`
+> B) `NVARCHAR(MAX)`
+> C) `TEXT`
 > D) `CHAR(5000)`
 
-**Question 3:** Your `users` table has 10 million rows. A bug caused all email_verified flags to be set to TRUE incorrectly. You want to reset them all to FALSE as fast as possible. What should you do?
+**Question 3:** Tumhare `users` table mein 1 crore rows hain. Ek bug ki wajah se saare email_verified flags galti se TRUE set ho gaye. Tumhe unko jitna fast ho sake FALSE reset karna hai. Kya karoge?
 
-> A) `DELETE FROM users` then re-insert all rows  
-> B) `TRUNCATE TABLE users` — fastest way to clear the column  
-> C) `UPDATE users SET email_verified = FALSE` — this is the correct targeted approach  
-> D) `DROP TABLE users` then recreate it
+> A) `DELETE FROM users` phir saare rows re-insert karo
+> B) `TRUNCATE TABLE users` — column clear karne ka fastest tarika
+> C) `UPDATE users SET email_verified = FALSE` — ye hi correct targeted approach hai
+> D) `DROP TABLE users` phir usse recreate karo
 
 ---
 
-**Answers:** 1-B (DECIMAL is exact; floating-point can introduce rounding errors in financial calculations) | 2-B (NVARCHAR stores Unicode; VARCHAR in SQL Server is ASCII-only) | 3-C (TRUNCATE removes all rows including the good data; UPDATE targets just the column you need to fix)
+**Answers:** 1-B (DECIMAL exact hai; floating-point financial calculations mein rounding errors introduce kar sakta hai) | 2-B (NVARCHAR Unicode store karta hai; SQL Server mein VARCHAR sirf ASCII hota hai) | 3-C (TRUNCATE saare rows hata dega including good data; UPDATE sirf us column ko target karta hai jise fix karna hai)
 
 ---
 

@@ -1,8 +1,8 @@
 # 🏗️ Chapter 16: Design Patterns in Solidity
 
-> **Who this is for:** Developers who understand Solidity basics and want to write production-ready, secure, and maintainable smart contracts.
+> **Yeh kiske liye hai:** Woh developers jo Solidity basics samajh chuke hain aur ab production-ready, secure, aur maintainable smart contracts likhna chahte hain.
 
-Smart contracts are permanent. Once deployed to the blockchain, the code cannot be changed (unless you specifically plan for it). This makes design decisions far more consequential than in traditional web development. The patterns in this chapter are battle-tested solutions that the Solidity community has converged on over years of building and — sometimes painfully — breaking contracts.
+Smart contracts permanent hote hain. Ek baar blockchain pe deploy ho gaye, toh code change nahi ho sakta (jab tak tumne specifically plan na kiya ho). Isliye yahan design decisions traditional web development se kahin zyada consequential hote hain. Is chapter ke patterns woh battle-tested solutions hain jinpe Solidity community saalon ke experience se — aur kabhi-kabhi painful mistakes se — pahunchi hai.
 
 ---
 
@@ -24,20 +24,22 @@ Smart contracts are permanent. Once deployed to the blockchain, the code cannot 
 
 ## 👑 Ownable Pattern
 
-### The Problem
+### Kya Problem Hai?
 
-Most contracts need a privileged account — someone who can configure settings, pause the contract, or withdraw fees. Without a pattern, developers end up copy-pasting `require(msg.sender == owner)` everywhere, which is messy and error-prone.
+Zyadatar contracts ko ek privileged account chahiye hota hai — koi jo settings configure kare, contract pause kare, ya fees withdraw kare. Bina kisi pattern ke, developers har jagah `require(msg.sender == owner)` copy-paste karte reh jaate hain, jo messy aur error-prone hai.
 
-### The Solution
+### Solution Kya Hai?
 
-The **Ownable** pattern centralizes ownership logic into a single, reusable contract. You inherit from it, and immediately gain:
+**Ownable** pattern ownership logic ko ek hi reusable contract mein centralize kar deta hai. Tum isse inherit karte ho, aur turant milta hai:
 
-- An `owner` state variable.
-- An `onlyOwner` modifier you can attach to any function.
-- `transferOwnership` to hand control to another address.
-- `renounceOwnership` to permanently lock the contract (nobody owns it).
+- Ek `owner` state variable.
+- Ek `onlyOwner` modifier jo kisi bhi function pe laga sakte ho.
+- `transferOwnership` — control kisi doosre address ko dene ke liye.
+- `renounceOwnership` — contract ko permanently lock karne ke liye (koi bhi owner nahi rahega).
 
 ### Manual Implementation
+
+Zomato ke restaurant admin panel jaisa socho — sirf restaurant owner hi menu edit kar sakta hai, discounts set kar sakta hai. Yahi idea hai `onlyOwner` ka.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -89,9 +91,9 @@ contract SimpleToken is Ownable {
 }
 ```
 
-### Using OpenZeppelin Ownable
+### OpenZeppelin Ownable Use Karo
 
-In practice, use OpenZeppelin's audited implementation rather than writing your own:
+Practically, apna khud ka likhne ke bajaye OpenZeppelin ka audited implementation use karo:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -113,22 +115,22 @@ contract MyProtocol is Ownable {
 }
 ```
 
-> **Warning:** `renounceOwnership()` is irreversible. If you call it, no one can ever call `onlyOwner` functions again. Use with extreme care.
+> **Warning:** `renounceOwnership()` irreversible hai. Ek baar call kar diya, toh koi bhi kabhi `onlyOwner` functions call nahi kar payega. Bohot soch samajh ke use karo.
 
 ---
 
 ## 🔐 Access Control / Role-Based Pattern
 
-### The Problem
+### Kya Problem Hai?
 
-A single owner is not granular enough for complex protocols. You may want:
-- A **minter** that can create tokens (an automated backend service).
-- A **pauser** that can halt the contract (a security team member).
-- An **admin** that can grant or revoke the above roles.
+Ek single owner complex protocols ke liye kaafi granular nahi hota. Tumhe chahiye ho sakta hai:
+- Ek **minter** jo tokens create kare (ek automated backend service).
+- Ek **pauser** jo contract ko halt kar sake (security team ka banda).
+- Ek **admin** jo upar wale roles grant/revoke kar sake.
 
-### The Solution
+### Solution Kya Hai?
 
-OpenZeppelin's `AccessControl` maps role identifiers (`bytes32`) to sets of addresses. Any address can hold multiple roles.
+OpenZeppelin ka `AccessControl` role identifiers (`bytes32`) ko addresses ke sets se map karta hai. Koi bhi address multiple roles hold kar sakta hai — bilkul Swiggy app mein jaise ek hi banda "delivery partner" bhi ho sakta hai aur "restaurant owner" bhi.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -180,25 +182,25 @@ contract RoleBasedToken is ERC20, AccessControl {
 }
 ```
 
-### When to Use Which
+### Kab Kaunsa Use Karein?
 
 | Scenario | Pattern |
 |---|---|
 | Simple contracts, single owner | `Ownable` |
 | Complex protocols, multiple teams | `AccessControl` |
-| DAO governance required | `AccessControl` + Governor |
+| DAO governance chahiye | `AccessControl` + Governor |
 
 ---
 
 ## ⏸️ Pausable Pattern
 
-### The Problem
+### Kya Problem Hai?
 
-Bugs happen. If your contract handles real funds and a vulnerability is discovered, you need a way to stop all activity immediately while a fix is prepared.
+Bugs hote rehte hain. Agar tumhara contract real funds handle karta hai aur koi vulnerability mil jaaye, toh tumhe saari activity turant rokni padegi jab tak fix taiyar nahi ho jaata.
 
-### The Solution
+### Solution Kya Hai?
 
-The **Pausable** pattern adds a boolean flag that sensitive functions check before executing. Combined with `AccessControl`, only authorized addresses can trigger the pause.
+**Pausable** pattern ek boolean flag add karta hai jise sensitive functions execute hone se pehle check karte hain. `AccessControl` ke saath combine karo, toh sirf authorized addresses hi pause trigger kar sakte hain — jaise IRCTC apni booking service maintenance ke time band kar deta hai, sirf authorized admin hi yeh switch flip kar sakta hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -235,24 +237,24 @@ contract PausableVault is Ownable, Pausable {
 }
 ```
 
-> **Design note:** Some protocols allow withdrawals even when paused (so users can always get their funds out), but block new deposits. Think carefully about which operations to gate.
+> **Design note:** Kuch protocols pause hone par bhi withdrawals allow karte hain (taaki users hamesha apna paisa nikaal sakein), lekin naye deposits block kar dete hain. Achhe se socho ki kaunsi operations gate karni hain.
 
 ---
 
 ## 🔄 Upgradeable Proxy Pattern
 
-### Why Contracts Are Immutable By Default
+### Contracts Default Mein Immutable Kyun Hote Hain?
 
-When you deploy a Solidity contract, the bytecode is written to the blockchain permanently. There is no built-in "update" mechanism. This is intentional — immutability is what makes contracts trustworthy. However, real-world projects need bug fixes and new features.
+Jab tum Solidity contract deploy karte ho, bytecode blockchain pe permanently likh diya jaata hai. Koi built-in "update" mechanism nahi hota. Yeh intentional hai — immutability hi hai jo contracts ko trustworthy banati hai. Lekin real-world projects ko bug fixes aur new features bhi chahiye hote hain.
 
-### The Proxy Solution
+### Proxy Solution
 
-The proxy pattern splits a contract into two pieces:
+Proxy pattern ek contract ko do parts mein split karta hai:
 
-- **Proxy contract** — holds the state (storage) and the ETH. Users interact with this address forever.
-- **Implementation contract** — holds the logic (bytecode). Can be replaced with a new version.
+- **Proxy contract** — state (storage) aur ETH hold karta hai. Users hamesha isi address se interact karte hain.
+- **Implementation contract** — logic (bytecode) hold karta hai. Isse replace kiya ja sakta hai naye version se.
 
-The proxy uses `delegatecall` to execute the implementation's code but in the proxy's storage context.
+Proxy `delegatecall` use karta hai — implementation ka code chalta hai, lekin proxy ke storage context mein.
 
 ```
 ┌─────────────────────────────────┐
@@ -291,14 +293,14 @@ graph TD
 
 | Feature | Transparent Proxy | UUPS |
 |---|---|---|
-| Upgrade logic location | Proxy contract | Implementation contract |
-| Gas cost | Higher (extra admin check each call) | Lower |
-| Complexity | Simpler to reason about | More flexible |
-| Risk if impl bug | Admin can still upgrade | Upgrade function must survive |
+| Upgrade logic kahan hai | Proxy contract | Implementation contract |
+| Gas cost | Zyada (har call pe extra admin check) | Kam |
+| Complexity | Samajhna aasan | Zyada flexible |
+| Risk agar impl mein bug ho | Admin phir bhi upgrade kar sakta hai | Upgrade function survive karna chahiye |
 
 ### Storage Slot Collision Risk
 
-This is the most dangerous pitfall of proxies. Both the proxy and implementation share the same storage. If your implementation declares a variable at slot 0, and your proxy also uses slot 0 for the implementation address — they will overwrite each other.
+Yeh proxies ka sabse dangerous pitfall hai. Proxy aur implementation dono ek hi storage share karte hain. Agar tumhara implementation slot 0 pe ek variable declare karta hai, aur proxy bhi slot 0 hi implementation address ke liye use kar raha hai — dono ek doosre ko overwrite kar denge.
 
 ```solidity
 // DANGEROUS — storage collision example
@@ -311,7 +313,7 @@ contract ImplementationBad {
 }
 ```
 
-OpenZeppelin solves this using **EIP-1967 storage slots** — a random-looking slot derived from a hash, making accidental collision virtually impossible:
+OpenZeppelin isko **EIP-1967 storage slots** se solve karta hai — ek random-dikhne wala slot jo hash se derive hota hai, jisse accidental collision practically impossible ho jaata hai:
 
 ```solidity
 // EIP-1967 implementation slot
@@ -358,26 +360,26 @@ contract CounterV2 is CounterV1 {
 }
 ```
 
-### When NOT to Use Upgrades
+### Upgrades Kab NAHI Use Karne Chahiye
 
-Upgrades introduce trust assumptions — the upgrade key holder can change contract behavior. Avoid them when:
-- You want fully trustless, immutable code (e.g., core DeFi primitives).
-- The contract holds user funds without a timelock on upgrades.
-- You haven't implemented a multisig or governance process for the upgrade key.
+Upgrades trust assumptions le aati hain — jiske paas upgrade key hai, woh contract ka behavior change kar sakta hai. Inhe avoid karo jab:
+- Tumhe fully trustless, immutable code chahiye (jaise core DeFi primitives).
+- Contract user funds hold karta hai bina upgrades pe timelock ke.
+- Tumne upgrade key ke liye multisig ya governance process implement nahi kiya.
 
-> **Rule of thumb:** If you upgrade, use a timelock (24–48 hours minimum) so users can exit before changes take effect.
+> **Rule of thumb:** Agar upgrade karte ho, toh timelock use karo (minimum 24–48 ghante) taaki users changes lagu hone se pehle exit kar sakein.
 
 ---
 
 ## 🏭 Factory Pattern
 
-### The Problem
+### Kya Problem Hai?
 
-A single contract often needs to spawn many child contracts of the same type — for example, a DEX creating a new liquidity pool per token pair, or an NFT platform creating a new collection per artist.
+Ek single contract ko kai baar same type ke bahut saare child contracts spawn karne padte hain — jaise ek DEX har token pair ke liye naya liquidity pool banata hai, ya ek NFT platform har artist ke liye naya collection banata hai.
 
-### The Solution
+### Solution Kya Hai?
 
-The **Factory** pattern encapsulates `new ChildContract(...)` inside a parent factory, tracks deployed addresses, and emits events for off-chain indexing.
+**Factory** pattern `new ChildContract(...)` ko ek parent factory ke andar encapsulate karta hai, deployed addresses track karta hai, aur off-chain indexing ke liye events emit karta hai. Bilkul Zomato ke "restaurant onboarding" system jaisa — ek central system har naye restaurant ke liye alag profile create karta hai, lekin sabko track bhi karta hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -433,7 +435,7 @@ contract NFTFactory {
 
 ### Gas Optimization: Clone Factory (EIP-1167)
 
-Deploying a full contract each time is expensive. For many identical contracts, use **minimal proxies** (clones):
+Har baar poora contract deploy karna mehenga padta hai. Bahut saare identical contracts ke liye, **minimal proxies** (clones) use karo:
 
 ```solidity
 import "@openzeppelin/contracts/proxy/Clones.sol";
@@ -455,15 +457,15 @@ contract CheapFactory {
 }
 ```
 
-Clones use ~10x less gas than `new Contract()` and are the standard approach for factory contracts at scale.
+Clones `new Contract()` se ~10x kam gas use karte hain, aur large-scale factory contracts ke liye standard approach hain.
 
 ---
 
 ## 💸 Pull Payment Pattern
 
-### The Problem: Push Payments Can Be Weaponized
+### Kya Problem Hai: Push Payments Weaponize Ho Sakti Hain
 
-The naive approach sends ETH directly to recipients in the same transaction:
+Naive approach same transaction mein directly recipients ko ETH bhej deti hai:
 
 ```solidity
 // DANGEROUS — push payment
@@ -474,11 +476,11 @@ function refundAll(address[] memory users) public {
 }
 ```
 
-If any recipient is a malicious contract that reverts on `receive()`, the entire loop fails — nobody gets refunded. This is a **Denial of Service (DoS)** vulnerability.
+Agar koi recipient ek malicious contract hai jiska `receive()` function hamesha revert karta hai, toh poora loop fail ho jaata hai — kisi ko bhi refund nahi milta. Yeh ek **Denial of Service (DoS)** vulnerability hai — socho agar ek Paytm cashback batch payment mein ek galat account ke wajah se saare users ka cashback atak jaaye.
 
-### The Solution: Let Users Pull Their Own Funds
+### Solution: Users Ko Khud Apna Paisa Pull Karne Do
 
-Instead of sending ETH outward, record credits and let users withdraw at their own pace:
+ETH bahar bhejne ke bajaye, credits record karo aur users ko apni marzi se withdraw karne do:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -526,23 +528,25 @@ contract Auction {
 }
 ```
 
-**Why this is safe:**
-- Each user's withdrawal is an independent transaction.
-- A malicious recipient reverting only affects themselves.
-- The check-effects-interactions pattern (zero before transfer) prevents reentrancy.
+**Yeh safe kyun hai:**
+- Har user ka withdrawal ek independent transaction hai.
+- Agar koi malicious recipient revert kare, toh sirf usko hi affect hoga.
+- Check-effects-interactions pattern (transfer se pehle zero karna) reentrancy rokta hai.
 
 ---
 
 ## 🎭 Commit-Reveal Pattern
 
-### The Problem
+### Kya Problem Hai?
 
-Blockchain data is public. If players submit choices on-chain (e.g., rock/paper/scissors), everyone can see each other's moves before committing their own. The same problem affects lotteries — miners can front-run or withhold blocks to influence outcomes.
+Blockchain data public hota hai. Agar players on-chain apne choices submit karte hain (jaise rock/paper/scissors), toh sabko sabke moves apna commit karne se pehle hi dikh jaate hain. Yahi problem lotteries mein bhi hoti hai — miners blocks front-run ya withhold karke outcomes influence kar sakte hain.
 
-### The Solution: Two-Phase Protocol
+### Solution: Two-Phase Protocol
 
-1. **Commit phase:** Submit a hash of `(choice + secret_salt)`. Nobody knows your choice, only the hash.
-2. **Reveal phase:** Submit the actual choice and salt. The contract verifies `keccak256(choice + salt) == stored_hash`.
+1. **Commit phase:** `(choice + secret_salt)` ka ek hash submit karo. Kisi ko bhi tumhara choice pata nahi chalta, sirf hash dikhta hai.
+2. **Reveal phase:** Actual choice aur salt submit karo. Contract verify karta hai `keccak256(choice + salt) == stored_hash`.
+
+Isko IRCTC Tatkal booking se jodo — sabko pata hai booking ek time pe khulegi, lekin koi nahi jaanta ki doosra kaun sa berth choose karega jab tak reveal na ho jaaye.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -642,11 +646,11 @@ console.log("Save your salt:", ethers.hexlify(salt));
 
 ## 🔴 Circuit Breaker / Emergency Stop
 
-The circuit breaker is the operational version of the Pausable pattern — it is paired with monitoring and a clear incident-response process. A well-designed circuit breaker:
+Circuit breaker Pausable pattern ka operational version hai — isse monitoring aur ek clear incident-response process ke saath pair kiya jaata hai. Ek achhe se design kiya gaya circuit breaker:
 
-- Is triggered by a multisig (not a single EOA) to prevent abuse.
-- Has a timelock on re-enabling to allow investigation.
-- Emits events that off-chain monitoring can catch.
+- Multisig se trigger hota hai (single EOA se nahi), taaki abuse na ho.
+- Re-enable karne pe timelock hota hai, taaki investigation ho sake.
+- Events emit karta hai jo off-chain monitoring catch kar sake.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -711,13 +715,13 @@ contract CircuitBreaker {
 
 ## 🔮 Oracle Pattern (Chainlink Integration)
 
-### The Problem
+### Kya Problem Hai?
 
-Smart contracts cannot access data outside the blockchain — no HTTP requests, no API calls. If you need the ETH/USD price, sports scores, or weather data, you need an **oracle**: a trusted off-chain service that writes real-world data on-chain.
+Smart contracts blockchain ke bahar ka data access nahi kar sakte — koi HTTP requests nahi, koi API calls nahi. Agar tumhe ETH/USD price, sports scores, ya weather data chahiye, toh tumhe ek **oracle** chahiye: ek trusted off-chain service jo real-world data on-chain likh de.
 
 ### Chainlink Price Feeds
 
-Chainlink is the industry standard. Price feeds are already deployed on every major chain — you just read from them.
+Chainlink industry standard hai. Price feeds har major chain pe pehle se deployed hain — tumhe bas unse read karna hai.
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -780,7 +784,7 @@ contract PriceConsumer {
 
 ### Chainlink VRF (Verifiable Random Function)
 
-For randomness (lotteries, NFT traits), use Chainlink VRF — it provides provably fair, manipulation-resistant random numbers:
+Randomness ke liye (lotteries, NFT traits), Chainlink VRF use karo — yeh provably fair, manipulation-resistant random numbers deta hai:
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -850,84 +854,84 @@ contract Lottery is VRFConsumerBaseV2 {
 }
 ```
 
-> **Never use `block.timestamp`, `block.difficulty`, or `blockhash` as randomness sources** — miners/validators can manipulate them. Always use Chainlink VRF for anything of value.
+> **Kabhi bhi `block.timestamp`, `block.difficulty`, ya `blockhash` ko randomness source ke roop mein use mat karo** — miners/validators inhe manipulate kar sakte hain. Kisi bhi value wali cheez ke liye hamesha Chainlink VRF use karo.
 
 ---
 
 ## ✅ Key Takeaways
 
-| Pattern | Core Idea | Use When |
+| Pattern | Core Idea | Kab Use Karein |
 |---|---|---|
 | **Ownable** | Single privileged owner | Simple admin controls |
 | **AccessControl** | Multiple named roles | Complex permission hierarchies |
-| **Pausable** | Emergency stop flag | Any contract holding funds |
-| **Proxy/Upgradeable** | Separate logic from storage | Long-lived protocols needing iteration |
-| **Factory** | Contract spawns contracts | Creating many instances of one type |
-| **Pull Payment** | Users withdraw instead of being sent funds | Any ETH distribution to multiple parties |
-| **Commit-Reveal** | Hash now, reveal later | Hidden choices, randomness fairness |
+| **Pausable** | Emergency stop flag | Koi bhi contract jo funds hold kare |
+| **Proxy/Upgradeable** | Logic ko storage se separate karna | Long-lived protocols jinhe iteration chahiye |
+| **Factory** | Contract dusre contracts spawn karta hai | Ek hi type ke bahut saare instances banana |
+| **Pull Payment** | Users khud withdraw karein, unhe bheja na jaaye | Multiple/unknown parties ko ETH bhejna |
+| **Commit-Reveal** | Pehle hash, baad mein reveal | Hidden choices, randomness fairness |
 | **Circuit Breaker** | Hard stop with recovery process | High-value production contracts |
-| **Oracle** | Bring off-chain data on-chain | Prices, randomness, real-world events |
+| **Oracle** | Off-chain data ko on-chain laana | Prices, randomness, real-world events |
 
 ### Golden Rules
 
-1. **Default to immutability.** Only add upgradeability if you have a clear governance process.
-2. **Always use Pull over Push** when sending ETH to multiple or unknown addresses.
-3. **Never roll your own crypto** for randomness — use Chainlink VRF.
-4. **Inherit, don't copy.** OpenZeppelin's implementations are audited and battle-tested.
-5. **Emit events for everything** that governance or security monitoring might care about.
+1. **Default immutability rakho.** Upgradeability tabhi add karo jab tumhare paas clear governance process ho.
+2. **Hamesha Push ke bajaye Pull use karo** jab multiple ya unknown addresses ko ETH bhejna ho.
+3. **Randomness ke liye khud ka crypto mat banao** — Chainlink VRF use karo.
+4. **Inherit karo, copy mat karo.** OpenZeppelin ke implementations audited aur battle-tested hain.
+5. **Har us cheez ke liye events emit karo** jo governance ya security monitoring ke liye important ho sakti hai.
 
 ---
 
 ## 📝 Quiz
 
-Test your understanding before moving on.
+Aage badhne se pehle apni samajh test karo.
 
 **Question 1.**
-You are building a DeFi protocol where a security team needs to pause deposits during an exploit, but only a DAO vote can permanently change fee parameters. Which pattern combination is most appropriate?
+Tum ek DeFi protocol bana rahe ho jahan ek security team ko exploit ke dauran deposits pause karne hain, lekin sirf ek DAO vote hi fee parameters permanently change kar sakta hai. Kaunsa pattern combination sabse appropriate hai?
 
-- A) Ownable for everything
+- A) Sab kuch ke liye Ownable
 - B) AccessControl with a PAUSER_ROLE for the security team and a separate governance role for fee changes
-- C) Pausable without any access control
+- C) Bina kisi access control ke Pausable
 - D) Factory pattern
 
 <details>
 <summary>Answer</summary>
 
-**B.** `AccessControl` lets you assign fine-grained roles. The security team holds `PAUSER_ROLE` (can act instantly), while fee changes go through a governance role tied to a DAO timelock. `Ownable` would give one key too much power; option C has no access restriction.
+**B.** `AccessControl` tumhe fine-grained roles assign karne deta hai. Security team `PAUSER_ROLE` hold karti hai (turant act kar sakti hai), jabki fee changes ek governance role se hote hain jo DAO timelock se juda hota hai. `Ownable` ek hi key ko bohot zyada power de deta; option C mein koi access restriction hi nahi hai.
 
 </details>
 
 ---
 
 **Question 2.**
-A developer writes an upgradeable proxy where the proxy contract stores the implementation address at storage slot 0, and the implementation contract stores a `uint256 balance` also at slot 0. What happens?
+Ek developer ek upgradeable proxy likhta hai jahan proxy contract implementation address storage slot 0 pe store karta hai, aur implementation contract ek `uint256 balance` bhi slot 0 pe store karta hai. Kya hoga?
 
-- A) The proxy transparently manages both values without conflict.
-- B) The implementation address and `balance` will overwrite each other, corrupting both.
-- C) Solidity detects this at compile time and throws an error.
-- D) Only the proxy's slot 0 is used; the implementation's slot 0 is ignored.
+- A) Proxy dono values ko transparently bina conflict ke manage kar leta hai.
+- B) Implementation address aur `balance` ek doosre ko overwrite kar denge, dono corrupt ho jaayenge.
+- C) Solidity ise compile time pe detect karke error de deta hai.
+- D) Sirf proxy ka slot 0 use hota hai; implementation ka slot 0 ignore ho jaata hai.
 
 <details>
 <summary>Answer</summary>
 
-**B.** This is a storage collision. Both variables occupy the same physical slot in the proxy's storage. Writing `balance` will corrupt the implementation address and vice versa. This is why EIP-1967 uses a pseudo-random slot far from the collision zone.
+**B.** Yeh ek storage collision hai. Dono variables proxy ke storage mein ek hi physical slot occupy karte hain. `balance` likhne se implementation address corrupt ho jaayega aur vice versa. Isi wajah se EIP-1967 ek pseudo-random slot use karta hai jo collision zone se kaafi door hota hai.
 
 </details>
 
 ---
 
 **Question 3.**
-An auction contract uses the **push payment** pattern, sending ETH back to outbid bidders immediately inside `bid()`. A malicious bidder deploys a contract whose `receive()` function always reverts. What is the impact?
+Ek auction contract **push payment** pattern use karta hai, jo outbid bidders ko `bid()` ke andar hi turant ETH wapas bhej deta hai. Ek malicious bidder ek aisa contract deploy karta hai jiska `receive()` function hamesha revert karta hai. Iska impact kya hoga?
 
-- A) The malicious bidder loses their ETH permanently.
-- B) Only the malicious bidder's refund fails; other bidders are unaffected.
-- C) Every subsequent call to `bid()` reverts, effectively freezing the auction for all users.
-- D) The contract self-destructs.
+- A) Malicious bidder apna ETH permanently kho deta hai.
+- B) Sirf malicious bidder ka refund fail hota hai; baaki bidders affect nahi hote.
+- C) `bid()` ki har agli call revert ho jaati hai, effectively auction sab users ke liye freeze ho jaata hai.
+- D) Contract self-destruct ho jaata hai.
 
 <details>
 <summary>Answer</summary>
 
-**C.** When a new valid bid comes in, the contract tries to refund the malicious bidder (now `highestBidder`). The refund reverts, which reverts the entire `bid()` transaction. No new bids can be accepted — a classic Denial of Service attack. The **Pull Payment** pattern solves this by making each user's withdrawal independent.
+**C.** Jab ek naya valid bid aata hai, contract malicious bidder (jo ab tak `highestBidder` hai) ko refund karne ki koshish karta hai. Refund revert hota hai, jisse poori `bid()` transaction revert ho jaati hai. Koi naya bid accept nahi ho pata — ek classic Denial of Service attack. **Pull Payment** pattern isse solve karta hai kyunki har user ka withdrawal independent hota hai.
 
 </details>
 

@@ -1,26 +1,20 @@
----
-tags: [microservices, gateway, routing, spring-cloud-gateway]
-aliases: [API Gateway, Spring Cloud Gateway]
-stage: advanced
----
-
 # API Gateway (Spring Cloud Gateway)
 
-> [!info] For the Express/TS dev
-> An API gateway is the single front door for clients into your microservices. It handles routing, auth, rate limiting, request rewriting, CORS — concerns that don't belong in every service. Spring Cloud Gateway is the modern, reactive (Netty-based) choice; it replaces the older Zuul. Comparable to Kong, Traefik, or an `express-gateway` setup.
+> [!info] Express/TS wale dev ke liye
+> API gateway matlab tumhare saare microservices ka ek hi front door — jaise Zomato app ka backend, jahan se order, payment, delivery — sab kuch ek hi entry point se guzarta hai bahar se. Yeh routing, auth, rate limiting, request rewriting, CORS jaisi cheezein sambhalta hai — jo har service mein baar-baar likhna waste hoga. Spring Cloud Gateway modern, reactive (Netty-based) choice hai; purane Zuul ki jagah leta hai. Socho isse Kong, Traefik, ya `express-gateway` jaisa hi kuch, bas Spring Cloud ka flavour.
 
 ## Concept
 
-Without a gateway, mobile clients need to know about `payment-service`, `orders-service`, `user-service`, etc. directly. A gateway:
+Kya hota hai? Bina gateway ke, mobile client ko `payment-service`, `orders-service`, `user-service` — sabka address alag-alag pata hona chahiye. Yeh bilkul aisa hi hai jaise tumhe Swiggy order karne ke liye restaurant ka direct number, delivery boy ka number, aur payment company ka number — teeno alag se pata hone chahiye. Ek gateway isko fix karta hai:
 
-- **Routes** `/api/orders/**` → `order-service`
-- **Authenticates** once at the edge — services trust internal traffic.
-- **Rate-limits** per client.
-- **Terminates TLS** so internal traffic can be plain HTTP.
-- **Aggregates** responses (sometimes — but usually that's a Backend-for-Frontend, not the gateway).
-- **Logs / traces** centrally.
+- **Route karta hai** `/api/orders/**` → `order-service`
+- **Ek jagah authenticate karta hai** edge pe — andar ki services internal traffic pe trust karti hain.
+- **Rate-limit** karta hai per client — jaise UPI apps mein ek limit hoti hai ki ek din mein kitne transactions.
+- **TLS terminate** karta hai, taaki andar ka traffic plain HTTP pe chal sake (cluster ke andar sab trusted hai).
+- **Aggregate** kabhi-kabhi karta hai responses ko — lekin usually yeh kaam Backend-for-Frontend (BFF) ka hota hai, gateway ka nahi.
+- **Logging/tracing** centrally karta hai — ek hi jagah se sab dikh jaata hai.
 
-Spring Cloud Gateway is built on Project Reactor (WebFlux) — non-blocking, handles thousands of concurrent connections per instance. It's **not** Spring MVC.
+Kyun zaruri hai reactive hona? Spring Cloud Gateway Project Reactor (WebFlux) pe bana hai — non-blocking, ek hi instance pe hazaaron concurrent connections handle kar sakta hai. Yeh **Spring MVC nahi hai** — yaad rakhna, warna confusion hoga.
 
 ```mermaid
 flowchart TD
@@ -51,13 +45,15 @@ flowchart TD
     style Private fill:#f0f9ff,stroke:#0ea5e9
 ```
 
-### Three concepts
+### Teen concepts jo yaad rakhne hain
 
-| Concept | What it does |
+| Concept | Kya karta hai |
 |---------|--------------|
-| **Route** | A target — predicate(s) + URI + filters |
-| **Predicate** | Matches incoming requests (`Path=/api/orders/**`, `Method=GET`, `Header=X-Foo,bar`) |
-| **Filter** | Modifies request/response (`AddRequestHeader`, `RewritePath`, `CircuitBreaker`, custom) |
+| **Route** | Ek target — predicate(s) + URI + filters ka combo |
+| **Predicate** | Incoming request ko match karta hai (`Path=/api/orders/**`, `Method=GET`, `Header=X-Foo,bar`) |
+| **Filter** | Request/response ko modify karta hai (`AddRequestHeader`, `RewritePath`, `CircuitBreaker`, custom) |
+
+Simple bhasha mein: Predicate decide karta hai "yeh request kiske liye hai", aur Filter decide karta hai "request ke saath kya karna hai before/after forward karne ke".
 
 ## Code example
 
@@ -70,10 +66,10 @@ flowchart TD
 </dependency>
 ```
 
-> [!warning] Don't add `spring-boot-starter-web` to a Gateway app
-> Gateway is reactive (WebFlux). Mixing them breaks the app. If you need a few synchronous endpoints, use `spring-boot-starter-webflux` for them.
+> [!warning] Gateway app mein `spring-boot-starter-web` mat daalna
+> Gateway reactive hai (WebFlux). Dono ko mix karoge toh app hi break ho jayega. Agar kuch synchronous endpoints chahiye, `spring-boot-starter-webflux` use karo unke liye.
 
-### YAML config (the typical way)
+### YAML config (sabse common tareeka)
 
 ```yaml
 spring:
@@ -119,9 +115,11 @@ server:
   port: 8080
 ```
 
-`lb://service-name` requires Eureka or another discovery client on the classpath (see [[03-Service-Discovery-Eureka]]).
+`lb://service-name` ke liye Eureka ya koi aur discovery client classpath pe hona chahiye (dekho [[03-Service-Discovery-Eureka]]).
 
-### Java DSL (programmatic, more flexible)
+### Java DSL (programmatic tareeka, zyada flexible)
+
+Agar YAML se kaam nahi chal raha aur tumhe conditional/dynamic logic chahiye routes banane ke liye, toh Java DSL use karo:
 
 ```java
 @Configuration
@@ -159,7 +157,9 @@ public class GatewayConfig {
 }
 ```
 
-### Custom global filter — auth at the edge
+### Custom global filter — auth edge pe
+
+Kya problem solve karta hai? Har microservice mein JWT validate karne ka code duplicate karne ki zaroorat nahi — gateway ek baar verify karke downstream services ko batata hai "yeh user hai, yeh uske roles hain". Bilkul waise jaise OYO ka gatekeeper ek baar ID check karke andar bhej deta hai, phir har room ka staff dobara ID nahi maangta.
 
 ```java
 @Component
@@ -179,7 +179,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
         try {
             var claims = parser.parseSignedClaims(auth.substring(7)).getPayload();
-            // forward user-id downstream so services don't re-validate JWT
+            // user-id downstream forward karo taaki services dobara JWT validate na karein
             var mutated = ex.getRequest().mutate()
                 .header("X-User-Id", claims.getSubject())
                 .header("X-User-Roles", String.join(",", (List<String>) claims.get("roles")))
@@ -191,11 +191,15 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         }
     }
 
-    @Override public int getOrder() { return -100; }  // run early
+    @Override public int getOrder() { return -100; }  // jaldi run ho, sabse pehle
 }
 ```
 
+`getOrder()` ka negative value matlab yeh filter baaki sab se pehle chalega — order matters jab multiple global filters ho.
+
 ### Fallbacks
+
+Jab downstream service down ho (jaise `payment-service` crash ho gaya), CircuitBreaker fallback URI pe redirect kar deta hai instead of client ko raw error dikhane ke:
 
 ```java
 @RestController
@@ -211,30 +215,32 @@ class FallbackController {
 
 ### Rate limiting
 
+Kyun zaruri hai? Bina rate limit ke, ek buggy client (ya attacker) tumhare payment-service ko spam karke down kar sakta hai — jaise Diwali sale ke din agar koi bot Flipkart pe non-stop hit maare bina limit ke.
+
 ```yaml
 filters:
   - name: RequestRateLimiter
     args:
       redis-rate-limiter.replenishRate: 100   # tokens/sec sustained
       redis-rate-limiter.burstCapacity: 200   # max burst
-      key-resolver: "#{@userKeyResolver}"     # bucket per user
+      key-resolver: "#{@userKeyResolver}"     # per user bucket
 ```
 
-Requires `spring-boot-starter-data-redis-reactive` and a Redis instance (token bucket state).
+Isko `spring-boot-starter-data-redis-reactive` aur ek Redis instance chahiye (token bucket ka state store karne ke liye).
 
-### Common filters quick-ref
+### Common filters — quick reference
 
 | Filter | Effect |
 |--------|--------|
-| `StripPrefix=2` | drop first 2 path segments before forwarding |
-| `RewritePath=...` | regex rewrite |
+| `StripPrefix=2` | forward karne se pehle path ke pehle 2 segments hata do |
+| `RewritePath=...` | regex se path rewrite karo |
 | `AddRequestHeader` / `RemoveRequestHeader` | header manipulation |
-| `SetStatus=404` | force a status |
-| `Retry` | retry failed requests |
-| `CircuitBreaker` | wrap with Resilience4j circuit breaker |
-| `RequestRateLimiter` | throttle |
+| `SetStatus=404` | force ek status |
+| `Retry` | fail hui requests retry karo |
+| `CircuitBreaker` | Resilience4j circuit breaker se wrap karo |
+| `RequestRateLimiter` | throttle karo |
 | `RedirectTo` | 30x redirect |
-| `PreserveHostHeader` | keep `Host` from client |
+| `PreserveHostHeader` | client ka `Host` header rakh lo |
 
 ## Express/Node comparison
 
@@ -250,26 +256,28 @@ app.use('/api/payments', authenticate, proxy('payment-service:8080'));
 | YAML routes | Express middleware chains |
 | `lb://service-name` | `consul-resolver` + proxy |
 | Global filter | global middleware |
-| `CircuitBreaker` filter | `opossum` wrapping the proxy |
+| `CircuitBreaker` filter | `opossum` se proxy wrap karna |
 | `RequestRateLimiter` | `express-rate-limit` |
-| Reactive (Netty) | event-loop (Node) — same model |
+| Reactive (Netty) | event-loop (Node) — dono ka model similar hai |
+
+Bas farak itna hai ki Spring Cloud Gateway mein yeh sab pehle se battle-tested aur declarative (YAML) hai — Node mein tumhe yeh sab manually wire karna padta hai.
 
 ## Gotchas
 
-> [!warning] Don't put business logic in the gateway
-> A gateway should be **dumb**: route, auth, rate-limit. Aggregating responses and applying business rules belongs in a Backend-for-Frontend (BFF) — a separate service per client (web, mobile).
+> [!warning] Gateway mein business logic mat daalo
+> Gateway ko **dumb** rehna chahiye: route karo, auth karo, rate-limit karo. Responses aggregate karna aur business rules apply karna Backend-for-Frontend (BFF) ka kaam hai — ek separate service har client ke liye (web, mobile).
 
-> [!warning] CORS at the gateway
-> Set CORS at the gateway, not in every service. Otherwise services duplicate config and disagree.
+> [!warning] CORS gateway pe set karo
+> CORS gateway pe set karo, har service mein nahi. Warna har service apna alag config rakhegi aur ek doosre se disagree karengi — debugging nightmare ban jayega.
 
 > [!warning] Single point of failure
-> Run >= 2 replicas behind an L4 LB (cloud LB, NLB). A gateway outage = total outage.
+> Kam se kam 2 replicas chalao ek L4 LB (cloud LB, NLB) ke peeche. Gateway down = poora system down — jaise agar Zomato ka main server hi down ho jaye toh koi bhi order place nahi ho sakta, chahe restaurant kitna bhi free ho.
 
-> [!warning] WebFlux thinking
-> Gateway is reactive — blocking calls inside filters (JDBC, blocking HTTP) will tank throughput. Use reactive clients only.
+> [!warning] WebFlux wali soch rakho
+> Gateway reactive hai — filters ke andar blocking calls (JDBC, blocking HTTP) karoge toh throughput tank ho jayega. Sirf reactive clients use karo.
 
-> [!tip] Gateway, then mesh
-> Some teams use Spring Cloud Gateway at the edge (north-south traffic) and a service mesh like Istio for east-west traffic between services. See [[12-Service-Mesh-vs-Library]].
+> [!tip] Gateway, phir mesh
+> Kuch teams edge pe (north-south traffic) Spring Cloud Gateway use karti hain, aur services ke beech (east-west traffic) ke liye Istio jaisa service mesh. Dekho [[12-Service-Mesh-vs-Library]].
 
 ## Related
 - [[02-Spring-Cloud-Overview]]

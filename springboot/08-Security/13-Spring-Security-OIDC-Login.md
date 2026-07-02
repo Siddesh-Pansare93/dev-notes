@@ -1,31 +1,27 @@
----
-tags: [security, production, oidc, oauth2, spring-security, keycloak, auth0, okta]
-aliases: [OIDC Login, OAuth2 Client, Spring OIDC, Keycloak Spring, Auth0 Spring]
-stage: advanced
----
-
 # Spring Security OIDC Login
 
-> [!info] For the Express/TS dev
-> This is the Spring equivalent of `passport-openidconnect` + `express-session` + `passport.authenticate('oidc')`. Spring Boot does the session management, CSRF, and token refresh automatically once configured — but the configuration file is bigger than you expect.
+> [!info] Express/TS wale dev ke liye
+> Yeh Spring ka equivalent hai `passport-openidconnect` + `express-session` + `passport.authenticate('oidc')` ka. Spring Boot session management, CSRF, aur token refresh sab khud handle kar leta hai — bas ek baar config kar do. Par yahan pe catch yeh hai ki configuration file utni choti nahi hai jitni tum expect karte ho.
 
-## Concept / mental model
+## Concept / mental model — kya hota hai yahan?
 
-`spring-boot-starter-oauth2-client` adds:
-- An OAuth2 login filter that intercepts `/oauth2/authorization/{registrationId}` → redirects to IdP
-- A callback handler at `/login/oauth2/code/{registrationId}` → exchanges code for tokens
-- `OAuth2AuthorizedClientRepository` to store access/refresh tokens per user
-- `@RegisteredOAuth2AuthorizedClient` injection for downstream API calls
+Socho tum Zomato pe login kar rahe ho aur woh tumhe "Login with Google" ka option deta hai. Click karte hi tum Google ke page pe redirect ho jaate ho, wahan password daalte ho, aur Google Zomato ko bata deta hai "haan bhai, yeh banda genuine hai, yeh raha uska proof (token)". Yehi poora flow OIDC (OpenID Connect) hai — aur Spring Security ismein tumhara sabse bada helper hai.
 
-Three distinct use cases (pick one per registration):
+`spring-boot-starter-oauth2-client` dependency add karte hi yeh sab automatically mil jaata hai:
+- Ek OAuth2 login filter jo `/oauth2/authorization/{registrationId}` URL ko intercept karke IdP (Identity Provider — Google/Okta/Keycloak) pe redirect kar deta hai
+- Ek callback handler `/login/oauth2/code/{registrationId}` pe — jo IdP se aaye code ko tokens ke saath exchange karta hai
+- `OAuth2AuthorizedClientRepository` — har user ke access/refresh tokens store karne ke liye
+- `@RegisteredOAuth2AuthorizedClient` injection — downstream API calls karne ke liye
 
-| Use case | Configuration | When to use |
+Yahan teen alag use cases hain (per registration ek hi choose karo):
+
+| Use case | Configuration | Kab use karo |
 |---|---|---|
-| Web SSO login | `authorization-code` grant | Users log in via browser |
+| Web SSO login | `authorization-code` grant | Users browser se login karte hain |
 | API client credentials | `client_credentials` grant | Service-to-service calls |
-| Resource server | (use `oauth2ResourceServer()`) | Validating JWTs from an IdP |
+| Resource server | (use `oauth2ResourceServer()`) | IdP se aaye JWTs validate karna |
 
-This note focuses on **web SSO login**. Resource server config is in [[08-OAuth2-Resource-Server]].
+Yeh note **web SSO login** pe focus karta hai. Resource server config [[08-OAuth2-Resource-Server]] mein hai.
 
 ---
 
@@ -47,7 +43,9 @@ This note focuses on **web SSO login**. Resource server config is in [[08-OAuth2
 
 ## Code examples
 
-### `application.yml` — four IdPs
+### `application.yml` — chaar IdPs ka setup
+
+Kyun zaruri hai? Kyunki production mein aksar tumhe multiple login options dene padte hain — koi Google se login karega, koi company ka Okta/Keycloak use karega. Spring har IdP ko ek "registration" ke roop mein treat karta hai.
 
 ```yaml
 spring:
@@ -78,14 +76,14 @@ spring:
             scope: openid, profile, email, roles
             authorization-grant-type: authorization_code
 
-          # Microsoft Entra ID (formerly Azure AD)
+          # Microsoft Entra ID (pehle Azure AD kehte the)
           entra:
             client-id: ${AZURE_CLIENT_ID}
             client-secret: ${AZURE_CLIENT_SECRET}
             scope: openid, profile, email, https://graph.microsoft.com/.default
             authorization-grant-type: authorization_code
 
-          # Google (public client — use PKCE, no secret)
+          # Google (public client — PKCE use karo, secret nahi)
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
@@ -105,9 +103,11 @@ spring:
 ```
 
 > [!tip]
-> `issuer-uri` triggers OIDC discovery — Spring fetches `{issuer}/.well-known/openid-configuration` at startup and caches all endpoint URLs and JWKS. You don't need to hardcode individual endpoint URLs.
+> `issuer-uri` daalte hi OIDC discovery trigger ho jaati hai — Spring startup pe `{issuer}/.well-known/openid-configuration` fetch karke saare endpoint URLs aur JWKS cache kar leta hai. Matlab tumhe individual endpoint URLs kahin hardcode karne ki zarurat hi nahi. Bilkul Postman ke "import from URL" jaisa — ek URL do, baaki sab apne aap set ho jaata hai.
 
 ### `SecurityFilterChain` — OIDC login config
+
+Yeh woh jagah hai jahan tum decide karte ho kaun se routes public hain, login page kaun sa hai, aur logout pe kya hoga.
 
 ```java
 @Configuration
@@ -126,10 +126,10 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .loginPage("/login")                    // custom login page
+                .loginPage("/login")                    // apna custom login page
                 .userInfoEndpoint(userInfo -> userInfo
-                    .userService(oAuth2UserService)     // for non-OIDC (GitHub, etc.)
-                    .oidcUserService(oidcUserService)   // for OIDC IdPs
+                    .userService(oAuth2UserService)     // non-OIDC ke liye (GitHub, etc.)
+                    .oidcUserService(oidcUserService)   // OIDC IdPs ke liye
                 )
                 .successHandler(oAuth2SuccessHandler())
                 .failureHandler(oAuth2FailureHandler())
@@ -142,8 +142,8 @@ public class SecurityConfig {
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .maximumSessions(1)                     // single session per user
-                .maxSessionsPreventsLogin(false)        // logout old session on new login
+                .maximumSessions(1)                     // ek user, ek hi session
+                .maxSessionsPreventsLogin(false)        // naya login hote hi purana session logout
             );
 
         return http.build();
@@ -159,7 +159,9 @@ public class SecurityConfig {
 }
 ```
 
-### Custom `OidcUserService` — map IdP claims to local user + authorities
+### Custom `OidcUserService` — IdP ke claims ko apne local user se map karo
+
+Kyun zaruri hai? Kyunki Google/Keycloak sirf yeh bata sakta hai "yeh banda hai kaun", lekin tumhare app mein uske roles, permissions, aur database record khud tumhe manage karna padta hai. Yeh service woh bridge hai.
 
 ```java
 @Service
@@ -171,18 +173,18 @@ public class CustomOidcUserService extends OidcUserService {
     @Override
     @Transactional
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
-        // Let Spring load the base OIDC user
+        // Pehle Spring ko base OIDC user load karne do
         OidcUser oidcUser = super.loadUser(userRequest);
 
         String email    = oidcUser.getEmail();
         String provider = userRequest.getClientRegistration().getRegistrationId();
         String subject  = oidcUser.getSubject();
 
-        // Find or create local user
+        // Local user dhoondo ya naya banao
         User user = userRepo.findByEmail(email)
             .orElseGet(() -> createLocalUser(email, provider, subject, oidcUser));
 
-        // Map local database roles to GrantedAuthority
+        // Database ke roles ko GrantedAuthority mein convert karo
         List<GrantedAuthority> authorities = buildAuthorities(user, oidcUser, provider);
 
         return new DefaultOidcUser(
@@ -208,17 +210,17 @@ public class CustomOidcUserService extends OidcUserService {
                                                      String provider) {
         List<GrantedAuthority> authorities = new ArrayList<>();
 
-        // Always add local database roles
+        // Hamesha local database ke roles add karo
         user.getRoles().stream()
             .map(r -> new SimpleGrantedAuthority(r.getName()))
             .forEach(authorities::add);
 
-        // Map IdP groups to local roles
+        // IdP ke groups ko local roles se map karo
         if ("keycloak".equals(provider)) {
             List<String> keycloakRoles = oidcUser.getClaimAsStringList("realm_access.roles");
             if (keycloakRoles != null) {
                 keycloakRoles.stream()
-                    .filter(r -> r.startsWith("app_"))  // only app-specific roles
+                    .filter(r -> r.startsWith("app_"))  // sirf app-specific roles
                     .map(r -> new SimpleGrantedAuthority("ROLE_" + r.toUpperCase()))
                     .forEach(authorities::add);
             }
@@ -232,9 +234,9 @@ public class CustomOidcUserService extends OidcUserService {
 }
 ```
 
-### PKCE for public clients
+### Public clients ke liye PKCE
 
-Spring Security enables PKCE automatically when the client is registered as `public` (no client secret) or when `client-authentication-method: none`:
+Spring Security PKCE (Proof Key for Code Exchange) ko automatically enable kar deta hai jab client `public` register ho (matlab koi client secret nahi) ya `client-authentication-method: none` set ho. Isse samjho jaise OTP verification — bina secret ke bhi tum prove kar sakte ho ki request wahi banda bhej raha hai jisne shuru ki thi.
 
 ```yaml
 spring:
@@ -244,12 +246,14 @@ spring:
         registration:
           my-spa-backend:
             client-id: ${CLIENT_ID}
-            client-authentication-method: none  # triggers PKCE
+            client-authentication-method: none  # PKCE trigger hota hai
             authorization-grant-type: authorization_code
             scope: openid, profile, email
 ```
 
 ### Refresh token handling
+
+Kya problem solve karta hai? Access tokens short-lived hote hain (15-60 min). Agar token expire ho gaya aur tum user ko baar baar login karwaoge, toh UX ekdum khराब hoga — bilkul waise jaise Swiggy app baar baar OTP maange. Refresh token isi headache ko solve karta hai.
 
 ```java
 @RestController
@@ -264,18 +268,18 @@ public class ApiController {
             OAuth2AuthorizedClient authorizedClient,
             Authentication authentication) {
 
-        // Spring automatically refreshes the access token if expired
-        // (requires refresh_token scope and the RefreshTokenOAuth2AuthorizedClientProvider)
+        // Agar token expire ho gaya hai toh Spring khud refresh kar leta hai
+        // (iske liye refresh_token scope aur RefreshTokenOAuth2AuthorizedClientProvider chahiye)
         String accessToken = authorizedClient.getAccessToken().getTokenValue();
 
-        // Use accessToken to call downstream APIs
+        // downstream APIs call karne ke liye accessToken use karo
         return ResponseEntity.ok(Map.of("token_type", "refreshed automatically"));
     }
 }
 ```
 
 > [!tip]
-> Enable refresh token support by registering `RefreshTokenOAuth2AuthorizedClientProvider` in your `OAuth2AuthorizedClientManager` bean. Without this, expired access tokens cause 401s from downstream services without automatic recovery.
+> Refresh token support enable karne ke liye apne `OAuth2AuthorizedClientManager` bean mein `RefreshTokenOAuth2AuthorizedClientProvider` register karo. Iske bina, expired access tokens downstream services se seedhe 401 dilwa denge — bina automatic recovery ke.
 
 ```java
 @Bean
@@ -285,7 +289,7 @@ public OAuth2AuthorizedClientManager authorizedClientManager(
 
     var providers = OAuth2AuthorizedClientProviderBuilder.builder()
         .authorizationCode()
-        .refreshToken()                  // enables automatic refresh
+        .refreshToken()                  // automatic refresh enable karta hai
         .clientCredentials()
         .password()
         .build();
@@ -299,19 +303,21 @@ public OAuth2AuthorizedClientManager authorizedClientManager(
 
 ### RP-initiated logout + token revocation
 
+Sirf apne app se logout karna kaafi nahi — IdP (Google/Keycloak) pe bhi session khatam karna chahiye, warna user "logged out" dikhega par IdP ke paas session zinda rahega. Isko RP-initiated logout kehte hain (RP = Relying Party, yaani tumhara app).
+
 ```java
 @Bean
 public OidcClientInitiatedLogoutSuccessHandler oidcLogoutSuccessHandler(
         ClientRegistrationRepository registrations) {
 
-    // Redirects to IdP's end_session_endpoint after local logout
+    // Local logout ke baad IdP ke end_session_endpoint pe redirect karta hai
     var handler = new OidcClientInitiatedLogoutSuccessHandler(registrations);
     handler.setPostLogoutRedirectUri("{baseUrl}/logged-out");
     return handler;
 }
 ```
 
-For token revocation (invalidate the refresh token at the IdP):
+Token revocation ke liye (IdP pe refresh token ko invalidate karna):
 
 ```java
 @Service
@@ -342,9 +348,9 @@ public class TokenRevocationService {
 
 ---
 
-## Combining OIDC login with stateless JWT
+## OIDC login ko stateless JWT ke saath combine karna
 
-Some architectures use OIDC for the browser SSO flow but issue their own short-lived JWTs for API calls (BFF pattern):
+Kaafi architectures mein browser SSO ke liye OIDC use hota hai, lekin API calls ke liye apna khud ka short-lived JWT issue kiya jaata hai. Isko BFF (Backend-for-Frontend) pattern kehte hain — bilkul waise jaise IRCTC apne backend se ek session token deta hai, chahe underlying payment kisi bhi bank/UPI provider se hui ho.
 
 ```java
 @Component
@@ -361,12 +367,12 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         OidcUser oidcUser = (OidcUser) auth.getPrincipal();
         String jwt = jwtService.generateToken(oidcUser);
 
-        // Set HttpOnly cookie with our own JWT
+        // Apna khud ka JWT HttpOnly cookie mein set karo
         Cookie cookie = new Cookie("access_token", jwt);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
         cookie.setPath("/");
-        cookie.setMaxAge(900);  // 15 minutes
+        cookie.setMaxAge(900);  // 15 minute
         response.addCookie(cookie);
 
         response.sendRedirect("/app");
@@ -376,9 +382,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
 ---
 
-## Mapping multiple IdPs to one user
+## Multiple IdPs ko ek hi user se map karna
 
-The challenge: user@company.com logs in via Google at work and via GitHub for personal projects — same email, but different IdP subjects.
+Challenge yeh hai: user@company.com office mein Google se login karta hai, aur personal projects ke liye GitHub se — email same hai, par har IdP ka `subject` (sub claim) alag hoga. Bilkul waise jaise ek hi bande ka Paytm aur PhonePe pe alag-alag UPI ID ho sakti hai, par bank account ek hi hai.
 
 ```java
 @Entity
@@ -390,35 +396,35 @@ public class UserIdentity {
     private User user;
 
     private String provider;      // "google", "github", "keycloak"
-    private String providerUserId; // the sub claim from that IdP
+    private String providerUserId; // us IdP ka sub claim
 
     @Column(unique = true)
     private String providerKey;    // provider + ":" + providerUserId
 }
 
-// In OidcUserService:
+// OidcUserService mein:
 private User resolveUser(String email, String provider, String subject) {
     String providerKey = provider + ":" + subject;
 
-    // First try: find by provider identity
+    // Pehli koshish: provider identity se dhoondo
     return identityRepo.findByProviderKey(providerKey)
         .map(UserIdentity::getUser)
         .or(() ->
-            // Second try: find by email, link new identity
+            // Doosri koshish: email se dhoondo, naya identity link karo
             userRepo.findByEmail(email).map(existing -> {
                 linkIdentity(existing, provider, subject, providerKey);
                 return existing;
             })
         )
         .orElseGet(() ->
-            // Third: new user from this IdP
+            // Teesri: isi IdP se bilkul naya user banao
             createUserWithIdentity(email, provider, subject, providerKey)
         );
 }
 ```
 
 > [!warning]
-> Linking accounts by email is only safe if the IdP verifies email ownership. Google does. Some smaller IdPs don't. If email is not marked `email_verified: true` in the ID token, treat it as unverified and require an explicit account link step.
+> Email se accounts link karna tabhi safe hai jab IdP email ownership verify karta ho. Google karta hai. Kuch chhote IdPs nahi karte. Agar ID token mein `email_verified: true` nahi hai, toh usse unverified maano aur explicit account-link step maango — warna koi bhi fake email se tumhare existing account mein ghus sakta hai.
 
 ---
 
@@ -450,38 +456,38 @@ router.get('/auth/callback',
 );
 ```
 
-Spring handles the callback URL registration, token exchange, session management, and CSRF all automatically. The tradeoff: more magic, but less flexibility in the initial flow. The `CustomOidcUserService` is equivalent to passport's verify callback.
+Spring callback URL registration, token exchange, session management, aur CSRF — sab kuch khud handle kar leta hai. Tradeoff yeh hai: magic zyada, par initial flow mein flexibility kam. `CustomOidcUserService` bilkul passport ke verify callback jaisa hi kaam karta hai.
 
 ---
 
-## Gotchas
+## Gotchas — yeh cheezein sabko ek baar burn karti hain
 
 > [!danger]
-> **Don't disable CSRF for login endpoints.** The OAuth2 callback endpoint is protected by CSRF by default. If you've globally disabled CSRF for your API (common in stateless JWT APIs), you must re-enable it for the OAuth2 login flow or use a stateless alternative.
+> **Login endpoints ke liye CSRF disable mat karo.** OAuth2 callback endpoint by default CSRF se protected hota hai. Agar tumne apni stateless JWT API ke liye globally CSRF disable kar rakha hai (jo common hai), toh OAuth2 login flow ke liye ise wapas enable karna padega ya stateless alternative use karna padega.
 
 > [!warning]
-> **`nonce` mismatch on clustered deployments.** Spring stores the OIDC nonce in the HTTP session. If you have multiple instances without sticky sessions or shared session storage (Redis), the nonce won't be found on the callback and login fails with a cryptic error. Use Spring Session with Redis to share sessions across instances.
+> **Clustered deployments mein `nonce` mismatch.** Spring OIDC ka nonce HTTP session mein store karta hai. Agar tumhare paas multiple instances hain bina sticky sessions ya shared session storage (Redis) ke, toh callback pe nonce mil hi nahi payega aur login ek cryptic error ke saath fail ho jaayega. Instances ke beech session share karne ke liye Spring Session with Redis use karo.
 
 > [!warning]
-> **ID token vs access token.** The ID token is for your app to identify the user. The access token is for calling APIs on behalf of the user. Never send the ID token to a downstream API as a bearer token — it's not meant for that.
+> **ID token vs access token — dono alag cheez hain.** ID token tumhare app ke liye hai, taaki user ko identify kar sako "yeh banda kaun hai". Access token uske taraf se APIs call karne ke liye hai. Kabhi bhi ID token ko downstream API pe bearer token ke roop mein mat bhejo — woh uske liye bana hi nahi hai.
 
 > [!danger]
-> **Keycloak `realm_access.roles` is a nested JSON claim**, not a flat string list. `oidcUser.getClaimAsStringList("realm_access.roles")` returns `null` — you need to extract it as a Map first: `oidcUser.getClaim("realm_access")`. This burns everyone the first time.
+> **Keycloak ka `realm_access.roles` ek nested JSON claim hai**, flat string list nahi. `oidcUser.getClaimAsStringList("realm_access.roles")` seedha `null` return karega — pehle isko Map ke roop mein extract karna padega: `oidcUser.getClaim("realm_access")`. Yeh galti almost har ek dev karta hai pehli baar mein.
 
 ---
 
 ## Production checklist
 
-- [ ] `issuer-uri` configured for each IdP (uses OIDC discovery)
-- [ ] Refresh token scope requested + `RefreshTokenOAuth2AuthorizedClientProvider` registered
-- [ ] PKCE enabled for public clients (SPAs, mobile)
-- [ ] RP-initiated logout implemented and tested with each IdP
-- [ ] Spring Session + Redis for clustered deployments (nonce/state storage)
-- [ ] `email_verified` claim checked before linking accounts by email
-- [ ] Multi-IdP account linking strategy documented
-- [ ] CSRF not disabled for login flow
-- [ ] `OidcUserService` tested with mock IdP responses (use WireMock)
-- [ ] Secrets (`client-secret`) loaded from Vault/Secrets Manager, not `application.yml`
+- [ ] Har IdP ke liye `issuer-uri` configured hai (OIDC discovery use karta hai)
+- [ ] Refresh token scope request kiya + `RefreshTokenOAuth2AuthorizedClientProvider` register kiya
+- [ ] Public clients (SPAs, mobile) ke liye PKCE enable hai
+- [ ] RP-initiated logout implement + har IdP ke saath test kiya hai
+- [ ] Clustered deployments ke liye Spring Session + Redis (nonce/state storage ke liye)
+- [ ] Email se account link karne se pehle `email_verified` claim check ho raha hai
+- [ ] Multi-IdP account linking strategy document ki hui hai
+- [ ] Login flow ke liye CSRF disable nahi hai
+- [ ] `OidcUserService` mock IdP responses ke saath test kiya hai (WireMock use karo)
+- [ ] Secrets (`client-secret`) Vault/Secrets Manager se load ho rahe hain, `application.yml` se nahi
 
 ---
 

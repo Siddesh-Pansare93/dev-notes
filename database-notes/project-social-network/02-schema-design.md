@@ -1,24 +1,26 @@
 # Chapter 2: Social Network — Database Schema Design
 
-> **Goal of this chapter:** Walk through every table, every column, and every design decision for a real social network database. By the end you should be able to read any production schema and understand *why* things are the way they are — not just *what* they are.
+> **Is chapter ka goal:** Har table, har column, aur har design decision ko step-by-step samjhna — ek real social network database ke liye. Chapter khatam hote hote tum kisi bhi production schema ko dekh ke samajh paoge ki cheezein *waise kyun* hain — sirf *kya* hain woh nahi.
 
 ---
 
-## The Big Picture
+## Bada Picture
 
-Before writing a single `CREATE TABLE`, ask yourself: *what does this application actually do?*
+Ek `CREATE TABLE` likhne se pehle khud se poocho: *yeh application actually karti kya hai?*
 
-A social network needs to:
+Ek social network ko yeh sab chahiye:
 
-- Store user accounts and profiles
-- Let users publish posts (with images)
-- Let users follow each other
-- Let users like and comment on posts
-- Organize posts with hashtags
-- Notify users when something relevant happens
-- Support private direct messages
+- User accounts aur profiles store karna
+- Users ko posts publish karne dena (images ke saath)
+- Users ko ek dusre ko follow karne dena
+- Users ko posts like aur comment karne dena
+- Posts ko hashtags se organize karna
+- Users ko notify karna jab kuch relevant ho
+- Private direct messages support karna
 
-Each of those bullets maps almost directly to a table. That is not a coincidence — good schema design starts by listing the **nouns** in your domain (users, posts, follows) and the **relationships** between them (a user *has many* posts, a post *has many* likes).
+Har bullet point ka matlab hai ek table. Yeh coincidence nahi hai — achha schema design shuru hota hai apne domain ke **nouns** (users, posts, follows) list karke, aur unke beech ke **relationships** samajh ke (ek user *ke paas hote hain kai* posts, ek post *ke paas hote hain kai* likes).
+
+Zomato ka example lo: restaurant, order, aur menu-item — sab alag-alag nouns hain, aur unke beech relationships hain (ek restaurant ke paas kai orders, ek order ke andar kai items). Bilkul waisa hi yahan bhi hoga.
 
 ---
 
@@ -44,43 +46,43 @@ CREATE TABLE users (
 );
 ```
 
-### Column-by-column reasoning
+### Column-by-column reasoning — kyun har cheez waisi hai?
 
 **`id BIGSERIAL PRIMARY KEY`**
-Use `BIGSERIAL` (auto-incrementing 64-bit integer) instead of plain `SERIAL` (32-bit). A 32-bit integer maxes out at about 2.1 billion rows. Sounds like a lot until you realize Instagram had 1 billion users and each user might have many rows across tables. `BIGSERIAL` gives you 9.2 *quintillion* rows — future-proof at essentially zero cost.
+`BIGSERIAL` use karo (64-bit auto-incrementing integer) plain `SERIAL` (32-bit) ki jagah. Ek 32-bit integer max 2.1 billion rows tak jaata hai. Sunne mein bahut lagta hai, lekin socho — Instagram ke paas 1 billion users the aur har user ke multiple tables mein rows ho sakti hain. `BIGSERIAL` tumhe 9.2 *quintillion* rows deta hai — future-proof, aur cost almost zero.
 
 **`email VARCHAR(255) NOT NULL UNIQUE`**
-`255` characters is the RFC 5321 maximum for an email address. `NOT NULL` because an account without an email cannot be verified or recovered. `UNIQUE` because one email must map to exactly one account — this is your de-facto login identifier. The `UNIQUE` constraint also automatically creates a B-tree index on the column, making "find user by email" instant.
+`255` characters RFC 5321 ka maximum hai email address ke liye. `NOT NULL` isliye kyunki email ke bina account verify ya recover nahi ho sakta. `UNIQUE` isliye kyunki ek email exactly ek account se map hona chahiye — yeh tumhara de-facto login identifier hai. `UNIQUE` constraint automatically ek B-tree index bhi bana deta hai, toh "find user by email" instant ho jaata hai.
 
 **`username VARCHAR(50) NOT NULL UNIQUE`**
-Shorter than email (50 chars) because usernames appear in URLs (`/profile/johndoe`) and UI everywhere. `UNIQUE` because two users cannot share a handle. Keep the limit tight — very long usernames make URLs ugly and UI layouts break.
+Email se chota (50 chars) kyunki username URLs mein dikhta hai (`/profile/johndoe`) aur UI mein har jagah. `UNIQUE` isliye kyunki do users ek handle share nahi kar sakte. Limit tight rakho — bahut lambe usernames URLs ko ugly bana dete hain aur UI layout tod dete hain.
 
 **`display_name VARCHAR(100)` — nullable**
-This is the human-readable name shown in the UI ("John Doe"). It is *nullable* because you might not collect it at signup. It does not need to be unique — plenty of real people share a name.
+Yeh woh human-readable naam hai jo UI mein dikhta hai ("John Doe"). *Nullable* hai kyunki ho sakta hai signup ke time collect na karo. Unique hone ki bhi zarurat nahi — bahut saare real logon ka naam same hota hai.
 
 **`bio TEXT` — nullable**
-`TEXT` in PostgreSQL has no practical length limit. A `VARCHAR(160)` would also work (Twitter's old limit), but `TEXT` is simpler and storage cost is identical for short strings. Nullable because it is optional profile info.
+PostgreSQL mein `TEXT` ki koi practical length limit nahi hoti. `VARCHAR(160)` bhi kaam karta (Twitter ka purana limit), lekin `TEXT` simpler hai aur chhote strings ke liye storage cost same hi hai. Nullable hai kyunki optional profile info hai.
 
-**`avatar_url TEXT` and `website TEXT`**
-Store the *URL* to the image, not the image itself. Images live in object storage (S3, Cloudflare R2). URLs can be quite long (signed URLs, CDN paths), so `TEXT` is safer than `VARCHAR(255)` here.
+**`avatar_url TEXT` aur `website TEXT`**
+Image ka *URL* store karo, image khud nahi. Images object storage mein rehti hain (S3, Cloudflare R2). URLs kaafi lambe ho sakte hain (signed URLs, CDN paths), isliye `TEXT` `VARCHAR(255)` se safe hai yahan.
 
 **`is_private BOOLEAN NOT NULL DEFAULT false`**
-Controls whether this account's posts are visible to non-followers. The `DEFAULT false` means accounts are public unless a user opts in to private mode. `NOT NULL` prevents a three-state boolean (true/false/NULL), which would complicate every permission check.
+Control karta hai ki is account ke posts non-followers ko dikhein ya nahi. `DEFAULT false` ka matlab accounts default public hain, jab tak koi user private mode opt-in na kare. `NOT NULL` teen-state boolean (true/false/NULL) hone se rokta hai, jo har permission check ko complicated bana deta.
 
 **`is_verified BOOLEAN NOT NULL DEFAULT false`**
-The blue checkmark. Only your backend sets this; never trust client input on this field.
+Woh blue checkmark. Sirf tumhara backend isse set kare — kabhi bhi client input pe trust mat karo isके liye.
 
 **`post_count`, `follower_count`, `following_count` — denormalized counters**
-These are *intentionally* denormalized (see the full discussion in the Denormalization section below). The alternative — counting rows in `posts` or `follows` every time you render a profile — would be too slow at scale.
+Yeh *jaan-boojh kar* denormalized hain (poori discussion neeche Denormalization section mein hai). Alternative — har baar profile render karte waqt `posts` ya `follows` mein rows count karna — scale pe bahut slow ho jaayega. Socho Instagram pe har profile visit pe millions rows count karna pade, server jal jaayega.
 
 **`created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`**
-`TIMESTAMPTZ` stores a UTC timestamp with timezone awareness. *Always* use `TIMESTAMPTZ` over plain `TIMESTAMP` — `TIMESTAMP` has no timezone context and will silently give you wrong results when your servers or users span timezones. `DEFAULT NOW()` means the database fills this in automatically; you never need to pass it from application code.
+`TIMESTAMPTZ` ek UTC timestamp store karta hai timezone-awareness ke saath. *Hamesha* `TIMESTAMPTZ` use karo, plain `TIMESTAMP` nahi — `TIMESTAMP` mein timezone context hota hi nahi, aur jab tumhare servers ya users alag timezones mein hon, toh chupke se galat result dega. `DEFAULT NOW()` ka matlab database khud yeh fill karta hai; application code se pass karne ki zarurat nahi.
 
 **`updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`**
-Updated by a trigger (shown later) whenever any column in the row changes. Useful for cache invalidation and "last active" displays.
+Ek trigger se update hota hai (aage dikhaya gaya) jab bhi row ka koi column change ho. Cache invalidation aur "last active" dikhane ke liye useful.
 
 **`deleted_at TIMESTAMPTZ` — soft delete**
-Instead of `DELETE`ing a user row (which would cascade and potentially destroy years of content), you set `deleted_at = NOW()`. The row still exists but every query filters `WHERE deleted_at IS NULL`. This lets you recover accidentally deleted accounts, comply with data-deletion requests in a controlled way, and keep foreign key references intact.
+User row ko `DELETE` karne ke bajaye (jo cascade karke saalon ka content destroy kar sakta hai), tum `deleted_at = NOW()` set kar dete ho. Row abhi bhi exist karta hai, bas har query `WHERE deleted_at IS NULL` filter lagati hai. Isse galti se delete kiye account ko recover kar sakte ho, data-deletion requests ko controlled tareeke se handle kar sakte ho, aur foreign key references bhi intact rehte hain. Bilkul jaise Swiggy pe account "deactivate" karne aur permanently delete karne mein farak hota hai.
 
 ---
 
@@ -102,16 +104,16 @@ CREATE TABLE posts (
 ```
 
 **`user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE`**
-Every post belongs to exactly one user. `NOT NULL` because an ownerless post makes no sense. `ON DELETE CASCADE` means if the user is deleted, all their posts are deleted too. See the full discussion of cascade options below.
+Har post exactly ek user ka hota hai. `NOT NULL` isliye kyunki bina owner ka post koi sense nahi banata. `ON DELETE CASCADE` ka matlab — user delete hua toh uske saare posts bhi delete ho jaayenge. Cascade options ki poori discussion neeche hai.
 
 **`content TEXT NOT NULL`**
-The post body. `NOT NULL` — you cannot publish an empty post (though you might allow image-only posts in which case you would make this nullable or add a check constraint).
+Post ka body. `NOT NULL` — ek khaali post publish nahi kar sakte (halaanki agar image-only posts allow karna ho toh isko nullable bana sakte ho ya check constraint add kar sakte ho).
 
 **`image_urls TEXT[]`**
-A PostgreSQL *array* of text. A single post can have 0–10 images, and storing them in a separate `post_images` table would require a JOIN every time you display a post. The array keeps them co-located with the post row. This is a deliberate trade-off: you cannot query "all posts containing image X" efficiently, but that query is rare. See the cross-database section for how to handle this in MySQL/SQL Server.
+Text ka ek PostgreSQL *array*. Ek post mein 0–10 images ho sakti hain, aur unhe alag `post_images` table mein rakhna har baar post dikhane pe ek JOIN maangega. Array unhe post row ke saath hi co-locate rakhta hai. Yeh ek deliberate trade-off hai: tum "image X wale saare posts" ko efficiently query nahi kar paoge, lekin woh query rare hoti hai. MySQL/SQL Server mein isko kaise handle karein, cross-database section mein dekho.
 
 **`is_public BOOLEAN NOT NULL DEFAULT true`**
-For users with private accounts, new posts default to public (they can override). This field lets you mix public and private posts on the same account if your product needs it.
+Private account wale users ke liye, naye posts default public hote hain (woh override kar sakte hain). Yeh field tumhe same account pe public aur private posts mix karne deta hai agar product ko chahiye ho.
 
 ---
 
@@ -126,13 +128,13 @@ CREATE TABLE follows (
 );
 ```
 
-This is a **self-referential many-to-many** table — users follow other users. The relationship is *directional*: Alice follows Bob does not mean Bob follows Alice.
+Yeh ek **self-referential many-to-many** table hai — users doosre users ko follow karte hain. Relationship *directional* hai: Alice ne Bob ko follow kiya, iska matlab yeh nahi ki Bob bhi Alice ko follow karta hai.
 
 **Composite primary key `(follower_id, following_id)`**
-A pair of users can have exactly one follow relationship. The composite PK enforces this and simultaneously acts as an index for "who does user X follow?" queries. You do not need a separate surrogate `id` column here because the pair of IDs is already a perfect natural key.
+Do users ke beech exactly ek follow relationship ho sakta hai. Composite PK isko enforce karta hai, aur saath hi "user X kisko follow karta hai?" jaisi queries ke liye index ka kaam bhi karta hai. Yahan alag se surrogate `id` column ki zarurat nahi kyunki dono IDs ka pair already ek perfect natural key hai.
 
-**No `updated_at`**
-A follow either exists or it does not. There is nothing to update — you only insert and delete rows. This simplifies the table significantly.
+**Koi `updated_at` nahi**
+Ek follow ya toh exist karta hai ya nahi karta. Update karne ko kuch hai hi nahi — sirf insert aur delete hota hai. Isse table kaafi simple ho jaata hai.
 
 ---
 
@@ -147,7 +149,7 @@ CREATE TABLE likes (
 );
 ```
 
-Same pattern as `follows`. A user can like a post exactly once (the PK prevents duplicates). When you need to check "has this user liked this post?" you do a single primary-key lookup — extremely fast.
+`follows` jaisa hi pattern hai. Ek user ek post ko exactly ek baar like kar sakta hai (PK duplicates rokta hai). Jab check karna ho "kya is user ne is post ko like kiya hai?", tum ek single primary-key lookup karte ho — matlab extremely fast.
 
 ---
 
@@ -167,15 +169,15 @@ CREATE TABLE comments (
 ```
 
 **`parent_id BIGINT REFERENCES comments(id) ON DELETE CASCADE` — nullable**
-This creates a **self-referential** relationship for nested/threaded comments (replies to replies). When `parent_id IS NULL`, the comment is a top-level comment. When it has a value, it is a reply to that comment.
+Yeh nested/threaded comments (reply ka reply) ke liye ek **self-referential** relationship banata hai. Jab `parent_id IS NULL` ho, comment top-level hai. Jab uski koi value ho, toh woh us comment ka reply hai.
 
-Keep nesting shallow in your product (max 2–3 levels) because deeply recursive queries are expensive. Most social networks cap at one level of replies.
+Apne product mein nesting shallow rakho (max 2–3 levels) kyunki deeply recursive queries expensive hoti hain. Zyada tar social networks ek hi level ke replies tak limit karte hain.
 
-**Why comments get their own `id`** — unlike `likes`, a comment has content that can be liked, reported, or replied to. It needs its own identity, so a surrogate `id` makes sense here.
+**Comments ka apna `id` kyun hai** — `likes` ke ulat, comment ka content hota hai jise like, report, ya reply kiya ja sakta hai. Isko apni identity chahiye, isliye surrogate `id` yahan sense banata hai.
 
 ---
 
-## Tables 6 & 7: `hashtags` and `post_hashtags`
+## Tables 6 & 7: `hashtags` aur `post_hashtags`
 
 ```sql
 CREATE TABLE hashtags (
@@ -191,13 +193,13 @@ CREATE TABLE post_hashtags (
 );
 ```
 
-This is a classic **many-to-many junction table**. A post can have many hashtags; a hashtag can appear in many posts.
+Yeh classic **many-to-many junction table** hai. Ek post ke kai hashtags ho sakte hain; ek hashtag kai posts mein aa sakta hai.
 
-**Why not store hashtags as a `TEXT[]` array on `posts`?**
-Because you need to query *from the hashtag side*: "show all posts tagged `#photography`". An array column cannot be efficiently indexed for that query. A separate `hashtags` table with a junction table lets you find all posts for a tag using a simple join and an index lookup.
+**Hashtags ko `posts` pe `TEXT[]` array kyun nahi rakha?**
+Kyunki tumhe *hashtag side se* query karna padta hai: "`#photography` tag wale saare posts dikhao". Array column ko us query ke liye efficiently index nahi kiya ja sakta. Alag `hashtags` table aur junction table ke saath tum simple join aur index lookup se un posts ko dhoond sakte ho.
 
 **`name VARCHAR(100) NOT NULL UNIQUE`**
-Hashtag names are stored once and referenced by ID. This is normalization in action — you do not repeat the string `"photography"` in thousands of rows; you store the integer `42` instead.
+Hashtag ke naam ek hi baar store hote hain aur ID se reference hote hain. Yeh normalization ka live example hai — tum string `"photography"` ko hazaaron rows mein repeat nahi karte; integer `42` store karte ho instead.
 
 ---
 
@@ -217,10 +219,10 @@ CREATE TABLE notifications (
 ```
 
 **`user_id` vs `actor_id`**
-`user_id` is the *recipient* (who gets notified). `actor_id` is the *actor* (who triggered the notification — the person who liked your post, followed you, etc.). Both reference `users`. This naming is intentional and worth documenting in your codebase — calling both `user_id` would be ambiguous.
+`user_id` woh *recipient* hai (jise notification milega). `actor_id` woh *actor* hai (jisne trigger kiya — jisne tumhara post like kiya, tumhe follow kiya, waghera). Dono `users` ko reference karte hain. Yeh naming jaan-boojh kar aisi hai, aur apne codebase mein document karne layak hai — dono ko `user_id` bulane se confusion ho jaayega.
 
 **`type VARCHAR(50)` — string discriminator**
-Rather than separate tables for each notification type, a single `type` column lets you add new notification types without schema migrations. The trade-off is that `post_id` and `comment_id` are nullable — a "follow" notification has no post or comment. This is an acceptable design; each row uses only the columns relevant to its type.
+Har notification type ke liye alag table banane ke bajaye, ek `type` column tumhe naye notification types add karne deta hai bina schema migration ke. Trade-off yeh hai ki `post_id` aur `comment_id` nullable hain — "follow" notification ka koi post ya comment nahi hota. Yeh acceptable design hai; har row sirf apne type ke relevant columns use karta hai.
 
 ---
 
@@ -248,17 +250,17 @@ CREATE TABLE messages (
 );
 ```
 
-**Why three tables and not one?**
-A naive design stores `sender_id` and `recipient_id` directly on the `messages` table. That breaks the moment you need group chats. The three-table design supports both 1-on-1 and group conversations without any schema change — just add more rows to `conversation_participants`.
+**Teen tables kyun, ek kyun nahi?**
+Ek naive design `sender_id` aur `recipient_id` seedha `messages` table pe rakh deta. Yeh design tab tootta hai jab group chats chahiye hote hain. Teen-table design bina kisi schema change ke 1-on-1 aur group conversations dono support karta hai — bas `conversation_participants` mein aur rows add karo. Bilkul jaise WhatsApp group chat aur 1-on-1 chat dono ek hi underlying model pe chalte hain.
 
 **`conversation_participants` composite PK**
-A user can only be in a conversation once. The composite PK enforces this.
+Ek user ek conversation mein sirf ek baar reh sakta hai. Composite PK yeh enforce karta hai.
 
 ---
 
-## Indexes: Making Queries Fast
+## Indexes: Queries Ko Fast Banana
 
-Indexes are the difference between a query taking 1 millisecond and 10 seconds on a large table. Every `PRIMARY KEY` and `UNIQUE` constraint already creates an index automatically. The additional indexes below cover the most common query patterns.
+Indexes woh farak hain jo ek query ko 1 millisecond mein chalane aur 10 seconds mein chalane ke beech hota hai, ek bade table pe. Har `PRIMARY KEY` aur `UNIQUE` constraint already automatically ek index bana deta hai. Neeche diye gaye additional indexes sabse common query patterns cover karte hain.
 
 ```sql
 -- Users: look up by email or username (login, profile pages)
@@ -293,28 +295,28 @@ CREATE INDEX idx_notifications_unread  ON notifications(user_id) WHERE is_read =
 CREATE INDEX idx_messages_conversation ON messages(conversation_id, created_at);
 ```
 
-**Why `idx_notifications_unread` uses a partial index (`WHERE is_read = false`)**
-A partial index only indexes rows that match the condition. Your notifications table will eventually have millions of read notifications, but users only care about unread ones. The partial index is tiny and extremely fast because it ignores all the historical read notifications.
+**`idx_notifications_unread` partial index (`WHERE is_read = false`) kyun use karta hai?**
+Partial index sirf un rows ko index karta hai jo condition match karte hain. Tumhare notifications table mein eventually lakhon read notifications ho jaayenge, lekin users ko sirf unread wale se matlab hota hai. Partial index chhota aur bahut fast hota hai kyunki woh saare purane read notifications ko ignore kar deta hai.
 
-**Why `idx_posts_user_id` is a composite index on `(user_id, created_at DESC)`**
-When you query "give me the 20 most recent posts by user 42", PostgreSQL can satisfy the entire query — filtering *and* sorting — using this single index without touching the table at all. This is called an **index-only scan** and is significantly faster than filtering by `user_id` and then sorting separately.
+**`idx_posts_user_id` composite index `(user_id, created_at DESC)` pe kyun hai?**
+Jab tum query karte ho "user 42 ke 20 sabse recent posts do", PostgreSQL poori query — filtering *aur* sorting dono — sirf isi ek index se satisfy kar sakta hai, bina table ko touch kiye. Ise **index-only scan** kehte hain, aur yeh `user_id` se filter karke phir alag se sort karne se kaafi zyada fast hota hai.
 
 ---
 
 ## Denormalized Counter Columns
 
-`post_count`, `follower_count`, `following_count`, `like_count`, and `comment_count` are **denormalized**. The "normalized" alternative is to count rows at query time:
+`post_count`, `follower_count`, `following_count`, `like_count`, aur `comment_count` **denormalized** hain. "Normalized" alternative yeh hoga ki query time pe rows count karo:
 
 ```sql
 -- Normalized approach (correct but slow at scale)
 SELECT COUNT(*) FROM posts WHERE user_id = 42 AND deleted_at IS NULL;
 ```
 
-On a table with millions of posts, `COUNT(*)` with an index is still fast — but you run this query on *every profile page render*, potentially thousands of times per second. Denormalized counters convert that repeated count into a single column read.
+Millions posts wale table pe, index ke saath `COUNT(*)` bhi fast hota hai — lekin yeh query tum *har profile page render* pe chalate ho, potentially har second hazaaron baar. Denormalized counters us repeated count ko ek single column read mein badal dete hain.
 
-### Keeping counters consistent with triggers
+### Triggers se counters consistent rakhna
 
-The danger: if you update the counter in application code, bugs or crashes can leave the counter out of sync. Triggers run *inside the database transaction* — they are atomic with the change that caused them.
+Khatra yeh hai: agar counter ko application code mein update karo, toh bugs ya crashes counter ko out-of-sync chhod sakte hain. Triggers *database transaction ke andar hi* chalte hain — woh us change ke saath atomic hote hain jisne unhe trigger kiya.
 
 ```sql
 -- Trigger function: increment post_count when a post is inserted
@@ -367,9 +369,10 @@ BEFORE UPDATE ON posts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
-**`GREATEST(post_count - 1, 0)`** — never let counters go negative due to a data inconsistency bug. It is defensive programming at the database level.
+**`GREATEST(post_count - 1, 0)`** — kabhi bhi counter ko negative mat jaane do kisi data inconsistency bug ki wajah se. Yeh database level pe defensive programming hai.
 
-**Periodic reconciliation** — even with triggers, run a nightly job that recomputes counters from source-of-truth counts and corrects any drift:
+> [!tip]
+> **Periodic reconciliation** — triggers hone ke bawajood, ek nightly job chalao jo counters ko source-of-truth counts se recompute kare aur koi drift ho toh fix kar de:
 
 ```sql
 UPDATE users u
@@ -383,34 +386,35 @@ SET post_count = (
 
 ## ON DELETE Behavior: CASCADE vs SET NULL vs RESTRICT
 
-Every foreign key must declare what happens when the referenced row is deleted. This is one of the most consequential decisions in schema design.
+Har foreign key ko yeh declare karna padta hai ki referenced row delete hone pe kya hoga. Yeh schema design ke sabse consequential decisions mein se ek hai.
 
-| Option | Behavior | Use when |
+| Option | Behavior | Kab use karein |
 |---|---|---|
-| `CASCADE` | Delete the child row automatically | Child cannot exist without parent (post needs a user) |
-| `SET NULL` | Set the FK column to NULL | Child can exist independently (an order might keep a deleted product's record) |
-| `RESTRICT` | Block the parent deletion if children exist | You want to force explicit cleanup first |
-| `NO ACTION` | Same as RESTRICT but deferred | Rarely used; default if you specify nothing |
+| `CASCADE` | Child row automatically delete ho jaata hai | Child parent ke bina exist nahi kar sakta (post ko user chahiye hi) |
+| `SET NULL` | FK column ko NULL set kar diya jaata hai | Child independently exist kar sakta hai (order shayad ek deleted product ka record rakhna chahe) |
+| `RESTRICT` | Parent delete hone se rokta hai agar children exist karte hain | Tumhe pehle explicit cleanup force karna hai |
+| `NO ACTION` | RESTRICT jaisa hi lekin deferred | Rarely use hota; agar kuch specify na karo toh default |
 
-**In this schema:**
+**Is schema mein:**
 
-- `posts.user_id → users` uses `CASCADE`: a post without a user is meaningless orphan data.
-- `comments.post_id → posts` uses `CASCADE`: a comment without a post is equally meaningless.
-- `comments.parent_id → comments` uses `CASCADE`: deleting a top-level comment deletes its replies.
-- `notifications.post_id → posts` uses `CASCADE`: when a post is deleted, its notifications become irrelevant.
+- `posts.user_id → users` `CASCADE` use karta hai: bina user ke post meaningless orphan data hai.
+- `comments.post_id → posts` `CASCADE` use karta hai: bina post ke comment bhi utna hi meaningless hai.
+- `comments.parent_id → comments` `CASCADE` use karta hai: top-level comment delete karne pe uske replies bhi delete ho jaate hain.
+- `notifications.post_id → posts` `CASCADE` use karta hai: post delete hone pe uske notifications bhi irrelevant ho jaate hain.
 
-**Where you might prefer SET NULL:**
-If you wanted to keep messages in a conversation even after a participant deletes their account (for the other participant's history), you could make `messages.sender_id` nullable with `ON DELETE SET NULL` and display "Deleted User" in the UI. This schema uses `CASCADE` for simplicity, but `SET NULL` is the right choice for many real products.
+> [!info]
+> **Jahan `SET NULL` better ho sakta hai:**
+> Agar tum chahte ho ki conversation ke messages tab bhi rahein jab ek participant apna account delete kar de (dusre participant ki history ke liye), toh `messages.sender_id` ko nullable bana ke `ON DELETE SET NULL` use kar sakte ho, aur UI mein "Deleted User" dikha sakte ho. Yeh schema simplicity ke liye `CASCADE` use karta hai, lekin `SET NULL` bahut real products ke liye sahi choice hai.
 
 ---
 
 ## Cross-Database Equivalents
 
-PostgreSQL has several features used above that do not exist in MySQL or SQL Server. Here is how to translate the key differences.
+PostgreSQL ke kuch features jo upar use hue hain, woh MySQL ya SQL Server mein exist hi nahi karte. Yahan hai key differences ko translate kaise karein.
 
 ### Arrays → JSON
 
-PostgreSQL's `TEXT[]` array type does not exist in MySQL or SQL Server. Use JSON instead.
+PostgreSQL ka `TEXT[]` array type MySQL ya SQL Server mein exist nahi karta. Uski jagah JSON use karo.
 
 ```sql
 -- PostgreSQL
@@ -426,7 +430,7 @@ SELECT JSON_UNQUOTE(JSON_EXTRACT(image_urls, '$[0]')) FROM posts;
 SELECT JSON_VALUE(image_urls, '$[0]') FROM posts;
 ```
 
-JSON is more flexible but slower to query than a native array, and you lose the ability to define per-element foreign keys. For most use cases the JSON approach is perfectly adequate.
+JSON zyada flexible hai lekin native array se query karne mein slow hai, aur tum per-element foreign keys define karne ki ability kho dete ho. Zyada tar use cases ke liye JSON approach bilkul theek hai.
 
 ### TIMESTAMPTZ → DATETIME with UTC convention
 
@@ -444,7 +448,7 @@ created_at DATETIMEOFFSET NOT NULL DEFAULT SYSDATETIMEOFFSET()
 created_at DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 ```
 
-MySQL's `DATETIME` stores no timezone info — it is your responsibility to always store UTC. `DATETIMEOFFSET` in SQL Server is the closest equivalent to `TIMESTAMPTZ`.
+MySQL ka `DATETIME` koi timezone info store nahi karta — tumhari zimmedari hai hamesha UTC store karna. SQL Server ka `DATETIMEOFFSET`, `TIMESTAMPTZ` ka sabse close equivalent hai.
 
 ### BIGSERIAL → AUTO_INCREMENT / IDENTITY
 
@@ -461,7 +465,7 @@ id BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY
 
 ### Partial Indexes
 
-PostgreSQL supports `WHERE` clauses on indexes. MySQL does not support partial indexes at all. SQL Server 2008+ supports filtered indexes.
+PostgreSQL indexes pe `WHERE` clauses support karta hai. MySQL partial indexes support hi nahi karta. SQL Server 2008+ filtered indexes support karta hai.
 
 ```sql
 -- PostgreSQL (partial index)
@@ -479,25 +483,38 @@ ON notifications(user_id) WHERE is_read = 0;
 
 ### BIGSERIAL and Sequences
 
-PostgreSQL's `BIGSERIAL` is syntactic sugar over a `SEQUENCE` object. In MySQL and SQL Server, the auto-increment behavior is built into the column definition itself, not a separate object. This matters if you ever need to reset or share sequences across tables (rare, but worth knowing).
+PostgreSQL ka `BIGSERIAL` ek `SEQUENCE` object ke upar syntactic sugar hai. MySQL aur SQL Server mein auto-increment behavior column definition ke andar hi built-in hota hai, alag object nahi. Yeh tab matter karta hai jab kabhi sequences ko reset ya tables ke beech share karna ho (rare, lekin jaanna zaruri hai).
 
 ---
 
-## Summary: Design Decisions at a Glance
+## Summary: Design Decisions Ek Nazar Mein
 
-| Decision | What was chosen | Why |
+| Decision | Kya chuna gaya | Kyun |
 |---|---|---|
-| Primary key type | `BIGSERIAL` | Future-proof; 64-bit prevents overflow |
-| Soft deletes | `deleted_at TIMESTAMPTZ` | Recoverability and data integrity |
-| Timestamp type | `TIMESTAMPTZ` | Timezone-aware; avoids silent bugs |
-| Image storage | URL columns, not binary data | Images belong in object storage |
-| Counter columns | Denormalized with triggers | Avoids expensive `COUNT(*)` at render time |
-| Follow/Like tables | Composite PK, no surrogate id | Natural key is unique; saves storage |
-| DM design | 3-table conversation model | Supports group chats without schema change |
-| Notification type | `VARCHAR(50)` discriminator | Easy to add new types without migrations |
-| Hashtag storage | Normalized into own table | Enables efficient "posts by tag" queries |
-| Arrays | PostgreSQL `TEXT[]` | Co-locates images with post; simple queries |
+| Primary key type | `BIGSERIAL` | Future-proof; 64-bit overflow rokta hai |
+| Soft deletes | `deleted_at TIMESTAMPTZ` | Recoverability aur data integrity |
+| Timestamp type | `TIMESTAMPTZ` | Timezone-aware; silent bugs se bachaata hai |
+| Image storage | URL columns, binary data nahi | Images object storage mein hi rehni chahiye |
+| Counter columns | Triggers ke saath denormalized | Render time pe expensive `COUNT(*)` se bachaata hai |
+| Follow/Like tables | Composite PK, koi surrogate id nahi | Natural key already unique hai; storage bachta hai |
+| DM design | 3-table conversation model | Bina schema change ke group chats support karta hai |
+| Notification type | `VARCHAR(50)` discriminator | Naye types add karna easy, bina migrations ke |
+| Hashtag storage | Apni table mein normalized | Efficient "posts by tag" queries enable karta hai |
+| Arrays | PostgreSQL `TEXT[]` | Images ko post ke saath co-locate karta hai; simple queries |
 
 ---
 
-> **Next chapter:** Querying the schema — writing the feed query, building follower timelines, and understanding `EXPLAIN ANALYZE` output to diagnose slow queries.
+> **Agla chapter:** Schema ko query karna — feed query likhna, follower timelines banana, aur `EXPLAIN ANALYZE` output samajhna slow queries diagnose karne ke liye.
+
+## Key Takeaways
+
+- `BIGSERIAL` primary keys use karo — future-proof aur cost-free
+- `TIMESTAMPTZ` hamesha use karo, plain `TIMESTAMP` kabhi nahi — timezone bugs se bachne ke liye
+- Soft delete (`deleted_at`) recoverability deta hai; hard delete data permanently gawa deta hai
+- Denormalized counters (like `post_count`) triggers ke saath consistent rakho, aur nightly reconciliation job bhi rakho
+- Composite primary keys (`follows`, `likes`, `post_hashtags`) natural many-to-many relationships ke liye perfect hain, alag surrogate id ki zarurat nahi
+- `ON DELETE CASCADE` vs `SET NULL` vs `RESTRICT` — decide karo child row parent ke bina meaningful hai ya nahi
+- Hashtags ko normalize karo apni table mein taaki "posts by tag" query efficient rahe
+- Indexes query patterns ke hisaab se design karo — composite index jaise `(user_id, created_at DESC)` filtering aur sorting dono ek saath solve karta hai
+- Partial indexes (`WHERE is_read = false`) chhote aur fast rehte hain jab sirf ek subset of rows matter karta hai
+- PostgreSQL-specific features (arrays, partial indexes) ko MySQL/SQL Server mein translate karna aata hona chahiye

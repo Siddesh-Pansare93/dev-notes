@@ -1,98 +1,103 @@
 # SPL Tokens on Solana
 
-> **Chapter 6** — The complete developer guide to creating, managing, and extending tokens on Solana
+> **Chapter 6** — Solana pe tokens create, manage aur extend karne ka complete developer guide
 
 ---
 
-## 🪙 What Even Is an SPL Token?
+## 🪙 Yeh SPL Token Hai Kya Cheez?
 
-Imagine you want to create a reward point system for your coffee shop. Every customer who buys a coffee gets 10 "CoffeeCoin" points. Those points can be transferred, redeemed, and burned. You need a standard way to do this so every register, every app, and every third-party integration knows how to handle "CoffeeCoin."
+Zara socho — tumne apni coffee shop ke liye ek reward point system banana hai. Har customer jo coffee kharidta hai, use 10 "CoffeeCoin" points milte hain. Yeh points transfer ho sakte hain, redeem ho sakte hain, burn bhi ho sakte hain. Ab isके liye tumhe ek standard tarika chahiye — taaki har register, har app, aur har third-party integration ko pata ho ki "CoffeeCoin" ko handle kaise karna hai.
 
-On Ethereum, that standard is **ERC-20**. On Solana, it is the **SPL Token standard**.
+Ethereum pe iska standard hai **ERC-20**. Solana pe iska standard hai **SPL Token standard**.
 
-**SPL** stands for **Solana Program Library** — a collection of on-chain programs (smart contracts) that Solana ships as core infrastructure. The Token Program is the most important of these.
+**SPL** ka matlab hai **Solana Program Library** — on-chain programs (smart contracts) ka ek collection jo Solana core infrastructure ke roop mein deta hai. Inme sabse important hai Token Program.
 
-### Key difference from ERC-20
+### ERC-20 se key difference
 
-On Ethereum, each token is its own smart contract. You deploy a `CoffeeCoin.sol` contract, and that contract holds all the logic and all the balances.
+Ethereum pe har token ka apna alag smart contract hota hai. Tum `CoffeeCoin.sol` naam ka contract deploy karte ho, aur woh contract hi saari logic aur saare balances hold karta hai.
 
-On Solana, there is **one** Token Program that manages **all** tokens. Instead of each token having its own contract, each token has a set of **data accounts** that the Token Program owns and controls.
+Solana pe sirf **ek** Token Program hai jo **saare** tokens manage karta hai. Har token ka apna contract nahi hota — balki har token ke paas apne **data accounts** hote hain jinko Token Program owns aur control karta hai.
+
+Zomato ki analogy se socho — Ethereum ka approach jaise har restaurant apna khud ka delivery app bana le. Solana ka approach jaise Zomato ek hi platform hai jispe sab restaurants list hote hain, aur Zomato hi backend logic handle karta hai.
 
 | Feature | Ethereum ERC-20 | Solana SPL Token |
 |---|---|---|
-| Token logic lives in | Your deployed contract | The shared Token Program |
-| Each token has | Its own contract address | A Mint Account |
-| User balances stored in | The token contract mapping | Separate Token Accounts |
-| Deployment cost | High (deploy new contract) | Low (just create accounts) |
-| Interoperability | Varies per contract | Identical for all tokens |
-| Program reuse | None — each contract is isolated | All tokens share one program |
+| Token logic kahan hoti hai | Tumhare deployed contract mein | Shared Token Program mein |
+| Har token ke paas kya hota hai | Apna khud ka contract address | Ek Mint Account |
+| User balances kahan store hote hain | Token contract ke mapping mein | Alag Token Accounts mein |
+| Deployment cost | Zyada (naya contract deploy karna) | Kam (bas accounts create karne hain) |
+| Interoperability | Har contract ke hisab se alag | Sab tokens ke liye same |
+| Program reuse | Nahi hota — har contract isolated hai | Sab tokens ek hi program share karte hain |
 
 ---
 
-## 🗂️ The Three Accounts You Must Know
+## 🗂️ Teen Accounts Jo Tumhe Pata Hone Chahiye
 
-Think of SPL tokens like a banking system with three distinct things:
+SPL tokens ko banking system ki tarah socho — teen alag-alag cheezein:
 
-1. **The Mint Account** — the "charter" for the currency (like the Federal Reserve defining the Dollar)
-2. **The Token Account** — a specific bank account holding that currency for one person
-3. **The Associated Token Account (ATA)** — a standardized, predictable bank account derived from your wallet address
+1. **Mint Account** — currency ka "charter" (jaise Reserve Bank ka Dollar/Rupee define karna)
+2. **Token Account** — ek specific bank account jo ek insaan ke liye woh currency hold karta hai
+3. **Associated Token Account (ATA)** — ek standardized, predictable bank account jo tumhare wallet address se derive hota hai
 
-Let's go deep on each one.
+Chalo ek-ek karke deep dive karte hain.
 
 ---
 
-## 🏦 Mint Account — The Token Definition
+## 🏦 Mint Account — Token Ki Definition
 
-The **Mint Account** is not where tokens are stored. It is the **definition** of the token itself. Think of it as the blueprint or the charter.
+**Mint Account** woh jagah nahi hai jahan tokens store hote hain. Yeh token ki **definition** hai. Isse blueprint ya charter samjho.
 
-It stores:
+Ismein yeh sab store hota hai:
 
 | Field | Description | Example |
 |---|---|---|
-| `supply` | Total tokens currently in circulation | `1,000,000` |
-| `decimals` | Number of decimal places | `6` (like USDC) |
-| `mintAuthority` | Who can create (mint) new tokens | Your wallet pubkey |
-| `freezeAuthority` | Who can freeze token accounts | Your wallet pubkey or `null` |
-| `isInitialized` | Whether the mint is set up | `true` |
+| `supply` | Abhi circulation mein kitne tokens hain | `1,000,000` |
+| `decimals` | Decimal places kitne hain | `6` (USDC ki tarah) |
+| `mintAuthority` | Naye tokens (mint) create karne ka adhikaar kiske paas hai | Tumhara wallet pubkey |
+| `freezeAuthority` | Token accounts freeze karne ka adhikaar kiske paas hai | Tumhara wallet pubkey ya `null` |
+| `isInitialized` | Mint set up hai ya nahi | `true` |
 
-The `decimals` field is critical. If `decimals = 6`, then `1,000,000` raw units = `1.000000` tokens. USDC uses 6 decimals. SOL itself uses 9 (called "lamports"). If you set `decimals = 0`, your token is naturally non-fractional — good for NFTs or items.
+`decimals` field bohot critical hai. Agar `decimals = 6` hai, toh `1,000,000` raw units = `1.000000` tokens. USDC 6 decimals use karta hai. SOL khud 9 decimals use karta hai (jinhe "lamports" bolte hain). Agar `decimals = 0` set karoge, toh tumhara token naturally non-fractional ho jaayega — NFTs ya items ke liye perfect.
 
 ---
 
-## 👛 Token Account — Where Tokens Actually Live
+## 👛 Token Account — Jahan Tokens Actually Rehte Hain
 
-Now think of each person's wallet. They cannot directly "hold" tokens in their main wallet account. Instead, for **every token they want to hold**, they need a separate **Token Account**.
+Ab har insaan ke wallet ke baare mein socho. Woh apne main wallet account mein directly tokens "hold" nahi kar sakte. Balki, **jis bhi token ko hold karna hai**, uske liye unhe ek alag **Token Account** chahiye hota hai.
 
-A Token Account stores:
+Ek Token Account mein yeh store hota hai:
 
 | Field | Description |
 |---|---|
-| `mint` | Which token this account holds (Mint Account pubkey) |
-| `owner` | Who controls this Token Account (usually your wallet) |
-| `amount` | How many raw token units are held |
-| `delegate` | Someone else given spending authority (optional) |
-| `state` | `initialized`, `frozen`, etc. |
-| `closeAuthority` | Who can close this account and reclaim rent |
+| `mint` | Yeh account kaunsa token hold karta hai (Mint Account ka pubkey) |
+| `owner` | Is Token Account ko kaun control karta hai (usually tumhara wallet) |
+| `amount` | Kitne raw token units hold hain |
+| `delegate` | Koi aur jise spending authority di gayi hai (optional) |
+| `state` | `initialized`, `frozen`, waghera |
+| `closeAuthority` | Is account ko close karke rent wapas kaun le sakta hai |
 
-One wallet can have **many** Token Accounts — one per token type. If you hold USDC, BONK, and RAY, you have three separate Token Accounts.
+Ek wallet ke paas **kayi** Token Accounts ho sakte hain — har token type ke liye ek. Agar tumhare paas USDC, BONK, aur RAY hai, toh teen alag Token Accounts honge — bilkul aise jaise tumhare Paytm wallet mein alag-alag sections hon cashback points, gift cards, aur main balance ke liye.
 
 ---
 
-## 🔗 Associated Token Account (ATA) — The Standard Address
+## 🔗 Associated Token Account (ATA) — Standard Address
 
-Here is a problem: if someone wants to send you USDC, they need to know the address of your USDC Token Account. But Token Accounts can be created at any address. How do they find yours?
+Ab ek problem samjho — agar koi tumhe USDC bhejna chahta hai, toh use tumhare USDC Token Account ka address pata hona chahiye. Lekin Token Accounts kisi bhi address pe create ho sakte hain. Toh unhe tumhara address kaise pata chalega?
 
-The **Associated Token Account (ATA)** solves this with a deterministic formula.
+**Associated Token Account (ATA)** iska solution hai — ek deterministic formula se.
 
-The ATA address is derived from:
+ATA address is formula se derive hota hai:
 
 ```
 ATA address = PDA(wallet_address + TOKEN_PROGRAM_ID + mint_address)
 ```
 
-Given your wallet and the USDC mint address, anyone can compute the exact address of your USDC token account without asking you first. It is always the same. This is the **standard** way to hold tokens.
+Bas tumhara wallet aur USDC mint address pata ho, toh koi bhi tumhare USDC token account ka exact address calculate kar sakta hai — tumse pooche bina. Yeh hamesha same hi rahega. Yahi **standard** tarika hai tokens hold karne ka.
 
-When a dApp sends you tokens, it uses `getOrCreateAssociatedTokenAccount` — which checks if your ATA exists, and creates it if not (paying the rent cost in SOL).
+Jab koi dApp tumhe tokens bhejta hai, woh `getOrCreateAssociatedTokenAccount` use karta hai — jo check karta hai ki tumhara ATA exist karta hai ya nahi, aur agar nahi karta toh use create kar deta hai (SOL mein rent cost pay karke).
+
+> [!info]
+> ATA basically UPI ID jaisa hai — ek predictable, standard address jo koi bhi calculate kar sakta hai bina tumse pehle poochhe.
 
 ---
 
@@ -134,27 +139,27 @@ graph TD
 
 ---
 
-## ⚙️ The Token Program
+## ⚙️ Token Program
 
-The **Token Program** is a Solana on-chain program that:
+**Token Program** ek Solana on-chain program hai jo yeh kaam karta hai:
 
-- Creates and manages Mint Accounts
-- Creates and manages Token Accounts
-- Authorizes minting, burning, transferring, and freezing
+- Mint Accounts create aur manage karta hai
+- Token Accounts create aur manage karta hai
+- Minting, burning, transferring, aur freezing ko authorize karta hai
 
-Its program ID is: `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`
+Iska program ID hai: `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`
 
-The newer **Token-2022 program** (also called Token Extensions) has ID: `TokenzQdBNbEquW5zBPuFZVKqUFAZGFv5n2yqQQXHG`
+Newer **Token-2022 program** (jise Token Extensions bhi bolte hain) ka ID hai: `TokenzQdBNbEquW5zBPuFZVKqUFAZGFv5n2yqQQXHG`
 
-All token accounts are owned by one of these two programs — not by your wallet directly. Your wallet signs instructions that the Token Program executes on the accounts.
+Saare token accounts in dono programs mein se kisi ek ke owned hote hain — tumhare wallet ke directly nahi. Tumhara wallet instructions sign karta hai, aur Token Program un accounts pe woh instructions execute karta hai.
 
 ---
 
-## 🛠️ Working with SPL Tokens: CLI Walkthrough
+## 🛠️ SPL Tokens Ke Saath Kaam Karna: CLI Walkthrough
 
-Install the Solana CLI tools first, then use `spl-token` for quick operations.
+Pehle Solana CLI tools install karo, phir quick operations ke liye `spl-token` use karo.
 
-### Step 1 — Create a Mint (Define your token)
+### Step 1 — Mint Banao (Apna Token Define Karo)
 
 ```bash
 # Create a new token with 6 decimal places
@@ -165,9 +170,9 @@ spl-token create-token --decimals 6
 # Signature: 2Zyf3...
 ```
 
-The returned address (`7xKXtg2C...`) is your **Mint Account** address. This is your token's identity on-chain.
+Jo address return hua (`7xKXtg2C...`), woh tumhara **Mint Account** address hai. Yahi tumhare token ki on-chain identity hai.
 
-### Step 2 — Create a Token Account
+### Step 2 — Token Account Banao
 
 ```bash
 # Create a token account for your wallet to hold this token
@@ -178,7 +183,7 @@ spl-token create-account 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU
 # Signature: 4Kap1...
 ```
 
-### Step 3 — Mint Tokens
+### Step 3 — Tokens Mint Karo
 
 ```bash
 # Mint 1000 tokens (1000 * 10^6 raw units because decimals=6)
@@ -189,7 +194,7 @@ spl-token supply 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU
 # Output: 1000
 ```
 
-### Step 4 — Transfer Tokens
+### Step 4 — Tokens Transfer Karo
 
 ```bash
 # Transfer 100 tokens to another wallet
@@ -199,14 +204,14 @@ spl-token transfer 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU \
   --fund-recipient   # creates recipient ATA if needed, you pay for it
 ```
 
-### Step 5 — Burn Tokens
+### Step 5 — Tokens Burn Karo
 
 ```bash
 # Burn 50 tokens (removes them from supply permanently)
 spl-token burn <YOUR_TOKEN_ACCOUNT_ADDRESS> 50
 ```
 
-### Step 6 — Freeze and Thaw a Token Account
+### Step 6 — Token Account Freeze Aur Thaw Karo
 
 ```bash
 # Freeze an account (requires freezeAuthority)
@@ -218,9 +223,9 @@ spl-token thaw <TOKEN_ACCOUNT_ADDRESS>
 
 ---
 
-## 🔑 Authority Roles Explained
+## 🔑 Authority Roles Samjho
 
-Three authority types control a token. Think of them like roles in a company.
+Teen authority types ek token ko control karte hain. Inhe company ke roles ki tarah socho.
 
 ```mermaid
 graph LR
@@ -239,19 +244,19 @@ graph LR
     style UA_Auth fill:#2e7d32,color:#fff
 ```
 
-| Authority | What it controls | Safe to revoke? |
+| Authority | Kya control karta hai | Revoke karna safe hai? |
 |---|---|---|
-| Mint Authority | Creating new tokens | Yes — makes supply fixed |
-| Freeze Authority | Freezing user accounts | Yes — removes custodial risk |
-| Update Authority | Updating metadata (name/symbol) | Yes — makes token info immutable |
+| Mint Authority | Naye tokens create karna | Haan — supply fixed ho jaati hai |
+| Freeze Authority | User accounts freeze karna | Haan — custodial risk hat jaata hai |
+| Update Authority | Metadata (name/symbol) update karna | Haan — token info immutable ho jaati hai |
 
-Many DeFi protocols revoke mint authority after their initial token distribution to prove they cannot inflate supply. Investors look for this as a trust signal.
+Kayi DeFi protocols apni initial token distribution ke baad mint authority revoke kar dete hain, taaki prove ho sake ki woh supply inflate nahi kar sakte. Investors ise trust signal ki tarah dekhte hain — jaise kisi company ka audit report clean hona.
 
 ---
 
-## 💻 Full TypeScript Example — Create and Mint a Token
+## 💻 Full TypeScript Example — Token Create Aur Mint Karo
 
-This is a complete, working example using `@solana/spl-token`.
+Yeh ek complete, working example hai jo `@solana/spl-token` use karta hai.
 
 ```bash
 npm install @solana/web3.js @solana/spl-token
@@ -423,7 +428,7 @@ async function main() {
 main().catch(console.error);
 ```
 
-Run it on devnet:
+Isse devnet pe run karo:
 
 ```bash
 npx ts-node token-demo.ts
@@ -431,25 +436,25 @@ npx ts-node token-demo.ts
 
 ---
 
-## 🚀 Token-2022 — Token Extensions (The New Standard)
+## 🚀 Token-2022 — Token Extensions (Naya Standard)
 
-The original Token Program has been in production since 2021. It is battle-tested but limited. **Token-2022** (launched 2023) adds powerful extensions to tokens without breaking backward compatibility.
+Original Token Program 2021 se production mein hai. Yeh battle-tested hai, lekin limited bhi hai. **Token-2022** (2023 mein launch hua) tokens mein powerful extensions add karta hai — bina backward compatibility todhe.
 
-Think of Token-2022 like upgrading from a basic bank account to a programmable smart account — same core functions, but with extra rules you can bake in at creation time.
+Token-2022 ko aise socho jaise basic bank account se upgrade karke ek programmable smart account milna — core functions same hain, bas creation time pe hi tum extra rules bake kar sakte ho.
 
 ### Available Extensions
 
-| Extension | What it does | Real-world use case |
+| Extension | Kya karta hai | Real-world use case |
 |---|---|---|
-| **Transfer Fee** | Automatically takes a % fee on every transfer | Protocol revenue, tax tokens |
-| **Confidential Transfers** | Hides transfer amounts using ZK proofs | Privacy-preserving payments |
-| **Permanent Delegate** | One address can always move/burn tokens | Compliance, recallable tokens |
-| **Non-Transferable** | Tokens cannot be transferred after minting | Soulbound tokens, credentials |
-| **Interest-Bearing** | Tokens accrue interest over time | Liquid staking, yield tokens |
-| **Metadata** | Attach name/symbol/URI directly to mint | Removes need for Metaplex |
-| **Transfer Hook** | Call custom program on every transfer | KYC enforcement, royalties |
-| **Mint Close Authority** | Allow closing the mint account | Cleanup for one-time use tokens |
-| **Default Account State** | New accounts start frozen by default | Permissioned tokens |
+| **Transfer Fee** | Har transfer pe automatically % fee kaat leta hai | Protocol revenue, tax tokens |
+| **Confidential Transfers** | ZK proofs use karke transfer amounts hide karta hai | Privacy-preserving payments |
+| **Permanent Delegate** | Ek address hamesha tokens move/burn kar sakta hai | Compliance, recallable tokens |
+| **Non-Transferable** | Mint hone ke baad tokens transfer nahi ho sakte | Soulbound tokens, credentials |
+| **Interest-Bearing** | Tokens time ke saath interest accrue karte hain | Liquid staking, yield tokens |
+| **Metadata** | Name/symbol/URI directly mint pe attach hota hai | Metaplex ki zaroorat khatam |
+| **Transfer Hook** | Har transfer pe custom program call hota hai | KYC enforcement, royalties |
+| **Mint Close Authority** | Mint account close karne ki permission | One-time use tokens ka cleanup |
+| **Default Account State** | Naye accounts default frozen state mein start hote hain | Permissioned tokens |
 
 ```mermaid
 graph TD
@@ -568,47 +573,47 @@ createTokenWithTransferFee().catch(console.error);
 
 ---
 
-## ⚖️ Token Program vs Token-2022: When to Use Which
+## ⚖️ Token Program vs Token-2022: Kaunsa Use Karein
 
-| Scenario | Use Token Program | Use Token-2022 |
+| Scenario | Token Program Use Karo | Token-2022 Use Karo |
 |---|---|---|
-| Simple fungible token (governance, utility) | Yes | Either works |
-| Need transfer fees (protocol revenue) | No | Yes |
-| Privacy-sensitive amounts | No | Yes (Confidential Transfers) |
-| Regulated token (needs freeze on receive) | Partial | Yes (Default Account State) |
-| Soulbound / credential token | No | Yes (Non-Transferable) |
-| Yield-bearing token | Manually via program | Yes (Interest-Bearing) |
-| Wallet support / broad ecosystem compat | Highest compat | Growing fast |
-| Legacy protocol integration | Required | May break |
+| Simple fungible token (governance, utility) | Haan | Dono chalega |
+| Transfer fees chahiye (protocol revenue) | Nahi | Haan |
+| Privacy-sensitive amounts | Nahi | Haan (Confidential Transfers) |
+| Regulated token (receive pe freeze chahiye) | Partial | Haan (Default Account State) |
+| Soulbound / credential token | Nahi | Haan (Non-Transferable) |
+| Yield-bearing token | Manually via program | Haan (Interest-Bearing) |
+| Wallet support / broad ecosystem compat | Sabse zyada compat | Fast badh raha hai |
+| Legacy protocol integration | Required | Toot sakta hai |
 
-### When to use Token Program (classic)
-- You are building a standard governance or utility token
-- You need maximum wallet and DEX compatibility right now
-- Your use case fits the basic mint/transfer/burn model
-- You are learning — start here
+### Kab Token Program (classic) use karein
+- Tum ek standard governance ya utility token bana rahe ho
+- Abhi ke liye maximum wallet aur DEX compatibility chahiye
+- Tumhara use case basic mint/transfer/burn model mein fit ho jaata hai
+- Tum seekh rahe ho — yahin se start karo
 
-### When NOT to use Token Program (classic)
-- You need built-in fees — you would have to build a wrapper program
-- You need privacy on transaction amounts
-- You want soulbound or credential tokens
-- You are building new infrastructure — consider Token-2022
+### Kab Token Program (classic) NAHI use karna chahiye
+- Tumhe built-in fees chahiye — tumhe alag se wrapper program banana padega
+- Transaction amounts pe privacy chahiye
+- Soulbound ya credential tokens banane hain
+- Tum naya infrastructure bana rahe ho — Token-2022 consider karo
 
-### When to use Token-2022
-- You are building a new protocol from scratch
-- You need any of the extension features natively
-- Your ecosystem (wallets, DEXes) already supports it
-- You want metadata directly on-chain without Metaplex
+### Kab Token-2022 use karein
+- Tum shuruat se naya protocol bana rahe ho
+- Extension features mein se koi natively chahiye
+- Tumhara ecosystem (wallets, DEXes) already support karta hai
+- Metaplex ke bina directly on-chain metadata chahiye
 
-### When NOT to use Token-2022
-- Your users rely on older wallets that do not yet support it
-- The protocol you are integrating with (old AMM, bridge) only handles classic tokens
-- You just need a simple token fast
+### Kab Token-2022 NAHI use karna chahiye
+- Tumhare users purane wallets use karte hain jo abhi tak support nahi karte
+- Jis protocol se integrate kar rahe ho (old AMM, bridge) sirf classic tokens handle karta hai
+- Tumhe bas jaldi se ek simple token chahiye
 
 ---
 
 ## 🔍 Mint Authority vs Freeze Authority vs Update Authority
 
-These three authorities are a common point of confusion. Here is a clear breakdown:
+Yeh teen authorities aksar confusion create karti hain. Yahan clear breakdown hai:
 
 ```mermaid
 sequenceDiagram
@@ -639,9 +644,9 @@ sequenceDiagram
 
 ---
 
-## 🧮 Understanding Decimals and Raw Amounts
+## 🧮 Decimals Aur Raw Amounts Samjho
 
-This trips up almost every new developer. The token program stores raw integer amounts. The `decimals` field tells wallets and UIs how to display it.
+Yeh cheez almost har naye developer ko confuse karti hai. Token program raw integer amounts store karta hai. `decimals` field wallets aur UIs ko batata hai ki ise display kaise karna hai.
 
 ```
 display_amount = raw_amount / (10 ^ decimals)
@@ -649,12 +654,12 @@ display_amount = raw_amount / (10 ^ decimals)
 
 | Decimals | Raw stored | Displayed |
 |---|---|---|
-| 0 | 1 | 1 (whole units only, like NFTs) |
+| 0 | 1 | 1 (sirf whole units, NFTs ki tarah) |
 | 2 | 100 | 1.00 |
-| 6 | 1,000,000 | 1.000000 (like USDC) |
-| 9 | 1,000,000,000 | 1.000000000 (like SOL/wSOL) |
+| 6 | 1,000,000 | 1.000000 (USDC ki tarah) |
+| 9 | 1,000,000,000 | 1.000000000 (SOL/wSOL ki tarah) |
 
-In code, always work in raw units:
+Code mein hamesha raw units mein kaam karo:
 
 ```typescript
 const DECIMALS = 6;
@@ -665,23 +670,26 @@ const HALF_TOKEN = 0.5 * Math.pow(10, DECIMALS); // = 500_000 raw units
 const ONE_TOKEN_BIG = BigInt(1_000_000);
 ```
 
-Never use floating point for token amounts — rounding errors will bite you. Use `BigInt` or integer math.
+Token amounts ke liye kabhi floating point use mat karo — rounding errors baad mein bohot pareshaan karenge. `BigInt` ya integer math use karo.
+
+> [!warning]
+> Floating point se token amounts calculate karna waise hi risky hai jaise UPI transaction mein paisa float variable mein store karna — chhoti si rounding error real paisa gawa sakti hai.
 
 ---
 
-## 💡 Rent and Account Costs
+## 💡 Rent Aur Account Costs
 
-Every account on Solana must hold a minimum SOL balance to stay alive — called **rent-exempt** balance. For token accounts:
+Solana pe har account ko zinda rehne ke liye minimum SOL balance rakhna padta hai — jise **rent-exempt** balance bolte hain. Token accounts ke liye:
 
 | Account Type | Approximate rent cost |
 |---|---|
 | Mint Account | ~0.0015 SOL |
 | Token Account / ATA | ~0.002 SOL |
-| Token-2022 Mint (with extensions) | Varies by extensions |
+| Token-2022 Mint (extensions ke saath) | Extensions ke hisab se vary karta hai |
 
-When you call `getOrCreateAssociatedTokenAccount`, if the ATA does not exist, the fee payer sends ~0.002 SOL to create it. This is why dApps sometimes ask you to "approve account creation" — they are paying rent on your behalf.
+Jab tum `getOrCreateAssociatedTokenAccount` call karte ho, agar ATA exist nahi karta, toh fee payer ~0.002 SOL bhejta hai use create karne ke liye. Isi liye dApps kabhi-kabhi tumse "approve account creation" karwate hain — woh tumhare liye rent pay kar rahe hote hain.
 
-You can close a token account (when empty) to reclaim that rent:
+Tum ek token account (jab woh empty ho) close karke woh rent wapas le sakte ho:
 
 ```typescript
 import { closeAccount } from "@solana/spl-token";
@@ -699,26 +707,26 @@ await closeAccount(
 
 ## 🎓 Key Takeaways
 
-1. **One Token Program rules all tokens.** Unlike ERC-20, there is no per-token contract on Solana. The shared Token Program handles everything.
+1. **Ek Token Program hi sab tokens control karta hai.** ERC-20 ke ulat, Solana pe per-token contract nahi hota. Shared Token Program hi sab kuch handle karta hai.
 
-2. **Three accounts model.** Mint Account (definition) + Token Account (holdings) + ATA (standard deterministic address). Know all three cold.
+2. **Teen accounts ka model.** Mint Account (definition) + Token Account (holdings) + ATA (standard deterministic address). Teenon ko achhi tarah samjho.
 
-3. **ATAs are your default.** Always use Associated Token Accounts unless you have a specific reason not to. They are predictable, standard, and expected by every wallet and protocol.
+3. **ATAs hi tumhara default hona chahiye.** Hamesha Associated Token Accounts use karo, jab tak koi specific reason na ho. Yeh predictable, standard hain aur har wallet/protocol inhe expect karta hai.
 
-4. **Authorities are roles, not keys.** `mintAuthority`, `freezeAuthority`, and `updateAuthority` can be set to any keypair, a multisig, or `null`. Setting to `null` is irreversible and proves decentralization.
+4. **Authorities roles hain, keys nahi.** `mintAuthority`, `freezeAuthority`, aur `updateAuthority` kisi bhi keypair, multisig, ya `null` pe set ho sakti hain. `null` set karna irreversible hai aur decentralization prove karta hai.
 
-5. **Decimals are for display only.** The blockchain stores raw integers. Always convert correctly. Use `BigInt` for safety.
+5. **Decimals sirf display ke liye hain.** Blockchain raw integers store karta hai. Hamesha sahi tarike se convert karo. Safety ke liye `BigInt` use karo.
 
-6. **Rent is real.** Creating token accounts costs SOL. This is why creating many ATAs can get expensive for protocol developers. Budget for it.
+6. **Rent real hai.** Token accounts banane mein SOL lagta hai. Isi liye protocol developers ke liye bohot saari ATAs banana mehenga pad sakta hai. Budget karke rakho.
 
-7. **Token-2022 is the future.** For new projects, evaluate whether Token-2022 extensions meet your needs. Transfer fees, transfer hooks, and non-transferable tokens unlock capabilities that would otherwise require custom programs.
+7. **Token-2022 hi future hai.** Naye projects ke liye, check karo ki Token-2022 extensions tumhari zaroorat poori karte hain ya nahi. Transfer fees, transfer hooks, aur non-transferable tokens aise capabilities dete hain jo warna custom program se hi milte.
 
-8. **Freeze authority is a trust signal.** If a token has a live freeze authority, the issuer can freeze your ability to transfer. For DeFi tokens, consider whether you are comfortable with that. Many projects revoke it.
+8. **Freeze authority ek trust signal hai.** Agar kisi token ka freeze authority live hai, toh issuer tumhara transfer ability freeze kar sakta hai. DeFi tokens ke liye, socho ki tum isse comfortable ho ya nahi. Kayi projects ise revoke kar dete hain.
 
-9. **The ATA formula is public.** Given any wallet and any mint, anyone can compute the ATA address. This makes composability easy but also means anyone can know your token holdings on-chain.
+9. **ATA formula public hai.** Kisi bhi wallet aur kisi bhi mint ke liye, koi bhi ATA address calculate kar sakta hai. Isse composability easy ho jaati hai, lekin iska matlab yeh bhi hai ki koi bhi on-chain tumhare token holdings jaan sakta hai.
 
-10. **Test on devnet first.** Devnet airdrop gives you SOL for free. Iterate there before going to mainnet. Token addresses on devnet are worthless — you can experiment freely.
+10. **Pehle devnet pe test karo.** Devnet airdrop tumhe free mein SOL deta hai. Mainnet pe jaane se pehle wahan iterate karo. Devnet ke token addresses worthless hote hain — free mein experiment karo.
 
 ---
 
-> **Next chapter:** Metaplex and NFT Metadata — how to attach names, images, and attributes to your tokens
+> **Next chapter:** Metaplex aur NFT Metadata — apne tokens pe names, images, aur attributes kaise attach karein

@@ -1,15 +1,9 @@
----
-tags: [security, spring-security, concepts, filter-chain]
-aliases: [Spring Security, Filter Chain, Authentication, Authorization]
-stage: intermediate
----
-
 # Spring Security Concepts
 
-> [!info] For the Express/TS dev
-> In Express you compose auth from libraries: `passport`, `express-jwt`, `cors`, `helmet`, hand-rolled middleware. Spring Security gives you all of this as one cohesive **filter chain** that the framework wires up. The mental model is: a request enters a chain of `Filter`s, each one can authenticate, authorize, redirect, or short-circuit. Once you accept that "everything is a filter," it clicks.
+> [!info] Express/TS wale dev ke liye
+> Express mein tum auth ko alag-alag libraries se compose karte ho — `passport`, `express-jwt`, `cors`, `helmet`, aur kuch hand-rolled middleware. Spring Security tumhe yeh sab ek hi cohesive **filter chain** mein de deta hai jise framework khud wire karta hai. Mental model simple hai: request ek chain of `Filter`s se guzarti hai, aur har filter authenticate, authorize, redirect ya short-circuit kar sakta hai. Ek baar "everything is a filter" wali baat samajh mein aa jaye, sab click ho jayega.
 
-## Concept / How it works
+## Concept / Yeh kaam kaise karta hai?
 
 ```mermaid
 flowchart TD
@@ -47,26 +41,28 @@ flowchart TD
     style SpringSecurity fill:#f0f9ff,stroke:#0ea5e9
 ```
 
-The two halves of security:
+Security ke do hisse hote hain — jaise Zomato app mein pehle tumhara login check hota hai (kaun ho tum), phir yeh check hota hai ki tum restaurant-owner ho ya normal customer (kya kar sakte ho):
 
-| Concern | What it answers | Where it lives |
+| Concern | Yeh kya answer karta hai | Kahan hota hai |
 | --- | --- | --- |
-| **Authentication** | "Who are you?" | Authentication filters → `AuthenticationManager` → `AuthenticationProvider` → `UserDetailsService` |
-| **Authorization** | "Are you allowed to do this?" | `AuthorizationFilter` + method security (`@PreAuthorize`) |
+| **Authentication** | "Tum ho kaun?" | Authentication filters → `AuthenticationManager` → `AuthenticationProvider` → `UserDetailsService` |
+| **Authorization** | "Kya tumhe yeh karne ki permission hai?" | `AuthorizationFilter` + method security (`@PreAuthorize`) |
 
 ## Core types
 
+Kyun zaruri hai inhe jaanna? Kyunki jab bhi tum Spring Security ka error dekhoge ya custom auth likhoge, yeh naam baar-baar saamne aayenge. Ek baar samajh liya, poora security module clear ho jayega.
+
 | Type | Role |
 | --- | --- |
-| `SecurityFilterChain` | The bean you define to configure the chain (Spring Security 6+) |
-| `Authentication` | Object representing the authenticated principal (or attempt) |
-| `SecurityContext` | Holds the current `Authentication`; thread-local |
-| `SecurityContextHolder.getContext().getAuthentication()` | Retrieve current user anywhere |
-| `UserDetails` | Spring's view of a user (username, password, authorities) |
+| `SecurityFilterChain` | Jo bean tum define karte ho chain configure karne ke liye (Spring Security 6+) |
+| `Authentication` | Authenticated principal (ya attempt) ko represent karne wala object |
+| `SecurityContext` | Current `Authentication` ko hold karta hai; thread-local hota hai |
+| `SecurityContextHolder.getContext().getAuthentication()` | Kahin bhi current user retrieve karne ka tareeka |
+| `UserDetails` | Spring ka user dekhne ka apna tareeka (username, password, authorities) |
 | `UserDetailsService` | `loadUserByUsername(String)` → `UserDetails` |
-| `AuthenticationProvider` | Plug in a custom auth mechanism (LDAP, OAuth) |
-| `GrantedAuthority` | A role/permission (`"ROLE_ADMIN"`, `"SCOPE_users:read"`) |
-| `PasswordEncoder` | Hashes passwords (BCrypt, Argon2) |
+| `AuthenticationProvider` | Custom auth mechanism plug-in karne ke liye (LDAP, OAuth) |
+| `GrantedAuthority` | Ek role/permission (`"ROLE_ADMIN"`, `"SCOPE_users:read"`) |
+| `PasswordEncoder` | Passwords ko hash karta hai (BCrypt, Argon2) |
 
 ## Code example — minimal setup
 
@@ -77,11 +73,14 @@ The two halves of security:
 </dependency>
 ```
 
-The moment this is on the classpath:
-- All endpoints require authentication
-- Boot logs a randomly generated password for `user`
-- HTTP Basic auth is enabled
-- CSRF is on for state-changing methods
+Bas yeh dependency classpath pe aayi nahi ki turant yeh sab ho jaata hai:
+- Saare endpoints ko authentication chahiye ho jaati hai
+- Boot startup pe `user` ke liye ek random generated password log karta hai
+- HTTP Basic auth enable ho jaata hai
+- State-changing methods ke liye CSRF on ho jaata hai
+
+> [!tip] Socho isko ek naya bouncer hire karne jaisa
+> Jaise koi naya bouncer club ke gate pe laga do aur usse kuch mat batao — woh by default sabko bahar rok dega, chahe woh regular customer hi kyun na ho. Yehi hota hai jab tum `spring-boot-starter-security` add karte ho — pehle sab kuch lock ho jaata hai, phir tum rules batate ho ki kisko andar aane dena hai.
 
 ```java
 @Configuration
@@ -117,9 +116,9 @@ public class SecurityConfig {
 }
 ```
 
-## Accessing the current user
+## Current user ko access kaise karein?
 
-### From a controller (preferred)
+### Controller se (preferred tareeka)
 
 ```java
 @GetMapping("/me")
@@ -132,7 +131,7 @@ public UserDto me(@AuthenticationPrincipal UserDetails user) {
 public AppUser me2(@AuthenticationPrincipal AppUser user) { return user; }
 ```
 
-### From anywhere
+### Kahin se bhi
 
 ```java
 SecurityContext ctx = SecurityContextHolder.getContext();
@@ -143,6 +142,8 @@ boolean isAdmin = auth.getAuthorities().stream()
 ```
 
 ## Authentication flow walkthrough (form login example)
+
+Kya hota hai jab koi user login karta hai? Neeche wala sequence diagram poori journey dikhata hai — bilkul jaise jab tum Zomato pe login karte ho toh backend mein username-password verify hota hai, phir session/token bante hai.
 
 ```mermaid
 sequenceDiagram
@@ -168,7 +169,7 @@ sequenceDiagram
     Filter-->>Client: 200 OK / redirect
 ```
 
-For JWT, the steps differ ([[04-JWT-with-Spring-Security]]) — but the pattern is the same: a filter extracts credentials → AuthenticationManager → fills SecurityContext.
+JWT ke liye steps thode alag hote hain ([[04-JWT-with-Spring-Security]]) — lekin pattern same rehta hai: ek filter credentials nikaalta hai → AuthenticationManager → SecurityContext fill hota hai.
 
 ## Express/TS comparison
 
@@ -201,9 +202,11 @@ app.get('/api/me',
 
 ## Roles vs Authorities vs Scopes
 
-- **Authority** = string. `"ROLE_ADMIN"`, `"users:read"`.
-- **Role** = a special authority with the prefix `ROLE_`. `.hasRole("ADMIN")` checks for `ROLE_ADMIN`.
-- **Scope** = OAuth2/JWT term. `.hasAuthority("SCOPE_users:read")` for a JWT scope.
+Yeh teeno terms confuse karte hain shuru mein, toh simple rakhte hain:
+
+- **Authority** = ek string hai. Jaise `"ROLE_ADMIN"`, `"users:read"`.
+- **Role** = ek special authority hai jispe `ROLE_` prefix laga hota hai. `.hasRole("ADMIN")` actually mein `ROLE_ADMIN` check karta hai.
+- **Scope** = OAuth2/JWT ka term hai. `.hasAuthority("SCOPE_users:read")` se JWT scope check hota hai.
 
 ```java
 .requestMatchers("/admin/**").hasRole("ADMIN")              // ROLE_ADMIN
@@ -213,26 +216,26 @@ app.get('/api/me',
 
 ## Gotchas
 
-> [!warning] `ROLE_` prefix
-> `.hasRole("ADMIN")` checks `ROLE_ADMIN`. `.hasAuthority("ADMIN")` checks for the literal `ADMIN`. Easy to mix up.
+> [!warning] `ROLE_` prefix wala confusion
+> `.hasRole("ADMIN")` asal mein `ROLE_ADMIN` check karta hai. Jabki `.hasAuthority("ADMIN")` literal `ADMIN` string check karta hai. Yeh mix-up bahut common hai — dhyaan rakhna.
 
-> [!warning] CSRF on by default for non-GET
-> POST/PUT/DELETE require a CSRF token. For stateless APIs (JWT), **disable CSRF** ([[07-CSRF-CORS-Security]]).
+> [!warning] CSRF by default on hota hai non-GET requests ke liye
+> POST/PUT/DELETE ke liye CSRF token chahiye hota hai. Agar tum stateless API (JWT) bana rahe ho, toh **CSRF disable karna zaruri hai** ([[07-CSRF-CORS-Security]]).
 
-> [!warning] Adding the starter changes everything
-> The moment `spring-boot-starter-security` is on the classpath, every endpoint becomes 401. Configure `SecurityFilterChain` immediately.
+> [!warning] Starter add karte hi sab kuch badal jaata hai
+> Jaise hi `spring-boot-starter-security` classpath pe aata hai, har endpoint 401 dena shuru kar deta hai. Isliye `SecurityFilterChain` turant configure karo, warna production mein sabko lockout ho jayega.
 
-> [!warning] `SecurityContext` is `ThreadLocal`
-> An `@Async` method runs on a different thread — context is empty unless you propagate it (`DelegatingSecurityContextExecutor`).
+> [!warning] `SecurityContext` ek `ThreadLocal` hai
+> `@Async` method ek alag thread pe chalta hai — waha context empty milega, jab tak tum use explicitly propagate na karo (`DelegatingSecurityContextExecutor`).
 
-> [!tip] Logging
+> [!tip] Logging on kar lo debugging ke liye
 > ```yaml
 > logging.level.org.springframework.security: DEBUG
 > ```
-> Shows you exactly which filter rejected your request and why.
+> Yeh exactly dikhata hai ki kaunse filter ne tumhari request reject ki aur kyun — bahut time bachta hai debugging mein.
 
-> [!tip] Don't fight the framework
-> If you find yourself overriding `Filter`s manually, you're probably solving a problem Security already solves. Read the reference for the pattern that fits.
+> [!tip] Framework se mat lado
+> Agar tum khud se `Filter`s override kar rahe ho, toh probably ek aisi problem solve kar rahe ho jo Security already solve kar chuka hai. Reference padho aur usi pattern ko follow karo jo fit baithta hai.
 
 ## Related
 

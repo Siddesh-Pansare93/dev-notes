@@ -1,6 +1,6 @@
 # 🗄️ Chapter 9: Database Design Best Practices
 
-> "A well-designed schema is like a clean kitchen — everything has a place, and cooking is a joy. A poorly designed schema is like a junk drawer — technically everything fits, but good luck finding anything."
+> "Ek acha schema design bilkul clean kitchen jaisa hota hai — har cheez ki apni jagah hoti hai, aur cooking ek mazaa ban jaata hai. Kharab schema ek bhari hui junk drawer jaisi hoti hai — technically sab kuch fit ho jaata hai, par kuch dhoondhna hell ban jaata hai."
 
 ---
 
@@ -24,14 +24,14 @@
 
 ## 🏷️ Naming Conventions
 
-Good naming is the cheapest form of documentation. Consistency prevents confusion across teams and tools.
+Kya hota hai? Naming ek documentation ka sabse sasta form hai. Agar tables aur columns ke naam consistent honge, to poori team confuse hone se bach jaayegi — chahe kitne bhi tools ya languages use ho rahe ho.
 
 ### Tables
 
-- Use **plural `snake_case`**: `users`, `user_profiles`, `order_items`
-- Plural because a table is a collection of rows — `users` holds many user records
-- Avoid abbreviations: `usr_prf` is harder to read than `user_profiles`
-- Avoid CamelCase: SQL is often case-insensitive, and mixing case causes cross-platform issues
+- **Plural `snake_case`** use karo: `users`, `user_profiles`, `order_items`
+- Plural isliye kyunki table ek collection of rows hoti hai — `users` table mein bahut saare user records padhe hote hain
+- Abbreviations avoid karo: `usr_prf` padhne mein `user_profiles` se zyada mushkil hai
+- CamelCase avoid karo: SQL kaafi jagah case-insensitive hota hai, aur mixed case cross-platform issues create karta hai
 
 ```sql
 -- Good
@@ -45,9 +45,9 @@ CREATE TABLE usrprf (...);
 
 ### Columns
 
-- Use **`snake_case`**: `first_name`, `created_at`, `is_active`
-- **Primary key**: always name it `id` — simple, universal, readable
-- **Foreign keys**: use the pattern `tablename_id` (singular table name + `_id`)
+- **`snake_case`** use karo: `first_name`, `created_at`, `is_active`
+- **Primary key**: hamesha `id` naam do — simple, universal, aur sabko samajh aata hai
+- **Foreign keys**: pattern follow karo `tablename_id` (singular table name + `_id`)
 
 ```sql
 CREATE TABLE orders (
@@ -57,13 +57,13 @@ CREATE TABLE orders (
 );
 ```
 
-This convention means anyone reading `user_id` immediately knows it references the `users` table.
+Iska fayda simple hai — koi bhi `user_id` dekhega to turant samajh jaayega ki yeh `users` table ko reference kar raha hai. Zomato ki app mein jaise `restaurant_id` column dekh ke pata chal jaata hai ki yeh `restaurants` table se joda hai, waisa hi.
 
 ---
 
 ## 🔑 Surrogate Primary Keys
 
-**Always give every table a surrogate primary key** — a column named `id` whose sole job is to uniquely identify each row, independent of business data.
+**Har table ko ek surrogate primary key do** — ek `id` column jiska sirf ek kaam hai: har row ko uniquely identify karna, business data se bilkul independent.
 
 ```sql
 CREATE TABLE countries (
@@ -73,18 +73,20 @@ CREATE TABLE countries (
 );
 ```
 
-Why not use `code` (e.g., `'US'`, `'IN'`) as the PK directly?
+Kyun zaruri hai `code` (jaise `'US'`, `'IN'`) ko directly PK na banaya jaaye?
 
-- Business keys change (country codes can be reassigned, emails change)
-- Surrogate keys never need to change — they are stable references
-- JOINs on a single integer are faster than JOINs on strings
-- ORM frameworks and tooling expect a single `id` column
+- Business keys change ho sakte hain (country codes reassign ho sakte hain, emails change ho sakte hain)
+- Surrogate keys kabhi change nahi hote — yeh stable references hote hain
+- Ek single integer pe JOINs strings pe JOINs se zyada fast hote hain
+- ORM frameworks aur tooling ek single `id` column expect karte hain
+
+Socho — agar CRED ka koi user apna email change kar de, aur email hi tumhara primary key ho, to har jagah cascading update karna padega. `id` alag rakhne se yeh headache hi khatam ho jaata hai.
 
 ---
 
 ## ⏱️ Timestamp Columns
 
-**Every table should have `created_at` and `updated_at` columns.** They cost almost nothing and save hours of debugging later.
+**Har table mein `created_at` aur `updated_at` columns hone hi chahiye.** Yeh almost free hote hain, aur baad mein ghanton ka debugging time bacha dete hain.
 
 ```sql
 CREATE TABLE posts (
@@ -98,21 +100,21 @@ CREATE TABLE posts (
 
 ### Auto-updating `updated_at` — Cross-Database
 
-The tricky part is keeping `updated_at` current automatically. Each database handles this differently:
+Tricky part yeh hai ki `updated_at` ko automatically current rakhna. Har database iska handling alag tarike se karta hai:
 
 | Database       | Mechanism                                     |
 |---------------|-----------------------------------------------|
 | **MySQL**      | `ON UPDATE CURRENT_TIMESTAMP` — built-in      |
-| **PostgreSQL** | Requires a trigger — no built-in support      |
-| **SQL Server** | Requires a trigger                            |
-| **Oracle**     | Requires a trigger                            |
+| **PostgreSQL** | Trigger chahiye — koi built-in support nahi   |
+| **SQL Server** | Trigger chahiye                               |
+| **Oracle**     | Trigger chahiye                               |
 
 **MySQL** (easy mode):
 ```sql
 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ```
 
-**PostgreSQL** (trigger required):
+**PostgreSQL** (trigger chahiye):
 ```sql
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -127,13 +129,13 @@ BEFORE UPDATE ON posts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 ```
 
-Write the trigger once, reuse it across all tables by creating the function globally.
+Trigger function ek baar likho, phir usko globally create karke sabhi tables mein reuse kar sakte ho.
 
 ---
 
 ## 🗑️ Soft Deletes
 
-Instead of physically removing a row (`DELETE FROM ...`), a **soft delete** marks the row as deleted using a nullable `deleted_at` column.
+Row ko physically remove (`DELETE FROM ...`) karne ke bajaye, **soft delete** row ko ek nullable `deleted_at` column ke through "deleted" mark kar deta hai.
 
 ```sql
 ALTER TABLE users ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
@@ -145,21 +147,21 @@ UPDATE users SET deleted_at = NOW() WHERE id = 42;
 SELECT * FROM users WHERE deleted_at IS NULL;
 ```
 
-### Pros of Soft Deletes
+### Soft Deletes ke Pros
 
-- **Data recovery**: accidentally deleted a customer? Just set `deleted_at = NULL`
-- **Audit trail**: you know *when* a record was removed
-- **Referential integrity**: FKs pointing to the row remain valid
-- **Compliance**: regulations (GDPR audit logs, financial records) sometimes require keeping data
+- **Data recovery**: galti se customer delete ho gaya? Bas `deleted_at = NULL` set kar do
+- **Audit trail**: pata chalta hai ki record *kab* remove hua
+- **Referential integrity**: FKs jo us row ko point karte hain, valid rehte hain
+- **Compliance**: regulations (GDPR audit logs, financial records) kabhi kabhi data preserve karna mandatory karte hain
 
-### Cons of Soft Deletes
+### Soft Deletes ke Cons
 
-- **Every query needs a filter**: forget `WHERE deleted_at IS NULL` and you silently include ghost rows
-- **Unique constraints break**: if a user deletes their account and re-registers with the same email, the unique constraint on `email` fires against the soft-deleted row
-- **Indexes bloat**: deleted rows still occupy index space
-- **Complexity creeps**: JOINs and views all need the filter applied
+- **Har query ko filter chahiye**: `WHERE deleted_at IS NULL` bhool gaye, to ghost rows silently include ho jaayengi
+- **Unique constraints toot jaate hain**: agar koi user account delete karke same email se dobara register kare, to `email` pe unique constraint us soft-deleted row ke against fire ho jaayega
+- **Indexes bloat hote hain**: deleted rows bhi index space occupy karte rehte hain
+- **Complexity badhti jaati hai**: JOINs aur views sabko filter apply karna padta hai
 
-**Mitigation**: use a partial unique index (PostgreSQL) or a view that always filters out deleted rows.
+**Mitigation**: partial unique index (PostgreSQL) ya ek view use karo jo hamesha deleted rows filter kare.
 
 ```sql
 -- Partial unique index: email must be unique only among active users
@@ -167,11 +169,14 @@ CREATE UNIQUE INDEX users_email_active ON users (email)
 WHERE deleted_at IS NULL;
 ```
 
+> [!warning]
+> Soft delete power dete hain, par discipline maangte hain. Ek bhi query mein filter bhool gaye, to production mein data leak jaisa bug aa sakta hai.
+
 ---
 
 ## 🆔 UUID vs Auto-Increment vs ULID/CUID
 
-Choosing your primary key type is one of the most consequential schema decisions.
+Apni primary key ka type choose karna schema ke sabse consequential decisions mein se ek hai.
 
 ### Auto-Increment Integer (`SERIAL` / `BIGINT AUTO_INCREMENT`)
 
@@ -179,13 +184,13 @@ Choosing your primary key type is one of the most consequential schema decisions
 id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY
 ```
 
-- **Simple**: the database handles everything
-- **Small**: 4–8 bytes vs 16 bytes for UUID
-- **Ordered**: rows sort by insertion time naturally
-- **Easy joins**: small integers are cache-friendly
-- **Predictable**: `/users/1`, `/users/2` — but this also means enumerable (security risk)
+- **Simple**: database sab kuch khud handle karta hai
+- **Chota size**: 4–8 bytes, UUID ke 16 bytes ke comparison mein
+- **Ordered**: rows insertion time ke hisaab se naturally sort ho jaate hain
+- **Easy joins**: chote integers cache-friendly hote hain
+- **Predictable**: `/users/1`, `/users/2` — lekin iska matlab hai enumerable bhi (security risk)
 
-Best for: internal tables, lookup tables, anything that won't be distributed or exposed publicly.
+Best for: internal tables, lookup tables — kuch bhi jo distributed nahi hai ya publicly expose nahi hoga.
 
 ### UUID (`uuid`)
 
@@ -193,16 +198,16 @@ Best for: internal tables, lookup tables, anything that won't be distributed or 
 id UUID DEFAULT gen_random_uuid() PRIMARY KEY
 ```
 
-- **Globally unique**: safe to generate client-side, safe to merge databases
-- **Not guessable**: `/users/550e8400-e29b-41d4-a716-446655440000` exposes nothing
-- **No central sequence**: great for distributed systems
-- **Bulkier**: 16 bytes, 36-character strings; random UUIDs fragment B-tree indexes (write amplification)
+- **Globally unique**: client-side generate karna safe hai, databases merge karna bhi safe hai
+- **Guess nahi kar sakte**: `/users/550e8400-e29b-41d4-a716-446655440000` kuch expose nahi karta
+- **Central sequence nahi chahiye**: distributed systems ke liye badhiya
+- **Bulkier**: 16 bytes, 36-character strings; random UUIDs B-tree indexes ko fragment kar dete hain (write amplification)
 
-Best for: public-facing IDs, distributed systems, microservices where records are created across multiple nodes.
+Best for: public-facing IDs, distributed systems, microservices jahan records multiple nodes pe create hote hain.
 
 ### ULID / CUID — Best of Both Worlds
 
-**ULID** (Universally Unique Lexicographically Sortable Identifier) encodes a millisecond timestamp in the first 10 characters, making ULIDs **sortable by creation time** while remaining globally unique.
+**ULID** (Universally Unique Lexicographically Sortable Identifier) apne pehle 10 characters mein ek millisecond timestamp encode karta hai, jisse ULIDs **creation time ke hisaab se sortable** ban jaate hain, phir bhi globally unique rehte hain.
 
 ```
 01ARZ3NDEKTSV4RRFFQ69G5FAV
@@ -210,13 +215,13 @@ Best for: public-facing IDs, distributed systems, microservices where records ar
  timestamp    randomness
 ```
 
-**CUID2** uses a similar approach — timestamp prefix + random suffix — and is URL-safe.
+**CUID2** bhi similar approach use karta hai — timestamp prefix + random suffix — aur URL-safe hai.
 
-- Ordered inserts = B-tree index stays compact (no fragmentation)
-- Globally unique = no central sequence needed
-- Human-readable ordering = debugging is easier
+- Ordered inserts = B-tree index compact rehta hai (fragmentation nahi)
+- Globally unique = central sequence ki zarurat nahi
+- Human-readable ordering = debugging easier ho jaata hai
 
-Use ULID/CUID when you want UUID's distribution benefits without the index fragmentation penalty.
+Jab UUID ke distribution benefits chahiye ho, par index fragmentation ki penalty nahi chahiye — tab ULID/CUID use karo. Socho IRCTC apne PNR numbers ke liye kuch aisa hi karta to ordering aur uniqueness dono mil jaate.
 
 ---
 
@@ -224,7 +229,7 @@ Use ULID/CUID when you want UUID's distribution benefits without the index fragm
 
 ### The God Table
 
-A **God Table** is a single table with hundreds of columns trying to represent every possible entity in the system.
+**God Table** ek single table hoti hai jismein sainkdo columns hote hain, aur woh system ki har possible entity ko represent karne ki koshish karti hai.
 
 ```sql
 -- The God Table (do NOT do this)
@@ -240,21 +245,21 @@ CREATE TABLE entities (
 );
 ```
 
-**Why it happens**: "We'll need to store different types of things, let's just make one flexible table."
+**Yeh kyun hota hai**: "Humein alag-alag type ki cheezein store karni hain, chalo ek flexible table bana dete hain."
 
-**Why it's bad**:
-- Most columns are NULL for most rows — wasted storage, confusing queries
-- No meaningful constraints (what does `field_47` mean for a product vs a user?)
-- Schema changes require ALTERing one massive table
-- Indexes become meaningless
+**Yeh kyun bura hai**:
+- Zyadatar rows ke liye zyadatar columns NULL rehte hain — storage waste, aur queries confusing ban jaati hain
+- Koi meaningful constraint nahi (`field_47` ka matlab kya hai product ke liye vs user ke liye?)
+- Schema changes ke liye ek hi massive table ALTER karna padta hai
+- Indexes meaningless ho jaate hain
 
-**Fix**: separate tables per entity type, or use proper inheritance patterns.
+**Fix**: har entity type ke liye alag table banao, ya proper inheritance patterns use karo.
 
 ---
 
 ### EAV (Entity-Attribute-Value)
 
-EAV stores data as key-value pairs instead of columns:
+EAV data ko columns ki jagah key-value pairs ki tarah store karta hai:
 
 ```sql
 -- EAV schema (usually a mistake)
@@ -265,26 +270,26 @@ CREATE TABLE attributes (
 );
 ```
 
-**When it seems smart**: "Our customers need custom fields — we can't know the schema upfront!"
+**Kab yeh smart lagta hai**: "Customers ko custom fields chahiye — humein schema pehle se pata nahi!"
 
-**Why it's usually not**:
-- You lose data types — everything is `TEXT`, so numeric comparisons break
-- You cannot enforce NOT NULL, UNIQUE, or FK constraints per attribute
-- Simple queries become multi-join nightmares
-- Performance collapses at scale
+**Yeh kyun usually galat idea hai**:
+- Data types kho jaate hain — sab kuch `TEXT` hai, isliye numeric comparisons break ho jaate hain
+- Har attribute ke liye NOT NULL, UNIQUE, ya FK constraints enforce nahi kar sakte
+- Simple queries multi-join nightmares ban jaati hain
+- Scale pe performance collapse ho jaata hai
 
 **Better alternatives**:
-- JSONB column for truly dynamic attributes (PostgreSQL)
+- Truly dynamic attributes ke liye JSONB column (PostgreSQL)
 - Separate extension tables: `user_custom_fields (user_id, field_name, field_value)`
-- Class-table inheritance with a base table + type-specific tables
+- Class-table inheritance — ek base table + type-specific tables
 
-EAV has legitimate uses (medical records systems like HL7, some CMS platforms), but treat it as a last resort.
+EAV ke legitimate use cases bhi hain (jaise HL7 jaisa medical records system, kuch CMS platforms), par isko last resort ki tarah treat karo.
 
 ---
 
 ## 🔗 Polymorphic Associations
 
-A **polymorphic association** lets one FK column point to rows in *different* tables depending on a `type` discriminator column.
+**Polymorphic association** mein ek FK column, ek `type` discriminator column ke basis pe *different* tables ki rows ko point kar sakta hai.
 
 ```sql
 CREATE TABLE comments (
@@ -296,30 +301,30 @@ CREATE TABLE comments (
 ```
 
 **Pros**:
-- One `comments` table serves many entity types
-- Less schema duplication
-- Popular in ActiveRecord (Rails), Eloquent (Laravel)
+- Ek `comments` table bahut saare entity types ki service kar deti hai
+- Schema duplication kam hoti hai
+- Rails ke ActiveRecord, Laravel ke Eloquent mein popular pattern hai
 
 **Cons**:
-- **No foreign key enforcement** — the database cannot validate that `commentable_id` actually exists in the referenced table
-- Queries require knowing the type upfront
-- Reporting across types is awkward
-- Indexing `(commentable_type, commentable_id)` works but is not as tight as a real FK
+- **Foreign key enforcement nahi hota** — database validate nahi kar sakta ki `commentable_id` sach mein correct table mein exist karta hai
+- Queries mein pehle se type pata hona chahiye
+- Types ke across reporting karna awkward ho jaata hai
+- `(commentable_type, commentable_id)` pe index karna kaam karta hai, par ek real FK jitna tight nahi hota
 
-**Alternative**: use a separate join table per relationship (`post_comments`, `video_comments`) or a shared abstract parent table with FK to the parent.
+**Alternative**: har relationship ke liye alag join table use karo (`post_comments`, `video_comments`) ya ek shared abstract parent table jismein parent ka FK ho.
 
 ---
 
 ## 📦 Storing JSON in a Relational Database
 
-Modern databases (PostgreSQL `jsonb`, MySQL `JSON`, SQL Server `NVARCHAR` + `ISJSON`) let you store JSON inside a column.
+Modern databases (PostgreSQL `jsonb`, MySQL `JSON`, SQL Server `NVARCHAR` + `ISJSON`) ek column ke andar JSON store karne dete hain.
 
-### When it makes sense
+### Kab yeh sense banata hai
 
-- **Truly dynamic, schema-less attributes**: product metadata that varies wildly by category
-- **Third-party API payloads**: store the raw webhook body alongside your normalized columns
-- **Sparse optional fields**: a `settings` blob where 95% of keys are optional per user
-- **Audit snapshots**: a before/after JSON diff of a row's state
+- **Truly dynamic, schema-less attributes**: product metadata jo category ke hisaab se bahut alag ho
+- **Third-party API payloads**: raw webhook body ko apne normalized columns ke saath store karna
+- **Sparse optional fields**: ek `settings` blob jahan 95% keys per user optional hain
+- **Audit snapshots**: row ki state ka before/after JSON diff
 
 ```sql
 CREATE TABLE products (
@@ -334,19 +339,19 @@ CREATE INDEX ON products USING gin(attributes);
 SELECT * FROM products WHERE attributes->>'color' = 'red';
 ```
 
-### When it does NOT make sense
+### Kab yeh sense NAHI banata
 
-- Querying frequently on individual JSON fields (just add a real column)
-- Enforcing referential integrity on a JSON value
-- Sorting or aggregating on a JSON field at scale
+- Individual JSON fields pe baar baar query karna (bas ek real column add kar do)
+- JSON value pe referential integrity enforce karna
+- Scale pe JSON field pe sorting ya aggregation karna
 
-**Rule of thumb**: if you find yourself writing `WHERE data->>'status' = 'active'` in every query, promote `status` to a real column.
+**Rule of thumb**: agar tum har query mein `WHERE data->>'status' = 'active'` likh rahe ho, to `status` ko ek real column bana do.
 
 ---
 
 ## 📝 Audit Tables / History Tables
 
-An **audit table** records every change made to a source table — who changed what, when, and from what value to what value.
+**Audit table** source table mein hui har change record karti hai — kisne kya change kiya, kab, aur kis value se kis value tak.
 
 ```mermaid
 erDiagram
@@ -403,17 +408,18 @@ AFTER INSERT OR UPDATE OR DELETE ON users
 FOR EACH ROW EXECUTE FUNCTION audit_users();
 ```
 
-Audit tables are essential for compliance (SOX, HIPAA), debugging production incidents, and implementing undo/redo features.
+> [!tip]
+> Audit tables compliance (SOX, HIPAA) ke liye zaruri hain, production incidents debug karne mein kaam aate hain, aur undo/redo features implement karne ke liye bhi useful hain. Soch lo jaise CRED apni transactions ka poora history rakhta hai — taaki dispute ke waqt exact trace mil sake.
 
 ---
 
 ## ⚡ Partitioning Large Tables
 
-When a table grows into hundreds of millions of rows, queries slow down even with good indexes. **Partitioning** splits the physical storage of one logical table into smaller chunks.
+Jab ek table sainkdo millions rows tak badh jaati hai, to acche indexes hone ke bawajood bhi queries slow ho jaati hain. **Partitioning** ek logical table ki physical storage ko chote-chote chunks mein baant deta hai.
 
 ### Range Partitioning
 
-Divide by a continuous value — typically a date:
+Ek continuous value ke basis pe divide karo — typically date:
 
 ```sql
 CREATE TABLE events (
@@ -429,11 +435,11 @@ CREATE TABLE events_2025 PARTITION OF events
   FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');
 ```
 
-Queries with `WHERE created_at BETWEEN ...` skip irrelevant partitions entirely (partition pruning).
+`WHERE created_at BETWEEN ...` wali queries irrelevant partitions ko poori tarah skip kar deti hain (partition pruning).
 
 ### List Partitioning
 
-Divide by a discrete set of values — useful for region or status:
+Discrete values ke set ke basis pe divide karo — region ya status ke liye useful:
 
 ```sql
 CREATE TABLE orders (
@@ -447,7 +453,7 @@ CREATE TABLE orders_eu PARTITION OF orders FOR VALUES IN ('DE', 'FR', 'UK');
 
 ### Hash Partitioning
 
-Distribute rows evenly across N partitions — good when there's no natural range:
+Rows ko N partitions mein evenly distribute karo — jab koi natural range na ho, tab acha kaam karta hai:
 
 ```sql
 CREATE TABLE sessions (
@@ -460,17 +466,17 @@ CREATE TABLE sessions_p1 PARTITION OF sessions FOR VALUES WITH (MODULUS 4, REMAI
 -- ... p2, p3
 ```
 
-**When to partition**: when a single table exceeds ~50–100 million rows and query performance degrades despite proper indexing.
+**Kab partition karein**: jab ek single table ~50–100 million rows se zyada ho jaaye aur proper indexing ke bawajood bhi query performance kharab ho.
 
 ---
 
 ## 🏢 Multi-Tenancy Patterns
 
-A **multi-tenant** application serves multiple customers (tenants) from the same deployment. There are three main schema strategies:
+**Multi-tenant** application ek hi deployment se multiple customers (tenants) ko serve karti hai. Isके liye teen main schema strategies hain:
 
 ### 1. Shared Schema (Row-Level Isolation)
 
-All tenants share the same tables. Every table has a `tenant_id` column.
+Sabhi tenants same tables share karte hain. Har table mein ek `tenant_id` column hota hai.
 
 ```sql
 CREATE TABLE projects (
@@ -481,12 +487,12 @@ CREATE TABLE projects (
 -- Always filter: WHERE tenant_id = ?
 ```
 
-- **Pros**: simple, cheap, easy to scale horizontally
-- **Cons**: one bug leaks data across tenants; hard to give per-tenant backups; one noisy tenant affects all
+- **Pros**: simple, sasta, horizontally scale karna easy
+- **Cons**: ek bug data ko tenants ke beech leak kar sakta hai; per-tenant backup dena mushkil hai; ek noisy tenant sabko affect karta hai
 
 ### 2. Separate Schema (Schema-Level Isolation)
 
-Each tenant gets their own PostgreSQL schema (namespace):
+Har tenant ko apna khud ka PostgreSQL schema (namespace) milta hai:
 
 ```sql
 -- Tenant A
@@ -498,17 +504,17 @@ CREATE SCHEMA tenant_beta;
 CREATE TABLE tenant_beta.projects (...);
 ```
 
-- **Pros**: strong isolation; per-tenant migrations possible; easier to export one tenant's data
-- **Cons**: schema migrations must run N times; connection pooling is harder; schema sprawl with thousands of tenants
+- **Pros**: strong isolation; per-tenant migrations possible; ek tenant ka data export karna easier
+- **Cons**: schema migrations N baar chalani padti hain; connection pooling harder ho jaata hai; hazaron tenants ke saath schema sprawl
 
 ### 3. Separate Database (Full Isolation)
 
-Each tenant has their own database instance.
+Har tenant ki apni khud ki database instance hoti hai.
 
-- **Pros**: complete isolation; dedicated resources; regulatory compliance (data residency)
-- **Cons**: expensive; operationally complex; cross-tenant reporting is nearly impossible
+- **Pros**: complete isolation; dedicated resources; regulatory compliance (data residency) ke liye achha
+- **Cons**: mehenga; operationally complex; cross-tenant reporting almost impossible
 
-**Choosing a pattern**:
+**Pattern kaise choose karein**:
 
 | Factor                  | Shared Schema | Separate Schema | Separate DB |
 |------------------------|:-------------:|:---------------:|:-----------:|
@@ -517,53 +523,55 @@ Each tenant has their own database instance.
 | Cost sensitivity       | High          | Medium          | Low         |
 | Compliance needs       | Low           | Medium          | High        |
 
+Socho jaise OYO chahe kitne bhi hotels onboard kar le — usko shared schema hi chahiye hoga scale ke liye. Lekin ek banking SaaS product jismein har client ka data poori tarah alag rehna chahiye, wahan separate schema ya separate database better fit hoga.
+
 ---
 
 ## ✅ Key Takeaways
 
-- **Name things clearly**: plural `snake_case` tables, `id` for PKs, `tablename_id` for FKs — consistency beats cleverness.
-- **Every table needs `id`, `created_at`, `updated_at`** — these are free insurance.
-- **`updated_at` auto-update varies by database**: MySQL has it built-in; PostgreSQL, SQL Server, and Oracle need a trigger.
-- **Soft deletes are powerful but require discipline** — always filter on `deleted_at IS NULL`, and use partial indexes for unique constraints.
-- **Choose your PK type intentionally**: integer for simplicity, UUID for global uniqueness, ULID/CUID for ordered uniqueness in distributed systems.
-- **God Tables and EAV are warning signs**: they feel flexible but create unmaintainable schemas — normalize or use JSONB instead.
-- **JSON columns have a place**, but if you query a JSON field in every WHERE clause, make it a real column.
-- **Audit tables are worth the overhead** for any data that matters — use triggers to capture them automatically.
-- **Partition large tables by range (date), list (category), or hash (even spread)** to keep query performance as data grows.
-- **Multi-tenancy strategy depends on scale and isolation needs** — most SaaS products start with shared schema and migrate to separate schemas as compliance demands grow.
+- **Naming clear rakho**: plural `snake_case` tables, PKs ke liye `id`, FKs ke liye `tablename_id` — consistency cleverness se better hai.
+- **Har table ko `id`, `created_at`, `updated_at` chahiye** — yeh free insurance jaisa hai.
+- **`updated_at` ka auto-update database ke hisaab se alag hota hai**: MySQL mein built-in hai; PostgreSQL, SQL Server, aur Oracle mein trigger chahiye.
+- **Soft deletes powerful hain par discipline maangte hain** — hamesha `deleted_at IS NULL` filter karo, aur unique constraints ke liye partial indexes use karo.
+- **PK type intentionally choose karo**: simplicity ke liye integer, global uniqueness ke liye UUID, distributed systems mein ordered uniqueness ke liye ULID/CUID.
+- **God Tables aur EAV warning signs hain**: flexible lagte hain, par unmaintainable schemas bana dete hain — normalize karo ya JSONB use karo.
+- **JSON columns ki apni jagah hai**, par agar tum har WHERE clause mein JSON field query kar rahe ho, to usko real column bana do.
+- **Audit tables overhead ke saath bhi worth it hain** — kisi bhi important data ke liye triggers use karke automatically capture karo.
+- **Bade tables ko range (date), list (category), ya hash (even spread) se partition karo** taaki data badhne pe bhi query performance maintained rahe.
+- **Multi-tenancy strategy scale aur isolation needs pe depend karti hai** — zyadatar SaaS products shared schema se start karte hain aur compliance demands badhne pe separate schemas pe migrate karte hain.
 
 ---
 
 ## 🧠 Quiz
 
-**Question 1**: Your application stores blog comments. A comment can belong to either a `Post` or a `Video`. You implement this with `commentable_id` and `commentable_type` columns. What is the main technical risk of this approach?
+**Question 1**: Tumhari application blog comments store karti hai. Ek comment ya to `Post` ka ho sakta hai ya `Video` ka. Tum isko `commentable_id` aur `commentable_type` columns se implement karte ho. Is approach ka main technical risk kya hai?
 
 <details>
 <summary>Answer</summary>
 
-The database cannot enforce referential integrity — there is no foreign key constraint that validates `commentable_id` actually points to a real row in the correct table. If you delete a post without cleaning up its comments, you get orphaned rows with no database-level protection against it.
+Database referential integrity enforce nahi kar sakta — koi foreign key constraint nahi hai jo validate kare ki `commentable_id` sach mein correct table ki koi real row point kar raha hai. Agar tum ek post delete karo bina uske comments clean kiye, to orphaned rows aa jaayengi jinke against koi database-level protection nahi hai.
 
 </details>
 
 ---
 
-**Question 2**: You are building a SaaS analytics platform and need each customer's data to be completely isolated for GDPR compliance — you must be able to export or delete one customer's data independently. Which multi-tenancy pattern is most appropriate, and why?
+**Question 2**: Tum ek SaaS analytics platform bana rahe ho aur GDPR compliance ke liye har customer ka data completely isolated hona chahiye — tumhe ek customer ka data independently export ya delete karne ki ability chahiye. Konsa multi-tenancy pattern sabse appropriate hai, aur kyun?
 
 <details>
 <summary>Answer</summary>
 
-Either **separate schema** or **separate database** is appropriate. Separate schema gives strong isolation and makes it easy to dump or drop one tenant's data without affecting others, while keeping operational overhead lower than separate databases. Separate database is the strongest isolation but significantly more expensive at scale. Shared schema is ruled out because tenant data is co-mingled in the same tables, making per-tenant exports and deletions complex and error-prone.
+Ya to **separate schema** ya **separate database** appropriate hai. Separate schema strong isolation deta hai aur ek tenant ka data dump ya drop karna easy banata hai bina doosron ko affect kiye, saath hi separate database se operational overhead kam rakhta hai. Separate database sabse strong isolation deta hai lekin scale pe kaafi zyada expensive ho jaata hai. Shared schema ruled out hai kyunki tenant data same tables mein co-mingled hota hai, jisse per-tenant exports aur deletions complex aur error-prone ban jaate hain.
 
 </details>
 
 ---
 
-**Question 3**: You have a `products` table with 500 million rows. Queries filtering by `created_at` (e.g., "all products added this month") are slow even though `created_at` is indexed. What database feature should you apply, and which partitioning strategy is most appropriate here?
+**Question 3**: Tumhare paas ek `products` table hai jismein 500 million rows hain. `created_at` pe filter karne wali queries (jaise "is mahine add hue sabhi products") slow hain, jabki `created_at` indexed hai. Konsa database feature apply karna chahiye, aur yahan konsi partitioning strategy sabse appropriate hai?
 
 <details>
 <summary>Answer</summary>
 
-Apply **table partitioning** using **range partitioning** on the `created_at` column. Each partition covers a time window (e.g., one month or one year). When a query filters by date range, the database uses **partition pruning** to skip all irrelevant partitions and scan only the relevant one(s), dramatically reducing I/O even without changing the query or adding new indexes.
+**Table partitioning** apply karo, **range partitioning** ke saath `created_at` column pe. Har partition ek time window cover kare (jaise ek mahina ya ek saal). Jab query date range pe filter karti hai, database **partition pruning** use karke saare irrelevant partitions skip kar deta hai aur sirf relevant partition(s) scan karta hai — isse I/O drastically kam ho jaata hai, bina query change kiye ya naya index add kiye.
 
 </details>
 

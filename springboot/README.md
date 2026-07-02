@@ -1,6 +1,9 @@
 # Java & Spring Boot
 
-A comprehensive guide to Java and Spring Boot for backend developers — covering the language, the framework, microservices, security, testing, and production deployment. Notes are written from the perspective of an experienced backend developer (Node.js/TypeScript/Express), with every concept mapped to something you already know.
+Ek complete guide Java aur Spring Boot ki, backend developers ke liye — language, framework, microservices, security, testing, aur production deployment sab cover hoga. Ye notes ek experienced backend developer (jo Node.js/TypeScript/Express se aata hai) ke perspective se likhe gaye hain — matlab har concept ko kisi na kisi cheez se map karke samjhaya gaya hai jo tumhe pehle se pata hai.
+
+> [!info]
+> Socho ye aisa hai jaise tumne Zomato ka backend Node mein banaya hai, aur ab wahi cheez Java/Spring mein banani hai. Naam alag honge, syntax alag hoga — lekin problem wahi hai, solution ka pattern wahi hai. Bas "IoC Container" ko "DI system jaisa NestJS mein hota hai" samajh lo, aadha dar khatam.
 
 ## Table of Contents
 
@@ -38,8 +41,10 @@ A comprehensive guide to Java and Spring Boot for backend developers — coverin
 
 ## Learning Path
 
+Kaise padhna hai iska ek roadmap chahiye? Neeche 3 tracks diye hain — apni level ke hisaab se pick karo.
+
 ### Beginner Track (Week 1-2)
-If you're new to Java, start here:
+Agar Java bilkul naya hai tumhare liye, yahan se shuru karo:
 1. [JVM, JDK, JRE](./01-Java-Fundamentals/01-JVM-JDK-JRE.md)
 2. [Syntax Basics](./01-Java-Fundamentals/02-Syntax-Basics.md)
 3. [OOP: Classes & Objects](./01-Java-Fundamentals/03-OOP-Classes-Objects.md)
@@ -48,7 +53,7 @@ If you're new to Java, start here:
 6. [What is Spring Boot](./05-Spring-Boot/01-What-is-Spring-Boot.md)
 
 ### Intermediate Track (Week 3-5)
-Build your first production-ready API:
+Ab apna pehla production-ready API banate hain:
 1. [IoC & Dependency Injection](./04-Spring-Core/01-IoC-DI-Concepts.md)
 2. [REST Controllers](./06-Web-REST/01-RestController-Basics.md)
 3. [Validation & Error Handling](./06-Web-REST/05-Validation.md)
@@ -57,41 +62,44 @@ Build your first production-ready API:
 6. [Testing with JUnit & Mockito](./09-Testing/01-Testing-Pyramid-and-Tools.md)
 
 ### Advanced Track (Week 6-8)
-Go production and distributed:
+Ab production aur distributed systems ki taraf badhte hain:
 1. [Microservices with Spring Cloud](./10-Microservices/01-What-is-a-Microservice.md)
 2. [Kafka & RabbitMQ](./11-Messaging/01-Messaging-Concepts.md)
 3. [Observability & Actuator](./12-Observability/01-Spring-Boot-Actuator.md)
 4. [Docker & Kubernetes](./13-Deployment/02-Docker-for-Spring-Boot.md)
 5. [Spring Modulith](./15-Spring-Modulith/01-Modulith-Concepts.md)
 
-## What You'll Learn
+## Kya Seekhoge Is Guide Mein?
 
-- Java language: types, generics, streams, lambdas, concurrency, modern Java (records, sealed classes)
-- How Spring's IoC container and dependency injection works (and why it's similar to NestJS)
-- Building REST APIs with validation, error handling, and content negotiation
-- JPA/Hibernate: entities, repositories, relationships, N+1 problem, transactions
-- Spring Security: filter chain, JWT auth, OAuth2, RBAC, ABAC
-- Testing: unit tests, slice tests (`@WebMvcTest`, `@DataJpaTest`), Testcontainers for real DB tests
+- Java language: types, generics, streams, lambdas, concurrency, aur modern Java features (records, sealed classes)
+- Spring ka IoC container aur dependency injection kaise kaam karta hai (aur ye kyun NestJS jaisa lagega tumhe)
+- REST APIs banana — validation, error handling, content negotiation ke saath
+- JPA/Hibernate: entities, repositories, relationships, N+1 problem, transactions — Sequelize/Prisma se comparison ke saath
+- Spring Security: filter chain, JWT auth, OAuth2, RBAC, ABAC — Express ke `passport.js`/middleware wale mental model se
+- Testing: unit tests, slice tests (`@WebMvcTest`, `@DataJpaTest`), aur Testcontainers se real DB pe tests
 - Microservices: Eureka service discovery, Spring Cloud Gateway, OpenFeign, Resilience4j
 - Messaging: Kafka producers/consumers, RabbitMQ, dead letter queues, idempotency
 - Observability: Micrometer metrics, distributed tracing, health checks
 - Deployment: Fat JAR, Docker, Kubernetes, GraalVM native image, CI/CD
 
-## Prerequisites
+## Prerequisites — Ye Pata Hona Chahiye
 
-- Comfortable with REST APIs and HTTP
-- Experience with any backend framework (Express, Fastapi, NestJS, etc.)
-- Basic SQL and database knowledge
-- Familiarity with Docker is helpful for later sections
+- REST APIs aur HTTP ke saath comfortable ho (jaise tum already ho)
+- Kisi bhi backend framework ka experience (Express, FastAPI, NestJS, waghera)
+- Basic SQL aur database ka knowledge
+- Docker se thodi familiarity — baad ke sections mein kaam aayegi
 
-## How to Use This Guide
+## Is Guide Ko Kaise Use Karein?
 
-1. **Start with the FAQ** — [FAQ for Express Devs](./00-Start-Here/06-FAQ-for-Express-Devs.md) answers your first 20 "where is X in Spring?" questions in 10 minutes
-2. **Follow the 8-week plan** — [Learning Path](./00-Start-Here/01-Learning-Path.md) gives you a structured week-by-week schedule
-3. **Map concepts to what you know** — every note has a "For the Express/TS dev" section showing the equivalent
-4. **Don't skip Java Fundamentals** — Java's type system and generics are foundational
-5. **Build as you learn** — the notes are most effective when paired with a real Spring Boot project
+1. **FAQ se shuru karo** — [FAQ for Express Devs](./00-Start-Here/06-FAQ-for-Express-Devs.md) tumhare pehle 20 "Spring mein X kahan hai?" wale sawaalon ka jawab 10 minute mein de dega
+2. **8-week plan follow karo** — [Learning Path](./00-Start-Here/01-Learning-Path.md) mein structured week-by-week schedule mil jayega
+3. **Concepts ko apne knowledge se map karo** — har note mein "For the Express/TS dev" wala section hai jo equivalent dikhata hai
+4. **Java Fundamentals skip mat karna** — Java ka type system aur generics foundation hai, isko pakka karo pehle
+5. **Seekhte-seekhte build bhi karo** — ye notes tab sabse zyada kaam karte hain jab saath mein ek real Spring Boot project bhi bana rahe ho
+
+> [!tip]
+> Agar tumhe lagta hai "yaar itna Java syntax yaad kaise rakhu", chill maaro. Zyada tar cheezein tumhare Express/TS knowledge ka hi ek "verbose" version hain. `@Controller` = `router.get()`, `@Autowired` = `constructor(private service: Service)`, `@Transactional` = manually likha hua `BEGIN...COMMIT`. Bas naam alag hai, concept wahi purana dost hai.
 
 ---
 
-Start with [FAQ for Express/TS Developers](./00-Start-Here/06-FAQ-for-Express-Devs.md) — it'll reframe everything in 5 minutes. ☕
+Shuru karo [FAQ for Express/TS Developers](./00-Start-Here/06-FAQ-for-Express-Devs.md) se — 5 minute mein sab kuch reframe ho jayega tumhare dimaag mein. ☕

@@ -1,56 +1,56 @@
-# 06 — Indexes: How Databases Find Data Fast
+# 06 — Indexes: Database Data Ko Fast Kaise Dhundhti Hai
 
 > **Level:** Beginner | **Estimated read time:** 20–25 min
 
 ---
 
-## 📖 The Book Analogy — Why Indexes Exist
+## 📖 Kitaab Wala Analogy — Index Exist Kyun Karta Hai?
 
-Imagine you have a 1,000-page technical book and you need to find every page that mentions "foreign key." You have two choices:
+Socho tumhare paas ek 1,000-page ki technical book hai aur tumhe har wo page dhundhna hai jahan "foreign key" mention hua ho. Do options hain:
 
-1. Read every single page from page 1 to page 1,000 (painful).
-2. Flip to the **index at the back**, find "foreign key," see "pages 47, 203, 418," and go directly there.
+1. Page 1 se page 1,000 tak har page padho (bilkul painful).
+2. Seedha **book ke aakhir wale index** pe jao, "foreign key" dhundho, wahan likha mile "pages 47, 203, 418," aur directly wahi pages pe pahunch jao.
 
-A **database index** is exactly that back-of-the-book index. It is a separate data structure maintained by the database that lets queries jump straight to relevant rows instead of reading every row in a table.
+**Database index** bhi exactly wahi back-of-the-book index hai. Ye ek separate data structure hai jo database maintain karta hai, taaki queries har row padhe bina seedha relevant rows tak pahunch jayein.
 
 ---
 
-## 🐢 Without an Index: Full Table Scan (O(n))
+## 🐢 Bina Index Ke: Full Table Scan (O(n))
 
-When a table has no index on the column you are filtering by, the database has no choice — it must read **every single row** and check the condition.
+Jab kisi column pe index nahi hota jispe tum filter kar rahe ho, to database ke paas koi chara nahi — usse **har ek row** padhni padegi aur condition check karni padegi.
 
 ```sql
 -- Table: users (5,000,000 rows)
 SELECT * FROM users WHERE email = 'alice@example.com';
 ```
 
-Without an index on `email`, the database reads all 5 million rows one by one. This is called a **full table scan** and its time complexity is **O(n)** — the more rows you have, the slower it gets, linearly.
+`email` pe index na ho to database saare 5 million rows ek-ek karke padhega. Isse **full table scan** kehte hain, aur iski time complexity hai **O(n)** — jitni zyada rows, utna slow, linearly.
 
-For small tables (a few thousand rows) this is barely noticeable. For tables with millions of rows, a full scan can take seconds or even minutes.
+Chhoti tables (kuch hazaar rows) ke liye ye barely noticeable hota hai. Lekin lakhon rows wali tables mein full scan seconds ya minutes tak le sakta hai — Zomato ka poora order history bina index ke scan karne jaisa, imagine karo kitna time lagega.
 
 ---
 
-## ⚡ With an Index: B-Tree Lookup (O(log n))
+## ⚡ Index Ke Saath: B-Tree Lookup (O(log n))
 
-Add an index on `email` and the same query completes in microseconds, because the database can navigate a **sorted tree structure** and eliminate half the remaining candidates at every step. This is **O(log n)** — adding millions of rows barely increases lookup time.
+`email` pe index laga do, aur wahi query microseconds mein complete ho jayegi, kyunki database ek **sorted tree structure** navigate kar sakta hai aur har step pe baaki bache candidates ko aadha kar deta hai. Ye hai **O(log n)** — lakhon rows add karne pe bhi lookup time barely badhta hai.
 
 ```sql
 CREATE INDEX idx_users_email ON users(email);
 ```
 
-Now the query jumps straight to the matching row(s). The default index type in every major relational database (PostgreSQL, MySQL, SQL Server, Oracle) is the **B-tree**.
+Ab query seedha matching row(s) tak jump karti hai. Har major relational database (PostgreSQL, MySQL, SQL Server, Oracle) ka default index type hai **B-tree**.
 
 ---
 
-## 🌳 B-Tree Index: How It Works
+## 🌳 B-Tree Index: Ye Kaam Kaise Karta Hai
 
-B-tree stands for **Balanced Tree**. It keeps all leaf nodes at the same depth, so every lookup takes the same number of steps regardless of which value you search for.
+B-tree ka matlab hai **Balanced Tree**. Isme saare leaf nodes same depth pe rehte hain, isliye har lookup mein steps ki same number lagti hai, chahe tum koi bhi value search karo.
 
 ### Structure
 
-- **Root node** — the entry point.
-- **Internal nodes** — contain key ranges used to route the search left or right.
-- **Leaf nodes** — contain the actual index keys plus pointers to the row locations on disk (heap pointers in PostgreSQL, primary key values in MySQL InnoDB).
+- **Root node** — entry point.
+- **Internal nodes** — key ranges hote hain jo search ko left ya right route karte hain.
+- **Leaf nodes** — actual index keys plus disk pe row locations ke pointers hote hain (PostgreSQL mein heap pointers, MySQL InnoDB mein primary key values).
 
 ### ASCII Visualization
 
@@ -59,15 +59,15 @@ B-tree stands for **Balanced Tree**. It keeps all leaf nodes at the same depth, 
                  /         |        \
           [10|20]       [40|55]     [80|90]  ← Internal nodes
           /  |  \       /  |  \     /  |  \
-        [5] [15] [25] [35][50][65][75][85][95]  ← Leaf nodes (point to rows)
+        [5] [15] [25] [35][50][65][75][85][95]  ← Leaf nodes (rows ki taraf point karte hain)
 ```
 
-Searching for value `50`:
-1. Start at root `[30 | 70]` — 50 is between 30 and 70, go middle.
-2. Reach `[40 | 55]` — 50 is between 40 and 55, go middle.
-3. Reach leaf `[50]` — found it. Follow pointer to the actual row.
+Value `50` dhundhte waqt:
+1. Root `[30 | 70]` se start karo — 50, 30 aur 70 ke beech mein hai, middle mein jao.
+2. `[40 | 55]` pe pahuncho — 50, 40 aur 55 ke beech mein hai, middle mein jao.
+3. Leaf `[50]` pe pahuncho — mil gaya. Pointer follow karo actual row tak.
 
-Three steps for a tree that could index billions of rows. That is O(log n).
+Sirf teen steps, aur tree mein billions of rows ho sakti hain. Yahi hai O(log n).
 
 ### Mermaid Diagram
 
@@ -103,110 +103,110 @@ graph TD
     style M2 fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
-B-trees also support **range queries** efficiently (`WHERE age BETWEEN 20 AND 40`) because leaf nodes are linked in sorted order — the database just scans from the start value to the end value along the leaf level.
+B-trees **range queries** bhi efficiently support karte hain (`WHERE age BETWEEN 20 AND 40`), kyunki leaf nodes sorted order mein linked hote hain — database bas start value se end value tak leaf level pe scan kar leta hai.
 
 ---
 
-## #️⃣ Hash Index: Exact Lookups Only
+## #️⃣ Hash Index: Sirf Exact Lookups Ke Liye
 
-A hash index stores a **hash map**: it computes `hash(value)` and stores the result mapped to the row pointer.
+Hash index ek **hash map** store karta hai: ye `hash(value)` compute karke result ko row pointer ke saath map kar deta hai.
 
-- **Lookup:** O(1) for exact equality — `WHERE email = 'alice@example.com'`
-- **Cannot** support range queries — `WHERE age > 30` is useless with a hash index.
-- **Cannot** support sorting, prefix matching, or `LIKE 'alice%'`.
+- **Lookup:** O(1) exact equality ke liye — `WHERE email = 'alice@example.com'`
+- **Range queries support nahi karta** — `WHERE age > 30` hash index ke saath bekaar hai.
+- **Sorting, prefix matching, ya `LIKE 'alice%'` bhi support nahi karta.**
 
-### When to Use a Hash Index
+### Hash Index Kab Use Karna Chahiye
 
-Use a hash index only when:
-- You exclusively need exact equality lookups.
-- You never need range queries or ordering on that column.
+Hash index tabhi use karo jab:
+- Tumhe sirf exact equality lookups chahiye.
+- Us column pe kabhi range queries ya ordering ki zaroorat nahi padegi.
 
-In PostgreSQL you can explicitly create one:
+PostgreSQL mein tum explicitly ek bana sakte ho:
 ```sql
 CREATE INDEX idx_users_email_hash ON users USING HASH (email);
 ```
 
-In MySQL InnoDB, the engine automatically creates an **Adaptive Hash Index** internally — you cannot create hash indexes manually in InnoDB for on-disk use. In PostgreSQL, B-tree handles equality so well that hash indexes are rarely worth reaching for.
+MySQL InnoDB mein, engine internally automatically ek **Adaptive Hash Index** bana leta hai — InnoDB mein on-disk use ke liye manually hash indexes nahi bana sakte. PostgreSQL mein, B-tree equality ko itna acha handle karta hai ki hash indexes ki zaroorat kabhi-kabhaar hi padti hai.
 
 ---
 
-## 🗂️ Composite Index: Column Order Matters!
+## 🗂️ Composite Index: Column Order Matter Karta Hai!
 
-A **composite index** covers multiple columns.
+Ek **composite index** multiple columns cover karta hai.
 
 ```sql
 -- Index on (last_name, first_name)
 CREATE INDEX idx_users_name ON users(last_name, first_name);
 ```
 
-Think of it like a phone book sorted first by last name, then by first name within each last name.
+Isse socho ek phone book jaisa — pehle last name se sorted, phir har last name ke andar first name se sorted.
 
-### The Left-Prefix Rule
+### Left-Prefix Rule
 
-The database can use this index for:
+Database is index ko use kar sakta hai:
 - `WHERE last_name = 'Smith'` ✅ (leftmost column)
-- `WHERE last_name = 'Smith' AND first_name = 'Alice'` ✅ (both columns)
-- `WHERE last_name = 'Smith' AND first_name LIKE 'A%'` ✅ (range on trailing column)
+- `WHERE last_name = 'Smith' AND first_name = 'Alice'` ✅ (dono columns)
+- `WHERE last_name = 'Smith' AND first_name LIKE 'A%'` ✅ (trailing column pe range)
 
-But **not** for:
-- `WHERE first_name = 'Alice'` ❌ (skips the leftmost column)
-- `WHERE first_name = 'Alice' AND last_name = 'Smith'` — the optimizer may reorder this, but it depends on the database.
+Lekin **nahi** use kar sakta:
+- `WHERE first_name = 'Alice'` ❌ (leftmost column skip ho raha hai)
+- `WHERE first_name = 'Alice' AND last_name = 'Smith'` — optimizer ise reorder kar sakta hai, lekin ye database pe depend karta hai.
 
-**Rule of thumb:** Put the column you filter on most (highest selectivity, or the equality filter) first, range/sort columns last.
+**Rule of thumb:** Jis column pe sabse zyada filter karte ho (highest selectivity, ya equality filter), usse pehle rakho, range/sort wale columns ko last mein.
 
 ---
 
 ## 🔒 Unique Index vs Regular Index
 
-A **unique index** enforces a constraint: no two rows can have the same value in the indexed column(s).
+Ek **unique index** ek constraint enforce karta hai: kisi bhi do rows mein indexed column(s) ki value same nahi ho sakti.
 
 ```sql
--- Regular index (allows duplicates)
+-- Regular index (duplicates allow karta hai)
 CREATE INDEX idx_users_country ON users(country);
 
--- Unique index (no duplicates allowed)
+-- Unique index (duplicates allow nahi)
 CREATE UNIQUE INDEX idx_users_email ON users(email);
 ```
 
-`PRIMARY KEY` automatically creates a unique index. `UNIQUE` constraint also creates one under the hood. A unique index is both a performance tool and a **data integrity guarantee**.
+`PRIMARY KEY` automatically ek unique index bana deta hai. `UNIQUE` constraint bhi under the hood ek bana deta hai. Unique index ek performance tool bhi hai aur ek **data integrity guarantee** bhi.
 
 ---
 
 ## 🏠 Clustered vs Non-Clustered Index
 
-This is where databases start to diverge.
+Yahan se databases alag-alag rasta pakadte hain.
 
-### What "Clustered" Means
+### "Clustered" Ka Matlab Kya Hai
 
-A **clustered index** determines the **physical order of rows** on disk. The table data is sorted and stored in the same structure as the index. There can only be **one** clustered index per table.
+Ek **clustered index** rows ka **physical order** disk pe decide karta hai. Table ka data usi structure mein sorted aur stored hota hai jo index hai. Har table mein sirf **ek hi** clustered index ho sakta hai.
 
-A **non-clustered index** is a separate structure that points back to the actual row data.
+Ek **non-clustered index** ek separate structure hai jo actual row data ki taraf point karta hai.
 
 ### PostgreSQL
 
-PostgreSQL uses **heap storage** — rows are stored in an unordered heap, completely separate from indexes. This means:
+PostgreSQL **heap storage** use karta hai — rows ek unordered heap mein store hote hain, jo indexes se completely separate hai. Iska matlab:
 
-- **All indexes in PostgreSQL are non-clustered** by default.
-- Every index lookup reads the index, then follows a pointer back to the heap (a "heap fetch").
-- The `CLUSTER` command physically reorders the table on disk once, but PostgreSQL does **not** maintain that order as new rows are inserted. It is a one-time operation.
+- **PostgreSQL ke saare indexes by default non-clustered hain.**
+- Har index lookup pehle index padhta hai, phir ek pointer follow karke heap tak jaata hai (isse "heap fetch" kehte hain).
+- `CLUSTER` command table ko disk pe ek baar physically reorder kar deta hai, lekin PostgreSQL naye rows insert hone pe wo order maintain **nahi** karta. Ye ek one-time operation hai.
 
 ```sql
--- PostgreSQL: one-time physical reorder (does NOT stay clustered on writes)
+-- PostgreSQL: one-time physical reorder (writes pe clustered NAHI rehta)
 CLUSTER users USING idx_users_email;
 ```
 
 ### MySQL InnoDB
 
-MySQL InnoDB is the opposite:
+MySQL InnoDB isse opposite hai:
 
-- The **PRIMARY KEY is always the clustered index**. The table rows are stored inside the primary key B-tree leaf pages.
-- Secondary indexes store the primary key value (not a heap pointer) to look up the actual row — meaning a secondary index lookup does two B-tree traversals.
-- If you define no PRIMARY KEY, InnoDB silently creates a hidden 6-byte rowid clustered index.
+- **PRIMARY KEY hamesha clustered index hota hai.** Table ki rows primary key B-tree ke leaf pages ke andar hi store hoti hain.
+- Secondary indexes heap pointer nahi, balki primary key value store karte hain actual row dhundhne ke liye — matlab secondary index lookup mein do B-tree traversals lagte hain.
+- Agar tum koi PRIMARY KEY define nahi karte, to InnoDB silently ek hidden 6-byte rowid clustered index bana deta hai.
 
 ```sql
--- MySQL: PRIMARY KEY automatically becomes the clustered index
+-- MySQL: PRIMARY KEY automatically clustered index ban jaata hai
 CREATE TABLE orders (
-    order_id INT PRIMARY KEY,   -- this IS the clustered index
+    order_id INT PRIMARY KEY,   -- yahi hai clustered index
     user_id  INT,
     total    DECIMAL(10,2)
 );
@@ -214,10 +214,10 @@ CREATE TABLE orders (
 
 ### SQL Server
 
-SQL Server calls this concept explicitly:
-- A **clustered index** physically orders the table. By default, `PRIMARY KEY` creates one.
-- A **non-clustered index** is a separate B-tree that stores row locators.
-- You can create a clustered index on any column (not required to be the PK).
+SQL Server isko explicitly define karta hai:
+- Ek **clustered index** table ko physically order karta hai. By default, `PRIMARY KEY` ek bana deta hai.
+- Ek **non-clustered index** ek separate B-tree hai jo row locators store karta hai.
+- Tum kisi bhi column pe clustered index bana sakte ho (PK hona zaroori nahi).
 
 ```sql
 -- SQL Server: explicit clustered index
@@ -226,60 +226,60 @@ CREATE CLUSTERED INDEX idx_orders_date ON orders(order_date);
 
 ### Oracle
 
-Oracle behaves similarly to SQL Server. By default, a **primary key** creates a unique non-clustered index unless you specify `ORGANIZATION INDEX` (an Index-Organized Table, equivalent to a clustered index).
+Oracle SQL Server jaisa hi behave karta hai. By default, ek **primary key** ek unique non-clustered index banata hai, jab tak tum `ORGANIZATION INDEX` specify na karo (ek Index-Organized Table, jo clustered index ke equivalent hai).
 
 ### Quick Comparison Table
 
 | Database     | Clustered Index Behavior |
 |---|---|
-| PostgreSQL   | No clustered index; all indexes point to heap |
-| MySQL InnoDB | PRIMARY KEY is always clustered; no choice |
-| SQL Server   | Optional; defaults to PK; can be any column |
-| Oracle       | Index-Organized Tables (IOT) are clustered |
+| PostgreSQL   | Koi clustered index nahi; saare indexes heap ki taraf point karte hain |
+| MySQL InnoDB | PRIMARY KEY hamesha clustered hota hai; koi choice nahi |
+| SQL Server   | Optional; default PK hai; koi bhi column ho sakta hai |
+| Oracle       | Index-Organized Tables (IOT) clustered hote hain |
 
 ---
 
 ## 🎯 Partial Index (PostgreSQL)
 
-A **partial index** only indexes rows that satisfy a condition. This is a PostgreSQL-specific feature (also supported in SQLite).
+Ek **partial index** sirf un rows ko index karta hai jo ek condition satisfy karte hain. Ye PostgreSQL-specific feature hai (SQLite mein bhi supported hai).
 
 ```sql
--- Only index active users, not deactivated ones
+-- Sirf active users ko index karo, deactivated ko nahi
 CREATE INDEX idx_active_users_email ON users(email)
 WHERE is_active = true;
 ```
 
 Benefits:
-- **Smaller index** — only a fraction of rows are indexed.
-- **Faster writes** — fewer rows need to update the index.
-- **Queries that filter on the same condition** can use this index.
+- **Chhota index** — sirf rows ka ek fraction hi indexed hota hai.
+- **Faster writes** — kam rows ko index update karna padta hai.
+- **Same condition pe filter karne wali queries** is index ko use kar sakti hain.
 
-A query like `WHERE email = 'alice@example.com' AND is_active = true` will use this index. A query without `is_active = true` will not.
+`WHERE email = 'alice@example.com' AND is_active = true` jaisi query is index ko use karegi. `is_active = true` na ho to query is index ko use nahi karegi.
 
 ---
 
-## 🔡 Index on Expression (PostgreSQL)
+## 🔡 Expression Pe Index (PostgreSQL)
 
-You can index the **result of a function or expression**, not just a raw column value.
+Tum kisi **function ya expression ka result** index kar sakte ho, sirf raw column value nahi.
 
 ```sql
 -- Case-insensitive email lookups
 CREATE INDEX idx_users_email_lower ON users(LOWER(email));
 ```
 
-Now this query uses the index:
+Ab ye query index use karegi:
 ```sql
 SELECT * FROM users WHERE LOWER(email) = 'alice@example.com';
 ```
 
-Without the expression index, `LOWER(email)` would force a full table scan because the index on raw `email` cannot help when the column value is transformed.
+Expression index ke bina, `LOWER(email)` full table scan force kar dega, kyunki raw `email` pe bana index tab kaam nahi aata jab column value transform ho jaati hai.
 
-Other examples:
+Aur examples:
 ```sql
--- Index on extracted year
+-- Extracted year pe index
 CREATE INDEX idx_orders_year ON orders((EXTRACT(YEAR FROM created_at)));
 
--- Index on JSONB field
+-- JSONB field pe index
 CREATE INDEX idx_users_meta_city ON users((metadata->>'city'));
 ```
 
@@ -287,39 +287,39 @@ CREATE INDEX idx_users_meta_city ON users((metadata->>'city'));
 
 ## 📝 MySQL FULLTEXT Index
 
-For searching free-form text (articles, descriptions, comments), MySQL offers a **FULLTEXT index** that uses an inverted index structure optimized for natural language search.
+Free-form text search ke liye (articles, descriptions, comments), MySQL ek **FULLTEXT index** deta hai jo natural language search ke liye optimized inverted index structure use karta hai.
 
 ```sql
 CREATE FULLTEXT INDEX idx_articles_body ON articles(title, body);
 
--- Use MATCH ... AGAINST syntax
+-- MATCH ... AGAINST syntax use karo
 SELECT * FROM articles
 WHERE MATCH(title, body) AGAINST('database performance' IN NATURAL LANGUAGE MODE);
 ```
 
-Regular B-tree indexes cannot efficiently search for words inside text (e.g., `WHERE body LIKE '%database%'` always full-scans). FULLTEXT indexes solve this. PostgreSQL has its own full-text search via `tsvector`/`tsquery` and GIN indexes instead.
+Regular B-tree indexes text ke andar words efficiently search nahi kar sakte (jaise `WHERE body LIKE '%database%'` hamesha full-scan karega). FULLTEXT indexes isko solve karte hain. PostgreSQL ka apna full-text search hai `tsvector`/`tsquery` aur GIN indexes ke through.
 
 ---
 
 ## 📊 Covering Index
 
-A **covering index** includes all columns that a query needs, so the database never has to touch the actual table rows at all — it gets everything from the index itself.
+Ek **covering index** wo saare columns include karta hai jo query ko chahiye, isliye database ko actual table rows chhoona hi nahi padta — sab kuch index se hi mil jaata hai.
 
 ```sql
--- Query needs: user_id filter, returns email and created_at
+-- Query ko chahiye: user_id filter, return email aur created_at
 SELECT email, created_at FROM users WHERE user_id = 42;
 
--- Covering index: includes all columns the query touches
+-- Covering index: query jo bhi columns touch karti hai, sab include
 CREATE INDEX idx_users_covering ON users(user_id, email, created_at);
 ```
 
-The query can be answered entirely from the index pages. In PostgreSQL this is called an **Index-Only Scan** (you can see it in `EXPLAIN ANALYZE`). This is the fastest possible index strategy.
+Query poori tarah index pages se hi answer ho sakti hai. PostgreSQL mein isse **Index-Only Scan** kehte hain (tum ise `EXPLAIN ANALYZE` mein dekh sakte ho). Ye sabse fastest possible index strategy hai.
 
 ---
 
-## 🔍 How to Know When You Need an Index: EXPLAIN ANALYZE
+## 🔍 Kaise Pata Chale Index Chahiye Ya Nahi: EXPLAIN ANALYZE
 
-The single most useful tool for index decisions is `EXPLAIN ANALYZE`. It shows you exactly what the database did to execute your query.
+Index decisions ke liye sabse useful tool hai `EXPLAIN ANALYZE`. Ye exactly dikhata hai ki database ne query execute karne ke liye kya kiya.
 
 ```sql
 EXPLAIN ANALYZE
@@ -336,9 +336,9 @@ Planning Time: 0.089 ms
 Execution Time: 45.312 ms
 ```
 
-`Seq Scan` = full table scan. `Rows Removed by Filter: 89999` = it read 90,000 rows to find 1.
+`Seq Scan` matlab full table scan. `Rows Removed by Filter: 89999` matlab 1 row dhundhne ke liye 90,000 rows padhi gayin.
 
-After adding the index:
+Index add karne ke baad:
 ```
 Index Scan using idx_users_email on users  (cost=0.42..8.44 rows=1 width=128)
                                            (actual time=0.042..0.043 rows=1 loops=1)
@@ -347,47 +347,47 @@ Planning Time: 0.102 ms
 Execution Time: 0.065 ms
 ```
 
-`Index Scan` = used the index. Execution time dropped from 45ms to 0.065ms.
+`Index Scan` matlab index use hua. Execution time 45ms se 0.065ms tak gir gaya.
 
-**Signals that you need an index:**
-- `Seq Scan` on a large table in a frequently-run query.
+**Ye signals batate hain ki tumhe index chahiye:**
+- Bade table pe frequently-run query mein `Seq Scan` dikhna.
 - High `actual time` values.
-- `Rows Removed by Filter` is orders of magnitude larger than the returned rows.
+- `Rows Removed by Filter` returned rows se orders of magnitude zyada hona.
 
 ---
 
-## 📉 When Indexes HURT Performance
+## 📉 Jab Indexes Performance HURT Karte Hain
 
-Indexes are not free. Every index has costs:
+Indexes free nahi hote. Har index ki apni costs hoti hain:
 
 ### Write Overhead
-Every `INSERT`, `UPDATE`, and `DELETE` must update all indexes on the table. A table with 10 indexes pays 10 index update costs per write. Heavy write workloads (logging, event streams, bulk imports) can be significantly slowed by too many indexes.
+Har `INSERT`, `UPDATE`, aur `DELETE` ko table ke saare indexes update karne padte hain. 10 indexes wali table har write pe 10 index update costs pay karti hai. Heavy write workloads (logging, event streams, bulk imports) bahut saare indexes se significantly slow ho sakte hain — jaise Swiggy ke live order tracking system mein har second hazaaron writes hoti hain, wahan zyada indexes seedha performance khaa jayenge.
 
 ```sql
--- Before a large bulk insert, consider dropping indexes, importing, then recreating
+-- Bade bulk insert se pehle, indexes drop karke, import karke, phir recreate karne ka socho
 DROP INDEX idx_logs_user_id;
 COPY logs FROM '/data/logs.csv' CSV;
 CREATE INDEX idx_logs_user_id ON logs(user_id);
 ```
 
 ### Storage
-Each index is stored on disk. A B-tree index on a large `TEXT` column can consume as much space as the table itself.
+Har index disk pe store hota hai. Bade `TEXT` column pe B-tree index utni hi space le sakta hai jitni khud table.
 
 ### Index Bloat
-Over time, as rows are deleted and updated, index pages can contain many dead entries that are never reclaimed. This is called **index bloat**. It wastes storage and slows down scans.
+Time ke saath, jaise rows delete aur update hoti hain, index pages mein bahut saari dead entries accumulate ho jaati hain jo kabhi reclaim nahi hoti. Isse **index bloat** kehte hain. Ye storage waste karta hai aur scans ko slow kar deta hai.
 
-In PostgreSQL, `VACUUM` reclaims dead tuples, but fragmented index pages may remain. Use `REINDEX` to fully rebuild a bloated index:
+PostgreSQL mein `VACUUM` dead tuples reclaim karta hai, lekin fragmented index pages reh sakte hain. Bloated index ko fully rebuild karne ke liye `REINDEX` use karo:
 ```sql
--- PostgreSQL: rebuild index without locking the table (PG 12+)
+-- PostgreSQL: table ko lock kiye bina index rebuild karo (PG 12+)
 REINDEX INDEX CONCURRENTLY idx_users_email;
 ```
 
-### When NOT to Index
+### Kab Index NAHI Banana Chahiye
 
-- **Low-cardinality columns** — a column like `gender` (values: M/F/Other) is a terrible index candidate. The database might read 33% of the table anyway; a full scan is often faster.
-- **Tiny tables** — fewer than a few thousand rows, full scans are trivially fast.
-- **Write-heavy tables** — if the table is written 100x more than it is read, indexes slow you down.
-- **Rarely-queried columns** — an index that is never used is pure overhead.
+- **Low-cardinality columns** — `gender` (values: M/F/Other) jaisa column ek bekaar index candidate hai. Database shayad table ka 33% padh hi lega; full scan aksar isse fast hota hai.
+- **Chhoti tables** — kuch hazaar se kam rows, full scans trivially fast hote hain.
+- **Write-heavy tables** — agar table read se 100x zyada write hoti hai, to indexes tumhe slow kar denge.
+- **Rarely-queried columns** — jo index kabhi use hi nahi hota, wo pure overhead hai.
 
 ---
 
@@ -395,41 +395,41 @@ REINDEX INDEX CONCURRENTLY idx_users_email;
 
 | Concept | One-Line Summary |
 |---|---|
-| Full table scan | O(n) — reads every row; unavoidable without an index |
-| B-tree index | O(log n) — default type; handles equality, ranges, sorts |
-| Hash index | O(1) equality only; no ranges, no sorting |
-| Composite index | Multi-column; left-prefix rule determines usability |
-| Unique index | Enforces no-duplicate constraint + speeds lookups |
-| Clustered index | Data rows stored inside the index (MySQL PK; SQL Server default) |
-| Non-clustered index | Separate structure pointing to heap rows (PostgreSQL always) |
-| Partial index | Indexes only rows matching a WHERE condition (PostgreSQL/SQLite) |
-| Expression index | Indexes a computed value like `LOWER(email)` (PostgreSQL) |
-| Covering index | Index contains all columns needed; avoids touching the table |
-| Index bloat | Dead entries accumulate over time; use REINDEX to reclaim |
-| EXPLAIN ANALYZE | Your primary tool for diagnosing slow queries and missing indexes |
+| Full table scan | O(n) — har row padhta hai; index ke bina unavoidable hai |
+| B-tree index | O(log n) — default type; equality, ranges, sorts sab handle karta hai |
+| Hash index | O(1) sirf equality; koi ranges ya sorting nahi |
+| Composite index | Multi-column; left-prefix rule usability decide karta hai |
+| Unique index | No-duplicate constraint enforce karta hai + lookups fast karta hai |
+| Clustered index | Data rows index ke andar hi stored hote hain (MySQL PK; SQL Server default) |
+| Non-clustered index | Alag structure jo heap rows ki taraf point karta hai (PostgreSQL hamesha) |
+| Partial index | Sirf WHERE condition match karne wali rows index karta hai (PostgreSQL/SQLite) |
+| Expression index | `LOWER(email)` jaisi computed value index karta hai (PostgreSQL) |
+| Covering index | Index mein saare needed columns hote hain; table touch karne ki zaroorat nahi |
+| Index bloat | Time ke saath dead entries accumulate hoti hain; reclaim ke liye REINDEX use karo |
+| EXPLAIN ANALYZE | Slow queries aur missing indexes diagnose karne ka primary tool |
 
 ---
 
 ## 🧪 Quiz
 
-Test yourself before moving on.
+Aage badhne se pehle khud ko test karo.
 
 **Question 1**
-You have a table `orders` with 50 million rows. A query runs `WHERE status = 'pending'` and only 2% of orders are pending. What type of PostgreSQL index would give you the smallest, most efficient index for this query?
+Tumhare paas `orders` table hai jisme 50 million rows hain. Ek query `WHERE status = 'pending'` chalati hai aur sirf 2% orders pending hain. Is query ke liye sabse chhota, sabse efficient PostgreSQL index kaunsa hoga?
 
 <details>
 <summary>Answer</summary>
 
-A **partial index**: `CREATE INDEX idx_orders_pending ON orders(status) WHERE status = 'pending';`
+Ek **partial index**: `CREATE INDEX idx_orders_pending ON orders(status) WHERE status = 'pending';`
 
-This indexes only the 2% of rows that match the condition, keeping the index tiny and writes fast for the 98% of rows that are not pending.
+Ye sirf 2% matching rows ko index karta hai, jisse index chhota rehta hai aur baaki 98% non-pending rows ke liye writes fast rehti hain.
 
 </details>
 
 ---
 
 **Question 2**
-You create a composite index `CREATE INDEX idx ON events(user_id, event_type, created_at)`. Which of the following queries will use this index, and which will not?
+Tumne ek composite index banaya `CREATE INDEX idx ON events(user_id, event_type, created_at)`. In queries mein se kaunsi is index ko use karegi, aur kaunsi nahi?
 
 - (a) `WHERE user_id = 5`
 - (b) `WHERE event_type = 'click'`
@@ -439,26 +439,26 @@ You create a composite index `CREATE INDEX idx ON events(user_id, event_type, cr
 <details>
 <summary>Answer</summary>
 
-- (a) ✅ Uses the index — `user_id` is the leftmost column.
-- (b) ❌ Cannot use the index — skips the leftmost column.
-- (c) ✅ Uses the index — both leading columns present.
-- (d) ✅ Uses the index — `user_id` equality filter, then `created_at` is the trailing column used for sorting.
+- (a) ✅ Index use hoga — `user_id` leftmost column hai.
+- (b) ❌ Index use nahi hoga — leftmost column skip ho raha hai.
+- (c) ✅ Index use hoga — dono leading columns present hain.
+- (d) ✅ Index use hoga — `user_id` equality filter hai, aur `created_at` trailing column sorting ke liye use ho raha hai.
 
 </details>
 
 ---
 
 **Question 3**
-In MySQL InnoDB, you have a table with `PRIMARY KEY (order_id)` and a secondary index on `user_id`. When you query `WHERE user_id = 42`, how many B-tree lookups does MySQL perform internally?
+MySQL InnoDB mein tumhare paas ek table hai `PRIMARY KEY (order_id)` ke saath, aur `user_id` pe ek secondary index hai. Jab tum `WHERE user_id = 42` query karte ho, MySQL internally kitne B-tree lookups perform karta hai?
 
 <details>
 <summary>Answer</summary>
 
-**Two B-tree lookups:**
-1. The secondary index on `user_id` is traversed to find the matching `order_id` values.
-2. The primary key clustered index is traversed using those `order_id` values to retrieve the full row data.
+**Do B-tree lookups:**
+1. `user_id` pe secondary index traverse hota hai matching `order_id` values dhundhne ke liye.
+2. Us `order_id` values ko use karke primary key clustered index traverse hota hai poori row data retrieve karne ke liye.
 
-This is called a **double lookup** (or bookmark lookup). If you only needed columns covered by the secondary index itself, the second lookup would be avoided (covering index scenario).
+Isse **double lookup** (ya bookmark lookup) kehte hain. Agar tumhe sirf wo columns chahiye hote jo secondary index mein hi cover ho jaate, to second lookup avoid ho jaata (covering index wala scenario).
 
 </details>
 
@@ -467,16 +467,16 @@ This is called a **double lookup** (or bookmark lookup). If you only needed colu
 ## 📌 Cross-DB Syntax Reference
 
 ```sql
--- Create a standard B-tree index (works in PostgreSQL, MySQL, SQL Server, Oracle)
+-- Standard B-tree index banao (PostgreSQL, MySQL, SQL Server, Oracle sabme kaam karta hai)
 CREATE INDEX index_name ON table_name(column_name);
 
--- Unique index (all major databases)
+-- Unique index (saare major databases)
 CREATE UNIQUE INDEX index_name ON table_name(column_name);
 
--- Composite index (all major databases)
+-- Composite index (saare major databases)
 CREATE INDEX index_name ON table_name(col1, col2, col3);
 
--- Drop an index
+-- Index drop karo
 DROP INDEX index_name;                          -- PostgreSQL, Oracle
 DROP INDEX index_name ON table_name;            -- MySQL
 DROP INDEX index_name ON table_name;            -- SQL Server (schema-qualified)
@@ -493,15 +493,15 @@ CREATE INDEX index_name ON table_name USING HASH (column_name);
 -- MySQL only: FULLTEXT index
 CREATE FULLTEXT INDEX index_name ON table_name(column_name);
 
--- PostgreSQL: see query plan
+-- PostgreSQL: query plan dekho
 EXPLAIN ANALYZE SELECT ...;
 
--- MySQL: see query plan
+-- MySQL: query plan dekho
 EXPLAIN SELECT ...;
 
--- SQL Server: see query plan
+-- SQL Server: query plan dekho
 SET STATISTICS IO ON;
--- or use the graphical execution plan in SSMS
+-- ya SSMS mein graphical execution plan use karo
 ```
 
 ---
