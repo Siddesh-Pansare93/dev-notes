@@ -8,8 +8,10 @@
         "includeFiles": [
           "app/views/**",
           "app/public/**",
+          "agentic-ai/**",
           "api_security/**",
           "cloud_deployment/**",
+          "computer-architecture/**",
           "computer_networks/**",
           "database-notes/**",
           "devOPS/**",
