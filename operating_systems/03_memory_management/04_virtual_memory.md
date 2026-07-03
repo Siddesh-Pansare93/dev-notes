@@ -1,28 +1,34 @@
 # Virtual Memory
 
-## What You'll Learn
+## Is Tutorial Mein Kya Seekhoge
 
-In this tutorial, you'll explore one of the most important abstractions in modern operating systems - virtual memory. You'll understand:
+Chalo aaj OS ke sabse mast aur sabse important abstraction ko samajhte hain — **Virtual Memory**. Ye woh cheez hai jo modern computing ko possible banati hai. Bina isske tumhara laptop 5 apps bhi ek saath smoothly nahi chala paata. Is file mein cover karenge:
 
-- What virtual memory is and why it's essential
-- Demand paging: loading pages only when needed
-- Page fault handling mechanism
-- Page replacement necessity
-- Thrashing: causes and prevention strategies
+- Virtual memory hai kya aur ye zaruri kyun hai
+- Demand paging: pages sirf tabhi load karo jab zaruri ho
+- Page fault handling ka pura mechanism
+- Page replacement kyun zaruri hai
+- Thrashing: kaise hoti hai aur kaise roken
 - Working set model
 - Memory overcommitment
-- Swap space and swapping
+- Swap space aur swapping
 - Copy-on-Write (COW) optimization
-- Benefits and costs of virtual memory
-- Tools to monitor virtual memory on Linux
+- Virtual memory ke fayde aur nuksaan
+- Linux pe virtual memory monitor karne ke tools
 
 ## Introduction
 
-**Virtual Memory** is a memory management technique that provides an abstraction where each process has its own large, contiguous address space, independent of the actual physical memory available. It's one of the most important innovations in operating system design.
+Socho tumhare paas 8 GB RAM wala laptop hai, lekin tum Chrome ke 50 tabs, VS Code, Docker, Postman, aur Slack — sab kuch ek saath khola hua hai. Agar in sabki total memory demand add karo toh easily 20-30 GB ban jaayegi. Phir bhi system chal raha hai, hang nahi ho raha (zyada tar time). Ye jaadu hai **Virtual Memory** ka.
 
-## What is Virtual Memory?
+**Virtual Memory** ek memory management technique hai jo har process ko ek illusion deti hai — ki uske paas apna khud ka bada, contiguous (lagataar) address space hai, jaise poora RAM sirf usी ke liye hai. Reality mein physical RAM limited hoti hai aur usko sab processes share karte hain, lekin har process ko lagta hai "mera apna alag ghar hai."
 
-Virtual memory separates logical memory (what processes see) from physical memory (actual RAM).
+Ye OS design ki sabse elegant innovations mein se ek hai — bina isske aaj ka multitasking OS possible hi nahi hota.
+
+## Virtual Memory Hai Kya?
+
+Simple baat: Virtual memory, **logical memory** (jo process ko dikhta hai) ko **physical memory** (actual RAM chips) se alag kar deti hai.
+
+Socho Zomato ki tarah — jab tum app khol ke menu dekhte ho, tumhe lagta hai poora restaurant ka menu tumhare saamne hai. Lekin backend mein sirf woh data load hota hai jo abhi zaruri hai (jo dish tum dekh rahe ho), baaki cache ya server pe pada rehta hai. Process ko bhi aisa hi lagta hai — "mere paas 4GB ka pura address space hai," lekin actual mein sirf zaruri pages hi RAM mein hote hain.
 
 ```
 Program's View (Virtual):          Physical Reality:
@@ -41,14 +47,19 @@ Program's View (Virtual):          Physical Reality:
 
 ### Key Principle
 
-**Only keep actively used pages in physical memory**
-- Rest stays on disk
-- Loaded on demand when needed
-- Creates illusion of unlimited memory
+> [!tip]
+> **Sirf actively use ho rahe pages ko hi physical memory mein rakho.**
+> - Baaki sab disk pe padi rehti hai
+> - Jab zarurat ho tabhi load hoti hai (on demand)
+> - Isse "unlimited memory" ka illusion create hota hai
 
-## Why Virtual Memory?
+Ye bilkul waisa hi hai jaise Netflix pura movie tumhare phone pe download nahi karta — woh sirf jo part tum abhi dekh rahe ho, woh stream (buffer) karta hai. Poori movie "available" lagti hai, lekin actual mein chunks by chunks aati hai.
 
-### 1. Run Programs Larger Than Physical Memory
+## Virtual Memory Kyun Zaruri Hai?
+
+### 1. Physical Memory Se Bade Programs Chalana
+
+Kya hota hai agar tumhara program RAM se bhi bada ho? Bina virtual memory ke, jawab hoga: "Sorry, nahi chal sakta." Lekin virtual memory ke saath:
 
 ```
 Physical RAM: 8 GB
@@ -60,7 +71,9 @@ With Virtual Memory: Can run ✓
 Only the working set (actively used pages) needs to be in RAM
 ```
 
-### 2. More Efficient Memory Use
+Socho ek 12 GB ki video editing software hai, lekin tum sirf ek chhota sa clip edit kar rahe ho. Us waqt sirf woh relevant code aur data pages RAM mein chahiye, poora 12 GB nahi. Baaki disk pe pada rehta hai, zarurat padne pe load ho jaata hai.
+
+### 2. Zyada Efficient Memory Use
 
 ```
 Traditional:
@@ -73,9 +86,12 @@ Virtual Memory:
   8 GB RAM → can run ~40 processes!
 ```
 
+Yaani agar har process apna poora allocated memory use nahi kar raha (jo aksar hota hai), toh virtual memory tumhe zyada processes ek saath chalane deti hai — jaise Swiggy ek hi delivery fleet se zyada orders handle kar leta hai kyunki har delivery boy hamesha busy nahi hota.
+
 ### 3. Process Isolation
 
-Each process has its own virtual address space:
+Har process ka apna alag virtual address space hota hai — matlab ek process doosre process ki memory ko accidentally (ya jaan-boojh ke) touch nahi kar sakta.
+
 ```
 Process A:                Process B:
 Virtual 0x1000 → Physical 0x5000
@@ -84,23 +100,31 @@ Virtual 0x1000 → Physical 0x5000
 Same virtual address, different physical locations!
 ```
 
+Ye bilkul CRED aur Paytm ki tarah hai — dono apps ke paas "account balance" naam ka apna variable ho sakta hai, lekin dono ka actual data bilkul alag jagah store hota hai. Ek app doosri app ke data ko directly access nahi kar sakti.
+
 ### 4. Memory Protection
 
-- Pages can be marked read-only, read-write, execute
-- Invalid page access causes page fault
-- OS handles and can terminate misbehaving process
+- Pages ko read-only, read-write, ya execute mark kiya ja sakta hai
+- Invalid page access karne se page fault hota hai
+- OS is fault ko handle karta hai, aur zarurat pade toh misbehaving process ko terminate kar deta hai
+
+Isliye jab koi buggy program kisi random memory address pe likhne ki koshish karta hai jiska usko access nahi, tumhe "Segmentation Fault" milta hai — OS ne bola "bhai ye tera ghar nahi hai, bahar nikal."
 
 ### 5. Simplified Memory Allocation
 
-- Programmers don't worry about physical memory location
-- malloc() can return any virtual address
-- OS handles physical memory management
+- Programmers ko physical memory ki location ki fikar nahi karni padti
+- `malloc()` koi bhi virtual address return kar sakta hai
+- Physical memory manage karne ka kaam OS uthata hai
 
 ## Demand Paging
 
-**Demand Paging**: Pages loaded into memory only when accessed (demanded).
+**Kya hota hai?** Demand Paging matlab pages tabhi memory mein load hote hain jab unka access "demand" kiya jaata hai — pehle se sab kuch load nahi karte.
+
+Socho IRCTC website — jab tum train search karte ho, sirf relevant trains ka data load hota hai, poora India ka train database nahi. Waise hi demand paging kaam karti hai.
 
 ### Initial State
+
+Jab process start hota hai, uske saare pages "not present" mark hote hain — matlab OS ne bola "abhi kuch bhi load nahi kiya, jab zarurat padegi tab dekhenge."
 
 ```
 Process starts:
@@ -132,6 +156,8 @@ CPU tries to access virtual address 0x1000:
 5. CPU retries instruction (now succeeds)
 ```
 
+Yaani jaise koi Swiggy pe order karta hai, delivery boy turant nahi pahunchta — pehle restaurant order accept karta hai, khana banta hai, phir deliver hota hai. Isi tarah page fault ke baad bhi ek "processing delay" hoti hai jab tak page RAM mein load nahi ho jaata.
+
 ### Lazy Loading
 
 ```
@@ -143,19 +169,24 @@ Demand paging: Load only 2 MB accessed
 Savings: 8 MB of memory and load time!
 ```
 
+> [!tip]
+> Zyadatar programs apne total code ka sirf ek chhota fraction hi actually run karte hain (jaise error-handling code, rarely-used features). Demand paging is fact ka fayda uthaake sirf zaruri parts load karti hai — memory aur load time dono bachta hai.
+
 ## Page Fault Handling
 
-**Page Fault**: Exception raised when accessing a page not in memory.
+**Kya hota hai?** Page Fault ek exception hai jo tab raise hoti hai jab process kisi aise page ko access karta hai jo abhi RAM mein present nahi hai.
 
-### Page Fault Types
+Confusion mat karo — "fault" naam ka matlab error nahi hai! Zyadatar page faults **normal aur expected** hote hain, ye demand paging ka core mechanism hi hai.
+
+### Page Fault Ke Types
 
 | Type | Cause | Handler Action |
 |------|-------|----------------|
-| **Invalid** | Access to unmapped address | Terminate process (segfault) |
-| **Protection** | Permission violation (e.g., write to read-only) | Terminate process |
-| **Not Present** | Valid page not in memory | Load from disk, update page table |
+| **Invalid** | Aisa address access kiya jo kabhi map hi nahi hua | Process terminate (segfault) |
+| **Protection** | Permission violation (jaise read-only page pe likhna) | Process terminate |
+| **Not Present** | Valid page hai lekin RAM mein nahi hai | Disk se load karo, page table update karo |
 
-### Page Fault Handling Steps
+### Page Fault Handling Ke Steps
 
 ```mermaid
 flowchart TD
@@ -186,9 +217,14 @@ flowchart TD
     style Resume fill:#059669,color:#fff
 ```
 
-### Detailed Steps
+Socho ye flow ek railway reservation counter jaisa hai — tum seat book karne aate ho (CPU memory access karta hai), pehle clerk apne quick-reference chart (TLB) mein dekhta hai. Agar wahan mil gaya, turant book ho gaya (TLB hit). Nahi mila toh poora register (page table) check karta hai. Agar wahan bhi entry nahi hai ki tumhara ticket valid hai, toh ya toh reject kar dega (invalid address → segfault) ya phir naya record banayega (page fault handle → load from disk).
 
-**Step 1: Trap to OS**
+### Detailed Steps — Ek Ek Karke Samjho
+
+**Step 1: OS Ko Trap**
+
+Jab CPU ko page fault milta hai, hardware automatically ye kaam karta hai:
+
 ```c
 // Hardware automatically:
 - Saves current instruction address
@@ -196,7 +232,10 @@ flowchart TD
 - Jumps to page fault handler
 ```
 
-**Step 2: Validate Address**
+Yaani CPU khud apna current kaam pause karke, "current instruction address" note karke, seedha kernel mode mein jump kar jaata hai — jaise koi customer support call escalate karke senior manager ko transfer ki jaati hai.
+
+**Step 2: Address Validate Karo**
+
 ```c
 if (!is_valid_address(address)) {
     send_signal(SIGSEGV);
@@ -211,7 +250,10 @@ if (!has_permission(address, operation)) {
 }
 ```
 
-**Step 3: Find Free Frame**
+OS sabse pehle check karta hai — "ye address bhi valid hai kya? Aur is process ko yahan access karne ki permission bhi hai kya?" Agar dono mein se koi fail ho jaaye, process ko turant terminate kar diya jaata hai. Ye bilkul security guard ki tarah hai jo ID card check karta hai — na ID valid, na entry.
+
+**Step 3: Free Frame Dhoondo**
+
 ```c
 frame = find_free_frame();
 if (frame == NULL) {
@@ -222,14 +264,20 @@ if (frame == NULL) {
 }
 ```
 
-**Step 4: Load Page**
+Agar RAM mein khali jagah (frame) hai toh use le lo. Agar nahi hai — jaise ek fully-booked OYO hotel — toh kisi existing guest (page) ko checkout karana padega (page replacement algorithm chalega). Agar us guest ne kamre mein kuch modify kiya tha (dirty page), toh pehle woh changes disk pe save karne padenge, tabhi room khali hoga.
+
+**Step 4: Page Load Karo**
+
 ```c
 page_number = get_page_number(address);
 disk_address = page_to_disk_map[page_number];
 read_from_disk(disk_address, frame);
 ```
 
-**Step 5: Update Page Table**
+Ab OS ko pata chal gaya kaunsa page chahiye aur woh disk pe kahan hai — bas usko copy karke free frame mein le aao.
+
+**Step 5: Page Table Update Karo**
+
 ```c
 page_table[page_number].frame = frame;
 page_table[page_number].present = 1;
@@ -237,15 +285,22 @@ page_table[page_number].valid = 1;
 tlb_flush(page_number);  // Invalidate TLB entry
 ```
 
-**Step 6: Resume**
+Ab page table ko batana padega ki "ye page ab is frame mein present hai." TLB (jo ek fast cache hai page table entries ka) ko bhi update karna zaruri hai, warna purani (stale) entry use ho jaayegi.
+
+**Step 6: Resume Karo**
+
 ```c
 return_from_trap();
 // CPU retries the faulting instruction
 ```
 
-## Performance of Demand Paging
+Ab CPU wapas usi instruction pe jaata hai jahan fault hua tha aur usko phir se try karta hai — is baar page present hai, toh successfully chal jaata hai. User ko iska pata bhi nahi chalta, sab kuch milliseconds mein ho jaata hai (zyadatar).
 
-### Effective Access Time
+## Demand Paging Ki Performance
+
+### Effective Access Time (EAT)
+
+Ye formula batata hai ki average mein memory access karne mein kitna time lagta hai, page faults ko account karte hue.
 
 ```
 p = probability of page fault (0 ≤ p ≤ 1)
@@ -271,11 +326,14 @@ Example 3: p = 0.00001 (1 per 100,000 accesses)
   Slowdown: 1.8x (acceptable)
 ```
 
-**Key insight**: Page fault rate must be very low for good performance!
+> [!warning]
+> **Key insight**: Page fault rate agar thoda bhi zyada ho jaaye, performance bahut zyada gir jaati hai! Page fault service time (disk access) normal memory access se **80,000 guna** zyada slow hota hai. Isliye page fault rate ko super low rakhna critical hai.
+
+Socho ye aisa hai jaise tumhari Zomato app har order pe 99% time instant response de, lekin 1% orders mein restaurant se manually call karke confirm karna pade — woh 1% hi tumhara poora average response time barbaad kar dega, kyunki call karna instant response se hazaaron guna slow hai.
 
 ## Swap Space
 
-**Swap Space**: Disk area used for paging out memory.
+**Kya hota hai?** Swap Space disk ka woh area hai jo memory pages ko "paged out" karne (temporarily nikaal ke rakhne) ke liye use hota hai jab RAM full ho jaaye.
 
 ```
 Disk Layout:
@@ -291,7 +349,9 @@ Disk Layout:
 └─────────────────────┘
 ```
 
-### Swap on Linux
+Socho swap space ek godown ki tarah hai — jab tumhari dukaan (RAM) mein jagah kam pad jaaye, tum kam-use hone waala saaman godown (disk) mein bhej dete ho. Zarurat padne pe wapas mangwa lete ho. Slow process hai (disk RAM se hazaaron guna slow hai), lekin better hai crash hone se.
+
+### Swap Linux Pe
 
 ```bash
 # View swap usage
@@ -308,7 +368,7 @@ free -h
 # Swap:         8.0Gi   1.2Gi  6.8Gi
 ```
 
-### Creating Swap Space
+### Swap Space Banana
 
 ```bash
 # Create swap file (2 GB)
@@ -325,11 +385,16 @@ sudo swapoff /swapfile
 sudo rm /swapfile
 ```
 
+> [!info]
+> Cloud servers (jaise AWS EC2 ke chhote instances) mein bahut kam RAM hoti hai, isliye production mein swap file banana bahut common practice hai — taaki koi memory-heavy build process ya spike aane pe server crash na ho jaaye.
+
 ## Copy-on-Write (COW)
 
-**COW**: Optimization for process creation (fork()).
+**Kya hota hai?** COW ek optimization technique hai jo process creation (`fork()`) ko fast banati hai.
 
-### Without COW
+Socho tumhe apni poori Google Drive ki file structure ko duplicate karna hai kisi doosre user ke liye. Agar tum har file ko turant physically copy karo, bahut time aur storage lagega. Lekin agar tum sirf "shortcut/reference" bana do jo original file ko point kare, aur sirf tabhi asli copy banao jab koi actually us file mein change kare — ye hai COW ka core idea.
+
+### Bina COW Ke
 
 ```
 Parent Process:              After fork():
@@ -343,7 +408,9 @@ Parent Process:              After fork():
 Entire address space duplicated immediately (expensive!)
 ```
 
-### With COW
+Ye slow aur wasteful hai, khaaske jab (jaise aksar hota hai) child process turant `exec()` call karke ek naya program load kar leta hai — tab poora copy kiya hua data bekaar chala jaata hai.
+
+### COW Ke Saath
 
 ```
 Parent Process:              After fork():
@@ -363,10 +430,12 @@ Copy page                   └─────────────┘  └�
 Update page table           Parent            Child
 ```
 
-**Advantages**:
-- Fast fork() - only copy page tables
-- Save memory - only duplicate modified pages
-- Common case: child calls exec() immediately (no duplication needed)
+Yaani parent aur child pehle same physical pages ko share karte hain (read-only mark karke). Jaise hi koi ek unmein se write karne ki koshish karta hai, tabhi page fault trigger hota hai aur **sirf usi page** ka copy banaya jaata hai — poore address space ka nahi.
+
+**Fayde**:
+- `fork()` fast hota hai — sirf page tables copy hote hain, actual data nahi
+- Memory bachti hai — sirf modify hue pages hi duplicate hote hain
+- Common case: child turant `exec()` call kar leta hai (koi duplication ki zarurat hi nahi padti)
 
 ### COW Implementation
 
@@ -416,11 +485,15 @@ void cow_page_fault_handler(address) {
 }
 ```
 
+Note karo: `frame_ref_count` yahan key hai — ye track karta hai kitne processes ek hi physical frame ko share kar rahe hain. Jab ye count 1 pe aa jaata hai (matlab ab sirf ek hi process use kar raha hai), copy karne ki zarurat hi nahi — bas usko directly writable bana do.
+
 ## Thrashing
 
-**Thrashing**: When a system spends more time paging than executing.
+**Kya hota hai?** Thrashing woh situation hai jab system apna zyadatar time pages ko load/unload karne mein bitaata hai, actual kaam (execution) karne mein nahi.
 
-### Cause
+Socho Swiggy delivery boy ka example — agar usko ek saath 10 alag-alag restaurants se orders pick karne bola jaaye jo ek dusre se bahut door hain, woh apna poora time bas aana-jaana (travel) karne mein bitaayega, actual delivery karne mein nahi. Yahi thrashing hai — system "paging" mein busy hai, "productive work" mein nahi.
+
+### Kaise Hoti Hai
 
 ```
 Too many processes, not enough memory:
@@ -442,7 +515,9 @@ System behavior:
 Endless cycle of page faults!
 ```
 
-### Thrashing Diagram
+Ye ek vicious cycle ban jaata hai — jitna zyada processes chalane ki koshish karo, utna hi zyada pages evict hote hain, jinki phir se zarurat padti hai, phir load karna padta hai, phir evict... system busy dikhta hai (CPU 100% "kaam" kar raha hoga) lekin actual progress zero ke barabar.
+
+### Thrashing Ka Diagram
 
 ```
 CPU
@@ -462,7 +537,10 @@ Initially: More processes → more CPU utilization
 Thrashing point: Adding processes decreases performance
 ```
 
-### Detecting Thrashing
+> [!warning]
+> Shuruaat mein zyada processes chalane se CPU utilization badhti hai (achha hai). Lekin ek point ke baad, aur processes add karne se performance **girni** shuru ho jaati hai — kyunki ab available frames kam pad rahe hain aur system constant page-fault-and-evict cycle mein phans jaata hai.
+
+### Thrashing Detect Karna
 
 ```bash
 # Monitor page faults
@@ -481,7 +559,9 @@ ps -eo min_flt,maj_flt,cmd | head -10
 # maj_flt: Major page faults (page not in memory)
 ```
 
-### Preventing Thrashing
+Agar `vmstat` mein `si` (swap in) aur `so` (swap out) columns mein consistently high numbers dikh rahe hain, samajh jao system thrashing kar raha hai — jaise laptop achanak bahut slow ho jaata hai aur hard disk light continuously blink karti rehti hai.
+
+### Thrashing Rokna
 
 **1. Working Set Model**
 ```
@@ -496,20 +576,24 @@ If rate too high: Give more frames
 If rate too low: Take away frames
 ```
 
-**3. Reduce Multiprogramming**
+**3. Multiprogramming Kam Karo**
 ```
 Suspend some processes temporarily
 Better to run fewer processes well than all poorly
 ```
 
-**4. Increase Physical Memory**
+Jaise Zomato peak lunch hour mein agar zyada orders handle nahi kar sakta, better hai kuch orders ko "restaurant busy" bol ke reject kar de, bajaye sab orders accept karke sabko slow deliver kare aur sab customers unhappy ho jaayein.
+
+**4. Physical Memory Badhao**
 ```
 Most direct solution (but costs money)
 ```
 
+Sabse simple solution — bas RAM upgrade kar do. Lekin obviously cost involved hai.
+
 ## Working Set Model
 
-**Working Set**: Set of pages used by a process in recent time window.
+**Kya hota hai?** Working Set ek process dwara recent time window mein use kiye gaye pages ka set hai.
 
 ```
 Time Window (Δ):
@@ -525,7 +609,9 @@ At time t=12, Δ=3:
 Working Set = {3, 4, 5}
 ```
 
-**Working Set Size (WSS)**: Number of pages in working set
+Socho tumhare Instagram feed jaisa — "recently viewed" posts ka set continuously change hota rehta hai based on tumne kitne "recent" time window mein kya dekha. Δ (delta) jitna chhota, working set utna hi zyada "abhi ke abhi" active pages ko represent karega.
+
+**Working Set Size (WSS)**: Working set mein kitne pages hain, uska count.
 
 **Working Set Strategy**:
 ```
@@ -541,9 +627,11 @@ Else:
   Can run all processes
 ```
 
+Yaani OS har process ka working set track karta hai, sabko add karke dekhta hai ki total demand available frames se zyada toh nahi ho raha. Agar ho raha hai, kuch processes ko temporarily suspend kar do — thrashing se pehle hi problem pakad lo.
+
 ## Memory Overcommitment
 
-**Overcommitment**: Allocating more virtual memory than physical memory + swap.
+**Kya hota hai?** Overcommitment matlab physical memory + swap se bhi zyada virtual memory allocate kar dena.
 
 ```
 Physical RAM: 8 GB
@@ -554,6 +642,8 @@ Virtual memory allocated: 20 GB
 
 Overcommitment ratio: 20/12 = 1.67
 ```
+
+Ye bilkul airline ki overbooking policy jaisa hai — airlines jaante hain ki kuch passengers no-show honge, isliye woh seats se zyada tickets bech dete hain. OS bhi jaanta hai ki processes jo memory allocate karte hain, uska poora use nahi karte — isliye zyada virtual memory "promise" kar deta hai, is assumption pe ki sab ek saath fully use nahi karenge.
 
 ### Linux Overcommit Modes
 
@@ -573,7 +663,7 @@ cat /proc/sys/vm/overcommit_ratio
 echo 2 | sudo tee /proc/sys/vm/overcommit_memory
 ```
 
-### Why Overcommit?
+### Overcommit Kyun Karte Hain?
 
 ```c
 // Many programs allocate but don't use all memory
@@ -588,7 +678,12 @@ Without overcommit: Many allocations would fail unnecessarily
 With overcommit: System runs more processes efficiently
 ```
 
-## Monitoring Virtual Memory
+Socho ek app `malloc(1 GB)` call karta hai "just in case" ki bade data ki zarurat pad jaaye, lekin actual mein sirf kuch KB use karta hai. Bina overcommit ke, OS us poore 1 GB ko turant reserve kar dega — bhale hi actual RAM mein utni jagah na ho. Overcommit ke saath, OS smartly bolta hai "chalo allocate kar deta hoon, jab actually use hoga tab dekh lenge" — aur zyadatar cases mein ye assumption sahi nikalti hai.
+
+> [!warning]
+> Agar overcommit zyada aggressive ho aur processes actually us memory ko use karna shuru kar dein jitni unhone allocate ki thi, toh system RAM khatam kar sakta hai. Us case mein Linux ka **OOM Killer** (Out-Of-Memory Killer) activate ho jaata hai aur kisi process ko forcefully kill kar deta hai memory free karne ke liye.
+
+## Virtual Memory Monitor Karna
 
 ### vmstat Command
 
@@ -628,6 +723,9 @@ free -h
 # available: Memory available for new processes
 ```
 
+> [!tip]
+> Beginners aksar confuse ho jaate hain "free" column dekh ke — kam "free" memory dekh ke ghabra jaate hain. Lekin actually dekhna chahiye "available" column, kyunki Linux disk cache ke liye extra RAM use karta hai (jo zarurat padne pe instantly free ho sakta hai). Kam "free" hona normal hai, iska matlab ye nahi ki system ko memory ki kami hai.
+
 ### /proc/meminfo
 
 ```bash
@@ -660,70 +758,73 @@ cat /proc/$$/smaps
 cat /proc/$$/status | grep -i vm
 ```
 
-## Benefits and Costs
+## Fayde Aur Nuksaan
 
-### Benefits
+### Fayde (Benefits)
 
 | Benefit | Description |
 |---------|-------------|
-| **Large address space** | Programs can be larger than physical RAM |
-| **More processes** | Run more concurrent processes |
+| **Large address space** | Programs physical RAM se bade ho sakte hain |
+| **More processes** | Zyada concurrent processes chala sakte hain |
 | **Protection** | Process isolation, permission enforcement |
-| **Sharing** | Efficient sharing of memory (libraries) |
+| **Sharing** | Memory ka efficient sharing (libraries) |
 | **Flexibility** | Dynamic memory allocation |
-| **Simplified programming** | Programmers don't manage physical memory |
+| **Simplified programming** | Programmers ko physical memory manage nahi karni padti |
 
-### Costs
+### Nuksaan (Costs)
 
 | Cost | Description |
 |------|-------------|
-| **Complexity** | Hardware (MMU, TLB) and OS complexity |
-| **Memory overhead** | Page tables consume memory |
-| **Performance penalty** | Page faults are expensive |
-| **Thrashing risk** | System can become unresponsive |
-| **Disk I/O** | Paging increases disk activity |
+| **Complexity** | Hardware (MMU, TLB) aur OS complexity badhti hai |
+| **Memory overhead** | Page tables khud memory consume karte hain |
+| **Performance penalty** | Page faults expensive hote hain |
+| **Thrashing risk** | System unresponsive ho sakta hai |
+| **Disk I/O** | Paging se disk activity badhti hai |
+
+> [!info]
+> Virtual memory "free lunch" nahi hai — ye trade-off hai. Complexity aur kabhi-kabhi performance penalty ke badle mein hume flexibility, isolation, aur "bade programs chalane ki ability" milti hai. Zyadatar cases mein ye trade-off worth it hota hai, isliye har modern OS (Linux, Windows, macOS) isko use karta hai.
 
 ## Key Takeaways
 
-1. **Virtual memory** allows running programs larger than physical RAM
-2. **Demand paging** loads pages only when needed
-3. **Page faults** occur when accessing pages not in memory
-4. **Copy-on-Write** optimizes process creation
-5. **Thrashing** happens when too much time spent paging
-6. **Working set** is the set of actively used pages
-7. **Swap space** provides backing store for paged-out memory
-8. **Memory overcommitment** allows allocating more virtual than physical memory
+1. **Virtual memory** physical RAM se bade programs chalane deti hai
+2. **Demand paging** sirf zarurat padne pe pages load karti hai
+3. **Page faults** tab hote hain jab kisi aise page ko access kiya jaaye jo RAM mein nahi hai
+4. **Copy-on-Write** process creation (`fork()`) ko optimize karti hai
+5. **Thrashing** tab hoti hai jab zyada time paging mein jaaye, actual execution mein nahi
+6. **Working set** actively use ho rahe pages ka set hai
+7. **Swap space** paged-out memory ke liye backing store provide karta hai
+8. **Memory overcommitment** physical se zyada virtual memory allocate karne deta hai
 
 ## Exercises
 
 ### Beginner
 
-1. Calculate effective access time if memory access = 100 ns, page fault service = 10 ms, and page fault rate = 0.0001.
+1. Effective access time calculate karo agar memory access = 100 ns, page fault service = 10 ms, aur page fault rate = 0.0001 ho.
 
-2. Explain why demand paging is more efficient than loading the entire program into memory.
+2. Explain karo demand paging poora program load karne se zyada efficient kyun hai.
 
-3. What is the difference between a minor page fault and a major page fault?
+3. Minor page fault aur major page fault mein kya difference hai?
 
 ### Intermediate
 
-4. A system has 4 GB RAM and 8 GB swap. If 10 processes each need 1 GB of memory but only actively use 300 MB, can the system run all processes? Explain.
+4. Ek system ke paas 4 GB RAM aur 8 GB swap hai. Agar 10 processes har ek ko 1 GB memory chahiye lekin actively sirf 300 MB use karte hain, kya system sab processes chala sakta hai? Explain karo.
 
-5. Write a C program that demonstrates Copy-on-Write behavior by forking and measuring memory usage before and after modifying data.
+5. Ek C program likho jo Copy-on-Write behavior demonstrate kare — fork karke aur data modify karne se pehle/baad memory usage measure karke.
 
-6. Design an experiment to deliberately cause thrashing on your system. Monitor with vmstat and describe your observations.
+6. Ek experiment design karo jisse tumhare system pe deliberately thrashing ho. `vmstat` se monitor karo aur apne observations describe karo.
 
 ### Advanced
 
-7. Implement a simple page fault simulator that:
-   - Simulates a page table
-   - Generates random memory accesses
-   - Tracks page faults
-   - Implements a basic page replacement algorithm
-   - Reports statistics
+7. Ek simple page fault simulator implement karo jo:
+   - Page table simulate kare
+   - Random memory accesses generate kare
+   - Page faults track kare
+   - Ek basic page replacement algorithm implement kare
+   - Statistics report kare
 
-8. Analyze /proc/meminfo over time while running a memory-intensive application. Identify when pages are swapped out and swapped back in.
+8. `/proc/meminfo` ko time ke saath analyze karo jab koi memory-intensive application chal rahi ho. Identify karo kab pages swap out hoti hain aur kab wapas swap in hoti hain.
 
-9. Compare the performance of a program with good locality versus poor locality. Measure page faults and execution time.
+9. Achhi locality wale program aur kharab locality wale program ki performance compare karo. Page faults aur execution time measure karo.
 
 ## Navigation
 
@@ -733,4 +834,4 @@ cat /proc/$$/status | grep -i vm
 
 ---
 
-*Virtual memory is one of the most elegant abstractions in computer science - it enables the illusion of unlimited memory!*
+*Virtual memory computer science ke sabse elegant abstractions mein se ek hai — ye unlimited memory ka illusion possible banaati hai!*

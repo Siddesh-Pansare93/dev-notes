@@ -1,29 +1,31 @@
 # I/O Buffering and Caching
 
-## What You'll Learn
+## Is Tutorial Mein Kya Seekhoge
 
-In this tutorial, you will:
+Is tutorial mein tum ye samjhoge:
 
-- Understand why I/O buffering exists and how it improves performance
-- Distinguish single, double, and circular buffering strategies
-- Learn how the Linux page cache accelerates disk reads and writes
-- Understand the historical buffer cache and how Linux unified it with the page cache
-- Compare write-back and write-through caching trade-offs
-- Use `fsync`, `fdatasync`, `O_DIRECT`, and `O_SYNC` correctly
-- Explore cache eviction with the LRU and Clock algorithms
-- Trace the write path from an application down to the physical disk
+- I/O buffering kyun exist karta hai aur ye performance kaise improve karta hai
+- Single, double, aur circular buffering strategies mein farak
+- Linux ka page cache disk reads/writes ko kaise fast banata hai
+- Purana buffer cache kya tha aur Linux ne use page cache ke saath kaise merge kiya
+- Write-back vs write-through caching ke trade-offs
+- `fsync`, `fdatasync`, `O_DIRECT`, aur `O_SYNC` ka sahi use
+- LRU aur Clock algorithm se cache eviction
+- Application se lekar physical disk tak write path ka pura safar
 
 ---
 
 ## Introduction
 
-The speed gap between CPUs and storage devices spans several orders of magnitude. A modern CPU executes billions of instructions per second; a spinning disk delivers perhaps 150 random reads per second. Even NVMe SSDs are orders of magnitude slower than RAM. Buffering and caching are the techniques the OS uses to bridge this gap — accumulating small writes into larger ones, serving repeated reads from memory, and hiding storage latency behind fast RAM.
+Socho tumhara CPU ek Formula 1 car hai jo 300 km/h pe bhaag raha hai, aur disk ek bailgadi hai jo 5 km/h pe chal rahi hai. Ye gap itna zyada hai ki agar CPU har chhoti si cheez ke liye disk ka wait kare, toh poora system rुक jaayega — jaise Zomato ka delivery boy har order ke liye restaurant ke bahar khada rehke khana pakne ka wait kare, na ki dusre orders bhi saath mein handle kare.
+
+CPU aur storage device ke beech speed ka gap kayi orders of magnitude ka hai. Ek modern CPU billions of instructions per second execute karta hai; ek spinning disk shayad 150 random reads per second de paata hai. NVMe SSDs bhi RAM ke comparison mein bahut slow hain. **Buffering aur caching** wo techniques hain jo OS use karta hai is gap ko paatne ke liye — chhoti-chhoti writes ko ek badi write mein jodna, repeated reads ko memory se serve karna, aur storage ki latency ko fast RAM ke peeche chhupana.
 
 ---
 
-## Why I/O Buffering Exists
+## I/O Buffering Kyun Zaruri Hai
 
-### The Speed Mismatch
+### Speed Mismatch — Asli Problem
 
 ```
 Device speeds (approximate):
@@ -39,13 +41,16 @@ Device speeds (approximate):
 Ratio: CPU is ~30,000,000× faster than a random HDD read
 ```
 
-Without buffering, every `write()` call would stall the application until the hardware acknowledged the write — unacceptable for interactive software or high-throughput servers.
+Zara socho — agar buffering na ho, toh har `write()` call application ko tab tak rok degi jab tak hardware confirm na kare ki data disk pe likh diya gaya. Ye interactive software (jaise tumhara text editor) ya high-throughput servers (jaise Zomato ka order-processing backend) ke liye bilkul unacceptable hai. User ek button click kare aur screen 10ms tak freeze ho jaaye — koi use nahi karega aisa app.
 
-### Three Benefits of Buffering
+### Buffering Ke Teen Fayde
 
-1. **Decoupling speeds** — the producer (application) and consumer (hardware) run at their own speeds
-2. **Batching small I/Os** — many small writes are merged into one large disk operation
-3. **Absorbing bursts** — a burst of writes fills the buffer; the disk drains it at its own pace
+1. **Speeds decouple karna** — producer (application) aur consumer (hardware) apni-apni speed pe kaam karte hain, ek dusre ka wait nahi karte
+2. **Chhoti I/Os ko batch karna** — kayi chhoti writes ek badi disk operation mein merge ho jaati hain (jaise Swiggy multiple chhote orders ko ek batch mein pack karke bhejta hai instead of alag-alag trip lagane ke)
+3. **Bursts ko absorb karna** — agar achanak bahut saari writes aa jaayein (burst), toh buffer unhe fill kar leta hai; disk apni pace pe usse drain karta hai
+
+> [!info]
+> Buffering ka core idea simple hai: **speed mismatch ke beech mein ek "waiting room" laga do**, taaki fast waala slow waale ka wait na kare.
 
 ---
 
@@ -53,7 +58,9 @@ Without buffering, every `write()` call would stall the application until the ha
 
 ### Single Buffering
 
-One buffer sits between the application and the device. The application fills the buffer; the OS drains it to the device; the application waits while draining occurs.
+Sirf ek buffer hota hai application aur device ke beech. Application buffer ko fill karta hai; OS use device pe drain karta hai; jab tak drain ho raha hai, application wait karta hai.
+
+Socho ek chhoti si chai ki dukaan jahan sirf ek hi kettle hai — jab tak wo kettle khaali nahi hoti (drain), naya paani usme daal (fill) nahi sakte. Ek time pe ek hi kaam ho sakta hai.
 
 ```
 App writes → [  Buffer  ] → Disk
@@ -69,9 +76,13 @@ Timeline:
   Utilization: 50%
 ```
 
+Yahan CPU aadha time idle baitha rehta hai — na fill ho raha, na drain. Bahut inefficient.
+
 ### Double Buffering
 
-Two buffers alternate: while the OS is draining buffer A to disk, the application fills buffer B. Then they swap.
+Do buffers hote hain jo alternate karte hain: jab OS buffer A ko disk pe drain kar raha hota hai, application buffer B ko fill karta hai. Phir dono swap ho jaate hain.
+
+Isse socho jaise ek dhaba mein do tawe hain — ek pe roti sek rahi hai (serve ho rahi), doosre pe agli roti bel di ja rahi hai (fill ho rahi). Isse koi bhi idle nahi baithta.
 
 ```
   App:  Fill A  |  Fill B  |  Fill A  |
@@ -86,9 +97,13 @@ Two buffers alternate: while the OS is draining buffer A to disk, the applicatio
   Utilization: ~100% when fill time ≈ drain time
 ```
 
+Jab fill aur drain time roughly equal hote hain, utilization ~100% tak pahunch jaata hai — koi bhi idle nahi baithta.
+
 ### Circular (Ring) Buffering
 
-N slots arranged in a ring. Producer writes to the head; consumer reads from the tail. Producer waits only when the ring is full; consumer waits only when empty.
+N slots ek ring (circle) mein arranged hote hain. Producer head pe likhta hai; consumer tail se padhta hai. Producer sirf tab wait karta hai jab ring full ho, consumer sirf tab wait karta hai jab ring empty ho.
+
+Ye bilkul IRCTC ke waiting list system jaisa hai — jaise hi ek seat khaali hoti hai (consumer ne slot free kiya), waiting list ka agla banda us slot mein aa jaata hai (producer naya data daal deta hai). Aur agar list full hai, naya banda tab tak wait karta hai jab tak jagah na bane.
 
 ```
 Ring buffer with 8 slots:
@@ -106,13 +121,19 @@ Used in: kernel log buffers, network ring buffers (DPDK, AF_XDP),
          pipe implementations, audio drivers
 ```
 
+Circular buffer sabse general aur widely-used pattern hai — kernel log buffers se lekar network drivers tak, sab jagah isi ka use hota hai kyunki isme dono producer aur consumer independently chal sakte hain, bina ek-dusre ko block kiye (jab tak buffer full/empty na ho).
+
 ---
 
-## The Linux Page Cache
+## Linux Page Cache
 
-The page cache is the kernel's main I/O cache. It stores disk content as memory pages (typically 4 KB each). All file reads and writes go through it by default.
+**Kya hota hai?** Page cache Linux kernel ka main I/O cache hai. Ye disk ka content memory pages (typically 4 KB har ek) ke form mein store karta hai. **Default mein saari file reads aur writes isi ke through jaati hain.**
+
+Isko socho jaise tumhare ghar ka fridge hai. Har baar sabzi mandi (disk) jaane ki bajaye, jo cheezein baar-baar chahiye hoti hain (doodh, sabzi) unhe fridge mein rakh lete ho. Agli baar chahiye toh fridge se turant mil jaati hai (cache hit) — mandi jaane ka time bach jaata hai. Agar fridge mein nahi hai toh mandi jaana padta hai (cache miss), aur wapas aake fridge mein rakh dete ho taaki agli baar kaam aaye.
 
 ### Read Path (Cache Hit vs Miss)
+
+**Kyun zaruri hai?** Kyunki disk se baar-baar data padhna bahut slow hai. Agar ek hi file ko 100 baar padho, toh RAM se 100 baar padhna disk se 100 baar padhne se hazaron guna fast hai.
 
 ```
 Application: read(fd, buf, 4096)
@@ -136,7 +157,11 @@ Application: read(fd, buf, 4096)
             Return data to app
 ```
 
+Cache hit microseconds mein hota hai, cache miss milliseconds le sakta hai — ye 1000x ka farak hai! Isliye jab tumhara server "warm" ho jaata hai (yaani baar-baar use hone waali files cache ho chuki hoti hain), performance dramatically improve ho jaata hai.
+
 ### Write Path (Write-Back by Default)
+
+Jab tum `write()` call karte ho, Linux turant disk pe nahi likhta — wo page cache mein page ko "dirty" mark kar deta hai aur application ko turant return kar deta hai, jaise Zomato mein order place karne ke baad turant "Order Confirmed" dikha deta hai app, chahe restaurant abhi khana banana shuru bhi na kiya ho. Actual "cooking" (disk write) background mein baad mein hota hai.
 
 ```
 Application: write(fd, buf, 4096)
@@ -158,6 +183,9 @@ Application: write(fd, buf, 4096)
      dirty ratio threshold exceeded
 ```
 
+> [!warning]
+> Ye "instant return" ka matlab ye nahi ki data disk pe safely pahunch gaya hai! Agar is beech power cut ho jaaye, wo dirty pages RAM mein hi reh jaayenge aur **permanently lost** ho jaayenge. Isi wajah se durability ke liye `fsync()` jaisi cheezein zaruri ban jaati hain (aage discuss karenge).
+
 ```bash
 # View page cache usage
 free -h
@@ -177,6 +205,8 @@ cat /proc/$(pgrep myapp)/status | grep VmDirty
 ```
 
 ### Page Cache Tuning
+
+Agar tum ek database server chala rahe ho jahan crash pe data loss unacceptable hai, tum dirty ratio ko kam rakhna chahoge (taaki jyada dirty pages RAM mein accumulate na hon). Lekin agar tum ek bulk-upload pipeline chala rahe ho jahan throughput important hai, tum jyada buffering allow karoge.
 
 ```bash
 # View dirty page thresholds
@@ -199,18 +229,21 @@ echo 2 | sudo tee /proc/sys/vm/drop_caches  # drop dentries/inodes
 echo 3 | sudo tee /proc/sys/vm/drop_caches  # drop all
 ```
 
+> [!tip]
+> `drop_caches` sirf benchmarking/testing ke liye use karo. Production mein isse chalana matlab jaan-boojh kar apni performance ko downgrade karna — jaise fridge khaali kar dena aur roz mandi jaana shuru kar dena.
+
 ---
 
 ## Buffer Cache vs Page Cache
 
 ### Historical Separation (Pre-Linux 2.4)
 
-Early Linux had two separate caches:
+Purane Linux (2.4 se pehle) mein do alag caches the:
 
-- **Page cache** — cached file data (read/write via VFS)
-- **Buffer cache** — cached raw disk blocks (used for metadata, direct block access)
+- **Page cache** — file data cache karta tha (VFS ke through read/write)
+- **Buffer cache** — raw disk blocks cache karta tha (metadata, direct block access ke liye)
 
-The same disk block could be in both caches, wasting memory.
+Problem ye thi ki same disk block dono caches mein duplicate ho sakta tha — RAM waste. Socho tumhare ghar mein do fridge hain aur galti se ek hi doodh ka packet dono mein rakh diya — jagah waste, aur confusion bhi ki latest wala kaunsa hai.
 
 ```
 [Pre-2.4 Linux]
@@ -221,7 +254,7 @@ Raw block  → Buffer Cache → same disk block
 
 ### Unified Cache (Linux 2.4+)
 
-Linux 2.4 merged the two caches. The page cache now holds all cached disk content. Buffer heads (the old buffer cache data structures) still exist but are attached to pages in the unified page cache.
+Linux 2.4 ne dono caches ko merge kar diya. Ab page cache hi saara cached disk content rakhta hai. Buffer heads (purani buffer cache ki data structures) abhi bhi exist karte hain, lekin ab wo unified page cache ke pages se attached hote hain — koi duplicate copy nahi.
 
 ```
 [Modern Linux]
@@ -240,13 +273,16 @@ free -h
 # Mem:           15Gi  3.8Gi  832Mi  312Mi      10Gi      10Gi
 ```
 
+> [!info]
+> Aaj jab tum `free -h` chalate ho aur "buff/cache" dekhte ho, wo ek hi unified page cache hai — do alag cheezein nahi.
+
 ---
 
 ## Write-Back vs Write-Through
 
-### Write-Back (Default in Linux)
+### Write-Back (Linux Mein Default)
 
-Writes go to the page cache immediately; the kernel flushes dirty pages to disk asynchronously.
+Writes turant page cache mein chali jaati hain; kernel dirty pages ko asynchronously disk pe flush karta hai — jaise UPI transaction ka "Payment Successful" screen pe turant dikh jaata hai, lekin actual bank settlement thodi der baad (ya raat ko batch mein) hota hai.
 
 ```
 Pros:
@@ -262,7 +298,7 @@ Cons:
 
 ### Write-Through
 
-Every write to the cache is also immediately written to disk before returning to the application.
+Har write cache mein hone ke saath-saath turant disk pe bhi likhi jaati hai, aur tabhi application ko return hota hai. Ye jaise CRED pe payment karte waqt tumhe tab tak "Processing..." dikhta hai jab tak actual bank confirmation na aa jaaye — slow hai, lekin guaranteed hai ki paisa gaya.
 
 ```
 Pros:
@@ -276,7 +312,7 @@ Cons:
   - Cannot coalesce writes efficiently
 ```
 
-### How to Choose
+### Kaunsa Choose Karein?
 
 ```
 Use write-back (default) when:
@@ -290,13 +326,15 @@ Use write-through / O_SYNC when:
   - Journaling files
 ```
 
+Real-world example: Ek e-commerce app ka order-log (WAL) write-through/fsync use karega — kyunki agar server crash ho jaaye toh "order place hua ya nahi" ka record kho nahi sakta. Lekin thumbnail images generate karne waala background job write-back use karega, kyunki agar wo lost bhi ho jaaye toh dobara generate ho sakta hai.
+
 ---
 
 ## fsync, fdatasync, O_DIRECT, O_SYNC
 
 ### `fsync(fd)`
 
-Forces all dirty pages for the file (data + metadata) to be written to the physical device and acknowledged.
+Ye file ke saare dirty pages (data + metadata) ko physical device pe force-write karta hai aur acknowledgment ka wait karta hai. Socho ye jaise WhatsApp ka "double tick" — jab tak dusre device pe pahunch confirm nahi hota, tumhe pata nahi ki message safe pahuncha.
 
 ```c
 #include <unistd.h>
@@ -312,7 +350,7 @@ close(fd);
 
 ### `fdatasync(fd)`
 
-Like `fsync()` but skips flushing file metadata (e.g., atime, mtime) unless the metadata is needed to retrieve the data. Faster than `fsync()` when you only need data durability.
+`fsync()` jaisa hi hai, lekin file metadata (jaise atime, mtime) ko flush nahi karta jab tak wo data retrieve karne ke liye zaruri na ho. Sirf data durability chahiye ho toh `fsync()` se fast hai — kyunki tumhe extra metadata I/O nahi karna padta.
 
 ```c
 // Faster than fsync for data-only durability
@@ -322,7 +360,7 @@ fdatasync(fd);
 
 ### `O_SYNC` Flag
 
-Opens the file in synchronous mode. Every `write()` call blocks until the data and necessary metadata are on the physical device. Equivalent to calling `fdatasync()` after every write.
+File ko synchronous mode mein open karta hai. Har `write()` call tab tak block rehti hai jab tak data aur zaruri metadata physical device pe na chala jaaye. Ye har write ke baad `fdatasync()` call karne ke barabar hai — jaise har transaction ke baad manually confirm karna, na ki batch mein.
 
 ```c
 int fd = open("wal.log", O_WRONLY | O_CREAT | O_SYNC, 0644);
@@ -331,7 +369,9 @@ write(fd, record, len);  // blocks until on disk
 
 ### `O_DIRECT` Flag
 
-Bypasses the page cache entirely. Reads and writes go directly between the user buffer and the device. Requires aligned buffers and aligned transfer sizes (usually 512 B or 4096 B alignment).
+Page cache ko poori tarah bypass kar deta hai. Reads aur writes seedha user buffer aur device ke beech jaati hain. Iske liye aligned buffers aur aligned transfer sizes chahiye hoti hain (usually 512 B ya 4096 B alignment).
+
+**Kyun use karte hain?** Databases jaise PostgreSQL aur MySQL apna khud ka smart buffer pool maintain karte hain (jo unke query patterns ke hisaab se optimized hota hai). Agar Linux ka generic page cache bhi beech mein aa jaaye, toh data do baar cache hoga (double buffering problem) — jagah waste, aur kabhi-kabhi performance bhi kharab.
 
 ```c
 #include <fcntl.h>
@@ -356,6 +396,9 @@ O_DIRECT pitfalls:
   - Usually slower than cached I/O except for large sequential workloads
 ```
 
+> [!warning]
+> `O_DIRECT` ek "expert mode" feature hai. Agar tumhe exactly nahi pata ki alignment aur prefetching kaise handle karni hai, iska use mat karo — galat use se performance kaafi kharab ho sakta hai, cached I/O se bhi slow.
+
 ### Performance Impact Summary
 
 ```bash
@@ -375,15 +418,19 @@ dd if=/dev/zero of=test.dat bs=4M count=256 oflag=direct
 # → ~2000 MB/s (NVMe seq) or ~120 MB/s (HDD seq)
 ```
 
+Dekho ye numbers — write-back sabse fast dikhta hai (~3000 MB/s) kyunki wo sirf RAM mein likh raha hai, disk pe nahi. Lekin ye ek "illusion" hai — actual disk commitment abhi baaki hai. `fdatasync` ka number asli disk speed dikhata hai.
+
 ---
 
-## Cache Eviction: LRU and Clock Algorithm
+## Cache Eviction: LRU Aur Clock Algorithm
 
-The page cache has limited size (bounded by available RAM). When new pages must be loaded but memory is full, the kernel must choose which pages to evict.
+**Kya hota hai?** Page cache ka size limited hota hai (available RAM tak bounded). Jab naye pages load karne hon aur memory full ho, kernel ko decide karna padta hai ki **kaunse pages evict (remove) kiye jaayein**.
 
 ### LRU (Least Recently Used)
 
-Evict the page that was accessed furthest in the past. In a perfect implementation, this requires tracking the exact time of every access.
+Us page ko evict karo jo sabse purane time pe access hua tha. Ek perfect implementation mein, har access ka exact time track karna padta hai.
+
+Socho ye jaise tumhari almari hai jisme limited jagah hai. Jo kapde tumne sabse zyada time se nahi pehne (least recently used), unhe sabse pehle nikaal ke daan mein de doge jab nayi shopping ke liye jagah chahiye ho.
 
 ```
 Page accesses: A B C D A B E A B C
@@ -401,11 +448,13 @@ Access B: [E A B]  HIT  → B moved to front
 Access C: [C A B]  miss → evict E (oldest)
 ```
 
-True LRU is expensive (O(1) with a doubly-linked list + hash map). Linux uses an approximation.
+True LRU mehenga hai implement karna (O(1) ke liye doubly-linked list + hash map chahiye, aur har access pe usko update karna padta hai). Millions of pages ke saath ye overhead significant ho jaata hai. Isliye Linux ek **approximation** use karta hai.
 
 ### Clock Algorithm (Second-Chance FIFO)
 
-The clock algorithm is an efficient LRU approximation used in Linux's page frame reclaimer. Pages sit on a circular list. Each page has a **reference bit** set to 1 when accessed.
+Clock algorithm ek efficient LRU approximation hai jo Linux ke page frame reclaimer mein use hota hai. Pages ek circular list pe baithe hote hain. Har page ka ek **reference bit** hota hai jo access hone pe 1 set ho jaata hai.
+
+Isko socho ek clock ki tarah jiski suee (hand) ghadi ki tarah ghoomti hai. Jaise koi ticket-checker train mein ghoom-ghoom kar check kar raha ho ki kaun currently seat use kar raha hai (ref bit = 1) aur kaun nahi (ref bit = 0) — jo use nahi kar raha, uski seat kisi aur ko de do (evict).
 
 ```
 Clock hand sweeps around the ring:
@@ -428,9 +477,11 @@ Pages arranged in a circle:
    Next sweep: B and C now have ref=0 → eligible for eviction
 ```
 
-### Linux's Two-List Strategy (Active/Inactive Lists)
+Clock algorithm ka fayda ye hai ki isme O(1) ke roughly close overhead hota hai per page, lekin behavior LRU jaisa hi milta hai bina expensive linked-list bookkeeping ke.
 
-Linux maintains two LRU lists per memory zone:
+### Linux Ki Two-List Strategy (Active/Inactive Lists)
+
+Linux har memory zone ke liye do LRU lists maintain karta hai — ye bhi ek smarter approximation hai:
 
 ```
 Active list:   hot pages, recently accessed twice or more
@@ -441,6 +492,8 @@ Access on inactive page → promoted to Active list
 Active list too large → demote pages to Inactive list
 Need to free memory → evict from tail of Inactive list
 ```
+
+Isko socho jaise ek restaurant ka "regular customers" vs "one-time visitors" list. Naya customer pehle "one-time visitor" list mein hai. Agar wo dobara aata hai, promote hoke "regular" list mein chala jaata hai — aur regulars ko easily kick out nahi kiya jaata jab tables chahiye hoti hain, pehle one-time visitors ko priority di jaati hai jagah khaali karne ke liye.
 
 ```bash
 # See active vs inactive page counts
@@ -454,6 +507,8 @@ cat /proc/meminfo | grep -E "Active|Inactive"
 ---
 
 ## Full Write Path Diagram
+
+Chalo ab pura safar dekhte hain — jab tum apne Node.js app mein `fs.write()` call karte ho, data actually disk tak kaise pahunchta hai:
 
 ```mermaid
 graph TD
@@ -497,7 +552,9 @@ graph TD
     classDef gray fill:#374151,color:#fff,stroke:none
 ```
 
-**Key insight**: `write()` returns to the application as soon as the data reaches the page cache (the purple box). The orange path (background writeback) happens completely asynchronously — potentially seconds later. Only `fsync()` forces the application to wait for the green path (disk acknowledgment).
+**Key insight**: `write()` application ko turant return kar deta hai jaise hi data page cache (purple box) tak pahunchta hai. Orange path (background writeback) poori tarah asynchronously hota hai — kabhi-kabhi seconds baad. Sirf `fsync()` hi application ko green path (disk acknowledgment) ke complete hone tak wait karwaata hai.
+
+Isko Zomato ke analogy se dekho: "Order Placed" (write returns) turant dikh jaata hai. Restaurant ko order forward karna (kworker/writeback) background mein hota hai. "Order Delivered" confirmation (fsync completion) tabhi milta hai jab actual delivery ho jaaye.
 
 ---
 
@@ -527,13 +584,17 @@ vmtouch -e /path/to/file
 fincore /var/log/syslog
 ```
 
+> [!tip]
+> Agar tum kabhi ye dekh rahe ho ki "database benchmark run 1 fast tha, run 2 aur bhi fast tha" — ye page cache warm-up effect ho sakta hai. Consistent benchmarking ke liye har run se pehle `drop_caches` use karo taaki fair comparison mile.
+
 ---
 
-## Summary
+## Key Takeaways
 
-- **I/O buffering** decouples application speed from device speed; circular buffers are the most general pattern
-- The **Linux page cache** is the unified kernel cache for all file and block device content; it serves reads from RAM and batches writes asynchronously
-- **Write-back** (default) maximizes throughput but risks data loss; `fsync()` provides explicit durability checkpoints
-- `O_DIRECT` bypasses the page cache — useful for databases with their own buffer pool, but requires alignment and careful use
-- Cache eviction uses **approximated LRU** via the clock algorithm and Linux's two-list (active/inactive) strategy
-- The write path from application to disk crosses four layers: libc buffer → page cache → block layer → device driver → hardware; `fsync()` waits for the entire path to complete
+- **I/O buffering** application ki speed ko device ki speed se decouple karta hai; circular buffer sabse general aur widely-used pattern hai (kernel log buffers, network drivers, pipes sab isi ka use karte hain)
+- **Linux page cache** kernel ka unified cache hai jo saara file aur block device content store karta hai — reads ko RAM se serve karta hai aur writes ko asynchronously batch karta hai
+- Pehle **page cache** aur **buffer cache** alag-alag the (duplicate memory waste karte the); Linux 2.4 se dono unified ho gaye — ab ek hi copy RAM mein
+- **Write-back** (default) throughput maximize karta hai lekin data-loss ka risk rehta hai; `fsync()`/`fdatasync()` explicit durability checkpoints dete hain jahan zaruri ho (jaise WAL files)
+- `O_DIRECT` page cache ko bypass karta hai — databases apna khud ka buffer pool manage karte hain isliye use karte hain, lekin alignment aur careful handling zaruri hai
+- Cache eviction ke liye true LRU expensive hai, isliye Linux **Clock algorithm** (second-chance FIFO) aur **active/inactive two-list strategy** use karta hai — ek smart approximation jo real LRU jaisa behavior deta hai kam overhead mein
+- Write path 4 layers cross karta hai: libc buffer → page cache → block layer → device driver → hardware; `fsync()` is poore path ke complete hone ka wait karta hai, jabki normal `write()` sirf page cache tak pahunchte hi return ho jaata hai

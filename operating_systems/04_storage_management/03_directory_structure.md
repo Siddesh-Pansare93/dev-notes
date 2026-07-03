@@ -1,24 +1,24 @@
 # Directory Structure
 
-## What You'll Learn
+## Kya Padhoge Is Tutorial Mein
 
-In this tutorial, you'll explore directory hierarchies and special files in operating systems:
+Socho tumhare laptop mein files kaise organize hoti hain — Documents folder mein docs, Downloads mein downloads, Desktop pe wo random screenshots jo kabhi delete nahi hote. Yehi organization ka concept OS level pe bhi hota hai, bas thoda zyada structured aur strict. Is tutorial mein hum cover karenge:
 
-- Master the Linux/Unix Filesystem Hierarchy Standard (FHS)
-- Understand Windows directory structure
-- Explore special directories (/proc, /sys, /dev)
-- Differentiate between block and character device files
-- Learn about /proc/[pid]/ files for process information
-- Understand file naming conventions
-- Master directory traversal techniques
-- Use the `find` command effectively
-- Visualize directory structures with `tree`
+- Linux/Unix ka Filesystem Hierarchy Standard (FHS) — matlab Linux ka "har cheez ki apni jagah" wala rulebook
+- Windows ka directory structure aur woh Linux se kaise alag hai
+- Special directories — `/proc`, `/sys`, `/dev` — jo asli files nahi hain, kernel ka jaadu hai
+- Block vs character device files — pen drive vs keyboard ka difference
+- `/proc/[pid]/` — har process ka apna "Aadhar card" jisme uski poori details hoti hain
+- File naming conventions — kya allowed hai, kya nahi
+- Directory traversal aur `find`, `tree` commands — jaise Google Maps use karke files dhoondhna
 
 ---
 
-## Introduction to Directory Structures
+## Directory Structure Ka Introduction
 
-A **directory** (or folder) is a special file that contains references to other files and directories, creating a hierarchical organization.
+**Directory** (ya folder) ek special type ki file hoti hai jisme sirf ek kaam hota hai — dusri files aur directories ke references (pointers) store karna. Khud directory ke andar actual data nahi hota, bas ek "index card" hota hai jo batata hai "yahan pe yeh files hain, unke inodes yeh hain."
+
+Socho ek almirah — almirah khud kapde nahi hai, par usme sections banaye hote hain (shirts, pants, ties) taaki dhoondhna easy ho. Filesystem mein directories exactly yehi role play karte hain.
 
 ```mermaid
 flowchart TB
@@ -61,17 +61,21 @@ flowchart TB
    docs    pics
 ```
 
-Directories provide:
-- **Organization**: Logical grouping of files
-- **Naming**: Context for filenames (same name in different directories)
-- **Navigation**: Path-based access to files
-- **Security**: Permission boundaries
+Directories ka business kya hai?
+
+- **Organization**: Related files ek jagah, jaise Zomato app mein "Restaurants near you", "Orders", "Favourites" alag-alag sections hain
+- **Naming**: Same naam ki file alag directories mein ho sakti hai — `docs/report.txt` aur `pics/report.txt` dono independent hain, koi conflict nahi. Bilkul waise hi jaise "Raj" naam ka banda Mumbai mein bhi hai aur Delhi mein bhi, dono alag insaan hain
+- **Navigation**: Path ke through kisi bhi file tak pahuncho — `/home/user1/docs/notes.txt` ek pura address hai, GPS coordinates jaisa
+- **Security**: Har directory pe permissions laga sakte ho — kaun read/write/execute kar sakta hai. Jaise society ke gate pe security guard decide karta hai kaun andar aa sakta hai
+
+> [!info]
+> Technically, ek directory internally bhi ek file hoti hai — bas uska content special format mein hota hai: **filename → inode number** ka mapping table. Jab tum `ls` chalate ho, OS is table ko padhta hai aur har inode se metadata (size, permissions, timestamps) nikalta hai.
 
 ---
 
 ## Linux/Unix Filesystem Hierarchy Standard (FHS)
 
-The FHS defines the directory structure and content for Unix-like systems.
+Ab yeh samjho ki agar tumhe Zomato jaisi company mein har city ka apna alag folder structure hota (Mumbai ka menu kahin, Delhi ka kahin) toh chaos ho jaata. Isliye Linux world mein ek **standard** hai jise sab distros (Ubuntu, CentOS, Debian) follow karte hain — iska naam hai **FHS (Filesystem Hierarchy Standard)**. Iska matlab: chahe tum Ubuntu use karo ya Fedora, `/etc` mein config files hi milengi, `/home` mein user data hi milega. Yeh consistency devs aur sysadmins ki zindagi easy banati hai.
 
 ### Complete Directory Tree
 
@@ -117,6 +121,8 @@ The FHS defines the directory structure and content for Unix-like systems.
 The top-level directory. All other directories descend from here.
 ```
 
+Yeh sabka baap hai. Windows mein `C:\` jaisa concept, bas Linux mein sirf ek hi root hota hai — usb drive, hard disk, network share, sab isi `/` ke neeche kahin na kahin mount hote hain. Windows mein har drive ka apna letter hota hai (C:, D:, E:), Linux mein sab ek hi tree mein fit ho jaata hai.
+
 #### /bin - Essential User Binaries
 ```
 Critical commands needed for single-user mode and system recovery:
@@ -126,10 +132,15 @@ Critical commands needed for single-user mode and system recovery:
 - ps, kill (process management)
 ```
 
+Socho system crash ho gaya aur GUI bhi nahi chal raha — recovery mode mein bhi tumhe basic commands chahiye hi honge taaki file move/delete kar sako. Yeh wahi "emergency toolkit" hai. `/bin` mein wahi commands hote hain jo system boot ke bilkul early stage mein bhi available hone chahiye, chahe baaki kuch mount na hua ho.
+
 ```bash
 $ ls /bin
 bash  cat  chmod  cp  date  echo  grep  ls  mkdir  mv  ps  pwd  rm  sh  ...
 ```
+
+> [!info]
+> Modern distros (Ubuntu 20+, Fedora, Arch) mein `/bin` ab `/usr/bin` ka symlink hota hai — yeh "usrmerge" ka result hai jo pehle alag rakhe gaye binaries ko simplify karne ke liye kiya gaya. Interview mein pooch sakte hain isliye yaad rakhna.
 
 #### /boot - Boot Loader Files
 ```
@@ -139,6 +150,8 @@ Files needed for system boot:
 - grub/            : GRUB bootloader configuration
 - config-*         : Kernel configuration
 ```
+
+Jab tum laptop ka power button dabate ho, sabse pehle yehi folder kaam mein aata hai. `vmlinuz` actual Linux kernel hai (compressed), `initrd.img` ek temporary mini filesystem hai jo kernel ko boot karte waqt drivers load karne mein help karta hai (jaise cricket match shuru hone se pehle warm-up drill). GRUB bootloader yeh decide karta hai kaunsa OS load karna hai agar dual-boot setup hai.
 
 ```bash
 $ ls /boot
@@ -159,7 +172,9 @@ Special files representing hardware devices:
 - /dev/random            : Random number generator
 ```
 
-**Block vs Character Devices** (covered in detail later)
+Yeh Linux ka famous philosophy hai — **"Everything is a file"**. Tumhara hard disk, tumhara keyboard, tumhara mouse — sab ke sab `/dev` mein ek "file" ki tarah represent hote hain. Iska fayda kya hai? Tum ek hard disk se data padhne ke liye wahi commands use kar sakte ho jo normal file padhne ke liye use karte ho (`cat`, `dd`, etc.) — koi special API seekhne ki zaroorat nahi.
+
+**Block vs Character Devices** (neeche detail mein cover karenge)
 
 #### /etc - Configuration Files
 ```
@@ -175,6 +190,8 @@ System-wide configuration files:
 - /etc/apt/            : APT package manager configuration
 ```
 
+`/etc` ka naam "et cetera" se aaya hai (jo bhi fit nahi hota, yahan daal do — purane Unix devs ka mazaak). Aaj yeh basically system-wide **settings** ka ghar hai. Socho jaise CRED app mein ek "Settings" screen hoti hai jahan tumhare saare preferences store hain — `/etc` bhi system ke liye wahi role play karta hai. Yahan koi executable programs nahi hote, sirf configuration text files.
+
 ```bash
 $ cat /etc/hostname
 myserver
@@ -183,6 +200,9 @@ $ cat /etc/hosts
 127.0.0.1       localhost
 192.168.1.100   myserver
 ```
+
+> [!warning]
+> `/etc/shadow` file mein encrypted passwords hote hain aur yeh sirf root read kar sakta hai. Agar interview mein pooche "passwords kahan store hote hain" — jawab hai `/etc/shadow`, `/etc/passwd` mein nahi (wahan sirf username, UID, GID, home directory jaisi metadata hoti hai, actual password hash nahi — purane zamane mein hota tha, security ke liye move kar diya gaya).
 
 #### /home - User Home Directories
 ```
@@ -196,7 +216,7 @@ Personal directories for users:
 └── .ssh/                : SSH keys
 ```
 
-Each user has full control over their home directory.
+Yeh tumhara personal "flat" hai system ke andar. Jaise ek PG (paying guest) mein har student ka apna kamra hota hai — kapde, kitabein sab uske kamre mein hi rehte hain, dusre ke kamre mein interfere nahi karte. `/home/user1` sirf `user1` ka hai, `/home/user2` sirf `user2` ka. Har user ka apne home directory pe full control hota hai.
 
 #### /lib - Shared Libraries
 ```
@@ -206,7 +226,7 @@ Essential shared libraries and kernel modules:
 - libc.so.6              : C standard library
 ```
 
-Similar to Windows DLL files - shared code used by multiple programs.
+Yeh Windows ke DLL files jaisa hai — code jo multiple programs share karte hain taaki har program apna khud ka copy na rakhe. Jaise ek building mein common lift hoti hai jo sab flats use karte hain, waise hi `libc.so.6` (C standard library) ko har program apna khud ka copy nahi rakhta, sab shared version use karte hain — RAM aur disk space dono bachta hai.
 
 #### /proc - Process Information (Virtual)
 ```
@@ -219,7 +239,7 @@ Virtual file system providing process and kernel information:
 - /proc/[PID]/fd/        : Open file descriptors
 ```
 
-**Not real files on disk** - dynamically generated by kernel.
+**Not real files on disk** — dynamically generated by kernel. Iska deep dive neeche "Special Directories" section mein hai.
 
 #### /sys - System Devices (Virtual)
 ```
@@ -236,11 +256,16 @@ Temporary files, cleared on reboot.
 World-writable but with sticky bit (users can only delete own files).
 ```
 
+Socho ek shared office ka whiteboard — koi bhi likh sakta hai, koi bhi mita sakta hai, but reboot pe poora clean ho jaata hai. `/tmp` mein har koi read/write kar sakta hai (world-writable — permission `777`), lekin **sticky bit** ki wajah se koi user dusre ke banaye hue file ko delete nahi kar sakta, sirf apna khud ka.
+
 ```bash
 $ ls -ld /tmp
 drwxrwxrwt 10 root root 4096 Jan 15 10:30 /tmp
 #       └─ t = sticky bit
 ```
+
+> [!tip]
+> `t` (sticky bit) dekhoge to yaad rakho — yeh security feature hai. Bina isके, koi bhi user `/tmp` mein kisi aur ki file delete kar sakta tha jo shared temp space mein bahut bada security risk hota.
 
 #### /usr - User Programs and Data
 ```
@@ -259,6 +284,8 @@ Secondary hierarchy for user programs:
 └── src/         : Source code
 ```
 
+`/usr` ka naam "Unix System Resources" se aaya hai (naa ki "user", yeh common confusion hai). Yahan tumhare wo saare tools hote hain jo boot ke liye zaroori nahi hain but daily use ke liye important hain — `python`, `gcc`, `vim`, `git`. Socho `/bin` jaise emergency kit ki tarah hai (basic survival tools), `/usr/bin` jaise puri toolbox hai jisme har cheez hai jo tumhe kaam karne ke liye chahiye.
+
 #### /var - Variable Data
 ```
 Files that grow or change during operation:
@@ -273,6 +300,8 @@ Files that grow or change during operation:
 └── www/         : Web server files
 ```
 
+`/var` ("variable") mein woh data hota hai jo continuously badalta rehta hai — logs, mail, print queue. Jaise Swiggy ka order-tracking system continuously update hota rehta hai (order placed → preparing → out for delivery), `/var/log` continuously naye entries se bharta rehta hai.
+
 ```bash
 # View system logs
 sudo tail -f /var/log/syslog
@@ -280,6 +309,9 @@ sudo tail -f /var/log/syslog
 # Check web server logs
 sudo tail -f /var/log/apache2/access.log
 ```
+
+> [!tip]
+> Production servers pe `/var/log` disk space khatam karne ka number one culprit hota hai. Agar server ka disk full ho jaaye, sabse pehle `/var/log` check karo — kahin koi runaway log file toh nahi bani.
 
 ### FHS Summary Table
 
@@ -301,7 +333,7 @@ sudo tail -f /var/log/apache2/access.log
 
 ## Windows Directory Structure
 
-Windows uses a different hierarchy:
+Ab Windows side dekhte hain, jo tumhare daily driver OS ka structure hai. Windows ka approach thoda different hai — har drive ka apna letter (`C:`, `D:`), aur folder naming mein backslash `\` use hota hai instead of forward slash `/`.
 
 ```mermaid
 flowchart TB
@@ -368,6 +400,12 @@ C:\                          System drive
 └── Temp\                    Temporary files
 ```
 
+Kuch interesting quirks jo tumhe as a Node/TS dev pata hone chahiye:
+
+- **`AppData\Roaming`**: Yeh data domain-joined enterprise networks mein user ke saath "roam" karta hai — agar tum office mein alag-alag machine pe login karo, tumhari settings follow karengi. Home use mein iska matlab utna nahi hota.
+- **`AppData\Local`**: Machine-specific hota hai, roam nahi karta. VSCode extensions, npm cache jaisi cheezein yahan store hoti hain — `%LOCALAPPDATA%\npm-cache` dekha hoga tumne kabhi.
+- **`Program Files (x86)`**: Legacy 32-bit apps ke liye — naam thoda misleading hai kyunki modern 64-bit systems pe bhi kuch apps yahan install hoti hain agar unka installer 32-bit hai.
+
 ### Key Windows Directories
 
 | Directory | Linux Equivalent | Purpose |
@@ -386,7 +424,9 @@ C:\                          System drive
 
 ### /proc - Process File System
 
-A **virtual file system** that doesn't exist on disk - generated by the kernel.
+**/proc** ek **virtual filesystem** hai — matlab yeh disk pe kahin physically exist nahi karta. Jab bhi tum `cat /proc/cpuinfo` chalate ho, kernel real-time mein CPU se data khींch ke ek "fake file" bana deta hai just for that moment. Socho jaise ek live dashboard jo har baar refresh karne pe fresh data dikhata hai — koi bhi data pehle se disk pe stored nahi hai.
+
+Yeh design decision genius hai kyunki isse tum system information ko bilkul normal file-reading commands (`cat`, `grep`) se access kar sakte ho, koi special monitoring tool ki zaroorat nahi.
 
 #### System Information
 
@@ -421,7 +461,7 @@ cat /proc/mounts
 
 #### Per-Process Information (/proc/[PID]/)
 
-Each running process has a directory under `/proc/`:
+Har running process ka **apna Aadhar card** hota hai `/proc/` ke andar — uska naam hota hai uska PID (Process ID). Jaise UPI transaction ka apna unique reference number hota hai jisse tum poori details track kar sakte ho, waise hi `/proc/[PID]/` ke andar us process ki har cheez trace ho sakti hai.
 
 ```bash
 # Example: Process 1234
@@ -475,15 +515,21 @@ cat /proc/1234/status
 cat /proc/1234/environ | tr '\0' '\n'
 ```
 
+Node.js background se ho toh yeh soch ke dekho: jab tumhara Node process `EMFILE: too many open files` error deta hai production mein, sabse pehle `/proc/[PID]/fd/` check karke count karte hain kitne file descriptors khule hain — ek chhoti si command debugging session bacha deti hai:
+
+```bash
+ls /proc/$(pidof node)/fd/ | wc -l
+```
+
 **Use Cases**:
-- Monitoring tools (top, htop)
+- Monitoring tools (top, htop) — yeh sab internally `/proc` hi padhte hain
 - Debugging (gdb, strace)
 - System administration
-- Process forensics
+- Process forensics — koi crash ho gaya toh uski last state samajhne ke liye
 
 ### /sys - System Device Hierarchy
 
-Exposes kernel's device model to userspace:
+`/proc` jaisa hi ek aur virtual filesystem, but iska focus hai kernel ka **device model** — hardware devices ka hierarchy expose karna userspace ko.
 
 ```bash
 # Block devices
@@ -517,17 +563,20 @@ cat /sys/class/thermal/thermal_zone0/temp
 # 45000 (45°C in millidegrees)
 ```
 
+> [!info]
+> `/proc` vs `/sys` ka farak yaad rakhne ka trick: `/proc` **processes** ke baare mein hai (aur legacy system info bhi), `/sys` cleaner tarike se **hardware devices** ke baare mein hai. Modern Linux kernel `/sys` ko zyada structured aur "proper" tareeke se maintain karta hai — `/proc` purana aur thoda messy hai, backward compatibility ke liye rakha gaya hai.
+
 ---
 
 ## Device Files (/dev)
 
-Special files that provide interface to hardware devices.
+Yeh special files hain jo hardware devices ke saath interface provide karte hain. Chalo isko Zomato delivery analogy se samjhte hain.
 
 ### Types of Device Files
 
 #### 1. Block Devices (b)
 
-Handle data in **blocks** (chunks), support random access:
+**Block devices** data ko **blocks (chunks)** mein handle karte hain aur **random access** support karte hain — matlab tum kisi bhi block ko directly jump karke padh sakte ho, sequence follow karne ki zaroorat nahi. Socho jaise ek kitab ka index dekh ke seedha chapter 7 pe pahunch jaana, poori kitab pehle se padhne ki zaroorat nahi.
 
 ```bash
 $ ls -l /dev/sda
@@ -549,7 +598,7 @@ brw-rw---- 1 root disk 8, 0 Jan 15 10:30 /dev/sda
 
 #### 2. Character Devices (c)
 
-Handle data as **stream of characters**, sequential access:
+**Character devices** data ko **stream of characters** ki tarah handle karte hain — **sequential access**, ek ke baad ek, koi jump nahi. Socho jaise WhatsApp voice message sunna — tum bina sunhe beech mein jump nahi kar sakte, order mein hi aayega (technically seek possible hai kuch devices mein, but conceptually stream-based hai).
 
 ```bash
 $ ls -l /dev/tty0
@@ -571,7 +620,12 @@ crw--w---- 1 root tty 4, 0 Jan 15 10:30 /dev/tty0
 - Unbuffered (direct) I/O
 - Used for terminals, serial ports, input devices
 
+> [!tip]
+> Quick memory trick: **B**lock devices = **B**ig chunks, random access, storage (hard disk). **C**haracter devices = **C**ontinuous stream, sequential, I/O devices (keyboard, mouse, terminal). `ls -l` output ke pehle character (`b` ya `c`) se pehchano.
+
 ### Special Device Files
+
+Yeh kuch "magic" device files hain jo Linux mein bahut kaam aate hain:
 
 ```bash
 # /dev/null - Discards all data written to it
@@ -592,9 +646,11 @@ echo "test" > /dev/full
 # bash: echo: write error: No space left on device
 ```
 
+`/dev/null` ko socho ek **kachra dabba jisme kabhi kachra bharta hi nahi** — jitna daalo utna gayab. Har Node dev ne kabhi na kabhi `2> /dev/null` use kiya hi hoga taaki error output terminal pe dikhna band ho jaaye.
+
 ### Device Numbers
 
-Each device has **major** and **minor** numbers:
+Har device ke do numbers hote hain — **major** aur **minor**. Yeh bilkul customer support ke ticket system jaisa hai — major number decide karta hai "kaunsa department/driver handle karega" (jaise SCSI disk driver = 8), minor number decide karta hai "specific device/partition kaunsa hai" (jaise sda1 vs sda2).
 
 ```bash
 $ ls -l /dev/sda*
@@ -615,11 +671,11 @@ brw-rw---- 1 root disk 8, 2 Jan 15 10:30 /dev/sda2
 
 ### Linux/Unix
 
-- **Case-sensitive**: `File.txt` ≠ `file.txt`
+- **Case-sensitive**: `File.txt` ≠ `file.txt` — dono alag files hain! Bahut logon ko yeh migrate karte waqt bite karta hai jab woh Windows se Linux pe move karte hain
 - **Length**: Up to 255 characters
 - **Special characters**: Allowed but discouraged: spaces, !, @, #, etc.
-- **Hidden files**: Start with `.` (e.g., `.bashrc`, `.gitignore`)
-- **No extension requirement**: Extensions are convention only
+- **Hidden files**: Start with `.` (e.g., `.bashrc`, `.gitignore`) — yeh "hidden" isliye kehlaate hain kyunki `ls` normally inhe nahi dikhata (`ls -a` chahiye dekhne ke liye)
+- **No extension requirement**: Extensions are convention only — `.txt`, `.js` sirf humans aur programs ke liye hint hain, kernel ko koi farak nahi padta
 
 ```bash
 # Valid filenames (but some are poor choices)
@@ -642,19 +698,24 @@ my file.txt          # Spaces (use _ or -)
 file!@#$.txt         # Special characters
 ```
 
+> [!warning]
+> Bash scripting mein spaces waali filenames sabse zyada bugs cause karti hain — `for file in $files` jaise loops break ho jaate hain agar filename mein space ho. Isliye production scripts mein `_` ya `-` use karo, kabhi space nahi.
+
 ### Windows
 
-- **Case-insensitive**: `File.txt` = `file.txt` (but preserves case)
+- **Case-insensitive**: `File.txt` = `file.txt` (but preserves case) — yeh Node devs ke liye bahut common gotcha hai! Ek `import './Utils'` Windows pe chal jaayega but Linux (production server, CI) pe fail ho jaayega agar actual file `utils.js` hai (lowercase). Isliye local pe Windows use karte ho toh case-sensitivity ka dhyaan rakho, warna deploy karte waqt surprise milega.
 - **Length**: Up to 260 characters (full path)
 - **Forbidden characters**: `< > : " / \ | ? *`
-- **Reserved names**: `CON`, `PRN`, `AUX`, `NUL`, `COM1-COM9`, `LPT1-LPT9`
-- **Extension determines file type**: Important for opening files
+- **Reserved names**: `CON`, `PRN`, `AUX`, `NUL`, `COM1-COM9`, `LPT1-LPT9` — yeh purane DOS-era device names hain, aaj bhi file ka naam nahi ban sakte
+- **Extension determines file type**: Important for opening files — Windows extension dekh ke decide karta hai kaunsa program file kholega (double-click behavior)
 
 ---
 
 ## Directory Traversal
 
 ### Basic Navigation
+
+Yeh basic commands hain jo tum daily terminal mein use karte ho — but chalo revise kar lete hain kyunki OS concepts ki base yehi hai.
 
 ```bash
 # Print working directory
@@ -684,11 +745,14 @@ rm -r dirname                # Remove directory and contents
 rm -rf dirname               # Force remove (dangerous!)
 ```
 
+> [!warning]
+> `rm -rf` ke saath careful raho — especially agar tum root user ho ya sudo use kar rahe ho. `rm -rf /` (ya galti se `rm -rf /` jaisa kuch typo ho jaana) poora system delete kar sakta hai. Hamesha path double-check karo before Enter dabao.
+
 ---
 
 ## Finding Files with `find`
 
-The `find` command is powerful for searching files:
+`find` command bahut powerful hai files search karne ke liye — socho jaise Flipkart ka advanced filter system (price range, brand, rating) but files ke liye.
 
 ### Basic Syntax
 
@@ -818,11 +882,14 @@ find / -xdev -type f -perm -0002 2>/dev/null
 find /home -inum 12345
 ```
 
+> [!tip]
+> `find / ... 2>/dev/null` pattern bahut common hai — `find` jab permission-denied directories mein jaata hai (jaise dusre user ke home folder), woh stderr pe errors print karta hai. `2>/dev/null` un errors ko discard kar deta hai taaki output clean rahe.
+
 ---
 
 ## Visualizing with `tree`
 
-The `tree` command displays directory structure visually:
+`tree` command directory structure ko visually dikhata hai — bahut helpful jab tum kisi naye project ki codebase samajhne ki koshish kar rahe ho.
 
 ```bash
 # Install tree (if not available)
@@ -970,24 +1037,24 @@ find "$DIR" -type f -exec ls -lh {} \; | sort -k5 -h | tail -5
 
 ## Key Takeaways
 
-1. **FHS Structure**: Linux/Unix follows a standard hierarchy (/, /bin, /etc, /home, /usr, /var)
+1. **FHS Structure**: Linux/Unix ek standard hierarchy follow karta hai (`/`, `/bin`, `/etc`, `/home`, `/usr`, `/var`) — har distro isse follow karta hai isliye consistency milti hai
 
 2. **Special Directories**:
-   - `/proc`: Virtual filesystem with process and kernel info
-   - `/sys`: Kernel's device tree
-   - `/dev`: Device files
+   - `/proc`: Virtual filesystem jisme process aur kernel info hai — kernel real-time mein generate karta hai, disk pe store nahi
+   - `/sys`: Kernel ka device tree, hardware information ke liye
+   - `/dev`: Device files — "Everything is a file" philosophy ka best example
 
-3. **Device Files**: Two types - block (random access) and character (sequential)
+3. **Device Files**: Do types — block (random access, storage devices) aur character (sequential access, terminals/input devices)
 
-4. **Case Sensitivity**: Linux is case-sensitive, Windows is case-insensitive
+4. **Case Sensitivity**: Linux case-sensitive hai, Windows case-insensitive — yeh cross-platform Node.js projects mein import paths break karne ka bada reason hai
 
-5. **Hidden Files**: Start with `.` in Linux/Unix
+5. **Hidden Files**: Linux/Unix mein `.` se start hote hain (`.bashrc`, `.gitignore`)
 
-6. **Process Info**: Each process has `/proc/[PID]/` directory with detailed information
+6. **Process Info**: Har process ka `/proc/[PID]/` directory hota hai jisme uski complete details hoti hain — cmdline, cwd, fd, memory maps sab
 
-7. **find Command**: Powerful tool for searching files by name, size, time, owner, permissions
+7. **find Command**: Bahut powerful tool hai — name, size, time, owner, permissions ke basis pe files search karne ke liye
 
-8. **tree Command**: Visualizes directory structure hierarchically
+8. **tree Command**: Directory structure ko hierarchically visualize karta hai, naye codebase samajhne ke liye kaam aata hai
 
 ---
 

@@ -1,29 +1,37 @@
 # I/O Scheduling
 
-## What You'll Learn
+## Kya Seekhoge Is Tutorial Mein
 
-In this tutorial, you will:
+Is tutorial mein tum ye samjhoge:
 
-- Understand why I/O scheduling is necessary and how it impacts performance
-- Learn about different Linux I/O schedulers (Noop, Deadline, CFQ, BFQ, mq-deadline)
-- Explore I/O request queuing and elevator algorithms
-- Understand I/O priorities and the `ionice` command
-- Learn about I/O throttling and rate limiting mechanisms
-- Understand optimization differences between HDDs and SSDs
-- Use `iostat` and `iotop` for I/O performance monitoring
-- Configure and tune I/O schedulers for different workloads
+- I/O scheduling zaruri kyun hai aur performance pe kaisa impact daalti hai
+- Linux ke different I/O schedulers (Noop, Deadline, CFQ, BFQ, mq-deadline)
+- I/O request queuing aur elevator algorithms kaise kaam karte hain
+- I/O priorities aur `ionice` command ka use
+- I/O throttling aur rate limiting mechanisms
+- HDD vs SSD ke liye optimization mein farak
+- `iostat` aur `iotop` se I/O performance monitor karna
+- Alag-alag workloads ke liye I/O scheduler configure aur tune karna
 
 ---
 
 ## Introduction
 
-When multiple processes request I/O operations simultaneously, the operating system must decide the order in which to service these requests. I/O scheduling algorithms optimize disk access patterns, reduce seek time (for HDDs), ensure fairness, and prevent starvation. The choice of I/O scheduler can dramatically impact system performance, especially for disk-intensive workloads.
+Socho tumhare paas ek railway station hai aur ek hi samay pe 4-5 trains platform maangti hain. Station master ko decide karna padta hai kaunsi train pehle jayegi, kaunsi wait karegi — warna chaos ho jayega. Bilkul yahi kaam OS ke andar **I/O scheduler** karta hai.
+
+Jab multiple processes ek saath disk se read/write karna chahte hain, OS ko decide karna padta hai ki kis request ko pehle serve karna hai. I/O scheduling algorithms disk access patterns ko optimize karte hain, seek time kam karte hain (HDD ke liye), fairness ensure karte hain, aur starvation (koi process hamesha wait karta reh jaaye) rokte hain. Scheduler ka choice system performance pe dramatically impact daal sakta hai — especially disk-heavy workloads mein jaise database servers, backup jobs, ya video streaming.
+
+Node.js developer hone ke naate tumne shayad kabhi socha na ho ki `fs.readFile()` call karne ke peeche kitna kuch chal raha hai — par disk tak pahunchte pahunchte OS ye sab decide kar chuka hota hai.
 
 ---
 
-## Why I/O Scheduling?
+## I/O Scheduling Kyun Chahiye?
 
-### The Problem: Random Access is Slow
+### Problem: Random Access Slow Hota Hai
+
+Socho tum Swiggy delivery boy ho aur tumhe 4 alag-alag locations pe order deliver karne hain — A, B, C, D. Agar tum jis order mein orders aaye usi order mein jaoge (A → B → C → D), toh ho sakta hai tumhe pura shehar cross karna pade baar baar. Lekin agar tum route ko smartly plan karo (jaise Zomato ka delivery algorithm karta hai — nearby orders ek saath cluster karke), toh total distance bahut kam ho jayega.
+
+HDD mein bhi yahi hota hai — disk head ek physical arm hai jo ghoom ghoom ke data padhta hai. Agar requests random order mein aayen (Block 100, phir 20, phir 80, phir 30), toh head ko baar baar lamba safar tay karna padta hai. Lekin agar hum unhe sort kar den (20 → 30 → 80 → 100), toh head ek hi direction mein smoothly move karta hai.
 
 ```
 Random vs Sequential Disk Access (HDD):
@@ -50,16 +58,21 @@ Random vs Sequential Disk Access (HDD):
 └────────────────────────────────────────────────────────┘
 ```
 
-### I/O Scheduling Goals
+> [!info]
+> Ye problem sirf HDD mein hai. SSD mein koi mechanical head nahi hota (flash memory hai), toh random access ~instant hai. Isliye SSD ke liye scheduling ka logic bilkul alag hota hai — baad mein detail mein dekhenge.
 
-1. **Minimize Seek Time** (HDD): Reduce disk head movement
-2. **Maximize Throughput**: Complete more I/O operations per second
-3. **Ensure Fairness**: Prevent process starvation
-4. **Reduce Latency**: Minimize wait time for critical requests
-5. **Handle Priorities**: Service important requests first
-6. **Batch Operations**: Group similar operations for efficiency
+### I/O Scheduling Ke Goals
 
-### Performance Impact Example
+1. **Seek Time Minimize Karna** (HDD): Disk head ka movement kam karna
+2. **Throughput Maximize Karna**: Per second zyada I/O operations complete karna
+3. **Fairness Ensure Karna**: Koi bhi process hamesha starve na ho (jaise ek hi customer ka order baar baar delay na ho)
+4. **Latency Kam Karna**: Critical requests ke liye wait time minimum rakhna
+5. **Priorities Handle Karna**: Important requests ko pehle serve karna (jaise CRED ka premium user support pehle handle hota hai)
+6. **Batch Operations**: Similar operations ko group karke efficiency badhana
+
+### Performance Impact Ka Example
+
+Ye numbers dekho — kitna real farak padta hai:
 
 ```
 Without Scheduling:
@@ -73,11 +86,15 @@ Seek Distance: |20-30| + |30-80| + |80-100| = 10 + 50 + 20 = 80 blocks
 Time: ~80ms (57% faster!)
 ```
 
+Bas requests ko sort karne se 57% faster ho gaya — bina hardware badle! Yahi power hai ek achhe scheduling algorithm ki.
+
 ---
 
 ## I/O Request Queue
 
-### Request Queue Structure
+### Request Queue Ka Structure
+
+Jab tumhara Node.js app `fs.write()` ya database `INSERT` query chalata hai, wo request seedha disk tak nahi pahunchti. Beech mein kai layers hain — bilkul jaise ek Zomato order restaurant tak pahunchne se pehle app → order management system → kitchen dispatch → cook tak jaata hai.
 
 ```mermaid
 flowchart TB
@@ -140,9 +157,14 @@ I/O Request Queue Architecture:
                   └──────────────┘
 ```
 
+Har layer ka apna kaam hai:
+- **Block Layer**: Requests ko generic tarike se prepare karta hai, adjacent requests merge karta hai, bade requests ko chota karta hai
+- **I/O Scheduler**: Yahi asli "traffic police" hai — requests ko reorder aur merge karta hai policy ke hisab se
+- **Device Driver**: Actual hardware commands bhejta hai aur interrupts handle karta hai (jab disk kehta hai "mera kaam ho gaya")
+
 ### Request Merging
 
-The I/O layer attempts to merge adjacent requests:
+Ek smart trick jo I/O layer use karta hai — adjacent requests ko ek mein merge kar dena. Socho agar 4 log ek hi building ke alag-alag floors pe Swiggy se order kar rahe hain, toh delivery boy ek hi trip mein sabko deliver kar sakta hai instead of 4 alag trips karne ke.
 
 ```
 Before Merging:
@@ -157,13 +179,20 @@ After Merging:
 Total: 1 I/O operation (4x fewer operations!)
 ```
 
+> [!tip]
+> Ye merging ka logic hai ki agar requests contiguous (lagatar) blocks maang rahe hain, toh unhe ek hi bade request mein convert kar do. Ye disk seeks aur CPU overhead dono kam karta hai.
+
 ---
 
 ## Linux I/O Schedulers
 
+Ab main course pe aate hain — Linux mein kaunse schedulers available hain aur kab kaunsa use karna chahiye. Har scheduler ek different "philosophy" follow karta hai, bilkul jaise alag alag food delivery apps ke alag alag dispatch algorithms hote hain.
+
 ### 1. Noop (No Operation) Scheduler
 
 **Algorithm**: Simple FIFO queue with basic merging, minimal reordering.
+
+Ye sabse simple scheduler hai — bas ek line lagao aur jo pehle aaya usko pehle serve karo (adjacent requests merge karke). Koi fancy sorting nahi, koi seek-optimization nahi.
 
 ```
 Noop Scheduler:
@@ -180,17 +209,21 @@ Noop Scheduler:
 **Characteristics**:
 - Minimal CPU overhead
 - No seek optimization
-- Best for SSDs and NVMe (no mechanical seek)
-- Best for hardware that does its own scheduling (RAID controllers)
+- SSD aur NVMe ke liye best (koi mechanical seek nahi hoti)
+- Aise hardware ke liye best jo khud apna scheduling karta hai (RAID controllers)
 
 **Use Cases**:
-- SSDs and NVMe drives
-- Virtual machines (hypervisor does scheduling)
+- SSDs aur NVMe drives
+- Virtual machines (hypervisor pehle se scheduling kar leta hai, double-scheduling ka koi faayda nahi)
 - High-performance storage with intelligent controllers
+
+Socho — agar dukaan mein saaman already sorted rakha hai (SSD ki tarah instant access), toh customer ko queue mein "smartly reorder" karne ki zarurat kya hai? Bas seedha serve karo. Noop yahi karta hai.
 
 ### 2. Deadline Scheduler
 
 **Algorithm**: Sorts requests by sector number but ensures no request waits beyond its deadline.
+
+Deadline scheduler ek smart balance banata hai — seek optimization ke liye requests ko sector number se sort karta hai (jaise elevator algorithm), lekin saath hi guarantee deta hai ki koi bhi request infinite time tak wait nahi karegi. Socho IRCTC ka Tatkal booking system — agar sab requests ko sirf "efficiency" ke hisab se process karte, toh kuch requests hamesha peeche reh jaate. Deadline scheduler ek deadline lagata hai taaki koi bhi request "bhookha" na reh jaaye.
 
 ```mermaid
 flowchart TB
@@ -236,11 +269,18 @@ Deadline Scheduler:
 └────────────────────────────────────────────────────────┘
 ```
 
+Yaha teen queues chal rahi hain ek saath:
+1. **Sorted Queue**: Sector-number ke hisaab se sort ki hui — seek optimization ke liye
+2. **Read Deadline Queue**: Reads ka apna FIFO, jisme default 500ms ka deadline hai
+3. **Write Deadline Queue**: Writes ka FIFO, jisme default 5 second ka deadline hai
+
+Reads ko writes se zyada priority milti hai kyunki jab tum `read()` call karte ho, tumhara process **block** ho jaata hai jab tak data na aaye — user ko turant response chahiye. Lekin `write()` mostly OS cache mein chala jaata hai aur background mein disk pe flush hota hai, toh usse thoda wait karwa sakte hain.
+
 **Characteristics**:
 - Read requests: 500ms default deadline
 - Write requests: 5 seconds default deadline
-- Prevents starvation while optimizing seeks
-- Prioritizes reads over writes (reads typically block processes)
+- Starvation rokta hai jabki seeks bhi optimize karta hai
+- Reads ko writes se priority deta hai (reads typically processes ko block karte hain)
 
 **Use Cases**:
 - General-purpose workloads
@@ -261,6 +301,8 @@ echo 3000 > /sys/block/sda/queue/iosched/write_expire
 ### 3. CFQ (Completely Fair Queuing)
 
 **Algorithm**: Allocates I/O bandwidth fairly among processes using time slices.
+
+Ye scheduler apne naam ke hisaab se hi kaam karta hai — "completely fair". Har process ko apni khud ki queue milti hi hai, aur round-robin fashion mein sabko turn-by-turn time slice diya jaata hai. Socho ek shared WiFi router jisme har device ko fair bandwidth milta hai, koi ek device sab bandwidth hog nahi kar sakta.
 
 ```
 CFQ Scheduler:
@@ -286,16 +328,16 @@ CFQ Scheduler:
 ```
 
 **Characteristics**:
-- Fairness per process/thread
-- Supports I/O priorities (8 levels)
-- Time slice per process (default 10ms)
-- Anticipatory logic (waits for more requests from same process)
-- Good for desktop and interactive workloads
+- Per process/thread fairness
+- I/O priorities support karta hai (8 levels)
+- Har process ke liye time slice (default 10ms)
+- Anticipatory logic (usi process se aur requests aane ka thoda wait karta hai — is umeed mein ki agla request bhi nearby sector ka hoga)
+- Desktop aur interactive workloads ke liye achha
 
 **Use Cases**:
 - Desktop systems
 - Multi-user environments
-- Workloads where fairness is important
+- Workloads jaha fairness important ho
 
 **Configuration**:
 ```bash
@@ -307,9 +349,16 @@ cat /sys/block/sda/queue/iosched/quantum
 echo 0 > /sys/block/sda/queue/iosched/slice_idle
 ```
 
+> [!warning]
+> CFQ ab purane kernels mein hi milta hai — modern Linux distros (kernel 5.x+) mein CFQ ko deprecate kar diya gaya hai aur BFQ/mq-deadline use hote hain. Lekin concept samajhna zaruri hai kyunki interview mein aur legacy systems mein ye poocha jaata hai.
+
 ### 4. BFQ (Budget Fair Queuing)
 
 **Algorithm**: Enhanced version of CFQ with better latency guarantees and bandwidth distribution.
+
+BFQ, CFQ ka upgraded version hai. Time-slice dene ke bajaye ye har process ko ek "budget" (data ki matra, jaise KB) deta hai. Jab budget khatam, process ki turn khatam — chahe time slice bacha ho. Ye zyada fair aur predictable hai, especially jab requests ka size bahut alag-alag ho.
+
+Socho tumhe Big Bazaar mein billing counter pe "10 items ya usse kam" wali line milti hai — time-based limit ki jagah quantity-based limit. BFQ isi tarah har process ko "itna data process karo, phir agle ki baari" wala rule follow karta hai.
 
 ```
 BFQ Scheduler:
@@ -335,20 +384,25 @@ BFQ Scheduler:
 ```
 
 **Characteristics**:
-- Better fairness than CFQ
-- Lower latency for interactive applications
-- Bandwidth allocation based on weights
-- Automatic detection of interactive processes
-- Good for both HDDs and SSDs
+- CFQ se behtar fairness
+- Interactive applications ke liye kam latency
+- Weight-based bandwidth allocation
+- Interactive processes ko automatically detect kar leta hai
+- HDD aur SSD dono ke liye achha
 
 **Use Cases**:
-- Desktop systems (especially with HDDs)
-- Servers with mixed workloads
-- Systems requiring low-latency I/O
+- Desktop systems (especially HDD ke saath)
+- Mixed workloads wale servers
+- Low-latency I/O chahiye wale systems
+
+> [!tip]
+> BFQ aaj kal Linux desktop distros (jaise Fedora, Ubuntu newer versions) mein default choice hai HDD ke liye kyunki ye responsive feel deta hai — jab background mein bada file copy chal raha ho tab bhi UI smooth rehta hai.
 
 ### 5. mq-deadline (Multi-Queue Deadline)
 
 **Algorithm**: Modern multi-queue version of deadline scheduler for high-performance devices.
+
+Modern NVMe SSDs itni fast hain ki ek hi queue (single lock ke saath) bottleneck ban jaati hai. Isliye mq-deadline har CPU core ke liye alag queue banata hai — parallel processing jaisa. Socho ek bade railway station pe ek hi ticket counter ki jagah 4 alag counters khol dena, taaki line kam ho aur sab parallel mein serve ho.
 
 ```
 mq-deadline (Multi-Queue):
@@ -372,20 +426,22 @@ mq-deadline (Multi-Queue):
 ```
 
 **Characteristics**:
-- Designed for modern multi-queue block devices (NVMe, modern SSDs)
-- Per-CPU queues reduce lock contention
-- Maintains deadline guarantees
-- Scales well on multi-core systems
-- Default scheduler for NVMe devices in modern Linux
+- Modern multi-queue block devices (NVMe, modern SSDs) ke liye design kiya gaya
+- Per-CPU queues lock contention kam karte hain
+- Deadline guarantees maintain karta hai
+- Multi-core systems pe achhi tarah scale karta hai
+- Modern Linux mein NVMe devices ka default scheduler
 
 **Use Cases**:
 - NVMe SSDs
 - High-performance SATA SSDs
-- Multi-core systems with fast storage
+- Fast storage wale multi-core systems
 
 ---
 
 ## I/O Scheduler Comparison
+
+Ek quick reference table — kaunsa scheduler kab choose karna hai:
 
 | Scheduler | Algorithm | CPU Overhead | Seek Optimization | Fairness | Best For |
 |-----------|-----------|--------------|-------------------|----------|----------|
@@ -397,9 +453,11 @@ mq-deadline (Multi-Queue):
 
 ---
 
-## Viewing and Changing I/O Schedulers
+## I/O Schedulers Ko Dekhna Aur Change Karna
 
-### Check Current Scheduler
+### Current Scheduler Check Karo
+
+Linux mein har block device ka apna scheduler file hota hai `/sys` filesystem mein — bilkul ek settings file jaisa jo tum directly padh/likh sakte ho.
 
 ```bash
 # Check scheduler for specific device
@@ -417,7 +475,9 @@ for dev in /sys/block/sd*/queue/scheduler; do
 done
 ```
 
-### Change I/O Scheduler
+Jo scheduler `[brackets]` mein dikhta hai, wahi currently active hai.
+
+### I/O Scheduler Change Karo
 
 ```bash
 # Temporarily change scheduler (until reboot)
@@ -437,7 +497,10 @@ echo none > /sys/block/nvme0n1/queue/scheduler
 sudo update-grub
 ```
 
-### Script to Display All Scheduler Info
+> [!warning]
+> `echo` se scheduler change karna sirf reboot tak rehta hai. Permanent karna hai toh GRUB config mein daalna padega, warna reboot ke baad wapas default pe chala jaayega.
+
+### Script: Sab Devices Ki Scheduler Info Dikhao
 
 ```bash
 #!/bin/bash
@@ -470,7 +533,9 @@ done
 
 ## I/O Priorities
 
-Linux supports I/O priority classes and levels using the `ionice` command.
+Ab baat karte hain **priorities** ki. Kabhi socha hai ki jab tum ek movie download kar rahe ho aur saath mein background mein `apt update` chal raha ho, toh download slow kyun nahi hota? Ye `ionice` jaisi cheezon ki wajah se possible hai.
+
+Linux `ionice` command ke through I/O priority classes aur levels support karta hai.
 
 ### Priority Classes
 
@@ -500,7 +565,12 @@ I/O Priority Classes:
 └────────────────────────────────────────────────────────┘
 ```
 
-### Using ionice
+Isko samajhne ke liye Zomato ka analogy lete hain:
+- **Real-Time (RT)**: "Emergency delivery" jaisa — jo bhi ho, isko turant deliver karo, chahe baaki sab orders wait karen. Very risky agar overuse kiya toh baaki sab orders "starve" ho jaayenge.
+- **Best-Effort (BE)**: Default class — normal order jaisa, apni turn pe fair tarike se serve hota hai. 99% processes yahi use karte hain.
+- **Idle**: "Jab bhi delivery boy free ho tab deliver karna" — sabse low priority. Backup scripts, indexing jobs, virus scans jaise background tasks ke liye perfect hai jo user ko disturb nahi karna chahte.
+
+### ionice Ka Use
 
 ```bash
 # View I/O priority of a process
@@ -526,7 +596,12 @@ ionice -c 2 -n 0 -p 12345
 ionice -c 3 rsync -av /data /backup
 ```
 
-### I/O Priority Example Program
+> [!tip]
+> Production servers mein backup scripts ko hamesha `ionice -c 3` (idle class) ke saath chalao. Isse backup, live traffic (jaise database queries) ko slow nahi karega. Ye ek bahut common real-world mistake hai jo naye engineers karte hain — raat ko backup script chala dete hain bina ionice ke, aur production database slow ho jaata hai.
+
+### I/O Priority Set Karne Ka Example Program
+
+Ye C program dikhata hai ki kaise programmatically apne process ka I/O priority set kiya jaata hai, `ioprio_set` syscall use karke:
 
 ```c
 // set_io_priority.c - Set I/O priority for a process
@@ -605,11 +680,13 @@ int main() {
 
 ---
 
-## I/O Throttling and Rate Limiting
+## I/O Throttling Aur Rate Limiting
 
 ### cgroups I/O Control
 
-Linux cgroups (control groups) can limit I/O bandwidth per process group.
+Kabhi socha hai ki cloud providers (AWS, GCP) kaise guarantee dete hain ki tumhara VM "itna hi" disk bandwidth use karega, chahe baaki tenants kuch bhi karen? Wo **cgroups** (control groups) use karte hain. Linux cgroups process groups ke liye I/O bandwidth limit kar sakte hain.
+
+Socho ek building mein har flat ke liye water meter lagana — har flat ki apni limit hai, koi ek flat pura building ka pani use nahi kar sakta.
 
 ```bash
 # Using cgroups v2 (modern systems)
@@ -634,6 +711,9 @@ systemd-run --unit=limited_io --slice=io_limited.slice \
     dd if=/dev/zero of=/tmp/test bs=1M count=1000
 ```
 
+> [!info]
+> Docker aur Kubernetes internally cgroups hi use karte hain resource limits (CPU, memory, I/O) enforce karne ke liye. Jab tum Kubernetes mein `resources.limits` set karte ho, background mein cgroups isi tarah kaam karte hain.
+
 ### Example: Rate-Limited Backup Script
 
 ```bash
@@ -652,11 +732,17 @@ ionice -c 3 tar czf - "$BACKUP_SOURCE" | \
 echo "Backup completed with rate limiting"
 ```
 
+Yaha `ionice` (idle priority) aur `pv -L` (bandwidth cap) dono ka combo use ho raha hai — production servers mein backup jobs isi tarah likhi jaati hain taaki live traffic disturb na ho.
+
 ---
 
 ## HDD vs SSD Optimization
 
-### HDD (Hard Disk Drive) Considerations
+Ye section samajhna bahut zaruri hai kyunki modern deployment mein tumhe pata hona chahiye ki tumhara server SSD pe hai ya HDD pe, aur uske hisaab se scheduler choose karna chahiye.
+
+### HDD (Hard Disk Drive) Ki Baatein
+
+HDD mein physical moving parts hote hain — bilkul purane record player ki tarah jisme ek needle (head) ghoomti hui disk (platter) pe move karti hai data padhne ke liye.
 
 ```
 HDD Characteristics:
@@ -679,12 +765,16 @@ HDD Characteristics:
 └────────────────────────────────────────────────────────┘
 ```
 
-**Best Schedulers for HDD**:
-- Deadline: Good balance of throughput and latency
-- CFQ: Good for multi-user systems
-- BFQ: Best for desktop with mixed workloads
+Kyunki head physically move karta hai, HDD ka seek time (5-15ms) SSD ke muqable bahut zyada hai. Isliye HDD ke liye scheduling ka poora focus hai — **requests ko is tarah arrange karo ki head ko kam se kam movement karna pade**.
 
-### SSD (Solid State Drive) Considerations
+**HDD Ke Liye Best Schedulers**:
+- Deadline: Throughput aur latency ka achha balance
+- CFQ: Multi-user systems ke liye achha
+- BFQ: Mixed workloads wale desktop ke liye best
+
+### SSD (Solid State Drive) Ki Baatein
+
+SSD mein koi moving part nahi hota — sab kuch electronic hai, flash memory chips ke through. Isliye "seek time" ka concept practically khatam ho jaata hai.
 
 ```
 SSD Characteristics:
@@ -707,12 +797,17 @@ SSD Characteristics:
 └────────────────────────────────────────────────────────┘
 ```
 
-**Best Schedulers for SSD**:
-- None/Noop: Minimal overhead, let hardware handle it
-- mq-deadline: For NVMe, good balance
-- Deadline: For SATA SSDs
+SSD ke liye sorting/reordering karna bilkul waste of CPU cycles hai — jab access already instant hai, toh us pe extra CPU laga ke sort karna ulta overhead badhata hai. Isiliye SSD ke liye **minimal scheduling** best strategy hai.
 
-### Checking if Device is SSD or HDD
+**SSD Ke Liye Best Schedulers**:
+- None/Noop: Minimum overhead, hardware ko khud handle karne do
+- mq-deadline: NVMe ke liye, achha balance
+- Deadline: SATA SSDs ke liye
+
+> [!warning]
+> Ek common mistake: log SSD pe bhi CFQ ya BFQ jaisa heavy scheduler chala dete hain jo purani HDD-optimization ki soch se bana hai. Ye ulta CPU overhead badha ke SSD ki speed ko waste karta hai. Hamesha `rotational` file check karo pehle.
+
+### Check Karo Device SSD Hai Ya HDD
 
 ```bash
 #!/bin/bash
@@ -740,11 +835,17 @@ for device in /sys/block/nvme*; do
 done
 ```
 
+`rotational` file ka value `1` matlab HDD (ghoomta hua disk), `0` matlab SSD (koi ghoomna nahi).
+
 ---
 
 ## I/O Performance Monitoring
 
+Ab jaante hain ki disk kitna busy hai, kaun sa process disk ko sabse zyada use kar raha hai — bilkul jaise ek dashboard jisse tum production issues debug karte ho.
+
 ### iostat - I/O Statistics
+
+`iostat` device-level statistics dikhata hai — kitna data read/write ho raha hai, kitna wait time hai, disk kitna busy hai.
 
 ```bash
 # Install sysstat package first (contains iostat)
@@ -777,7 +878,12 @@ iostat -x sda 1
 # - %util: Device utilization (100% = saturated)
 ```
 
+> [!tip]
+> Agar tumhare production server mein `%iowait` high hai (jaise 20%+), matlab CPU ready hai kaam karne ke liye lekin disk se data aane ka wait kar raha hai. Ye ek clear sign hai ki disk bottleneck ban raha hai — scheduler tune karo ya faster storage (SSD/NVMe) pe move karo.
+
 ### iotop - Top for I/O
+
+`iostat` device dikhata hai, lekin **kaunsa process** sabse zyada I/O kar raha hai wo `iotop` dikhata hai — bilkul `top` command jaisa but I/O ke liye.
 
 ```bash
 # Install iotop
@@ -804,6 +910,8 @@ sudo iotop -a
 ```
 
 ### Complete I/O Monitoring Script
+
+Agar production issue debug kar rahe ho aur ek jagah sab kuch dekhna hai, toh ye script kaam aayega:
 
 ```bash
 #!/bin/bash
@@ -834,6 +942,8 @@ vmstat 1 5 | awk 'NR==1 || NR==2 || /[0-9]/'
 ## Practical Examples
 
 ### Example 1: Benchmark Different Schedulers
+
+Sirf theory se kaam nahi chalega — chalo khud test karke dekhte hain ki alag alag scheduler se actual performance mein kya farak padta hai.
 
 ```bash
 #!/bin/bash
@@ -878,6 +988,8 @@ done
 ```
 
 ### Example 2: I/O Priority Demonstration
+
+Ye C program dikhata hai ki high-priority process aur low-priority process (ya idle-class process) ka actual completion time kitna alag hota hai — jab dono ek saath compete karte hain disk bandwidth ke liye.
 
 ```c
 // io_priority_demo.c - Demonstrate I/O priority effects
@@ -986,45 +1098,39 @@ int main() {
 
 ### Beginner
 
-1. **Check Schedulers**: Examine the I/O scheduler for all block devices on your system. Identify which devices are SSDs and which are HDDs based on the `/sys/block/*/queue/rotational` file.
+1. **Check Schedulers**: Apne system ke sab block devices ka I/O scheduler check karo. `/sys/block/*/queue/rotational` file se pata karo kaunse devices SSD hain aur kaunse HDD.
 
-2. **Change Scheduler**: Temporarily change the I/O scheduler for a device and observe the change. Restore the original scheduler afterward.
+2. **Change Scheduler**: Ek device ka I/O scheduler temporarily change karo aur farak observe karo. Baad mein original scheduler restore kar do.
 
-3. **Monitor I/O**: Use `iostat` to monitor I/O statistics for 30 seconds while copying a large file. Identify the peak throughput and average wait time.
+3. **Monitor I/O**: `iostat` use karke ek badi file copy karte waqt 30 seconds tak I/O statistics monitor karo. Peak throughput aur average wait time identify karo.
 
 ### Intermediate
 
-4. **Priority Experiment**: Run two `dd` commands simultaneously—one with high I/O priority and one with low priority. Compare their completion times.
+4. **Priority Experiment**: Do `dd` commands simultaneously chalao — ek high I/O priority ke saath aur ek low priority ke saath. Dono ke completion times compare karo.
 
-5. **Scheduler Comparison**: Write a script that benchmarks sequential and random I/O performance under different schedulers. Create graphs or tables showing the results.
+5. **Scheduler Comparison**: Ek script likho jo sequential aur random I/O performance ko alag alag schedulers ke under benchmark kare. Results ko graph ya table mein dikhao.
 
-6. **Process I/O Monitor**: Write a program that lists the top 10 processes by I/O activity by parsing `/proc/[pid]/io` files.
+6. **Process I/O Monitor**: Ek program likho jo `/proc/[pid]/io` files parse karke top 10 processes by I/O activity list kare.
 
 ### Advanced
 
-7. **Custom Scheduler Analysis**: Read the Linux kernel source code for the deadline scheduler. Document how it implements the read and write deadline queues.
+7. **Custom Scheduler Analysis**: Linux kernel source code mein deadline scheduler ka code padho. Document karo ki wo read aur write deadline queues kaise implement karta hai.
 
-8. **I/O Throttling**: Use cgroups to create an I/O-throttled container. Run a disk-intensive application inside it and verify the bandwidth limits are enforced.
+8. **I/O Throttling**: cgroups use karke ek I/O-throttled container banao. Uske andar ek disk-intensive application chalao aur verify karo ki bandwidth limits enforce ho rahi hain.
 
-9. **Real-World Tuning**: Analyze a production database server's I/O patterns using `iostat`, `iotop`, and `blktrace`. Recommend scheduler settings and tuning parameters to optimize performance.
+9. **Real-World Tuning**: Ek production database server ke I/O patterns ko `iostat`, `iotop`, aur `blktrace` se analyze karo. Performance optimize karne ke liye scheduler settings aur tuning parameters recommend karo.
 
 ---
 
 ## Key Takeaways
 
-1. **I/O Scheduling is Critical**: Proper scheduling can reduce disk access time by 50% or more, especially on HDDs.
-
-2. **Scheduler Selection**: Choose schedulers based on workload and storage type (None/Noop for SSDs, Deadline/BFQ for HDDs).
-
-3. **Multi-Queue Era**: Modern systems use multi-queue schedulers (mq-deadline) for better scalability on multi-core systems with fast storage.
-
-4. **I/O Priorities**: Use `ionice` to control I/O priority for processes—critical for preventing background tasks from impacting foreground performance.
-
-5. **HDD vs SSD**: HDDs benefit from seek optimization; SSDs don't need it and prefer minimal scheduling overhead.
-
-6. **Monitoring Tools**: `iostat` shows device-level statistics; `iotop` shows per-process I/O activity—both are essential for performance analysis.
-
-7. **Fairness vs Throughput**: CFQ and BFQ prioritize fairness; Deadline and Noop prioritize throughput. Choose based on your needs.
+- **I/O Scheduling Critical Hai**: Sahi scheduling disk access time 50% ya usse zyada kam kar sakti hai, especially HDDs pe.
+- **Scheduler Selection**: Workload aur storage type ke hisaab se scheduler choose karo (SSDs ke liye None/Noop, HDDs ke liye Deadline/BFQ).
+- **Multi-Queue Era**: Modern systems multi-queue schedulers (mq-deadline) use karte hain taaki multi-core systems pe fast storage ke saath better scalability mile.
+- **I/O Priorities**: `ionice` use karo processes ka I/O priority control karne ke liye — background tasks ko foreground performance impact karne se rokna critical hai.
+- **HDD vs SSD**: HDDs ko seek optimization se faayda hota hai; SSDs ko iski zarurat nahi, wo minimal scheduling overhead prefer karte hain.
+- **Monitoring Tools**: `iostat` device-level statistics dikhata hai; `iotop` per-process I/O activity dikhata hai — dono hi performance analysis ke liye essential hain.
+- **Fairness vs Throughput**: CFQ aur BFQ fairness ko priority dete hain; Deadline aur Noop throughput ko. Apni zarurat ke hisaab se choose karo.
 
 ---
 

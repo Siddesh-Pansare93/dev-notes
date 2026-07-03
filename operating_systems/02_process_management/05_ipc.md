@@ -2,19 +2,23 @@
 
 ## What You'll Learn
 
-- What IPC is and why it's necessary
-- IPC mechanisms: pipes, FIFOs, message queues, shared memory, semaphores, sockets
-- Synchronization in IPC
-- Comparison of IPC methods and when to use each
-- Producer-consumer and reader-writer problems
-- Implementation examples in C and shell scripts
-- POSIX and System V IPC
+- IPC kya hota hai aur yeh zaruri kyun hai
+- IPC ke mechanisms: pipes, FIFOs, message queues, shared memory, semaphores, sockets
+- IPC mein synchronization kaise kaam karti hai
+- Alag-alag IPC methods ka comparison aur kab kaunsa use karna hai
+- Producer-consumer aur reader-writer problems
+- C aur shell scripts mein implementation examples
+- POSIX aur System V IPC
 
-## Introduction to Inter-Process Communication
+## Inter-Process Communication ka Intro
 
-**Inter-Process Communication (IPC)** enables processes to exchange data and coordinate their actions. Since processes have separate address spaces, they need special mechanisms to communicate.
+Socho ek second ke liye — tumne Zomato pe order place kiya. Us ek order ke peeche kai alag-alag processes kaam kar rahe hote hain: order-service, payment-service, restaurant-notification-service, delivery-assignment-service. Yeh sab alag-alag processes hain, alag memory space mein chal rahe hain, phir bhi inhe ek doosre se baat karni padti hai — "payment ho gaya", "restaurant ne accept kar liya", "delivery boy assign ho gaya". Yehi communication jo processes ke beech hoti hai, usko hi hum **Inter-Process Communication (IPC)** kehte hain.
 
-### Why IPC?
+**IPC** processes ko ek doosre ke saath data exchange karne aur apne actions ko coordinate karne deta hai. Ab yahan pe ek important cheez samajhna zaruri hai — har process ka apna **alag address space** hota hai. Matlab Process A ki memory, Process B seedha access nahi kar sakta. Yeh koi limitation nahi, balki ek **security aur isolation feature** hai — agar ek process crash ho jaye ya corrupt ho jaye, toh doosre process ka data safe rehta hai. Lekin isi wajah se, jab do processes ko genuinely baat karni ho, unhe koi special mechanism chahiye hota hai jo kernel provide karta hai.
+
+### IPC Kyun Zaruri Hai?
+
+Socho do alag ghar hain (Process A aur Process B), dono ke apne alag locks, apna alag saaman. Agar Process A ko Process B ke ghar ka koi cheez chahiye, toh woh seedha deewar phaad ke andar nahi ja sakta (yeh toh segmentation fault jaisa hoga!). Uske liye ek common route chahiye — jaise ek courier service (yahan par kernel) jo dono ghar ke beech saaman transfer karta hai.
 
 ```mermaid
 flowchart LR
@@ -34,7 +38,9 @@ flowchart LR
     style IPC fill:#7c3aed,color:#fff
 ```
 
-### IPC Use Cases
+Dekho, dono processes seedha ek doosre se baat nahi kar sakte — beech mein **kernel** ek mediator/bouncer ki tarah khada hai. Kernel hi decide karta hai ki data safely, controlled tareeke se transfer ho, taaki koi process doosre ke memory space mein ghus ke gadbad na kare.
+
+### IPC Use Cases — Real Life Mein Kahan Milta Hai
 
 | Use Case | Example | IPC Method |
 |----------|---------|------------|
@@ -45,7 +51,11 @@ flowchart LR
 | **Event Notification** | GUI event handling | Signal |
 | **RPC** | Microservices | Socket, gRPC |
 
-## IPC Mechanisms Overview
+Socho IRCTC ka tatkal booking system — jab lakhon log ek saath ticket book karne ki koshish karte hain, backend mein multiple processes hote hain jo seat availability check karte hain, payment process karte hain, aur PNR generate karte hain. Yeh sab processes ko real-time mein sync mein rehna padta hai — warna do log ek hi seat book kar lenge! Yehi cheez IPC + synchronization mechanisms (semaphores, locks) solve karte hain.
+
+## IPC Mechanisms ka Overview
+
+Har IPC method ka apna trade-off hai — kuch fast hain but limited capacity ke, kuch slow hain but bahut zyada data handle kar sakte hain. Jaise Ola/Uber choose karne jaisa — bike fast hai lekin sirf ek person, cab thoda slow hai lekin zyada log aur saaman.
 
 ```
 IPC Mechanisms Comparison:
@@ -65,9 +75,11 @@ IPC Mechanisms Comparison:
 
 ## 1. Pipes
 
-**Pipes** are unidirectional communication channels between related processes (usually parent-child).
+**Pipes** ek unidirectional (yani ek-tarfa) communication channel hai, jo related processes ke beech use hota hai — usually parent-child. Isko socho ek water pipe ki tarah — ek taraf se paani daalo (write), doosri taraf se nikalta hai (read). Paani sirf ek direction mein flow karta hai, ulta nahi ho sakta.
 
 ### Anonymous Pipes
+
+Kya hota hai? Jab tum shell mein `ls | grep txt` likhte ho, tab dono commands ke beech OS ek **anonymous pipe** create karta hai. `ls` apna output pipe mein "write" karta hai, aur `grep` usse "read" karta hai — bina kisi temporary file banaye. Yeh pipe naam-less hota hai (isliye "anonymous") aur sirf un processes ke beech kaam karta hai jo ek common parent se derive hue hain (fork() se banaye gaye).
 
 ```
 Pipe Structure:
@@ -79,6 +91,8 @@ Process A (Writer)          Process B (Reader)
      │                                                     │
   write()                                              read()
 ```
+
+Yahan `pipefd[2]` array mein do file descriptors milte hain — `pipefd[0]` read end aur `pipefd[1]` write end. Kernel ke andar ek buffer banta hai jo FIFO (First In First Out) order mein data store karta hai.
 
 #### Pipe Example in C
 
@@ -134,7 +148,12 @@ int main() {
 }
 ```
 
+> [!tip]
+> Notice kiya kaise child apna write end (`pipefd[1]`) close kar deta hai aur parent apna read end (`pipefd[0]`) close kar deta hai? Yeh koi optional cleanup step nahi hai — yeh **zaruri** hai. Agar tum extra file descriptors khule chhod doge jo use nahi ho rahe, toh `read()` kabhi EOF signal nahi milega aur process hमेशा ke liye block ho sakta hai. Socho jaise ek call pe do log ek saath baat kar rahe hain but koi hang up hi nahi kar raha — line kabhi free nahi hogi.
+
 #### Shell Pipe Example
+
+Yeh wahi cheez hai jo tum daily terminal mein use karte ho, bina realize kiye ki peeche IPC ho rahi hai:
 
 ```bash
 #!/bin/bash
@@ -159,7 +178,7 @@ cat < mypipe
 rm mypipe
 ```
 
-### Pipe Characteristics
+### Pipe ki Characteristics
 
 ```
 Pipe Properties:
@@ -177,9 +196,13 @@ Limitations:
 ✗ Data lost if not read
 ```
 
+Yaad rakho — pipe ka data ek baar read ho gaya toh gone hai, buffer se hat jaata hai. Yeh koi database table nahi hai jahan tum baar-baar query maar sako. Aur capacity bhi limited hoti hai (typically 64KB Linux pe) — agar writer bahut zyada data bhej de bina reader ke padhe, toh writer **block** ho jayega jab tak reader kuch space free na kare.
+
 ## 2. Named Pipes (FIFOs)
 
-**FIFOs** are named pipes that can be used by unrelated processes.
+Ab problem yeh hai ki anonymous pipe sirf related processes (parent-child, ya fork se bane siblings) ke beech kaam karta hai. Agar do bilkul independent programs — jinka koi common ancestor nahi hai — ek doosre se baat karna chahein toh? Iske liye **FIFOs (named pipes)** aate hain.
+
+**FIFOs** named pipes hote hain jo unrelated processes bhi use kar sakte hain, kyunki inka ek naam hota hai filesystem mein (jaise `/tmp/my_fifo`) — jaise WhatsApp group ka naam hota hai jisse koi bhi (jisko invite mila ho) join kar sakta hai, bina yeh jaane ki group kisne banaya.
 
 ### FIFO Example
 
@@ -254,11 +277,18 @@ gcc -o reader fifo_reader.c
 ./writer
 ```
 
+> [!info]
+> Notice kiya `mkfifo` ek **special file type** banata hai filesystem mein (`ls -l` karoge toh `p` type dikhega). Yeh actual file nahi hai jisme data store hota hai — yeh ek "rendezvous point" hai. Jab tak koi reader aur writer dono side se `open()` nahi karte, `open()` call **block** ho jaata hai. Bilkul Zomato delivery ki tarah — jab tak delivery boy aur restaurant dono ready na ho, order handoff nahi hoga.
+
 ## 3. Message Queues
 
-**Message Queues** allow processes to send structured messages to each other.
+Pipes aur FIFOs ka ek limitation hai — data ek continuous byte stream hota hai, koi "message boundaries" nahi hoti. Agar tumhe structured messages bhejni hain (jaise "yeh ek order hai, yeh ek payment update hai"), toh **Message Queues** kaam aati hain.
+
+**Message Queues** processes ko ek doosre ko structured messages bhejne deti hain — bilkul jaise Kafka ya RabbitMQ jaisi message brokers kaam karti hain (bas yeh OS-level, single-machine version hai). Har message ka apna type/priority hota hai, aur receiver specific type ke messages pick kar sakta hai.
 
 ### System V Message Queue
+
+Socho ek restaurant ki kitchen — orders ek queue mein aate hain, har order pe ek "type" hota hai (starter, main course, dessert), aur alag chefs sirf apne type ke orders utha ke banate hain. Yehi kaam `msg_type` field karta hai.
 
 ```c
 // message_queue.c
@@ -331,7 +361,11 @@ int main() {
 }
 ```
 
+`ftok()` ek unique key generate karta hai jisse dono processes (jo ek doosre ko jaante bhi nahi hain, bas ek common file path aur ek char pe agree kar lete hain) ek hi queue ko refer kar sakte hain. Socho isko ek shared "meeting point code" ki tarah — jaise CRED app pe dono friends ek hi UPI ID daal ke payment link generate kar lete hain.
+
 ### POSIX Message Queue
+
+System V ka syntax thoda purana-school hai. POSIX message queue ek zyada modern, file-descriptor-based approach deta hai jo baaki POSIX APIs (jaise files) ke saath consistent feel hota hai.
 
 ```c
 // posix_mq.c
@@ -382,7 +416,9 @@ int main() {
 // Compile: gcc posix_mq.c -o posix_mq -lrt
 ```
 
-### Message Queue Advantages
+### Message Queue ke Advantages
+
+Pipe ke comparison mein message queues bahut zyada flexible hain:
 
 ```
 Message Queues vs Pipes:
@@ -393,7 +429,11 @@ Message Queues vs Pipes:
 ✓ Non-blocking options
 ✓ Persistent (survive process termination)
 ✓ Multiple readers/writers
+```
 
+Yeh "Persistent" wala point important hai — agar sender process crash ho jaye, toh message queue mein wo message abhi bhi safe rehta hai kernel mein, jab tak koi use consume na kare. Yeh Kafka jaisi durability, bas OS-level pe.
+
+```
 Use Cases:
 - Task queues (job distribution)
 - Request/response patterns
@@ -401,9 +441,15 @@ Use Cases:
 - Decoupled microservices
 ```
 
+Real-world example: Swiggy ka order-assignment system. Jab order aata hai, ek message queue mein daal diya jaata hai, aur available delivery partners (multiple consumer processes) us queue se pick karte hain — jisko pehle mila, usko order assign ho jaata hai. Sender aur receiver ek doosre se directly connected nahi hain — bas queue ke through decoupled tareeke se baat karte hain.
+
 ## 4. Shared Memory
 
-**Shared Memory** is the fastest IPC method, allowing processes to access the same memory region.
+Ab tak jitne methods dekhe (pipe, FIFO, message queue) — sab mein data ko **kernel ke through copy** karna padta hai. Process A apna data kernel buffer mein likhta hai, phir kernel se Process B padhta hai. Yeh do copy operations hain — thoda overhead.
+
+**Shared Memory** iss overhead ko poori tarah khatam kar deta hai. Yeh sabse **fastest IPC method** hai, kyunki yahan dono processes literally **ek hi physical memory region** ko apne virtual address space mein map kar lete hain. Ek baar map ho gaya, toh data likhna/padhna seedha memory access jaisa hai — koi kernel call nahi, koi copy nahi.
+
+Socho isko aise — do alag flats hain building mein (do processes), lekin dono ka ek common **shared terrace** hai jahan dono directly access rakh sakte hain. Kisi bhi cheez ko terrace pe rakhne ke liye watchman (kernel) ko bulane ki zarurat nahi — bas seedha jaake rakh do.
 
 ```
 Shared Memory Architecture:
@@ -423,6 +469,11 @@ Process A                 Process B
           │  (Physical)  │
           └──────────────┘
 ```
+
+Dono processes ke virtual addresses alag ho sakte hain (`0x7000` vs `0x5000`), lekin dono underlying **same physical memory frame** ko point karte hain.
+
+> [!warning]
+> Speed ke saath ek badi zimmedari aati hai — shared memory **koi built-in synchronization nahi deta**. Agar Process A aur Process B ek saath usi memory pe likhne/padhne ki koshish karein, toh race condition ho sakti hai — data corrupt ho sakta hai. Isiliye shared memory ko **hamesha semaphore ya mutex ke saath** use karte hain (neeche dekhenge).
 
 ### System V Shared Memory
 
@@ -516,7 +567,11 @@ int main() {
 }
 ```
 
+`shmget()` segment create/reference karta hai, `shmat()` usse process ke apne address space mein "attach" karta hai (map karta hai), aur `shmdt()` detach karta hai. Yaad rakho — jab tak koi `shmctl(shmid, IPC_RMID, ...)` call karke destroy nahi karta, segment kernel mein reh jaata hai — even process crash hone ke baad bhi! Yeh ek common bug hai jahan log `ipcs` command se dekhte hain ki system mein purane, orphaned shared memory segments padi hain jo kisi ne clean nahi kiya.
+
 ### POSIX Shared Memory
+
+Modern approach — file-descriptor based, `mmap()` ke saath use hota hai:
 
 ```c
 // posix_shm.c
@@ -569,7 +624,9 @@ int main() {
 
 ## 5. Semaphores
 
-**Semaphores** synchronize access to shared resources.
+Ab jaise humne dekha, shared memory fast toh hai lekin khud se koi traffic-control nahi karta. Yahan **Semaphores** kaam aate hain — yeh ek counter-based mechanism hai jo shared resource tak access ko synchronize/control karta hai.
+
+**Semaphores** shared resources tak access ko synchronize karte hain. Socho isko ek building ke parking lot ki tarah — agar sirf 3 parking slots hain (semaphore value = 3), toh sirf 3 cars ek time pe andar aa sakti hain. 4th car ko wait karna padega jab tak koi ek car bahar na nikle.
 
 ```
 Semaphore Operations:
@@ -585,7 +642,11 @@ signal() / V() / up():
     wake_up_blocked_process();
 ```
 
+`wait()` (jise P() ya "down" bhi kehte hain) resource lene ki koshish karta hai — agar available hai toh counter decrement karke aage badh jaata hai, warna process block ho jaata hai. `signal()` (V() ya "up") resource wapas karta hai aur agar koi process wait kar raha tha, usse wake up kar deta hai.
+
 ### Binary Semaphore Example
+
+Jab semaphore ki initial value **1** hoti hai, usko "binary semaphore" kehte hain — yeh basically ek **mutex/lock** ki tarah kaam karta hai. Sirf ek thread/process ek time pe critical section mein ja sakta hai.
 
 ```c
 // semaphore_example.c
@@ -636,7 +697,16 @@ int main() {
 // Compile: gcc semaphore_example.c -o semaphore_example -lpthread
 ```
 
+Agar yahan `sem_wait()` aur `sem_post()` na hote, toh dono threads ek saath `shared_counter` ko read-modify-write karne ki koshish karte, aur final answer 10 ki jagah 7 ya 8 aa sakta tha — classic **race condition**. Yeh bilkul waise hi hai jaise IRCTC pe ek hi tatkal seat pe do log ek saath book karne ki koshish karein bina kisi lock ke — dono ko confirm mil jayega but train mein seat ek hi hai!
+
 ### Producer-Consumer with Semaphores
+
+Yeh ek **classic OS problem** hai jo har jagah milta hai — ek "producer" data generate karta hai, ek "consumer" use consume karta hai, aur beech mein ek fixed-size buffer hota hai. Socho isko Swiggy kitchen ki tarah — chef (producer) dishes banake ek counter (buffer) pe rakhta hai, delivery boy (consumer) wahan se utha ke le jaata hai. Agar counter full hai, chef ko rukna padega. Agar counter empty hai, delivery boy ko wait karna padega.
+
+Teen semaphores use hote hain:
+- `empty` — kitne empty slots hain buffer mein (producer isse check karta hai)
+- `full` — kitne filled slots hain (consumer isse check karta hai)
+- `mutex` — buffer ko access karte waqt mutual exclusion (taaki dono ek saath buffer index modify na karein)
 
 ```c
 // producer_consumer.c
@@ -718,11 +788,111 @@ int main() {
 }
 ```
 
+> [!tip]
+> Order dhyan se dekho — `sem_wait(&empty)` pehle aata hai, phir `sem_wait(&mutex)`. Agar tum yeh order ulta kar do (`mutex` pehle lock karo, phir `empty` ke liye wait karo), toh **deadlock** ho sakta hai — kyunki agar buffer full hai aur producer `mutex` hold karke `empty` ka wait kar raha hai, toh consumer kabhi `mutex` le hi nahi payega item consume karne ke liye, aur `empty` kabhi signal hi nahi hoga. Order matter karta hai!
+
+### Reader-Writer Problem
+
+Producer-consumer ke alawa ek aur **classic synchronization problem** hai jo tumhe har jagah milega — **Readers-Writers Problem**. Socho Wikipedia ke kisi popular page ko — usi waqt lakhon log woh page **padh** (read) rahe hote hain, lekin kabhi-kabhi koi editor us page ko **edit** (write) bhi kar raha hota hai. Yahan rule simple hai:
+
+- **Multiple readers** ek saath data padh sakte hain — koi problem nahi, kyunki reading se data change nahi hota.
+- **Sirf ek writer** ek time pe likh sakta hai — aur jab writer likh raha ho, koi aur (na reader, na doosra writer) us data ko touch nahi kar sakta.
+
+Real-life analogy socho — IRCTC ka **seat availability display**. Lakhon log ek saath train ki seat availability check kar rahe hain (readers) — sabko simultaneously dikhna chahiye, isse koi fark nahi padta kitne log ek saath dekh rahe hain. Lekin jis moment backend system seat allocate karta hai (writer — data update ho raha hai), us waqt tak koi aur na toh naya read kar sakta hai na koi doosra write — warna log stale ya corrupt availability dekh lenge, aur do logon ko ek hi seat "available" dikh sakti hai.
+
+Isko solve karne ke liye do semaphores aur ek counter use hota hai:
+
+- `rw_mutex` — binary semaphore jo **writer ko exclusive access** deta hai
+- `mutex` — `read_count` variable ko protect karta hai (kyunki multiple readers isko simultaneously modify kar sakte hain)
+- `read_count` — kitne readers is waqt data padh rahe hain, iska counter
+
+Trick yeh hai: **pehla reader** jo aata hai, woh `rw_mutex` lock kar leta hai (taaki writer block ho jaye), aur **aakhri reader** jo nikalta hai, woh `rw_mutex` unlock kar deta hai. Beech ke readers ko `rw_mutex` se koi matlab nahi — woh sirf `read_count` increment/decrement karte hain.
+
+```c
+// reader_writer.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+sem_t rw_mutex;   // Writer ko exclusive access dene ke liye
+sem_t mutex;      // read_count ko protect karne ke liye
+int read_count = 0;
+int shared_data = 0;
+
+void* reader(void* arg) {
+    long id = (long)arg;
+
+    sem_wait(&mutex);
+    read_count++;
+    if (read_count == 1) {
+        sem_wait(&rw_mutex);   // Pehla reader writer ko block karta hai
+    }
+    sem_post(&mutex);
+
+    // Critical section - reading
+    printf("Reader %ld: Data = %d\n", id, shared_data);
+    usleep(200000);
+
+    sem_wait(&mutex);
+    read_count--;
+    if (read_count == 0) {
+        sem_post(&rw_mutex);  // Aakhri reader writer ko unblock karta hai
+    }
+    sem_post(&mutex);
+
+    return NULL;
+}
+
+void* writer(void* arg) {
+    long id = (long)arg;
+
+    sem_wait(&rw_mutex);   // Exclusive access lo
+
+    // Critical section - writing
+    shared_data++;
+    printf("Writer %ld: Updated data to %d\n", id, shared_data);
+    usleep(300000);
+
+    sem_post(&rw_mutex);   // Access release karo
+
+    return NULL;
+}
+
+int main() {
+    pthread_t readers[3], writers[2];
+
+    sem_init(&rw_mutex, 0, 1);
+    sem_init(&mutex, 0, 1);
+
+    for (long i = 0; i < 3; i++) pthread_create(&readers[i], NULL, reader, (void*)i);
+    for (long i = 0; i < 2; i++) pthread_create(&writers[i], NULL, writer, (void*)i);
+
+    for (int i = 0; i < 3; i++) pthread_join(readers[i], NULL);
+    for (int i = 0; i < 2; i++) pthread_join(writers[i], NULL);
+
+    sem_destroy(&rw_mutex);
+    sem_destroy(&mutex);
+
+    return 0;
+}
+
+// Compile: gcc reader_writer.c -o reader_writer -lpthread
+```
+
+> [!warning]
+> Yeh wala version **"readers-preference"** solution hai — jab tak readers aate rahenge, writer humesha wait karta rahega, kyunki koi na koi reader hamesha `read_count > 0` rakh sakta hai. Isse **writer starvation** ho sakta hai — writer ko kabhi chance hi nahi milega! Real systems (jaise database engines) isse avoid karne ke liye "fair" ya "writer-preference" solutions use karte hain, jahan ek naya writer aane ke baad naye readers ko queue mein rok diya jaata hai jab tak writer apna kaam na kar le. Socho jaise IRCTC pe agar ek admin maintenance update push kar raha hai, toh naye users ko thoda wait karwaya jaata hai taaki update jaldi lag jaye — warna admin ka update kabhi complete hi nahi hoga agar traffic continuous flow mein aata rahe.
+
 ## 6. Sockets
 
-**Sockets** enable communication between processes on same or different machines.
+Ab tak jo bhi mechanisms dekhe — pipe, FIFO, message queue, shared memory, semaphore — yeh sab **same machine** ke andar processes ke beech kaam karte hain. Lekin agar Process A ek machine pe hai aur Process B kisi doosre machine (ya server) pe hai, toh? Yahan **Sockets** kaam aate hain.
+
+**Sockets** same machine ya different machines pe chal rahe processes ke beech communication enable karte hain. Yeh basically network communication ka foundation hai — jab tum browser se koi website open karte ho, tumhara browser aur server ke beech socket connection banta hai.
 
 ### Unix Domain Socket
+
+Interesting baat yeh hai ki sockets sirf network ke liye nahi hain — **Unix Domain Sockets** same machine ke processes ke beech bhi use ho sakte hain, aur yeh regular network sockets se **fast** hote hain kyunki inhe TCP/IP stack se guzarna nahi padta — seedha kernel ke andar transfer hota hai. Socho isko intercom system ki tarah jo ek hi building ke andar kaam karta hai, bahar jaane ki zarurat nahi.
 
 ```c
 // socket_server.c
@@ -818,7 +988,11 @@ int main() {
 }
 ```
 
+Real-world mein, `docker.sock`, `postgres` ka local connection, aur Nginx-to-PHP-FPM communication — yeh sab Unix domain sockets use karte hain kyunki same machine pe hain aur network overhead avoid karna hota hai.
+
 ## IPC Comparison Table
+
+Ab yeh table save kar lo — jab bhi confusion ho ki "kaunsa IPC method use karu", isse consult karo:
 
 | Mechanism | Speed | Data Size | Processes | Synchronization | Persistence | Network |
 |-----------|-------|-----------|-----------|----------------|-------------|---------|
@@ -829,42 +1003,50 @@ int main() {
 | **Semaphore** | Fast | N/A | Any | Yes | Yes | No |
 | **Socket** | Slow | Large | Any | No | No | Yes |
 
+Quick decision guide:
+- **Related processes, simple one-way data flow** (jaise `cmd1 | cmd2`) → **Pipe**
+- **Unrelated processes, same machine, simple data flow** → **FIFO**
+- **Structured messages, priority chahiye, persistence chahiye** → **Message Queue**
+- **Bahut zyada data, speed critical hai (jaise video processing, database buffers)** → **Shared Memory + Semaphore**
+- **Sirf coordination chahiye, data transfer nahi** → **Semaphore**
+- **Different machines, ya same machine but network-style architecture** → **Socket**
+
 ## Exercises
 
 ### Beginner
 
-1. Explain why shared memory is faster than message passing.
+1. Explain karo ki shared memory, message passing se faster kyun hoti hai.
 
-2. Write a shell script that uses pipes to count the number of `.c` files in a directory.
+2. Ek shell script likho jo pipes use karke kisi directory mein `.c` files ki count nikaale.
 
-3. What are the advantages of named pipes (FIFOs) over anonymous pipes?
+3. Named pipes (FIFOs) ke anonymous pipes ke comparison mein kya advantages hain?
 
 ### Intermediate
 
-4. Implement a simple chat program using named pipes where two processes can send messages to each other.
+4. Named pipes use karke ek simple chat program implement karo jahan do processes ek doosre ko messages bhej sakein.
 
-5. Modify the producer-consumer example to have 2 producers and 3 consumers.
+5. Producer-consumer example ko modify karo taaki 2 producers aur 3 consumers ho.
 
-6. Compare System V and POSIX IPC mechanisms. Which would you choose for a new project?
+6. System V aur POSIX IPC mechanisms ka comparison karo. Ek naye project ke liye tum kaunsa choose karoge aur kyun?
 
 ### Advanced
 
-7. Implement a ring buffer in shared memory with proper synchronization using semaphores.
+7. Shared memory mein ek ring buffer implement karo, semaphores ke through proper synchronization ke saath.
 
-8. Create a multi-process task queue system using message queues where worker processes fetch and execute tasks.
+8. Message queues use karke ek multi-process task queue system banao jahan worker processes tasks fetch aur execute karein.
 
-9. Build a simple database cache using shared memory that multiple processes can read from concurrently but only one can write to at a time.
+9. Shared memory use karke ek simple database cache banao jisme multiple processes concurrently read kar sakein but sirf ek hi process ek time pe write kar sake.
 
 ## Key Takeaways
 
-- IPC enables communication and coordination between isolated processes
-- **Pipes** are simple but limited to related processes
-- **Message queues** provide structured, prioritized communication
-- **Shared memory** is fastest but requires manual synchronization
-- **Semaphores** coordinate access to shared resources
-- **Sockets** enable network communication
-- Choose IPC method based on: speed, data size, process relationship, and synchronization needs
-- Always properly clean up IPC resources (destroy queues, unlink FIFOs, etc.)
+- IPC isolated processes ke beech communication aur coordination enable karta hai
+- **Pipes** simple hain lekin sirf related processes tak limited hain
+- **Message queues** structured, prioritized communication dete hain
+- **Shared memory** sabse fast hai lekin manual synchronization maangta hai
+- **Semaphores** shared resources tak access ko coordinate karte hain
+- **Sockets** network communication enable karte hain (same machine ya different machines dono pe)
+- Sahi IPC method choose karne ke liye dekho: speed, data size, process relationship, aur synchronization ki zarurat
+- IPC resources ko hamesha properly clean up karo (queues destroy karo, FIFOs unlink karo, shared memory segments detach/destroy karo) — warna orphaned resources system mein padi reh jaati hain
 
 ## Next Steps
 

@@ -1,28 +1,32 @@
 # Interrupt Handling
 
-## What You'll Learn
+## Kya Seekhoge Is Tutorial Mein
 
-In this tutorial, you will:
+Is tutorial mein tum ye samjhoge:
 
-- Understand what interrupts are and why they are fundamental to OS design
-- Distinguish hardware interrupts, software interrupts, and exceptions
-- Explore the Interrupt Vector Table and Interrupt Descriptor Table (IDT)
-- Learn the top-half / bottom-half split and when to use softirq, tasklet, or workqueue
-- Understand interrupt latency, jitter, and their impact on real-time systems
-- Configure IRQ affinity to bind interrupts to specific CPU cores
-- Compare polling vs interrupt-driven I/O and know when to use each
+- Interrupts kya hote hain aur OS design mein ye itne fundamental kyun hain
+- Hardware interrupts, software interrupts aur exceptions mein farak
+- Interrupt Vector Table aur Interrupt Descriptor Table (IDT) kaise kaam karte hain
+- Top-half / bottom-half split — aur softirq, tasklet, ya workqueue kab use karna hai
+- Interrupt latency, jitter, aur real-time systems pe unka impact
+- IRQ affinity configure karke interrupts ko specific CPU cores se bind karna
+- Polling vs interrupt-driven I/O — kaunsa kab use karna hai
 
 ---
 
 ## Introduction
 
-Without interrupts, the CPU would have to constantly poll every device to check if it needs attention — wasting enormous processing time on checking hardware that is almost always idle. Interrupts allow hardware to signal the CPU only when something needs to happen. The CPU can run user programs full-speed; when a disk read completes or a network packet arrives, the device raises an interrupt and the CPU briefly handles it before returning to whatever it was doing.
+Socho agar interrupts hi nahi hote toh kya hota — CPU ko har device ko baar-baar poochna padta "bhai tera kaam ho gaya kya? ho gaya kya? ho gaya kya?" — bilkul waise hi jaise koi impatient customer Swiggy support ko har 2 second mein call karke poochta rahe "order kahan hai, order kahan hai". Ye process — jise **polling** kehte hain — CPU ka bohot sara time waste karta hai, kyunki zyada tar time device idle hi hota hai.
+
+Interrupts isi problem ko solve karte hain. Hardware ko permission milti hai ki wo khud CPU ko signal bhej sake jab uska kaam ho jaye — bilkul jaise Swiggy delivery boy khud tumhe call kar de "bhaiya order deliver kar diya" instead of tumhe baar-baar app refresh karte rehna pade. CPU apna user program full speed pe chalata rehta hai; jab disk se read complete hota hai ya network pe packet aata hai, device ek interrupt raise karta hai aur CPU thoda sa ruk kar usko handle karta hai, phir wapas apne kaam pe laut aata hai.
 
 ---
 
-## What Is an Interrupt?
+## Interrupt Kya Hota Hai?
 
-An interrupt is a signal to the CPU that causes it to stop its current execution, save its state, run a special handler function (the **Interrupt Service Routine**, ISR), and then restore state and resume where it left off.
+Interrupt ek signal hai CPU ko jo usko batata hai — "ruk jaa, ek zaruri kaam hai". CPU apna current execution rok deta hai, apni state save karta hai, ek special handler function (jise **Interrupt Service Routine**, ya **ISR** kehte hain) run karta hai, aur fir state restore karke wahi se resume karta hai jahan se chhoda tha.
+
+Isko aisa socho — tum kitchen mein khana bana rahe ho (task A chal raha hai), tabhi doorbell baj jaati hai (interrupt). Tum gas ka flame low kar dete ho, yaad rakhte ho kya bana rahe the (state save), jaakar door kholte ho (ISR run hota hai), phir wapas kitchen mein aakar wahi se khana banana continue karte ho jahan chhoda tha.
 
 ```
 Normal execution:
@@ -36,24 +40,28 @@ With interrupt:
                          interrupt
 ```
 
-### Three Categories
+### Teen Categories
+
+Interrupts teen tarah ke hote hain — kaun trigger karta hai uske hisaab se:
 
 | Type | Trigger | Example |
 |------|---------|---------|
-| **Hardware interrupt** | External device signals CPU | NIC receives packet, disk completes I/O, timer fires |
-| **Software interrupt** (trap/syscall) | `int` instruction or `syscall` instruction in software | System call, `int 0x80` on x86 |
-| **Exception** | CPU detects error condition | Page fault, division by zero, invalid opcode |
+| **Hardware interrupt** | External device CPU ko signal bhejta hai | NIC pe packet aaya, disk I/O complete hua, timer fire hua |
+| **Software interrupt** (trap/syscall) | Software mein `int` ya `syscall` instruction | System call, `int 0x80` on x86 |
+| **Exception** | CPU khud error detect karta hai | Page fault, division by zero, invalid opcode |
+
+Yaad rakho — hardware interrupt bahar se (device se) aata hai, jabki software interrupt aur exception khud CPU ke andar generate hote hain program ke execution ke dauran.
 
 ---
 
 ## Hardware Interrupts
 
-### IRQ Lines and the PIC / APIC
+### IRQ Lines Aur PIC / APIC
 
-On x86 systems, hardware devices connect to the CPU through an interrupt controller:
+x86 systems mein hardware devices CPU se connect hote hain ek **interrupt controller** ke through — direct CPU se baat nahi karte, beech mein ek middleman hota hai jo requests ko manage karta hai. Bilkul waise jaise ek call center mein customer directly CEO ko phone nahi lagata, ek receptionist (controller) call ko sahi department tak route karta hai.
 
-- **PIC** (Programmable Interrupt Controller, legacy 8259A) — 15 IRQ lines, used in older/simple systems
-- **APIC** (Advanced PIC) — modern x86; each CPU core has a **LAPIC** (Local APIC), and an **IOAPIC** routes device IRQs to the right LAPIC
+- **PIC** (Programmable Interrupt Controller, legacy 8259A) — 15 IRQ lines, purane/simple systems mein use hota tha
+- **APIC** (Advanced PIC) — modern x86 mein use hota hai; har CPU core ke paas apna ek **LAPIC** (Local APIC) hota hai, aur ek **IOAPIC** device IRQs ko sahi LAPIC tak route karta hai
 
 ```
 Device → IOAPIC → LAPIC (CPU core) → CPU interrupt pin
@@ -61,6 +69,8 @@ Device → IOAPIC → LAPIC (CPU core) → CPU interrupt pin
       Routes IRQ 10 to CPU 0, IRQ 11 to CPU 3, etc.
       (configurable — IRQ affinity)
 ```
+
+Ye bilkul Zomato ke dispatch system jaisa hai — restaurant (device) order ready hone ka signal deta hai, central dispatch (IOAPIC) decide karta hai konsa delivery boy (CPU core) is order ko handle karega, aur wo configurable hota hai (IRQ affinity).
 
 ```bash
 # View IRQ assignments on Linux
@@ -72,12 +82,15 @@ cat /proc/interrupts
 # LOC:   4521038  4487291 ...        Local timer interrupts
 ```
 
-### MSI and MSI-X
+> [!tip]
+> `/proc/interrupts` file dekh kar tum turant pata laga sakte ho kaunse device kitne interrupts generate kar rahe hain aur konse CPU pe load pad raha hai. Agar ek CPU pe hi saara load ja raha hai, IRQ affinity tune karne ki zarurat ho sakti hai.
 
-Modern PCIe devices use **MSI** (Message Signaled Interrupts) instead of physical IRQ lines. They write a special memory address to signal an interrupt. This allows:
+### MSI Aur MSI-X
 
-- More interrupt vectors (MSI-X supports up to 2048)
-- Per-queue interrupts for multi-queue NVMe/NICs (one IRQ per CPU core)
+Modern PCIe devices physical IRQ lines use nahi karte — wo **MSI** (Message Signaled Interrupts) use karte hain. Idea simple hai: device ek special memory address pe likh kar interrupt signal kar deta hai, bilkul jaise koi UPI se ek chhota sa message bhej de "kaam ho gaya" instead of physically ja kar bolna. Isse fayda ye hota hai:
+
+- Zyada interrupt vectors available hote hain (MSI-X 2048 tak support karta hai)
+- Multi-queue NVMe/NICs ke liye per-queue interrupts mil jaate hain (matlab har CPU core ka apna alag IRQ)
 
 ```bash
 # Check if a device uses MSI-X
@@ -88,11 +101,13 @@ lspci -v | grep -A 10 "Ethernet"
 
 ---
 
-## Interrupt Vector Table and IDT
+## Interrupt Vector Table Aur IDT
 
 ### x86 Interrupt Vector Table
 
-The CPU uses an **interrupt vector** (a number 0–255) to index into a table of handler addresses. On x86-64, this table is the **IDT** (Interrupt Descriptor Table).
+CPU ek **interrupt vector** (0 se 255 tak ka number) use karta hai ek table mein index karne ke liye jisme handler ke addresses hote hain. x86-64 mein is table ko **IDT** (Interrupt Descriptor Table) kehte hain.
+
+Isko ek phone directory ki tarah socho — har vector number ek "extension number" hai, aur IDT batata hai ki us extension pe call aane par konsa function (handler) uthayega.
 
 ```
 IDT (256 entries):
@@ -112,7 +127,9 @@ IDT (256 entries):
 └────────────┴────────────────────────────────────────────────────┘
 ```
 
-### What Happens When an Interrupt Fires
+### Interrupt Fire Hone Par Kya Hota Hai?
+
+Chalo step-by-step dekhte hain ki interrupt aane par CPU ke andar exactly kya hota hai — ye sequence samajhna zaruri hai kyunki isi mein saara "magic" chhupa hai:
 
 ```
 1. Device raises IRQ
@@ -128,6 +145,8 @@ IDT (256 entries):
 10. Execution resumes where it was interrupted
 ```
 
+Step 3 pe dhyan do — CPU beech mein kabhi nahi rukta, wo current instruction ko poora complete karta hai pehle (atomic boundary), fir hi interrupt handle karta hai. Ye isliye zaruri hai taaki CPU state hamesha consistent rahe — half-executed instruction ke saath state save karna disaster hoga.
+
 ```bash
 # View the IDT (requires kernel debugger or /proc)
 # On Linux, interrupts are described in /proc/interrupts
@@ -136,13 +155,18 @@ IDT (256 entries):
 watch -n 1 "awk 'NR>1{for(i=2;i<=NF;i++) sum+=$i} END{print sum}' /proc/interrupts"
 ```
 
+> [!info]
+> IDT sirf hardware interrupts ke liye nahi hai — exceptions (vectors 0-31) aur software traps/syscalls (jaise vector 128) bhi isi table ka use karte hain. Mechanism same hai, sirf trigger source alag hai.
+
 ---
 
-## Top-Half vs Bottom-Half Processing
+## Top-Half Vs Bottom-Half Processing
 
-### The Problem with Long ISRs
+### Long ISRs Ki Problem
 
-Interrupt handlers run with interrupts disabled (or at elevated priority). A long ISR blocks other interrupts, increasing latency for everything else. The solution: do the minimum in the ISR (top-half) and defer the rest to a safe context (bottom-half).
+Interrupt handlers interrupts disabled karke (ya elevated priority pe) chalte hain. Agar ek ISR bohot lamba chal gaya, toh doosre saare interrupts block ho jaate hain — matlab har cheez ki latency badh jaati hai. Socho agar Swiggy ka ek delivery boy ek hi order ko deliver karne mein 2 ghante laga de — tab tak baaki saare orders queue mein atke rahenge.
+
+Solution simple hai: ISR (top-half) mein sirf minimum kaam karo, aur baaki sab kaam ek safe context mein baad ke liye defer kar do (bottom-half).
 
 ```
 Device raises interrupt
@@ -167,13 +191,15 @@ Device raises interrupt
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Linux Bottom-Half Mechanisms
+Isko aise socho — jab customer ka order aata hai (interrupt), delivery boy (top-half) sirf order pick karta hai aur "order accept kar liya" confirm karta hai (acknowledge) — actual delivery ka lamba kaam baad mein hota hai (bottom-half), taaki delivery boy jaldi se agla order bhi pick kar sake.
 
-Linux provides three mechanisms for deferred interrupt processing, in order of increasing flexibility and overhead:
+### Linux Ke Bottom-Half Mechanisms
+
+Linux deferred interrupt processing ke liye teen mechanisms deta hai, flexibility aur overhead ke hisaab se badhte order mein:
 
 #### 1. Softirq
 
-The lowest-level, fastest bottom-half. Runs in interrupt context (no sleeping allowed). There are a small fixed set of softirq types.
+Ye sabse low-level aur fastest bottom-half hai. Interrupt context mein chalta hai (matlab sleep karna allowed nahi hai). Softirq types ki ek chhoti si fixed list hoti hai.
 
 ```c
 // Softirq types (defined in linux/interrupt.h):
@@ -187,11 +213,11 @@ The lowest-level, fastest bottom-half. Runs in interrupt context (no sleeping al
 // RCU_SOFTIRQ      — RCU callbacks
 ```
 
-Softirqs run on the CPU that raised them (or via `ksoftirqd` thread if too many arrive). They can run concurrently on multiple CPUs, so they need lock-free or lock-careful code.
+Softirqs usi CPU pe chalte hain jisne unko raise kiya (ya, agar bohot zyada aa gaye, toh `ksoftirqd` naam ke thread ke through). Ye multiple CPUs pe concurrently chal sakte hain, isliye inka code lock-free ya bohot careful locking wala hona chahiye.
 
 #### 2. Tasklet
 
-Built on top of softirqs. Easier to use: tasklets of the same type are serialized (won't run on two CPUs simultaneously). Suitable for most driver bottom-halves.
+Ye softirq ke upar bana hua hai, lekin use karne mein zyada easy hai: same type ke tasklets serialize ho jaate hain (matlab do CPUs pe ek saath nahi chalenge). Zyadatar driver bottom-halves ke liye ye perfect fit hai.
 
 ```c
 #include <linux/interrupt.h>
@@ -222,7 +248,7 @@ irqreturn_t my_isr(int irq, void *dev_id)
 
 #### 3. Workqueue
 
-The most flexible bottom-half. Runs in process context (a kernel thread), so it **can sleep**, call blocking functions, and take mutexes. Higher overhead than tasklets.
+Ye sabse flexible bottom-half mechanism hai. Ye process context mein chalta hai (ek kernel thread ki tarah), isliye ye **sleep kar sakta hai**, blocking functions call kar sakta hai, aur mutexes le sakta hai. Overhead tasklets se zyada hai, lekin flexibility bhi zyada hai.
 
 ```c
 #include <linux/workqueue.h>
@@ -246,21 +272,24 @@ INIT_WORK(&my_work, my_work_fn);
 schedule_work(&my_work);
 ```
 
-### Comparison
+### Teenon Ka Comparison
 
-| Mechanism | Context | Can Sleep? | Concurrency | Overhead | Use Case |
+| Mechanism | Context | Sleep Kar Sakta Hai? | Concurrency | Overhead | Use Case |
 |-----------|---------|-----------|-------------|----------|----------|
-| Softirq | Interrupt | No | Multi-CPU parallel | Lowest | Network RX/TX, timer |
-| Tasklet | Interrupt | No | Serialized per tasklet | Low | Most device drivers |
-| Workqueue | Process (kthread) | Yes | Full | Medium | USB, I2C, any blocking work |
+| Softirq | Interrupt | Nahi | Multi-CPU parallel | Sabse kam | Network RX/TX, timer |
+| Tasklet | Interrupt | Nahi | Serialized per tasklet | Kam | Zyadatar device drivers |
+| Workqueue | Process (kthread) | Haan | Full | Medium | USB, I2C, koi bhi blocking work |
+
+> [!warning]
+> Softirq aur tasklet ke andar bhool kar bhi koi blocking call (jaise `mutex_lock`, disk read, ya sleep) mat daalna — ye interrupt context mein chalte hain, aur blocking se poora system deadlock ho sakta hai. Agar tumhe sleep karna hai, workqueue use karo.
 
 ---
 
-## Interrupt Latency and Jitter
+## Interrupt Latency Aur Jitter
 
 ### Interrupt Latency
 
-**Interrupt latency** is the time from when the device raises the interrupt to when the first instruction of the ISR executes.
+**Interrupt latency** wo time hai jab device interrupt raise karta hai se lekar ISR ki pehli instruction execute hone tak. Isko socho jaise tumne Zomato pe order place kiya (interrupt raised) — aur restaurant ne actual mein order dekhna kab start kiya (ISR start).
 
 ```
 Sources of interrupt latency:
@@ -276,14 +305,16 @@ Typical total: 1–10 µs on a non-real-time Linux kernel
 
 ### Jitter
 
-**Jitter** is the variation in interrupt latency over time. A system might handle most interrupts in 5 µs but occasionally take 500 µs due to:
+**Jitter** matlab interrupt latency mein time ke saath jo variation aata hai. Ek system zyadatar 5 µs mein interrupts handle karta hoga, lekin kabhi kabhi 500 µs bhi le sakta hai — kaaranon mein shaamil hai:
 
-- Cache misses in the ISR
-- Long critical sections holding `spin_lock_irqsave`
-- SMI (System Management Interrupts from firmware — invisible to Linux)
-- NUMA effects (interrupt arrives on wrong CPU, data is on remote NUMA node)
+- ISR mein cache misses
+- `spin_lock_irqsave` wale lamba critical sections hold karna
+- SMI (System Management Interrupts firmware se — Linux ko dikhte hi nahi)
+- NUMA effects (interrupt galat CPU pe aa gaya, data kisi doosre remote NUMA node pe hai)
 
-### Measuring Latency
+Isko real life mein aise socho — IRCTC tatkal booking ke waqt zyadatar tumhara request 2 second mein process ho jaata hai, lekin peak load pe kabhi kabhi 30 second bhi lag sakta hai. Wo "kabhi kabhi ka spike" hi jitter hai.
+
+### Latency Measure Kaise Kare
 
 ```bash
 # cyclictest: the standard tool for measuring interrupt/scheduling latency
@@ -303,7 +334,7 @@ cat /sys/kernel/debug/tracing/trace | head -30
 
 ### PREEMPT_RT
 
-The standard Linux kernel is not fully preemptible — spin locks disable preemption. The **PREEMPT_RT** patch converts most spin locks to sleeping mutexes, making the kernel fully preemptible and dramatically reducing worst-case latency.
+Standard Linux kernel fully preemptible nahi hota — spin locks preemption ko disable kar dete hain. **PREEMPT_RT** patch zyadatar spin locks ko sleeping mutexes mein convert kar deta hai, jisse kernel fully preemptible ban jaata hai aur worst-case latency dramatically kam ho jaati hai. Ye especially real-time systems ke liye important hai — jaise stock trading systems ya industrial control systems jahan ek bhi delayed response bohot mehenga pad sakta hai.
 
 ```bash
 # Check kernel preemption model
@@ -316,11 +347,13 @@ grep CONFIG_PREEMPT /boot/config-$(uname -r)
 
 ---
 
-## IRQ Affinity and CPU Binding
+## IRQ Affinity Aur CPU Binding
 
-By default the kernel (or IRQBALANCE daemon) assigns interrupts to CPU cores automatically. You can override this to optimize for NUMA locality or to dedicate cores to specific devices.
+By default kernel (ya IRQBALANCE daemon) automatically interrupts ko CPU cores assign karta hai. Tum isko override kar sakte ho NUMA locality optimize karne ke liye ya specific devices ke liye dedicated cores rakhne ke liye.
 
-### Viewing and Setting Affinity
+Isko aise socho jaise ek warehouse mein specific packers ko specific product categories assign karna — isse packer baar baar section change nahi karta aur cache/locality ka fayda milta hai, exactly waise hi jaise specific CPU cores ko specific IRQs assign karne se unka cache warm rehta hai aur performance behtar hoti hai.
+
+### Affinity Dekhna Aur Set Karna
 
 ```bash
 # View current IRQ affinity (bitmask of CPUs)
@@ -358,7 +391,7 @@ systemctl restart irqbalance
 
 ### NOHZ_FULL — Tickless CPUs
 
-For latency-critical workloads, you can isolate CPUs from the kernel's scheduling tick:
+Latency-critical workloads ke liye tum CPUs ko kernel ke scheduling tick se isolate kar sakte ho — matlab wo CPUs periodically "check-in" karne wala scheduler interrupt bhi receive nahi karenge, jitna kam interrupt utna kam jitter.
 
 ```
 # Add to kernel boot parameters (GRUB):
@@ -372,13 +405,13 @@ isolcpus=4-7 nohz_full=4-7 rcu_nocbs=4-7
 
 ---
 
-## Polling vs Interrupt-Driven I/O
+## Polling Vs Interrupt-Driven I/O
 
-Both are valid strategies; the right choice depends on the expected event rate.
+Dono hi valid strategies hain — sahi choice depend karta hai expected event rate pe.
 
 ### Polling (Busy-Wait)
 
-The CPU continuously checks the device status register until data is ready.
+CPU continuously device ke status register ko check karta rehta hai jab tak data ready na ho jaaye — bilkul waise jaise koi impatient banda railway station pe baar-baar announcement board dekhta rahe train aayi ki nahi.
 
 ```c
 // Polling example: wait for serial port transmit buffer empty
@@ -398,7 +431,7 @@ Bad for:          Low-frequency devices (keyboard, slow sensors)
 
 ### Interrupt-Driven I/O
 
-The CPU starts an I/O operation and goes to sleep (or continues other work). The device raises an interrupt when done.
+CPU ek I/O operation start karta hai aur sleep kar jaata hai (ya doosra kaam karta rehta hai). Jab device ka kaam ho jaata hai, wo interrupt raise karta hai — bilkul waise jaise Swiggy order place karke tum apna doosra kaam karte raho, delivery boy pahunchne pe khud call/notification bhej dega, tumhe baar-baar app check nahi karna padega.
 
 ```c
 // Interrupt-driven: start transfer, return immediately
@@ -415,13 +448,18 @@ Good for:         Low/medium frequency devices (disk, keyboard, NIC at normal lo
 Bad for:          Very high frequency devices (interrupt storm)
 ```
 
-### Hybrid: NAPI (New API) for Networks
+> [!warning]
+> Agar events bohot high-frequency pe aa rahe hain (jaise ek bohot busy network card), toh har packet ke liye interrupt raise karna khud hi overhead ban jaata hai — isko **interrupt storm** kehte hain, jahan CPU sirf interrupts handle karne mein hi busy rehta hai aur actual kaam ke liye time hi nahi bachta.
 
-Linux NICs use a hybrid approach called **NAPI**:
+### Hybrid: NAPI (New API) Networks Ke Liye
 
-1. First packet arrives → interrupt fires → top-half disables interrupts for this NIC
-2. NAPI poll loop runs in softirq context, draining all available packets (polling)
-3. When queue is empty → re-enable interrupts
+Linux NICs ek hybrid approach use karte hain jise **NAPI** kehte hain — best of both worlds. Idea ye hai: kam traffic mein interrupts use karo (efficient), zyada traffic mein polling pe switch kar jaao (interrupt storm avoid karne ke liye).
+
+1. Pehla packet aata hai → interrupt fire hota hai → top-half is NIC ke liye interrupts disable kar deta hai
+2. NAPI poll loop softirq context mein chalta hai, jitne bhi packets available hain sab drain kar leta hai (polling)
+3. Jab queue khaali ho jaaye → interrupts wapas enable kar diye jaate hain
+
+Isko aise socho jaise Zomato ka support agent — agar ek ghante mein sirf 2 complaints aa rahi hain, wo har notification pe respond karega. Lekin agar Diwali sale ke time 1000 complaints ek saath aa rahi hain, toh wo notifications check karna band kar dega aur ek loop mein baith kar continuously queue process karega jab tak khaali na ho jaaye.
 
 ```
 Low traffic:  interrupt per packet (efficient)
@@ -444,6 +482,8 @@ ethtool -C eth0 rx-usecs 100 rx-frames 64 # higher throughput
 ---
 
 ## Interrupt Handling Flow Diagram
+
+Poora flow ek diagram mein — device se lekar process wake-up tak:
 
 ```mermaid
 graph TD
@@ -492,7 +532,9 @@ graph TD
 
 ---
 
-## Registering an Interrupt Handler in Linux
+## Linux Mein Interrupt Handler Register Karna
+
+Ab dekhte hain practically ek device driver interrupt handler kaise register karta hai. Ye flow tumhe har Linux driver mein milega:
 
 ```c
 #include <linux/interrupt.h>
@@ -542,6 +584,9 @@ static int my_driver_remove(struct platform_device *pdev)
 }
 ```
 
+> [!tip]
+> `IRQF_SHARED` flag tab use hota hai jab multiple devices ek hi IRQ line share karte hain (purane systems mein aam baat thi). Isi wajah se handler ke andar `device_caused_interrupt()` jaisa check hota hai — kernel har registered handler ko call karega, aur jisko interrupt ka matlab nahi pata wo `IRQ_NONE` return kar dega.
+
 ---
 
 ## Useful Commands Summary
@@ -570,12 +615,12 @@ perf trace -e irq:irq_handler_entry --filter "irq==120" sleep 5
 
 ---
 
-## Summary
+## Key Takeaways
 
-- An **interrupt** allows hardware to signal the CPU asynchronously; without interrupts, the CPU would waste cycles polling every device
-- The **IDT** maps interrupt vector numbers to handler addresses; exceptions (vectors 0-31), hardware IRQs, and software traps all use the same mechanism
-- The **top-half** ISR runs with interrupts disabled, does the minimum work, and schedules a **bottom-half** for the rest
-- Linux provides three bottom-half mechanisms: **softirq** (fastest, runs in interrupt context), **tasklet** (serialized, interrupt context), and **workqueue** (can sleep, process context)
-- **Interrupt latency** is how long it takes to start the ISR; **jitter** is the variation in that latency; PREEMPT_RT reduces worst-case latency for real-time workloads
-- **IRQ affinity** lets you bind interrupts to specific CPU cores for NUMA locality or to dedicate cores to I/O processing
-- **Polling** has lower latency but wastes CPU; **interrupts** save CPU but add overhead; **NAPI** uses a hybrid approach that automatically switches between the two based on load
+- **Interrupt** hardware ko CPU ko asynchronously signal karne deta hai — interrupts na hote toh CPU har device ko baar-baar poll karke apna time waste karta rehta, bilkul waise jaise koi baar-baar Swiggy app refresh kare instead of notification ka wait karna
+- **IDT** interrupt vector numbers ko handler addresses se map karta hai — exceptions (vectors 0-31), hardware IRQs, aur software traps sab isi ek mechanism ko use karte hain
+- **Top-half** ISR interrupts disabled karke chalta hai, sirf minimum kaam karta hai, aur baaki heavy lifting **bottom-half** ko de deta hai
+- Linux teen bottom-half mechanisms deta hai: **softirq** (sabse fast, interrupt context mein chalta hai), **tasklet** (serialized, interrupt context), aur **workqueue** (sleep kar sakta hai, process context mein chalta hai)
+- **Interrupt latency** batata hai ISR start hone mein kitna time lagta hai; **jitter** us latency mein variation hai; **PREEMPT_RT** real-time workloads ke liye worst-case latency kam karta hai
+- **IRQ affinity** se tum interrupts ko specific CPU cores se bind kar sakte ho — NUMA locality ke liye ya I/O processing ke liye cores dedicate karne ke liye
+- **Polling** ki latency kam hoti hai lekin CPU waste hota hai; **interrupts** CPU bachate hain lekin overhead add karte hain; **NAPI** ek hybrid approach hai jo load ke hisaab se dono ke beech automatically switch karta rehta hai

@@ -1,35 +1,43 @@
 # I/O Hardware and Software
 
-## What You'll Learn
+## Is Tutorial Mein Kya Seekhoge
 
-In this tutorial, you will:
+Is tutorial mein tum ye samjhoge:
 
-- Understand different categories of I/O devices (block, character, network)
-- Learn three I/O communication methods: programmed I/O, interrupt-driven I/O, and DMA
-- Explore I/O ports and memory-mapped I/O addressing
-- Understand device controllers and their role in I/O operations
-- Learn the layered software architecture for I/O systems
-- Distinguish between blocking/non-blocking and synchronous/asynchronous I/O
-- Work with Linux device files and inspection commands
+- I/O devices ki alag-alag categories (block, character, network)
+- Teen I/O communication methods: programmed I/O, interrupt-driven I/O, aur DMA
+- I/O ports aur memory-mapped I/O addressing
+- Device controllers kya hote hain aur I/O operations mein unka role
+- I/O systems ka layered software architecture
+- Blocking/non-blocking aur synchronous/asynchronous I/O mein farak
+- Linux device files aur inspection commands ke saath kaam karna
 
 ---
 
 ## Introduction
 
-Input/Output (I/O) systems connect computers to the external world. From keyboards and mice to network cards and storage devices, I/O hardware enables interaction with users and other systems. The operating system must manage this diverse hardware efficiently while providing a consistent interface to applications.
+Socho ek second — jab bhi tum keyboard pe kuch type karte ho, mouse move karte ho, ya apna Node.js app kisi database se data fetch karta hai, background mein ek poori machinery chal rahi hoti hai jo CPU aur outside world ke beech data la-le jaa rahi hoti hai. Yahi kaam I/O (Input/Output) systems ka hai.
+
+I/O systems computer ko bahar ki duniya se connect karte hain — keyboard, mouse se lekar network cards aur storage devices tak. Ye hardware users aur dusre systems ke saath interaction possible banata hai. Ab problem ye hai ki har device alag tarike se kaam karta hai — ek hard disk aur ek keyboard ka behaviour bilkul alag hota hai. Operating System ka kaam hai is saare alag-alag, chaotic hardware ko efficiently manage karna, aur applications ko ek consistent, simple interface dena — jaise Zomato app tumhe ye nahi dikhata ki restaurant ka kitchen kaise chal raha hai, bas tumhe ek clean order-placing interface deta hai.
+
+Isi wajah se Node.js developer ke liye bhi ye samajhna zaruri hai — jab tum `fs.readFile()` ya `net.createServer()` call karte ho, neeche yehi saara I/O hardware/software layering kaam kar rahi hoti hai.
 
 ---
 
 ## I/O Device Categories
 
-I/O devices are classified by how they transfer data:
+**Kya hota hai?** Har I/O device data transfer karne ka apna tarika rakhta hai. OS ko ye pata hona chahiye ki kaunsa device kaise behave karta hai, taaki sahi strategy use kar sake.
+
+I/O devices ko classify kiya jata hai is basis pe ki wo data kaise transfer karte hain:
 
 ### 1. Block Devices
 
+Socho ek almirah hai jisme numbered drawers hain — tumhe kisi bhi drawer ko directly khol sakte ho, sequence mein khaanay ki zarurat nahi. Block devices bhi aise hi kaam karte hain.
+
 **Characteristics**:
-- Transfer data in fixed-size blocks (typically 512 bytes or 4KB)
-- Support random access (can seek to any block)
-- Bufferable and cacheable
+- Data ko fixed-size blocks mein transfer karte hain (typically 512 bytes ya 4KB)
+- Random access support karte hain (kisi bhi block pe seek kar sakte ho)
+- Bufferable aur cacheable hote hain
 - Examples: Hard drives, SSDs, USB drives, CD-ROMs
 
 ```
@@ -43,6 +51,8 @@ Block Device Structure:
      ↕           ↕           ↕
   Random Access - Can read any block in any order
 ```
+
+Ye bilkul IRCTC ke seat chart jaisa hai — tumhe seat number 45 chahiye toh directly wahan jaake dekh sakte ho, 1 se 44 tak scan karne ki zarurat nahi. Yehi "random access" ka fayda hai jo SSD/HDD deta hai — chahe file kahin bhi ho disk pe, seedha usi block pe jump ho jaata hai.
 
 **Linux Examples**:
 ```bash
@@ -58,10 +68,12 @@ lsblk
 
 ### 2. Character Devices
 
+**Kya hota hai?** Ye ek continuous stream ki tarah hai — jaise WhatsApp pe koi voice note bhej raha ho, tumhe usko shuru se end tak sequentially sunna padta hai, beech mein jump nahi kar sakte (zyaadatar).
+
 **Characteristics**:
-- Transfer data as stream of characters (bytes)
-- Sequential access (no seeking, or limited seeking)
-- Not bufferable in the same way as block devices
+- Data ko characters (bytes) ki stream ki tarah transfer karte hain
+- Sequential access (seeking nahi hoti, ya limited seeking)
+- Block devices jaisi buffering nahi hoti
 - Examples: Keyboards, mice, serial ports, printers, terminals
 
 ```
@@ -73,6 +85,8 @@ Character Device Stream:
 └─────────────────────────────────────────────┘
          Sequential byte stream
 ```
+
+Jab tum keyboard pe type karte ho, ek-ek character CPU tak sequentially pahunchta hai — waise hi jaise UPI transaction ka OTP ek-ek digit type karke enter karte ho, koi "random access" nahi hota, order matter karta hai.
 
 **Linux Examples**:
 ```bash
@@ -87,10 +101,12 @@ ls -l /dev/tty* /dev/null /dev/random
 
 ### 3. Network Devices
 
+**Kya hota hai?** Network devices data ko packets ki form mein bhejte hain — bilkul Zomato delivery ki tarah jahan ek order alag-alag parts mein (packaging, delivery boy pickup, route) chalta hai, aur ye predict nahi kar sakte ki kab exactly deliver hoga.
+
 **Characteristics**:
-- Transfer data as packets
-- Asynchronous arrival of data
-- Not represented as files in `/dev` (use sockets instead)
+- Data ko packets ki form mein transfer karte hain
+- Data ka arrival asynchronous hota hai (kab aayega pata nahi)
+- `/dev` mein files ki tarah represent nahi hote (sockets use hote hain)
 - Examples: Ethernet cards, WiFi adapters, Bluetooth devices
 
 ```
@@ -105,6 +121,9 @@ Network Device Packet Flow:
         ↓          ↓          ↓
    Socket Interface (not /dev files)
 ```
+
+> [!info]
+> Network devices `/dev` mein file ki tarah nahi dikhte kyunki packets ka aana bilkul unpredictable hota hai — koi bhi time koi bhi packet aa sakta hai. Isliye OS inhe **sockets** ke through expose karta hai, jo ki Node.js mein `net` module use karke tum directly access karte ho.
 
 ### Device Category Comparison
 
@@ -121,9 +140,11 @@ Network Device Packet Flow:
 
 ## I/O Communication Methods
 
+**Kyun zaruri hai?** Ab sawaal ye hai — jab CPU ko kisi device se data chahiye, wo device se "baat" kaise kare? Teen tarike hain, aur inka evolution samajhna important hai kyunki ye batata hai ki CPU efficiency ke liye OS design kaisi shape leta hai.
+
 ### 1. Programmed I/O (Polling)
 
-The CPU continuously checks if the device is ready for I/O.
+**Kya hota hai?** CPU baar-baar check karta rehta hai ki device ready hai ya nahi — jaise koi banda Swiggy app pe har 2 second mein refresh karke check kare "order aaya kya, order aaya kya" — bina kuch aur kaam kiye.
 
 ```
 Programmed I/O Flow:
@@ -160,18 +181,20 @@ void programmed_io_read(char *buffer, int size) {
 ```
 
 **Advantages**:
-- Simple to implement
-- No special hardware needed
-- Good for very fast devices
+- Implement karna simple hai
+- Koi special hardware nahi chahiye
+- Bahut fast devices ke liye achha
 
 **Disadvantages**:
-- Wastes CPU time in busy-waiting
-- Inefficient for slow devices
-- CPU cannot do other work while polling
+- Busy-waiting mein CPU time waste hota hai
+- Slow devices ke liye inefficient
+- Polling ke time CPU koi aur kaam nahi kar sakta
+
+Ye waise hi hai jaise tum apna pura din bas isi mein nikaal do ki "Swiggy delivery boy aaya kya" dekhte raho — koi productive kaam nahi kar paoge. Yehi CPU ke saath hota hai polling mein.
 
 ### 2. Interrupt-Driven I/O
 
-The device sends an interrupt signal when ready, allowing the CPU to do other work.
+**Kya hota hai?** Ab thoda smart approach — device khud CPU ko batayega jab ready ho jaaye (interrupt bhejkar), tab tak CPU free hoke apna doosra kaam karta rahega. Bilkul Zomato delivery boy ki tarah — tum order karke apna doosra kaam karte raho, jab khana ready hoga delivery boy tumhe call/notification bhej dega, tab jaake tum door pe jaoge.
 
 ```
 Interrupt-Driven I/O Flow:
@@ -228,18 +251,18 @@ void interrupt_driven_read(char *buffer, int size) {
 ```
 
 **Advantages**:
-- CPU can perform other tasks while waiting
-- More efficient than polling for slow devices
-- Responsive to device events
+- CPU wait karte hue bhi doosre tasks perform kar sakta hai
+- Slow devices ke liye polling se zyada efficient
+- Device events ke prati responsive
 
 **Disadvantages**:
-- Overhead of interrupt handling
-- Complex to implement correctly
-- Still requires CPU intervention for each byte/block
+- Interrupt handle karne ka overhead hota hai
+- Sahi tarike se implement karna complex hai
+- Phir bhi har byte/block ke liye CPU ki involvement chahiye
 
 ### 3. Direct Memory Access (DMA)
 
-A specialized DMA controller transfers data directly between device and memory without CPU involvement.
+**Kya hota hai?** Ye sabse smart level hai. Ek specialized DMA controller device aur memory ke beech direct data transfer karta hai — CPU ko beech mein aana hi nahi padta. Ye bilkul aisa hai jaise tum ek trusted delivery partner (DMA controller) ko poora kaam de do — "bhai ye poora saaman warehouse se ghar tak pahucha do", aur tum (CPU) apna doosra important kaam karte raho. Jab poora kaam ho jaaye, tumhe sirf ek notification (interrupt) milega "delivery complete".
 
 ```mermaid
 sequenceDiagram
@@ -330,14 +353,17 @@ void dma_interrupt_handler(void) {
 ```
 
 **Advantages**:
-- Minimal CPU involvement
-- Efficient for large data transfers
-- CPU can perform useful work during transfer
+- CPU ki involvement minimal hoti hai
+- Large data transfers ke liye efficient
+- Transfer ke dauraan CPU useful kaam kar sakta hai
 
 **Disadvantages**:
-- Requires special DMA controller hardware
-- More complex setup
-- May have bus contention issues
+- Special DMA controller hardware chahiye
+- Setup zyada complex hota hai
+- Bus contention issues ho sakte hain
+
+> [!tip]
+> Jab bhi tumhara Node.js app large file read/write karta hai (jaise `fs.createReadStream`), background mein OS level pe DMA hi actual kaam kar raha hota hai — CPU sirf setup karke free ho jaata hai, actual bytes disk se RAM mein DMA controller khud copy karta hai.
 
 ### Communication Method Comparison
 
@@ -354,9 +380,11 @@ void dma_interrupt_handler(void) {
 
 ## I/O Addressing: Ports vs Memory-Mapped I/O
 
+**Kya hota hai?** Ab sawaal ye hai — CPU device ke registers ko "address" kaise kare, taaki unse data read/write kar sake? Do approaches hain.
+
 ### Port-Mapped I/O (Isolated I/O)
 
-Separate address space for I/O devices, accessed via special CPU instructions.
+I/O devices ke liye ek separate address space hota hai, jise special CPU instructions se access kiya jaata hai.
 
 ```
 Port-Mapped I/O:
@@ -374,6 +402,8 @@ Port-Mapped I/O:
     │  (Serial)      │     │  ...           │
     └────────────────┘     └────────────────┘
 ```
+
+Socho tumhare ghar mein do alag darwaze hain — ek "normal room" (memory) ke liye, ek "locker" (I/O ports) ke liye, aur locker khaolne ke liye ek alag special chaabi (IN/OUT instructions) chahiye hoti hai. Regular chaabi (MOV instruction) locker nahi khol sakti.
 
 **Example (x86 Assembly)**:
 ```c
@@ -403,7 +433,7 @@ char read_byte_serial(void) {
 
 ### Memory-Mapped I/O
 
-Device registers are mapped into the memory address space.
+Device ke registers ko memory address space mein hi map kar diya jaata hai.
 
 ```
 Memory-Mapped I/O:
@@ -428,6 +458,8 @@ Memory-Mapped I/O:
     │  More RAM / Other Devices      │
     └────────────────────────────────┘
 ```
+
+Yahan koi alag "locker" nahi hai — device ke registers ko normal room (memory address space) ke andar hi ek corner mein rakh diya gaya hai. Toh CPU jo bhi normal instructions (MOV, LOAD, STORE) use karta hai memory ke liye, wahi instructions device registers pe bhi kaam kar jaate hain. Yahi wajah hai ki ARM, RISC-V jaise modern architectures isi approach ko prefer karte hain — simpler instruction set, ek hi tarah ka access.
 
 **Example (C)**:
 ```c
@@ -461,6 +493,9 @@ void write_device_data(uint32_t data) {
 }
 ```
 
+> [!warning]
+> Memory-mapped I/O mein `volatile` keyword bahut important hai — agar tum ye nahi lagaoge, toh compiler smart bankar samajh sakta hai "arre ye variable toh maine already read kar liya, dobara read karne ki zarurat nahi" aur optimize karke instruction hi hata sakta hai. Lekin device register ki value kabhi bhi change ho sakti hai (hardware ki taraf se), isliye har baar fresh read/write zaruri hai.
+
 ### Port-Mapped vs Memory-Mapped I/O
 
 | Aspect | Port-Mapped I/O | Memory-Mapped I/O |
@@ -476,7 +511,7 @@ void write_device_data(uint32_t data) {
 
 ## Device Controllers
 
-A device controller is hardware that acts as an intermediary between the device and the system bus.
+**Kya hota hai?** Device controller ek hardware hai jo device aur system bus ke beech ek middleman ki tarah kaam karta hai — bilkul waise jaise Zomato app khud khana nahi banata, wo sirf restaurant (device) aur customer (CPU) ke beech ka interface hai jo order translate karta hai, status batata hai.
 
 ```
 Device Controller Architecture:
@@ -506,18 +541,18 @@ Device Controller Architecture:
 
 **Controller Responsibilities**:
 
-1. **Command Interpretation**: Translate OS commands to device-specific operations
-2. **Status Reporting**: Inform OS about device state (ready, busy, error)
-3. **Data Buffering**: Temporarily store data being transferred
-4. **Error Detection**: Identify and report transmission errors
-5. **Signal Conversion**: Convert between electrical signals and data
-6. **Timing Control**: Manage device-specific timing requirements
+1. **Command Interpretation**: OS ke commands ko device-specific operations mein translate karna
+2. **Status Reporting**: OS ko device ki state batana (ready, busy, error) — jaise Swiggy app tumhe "preparing", "on the way", "delivered" status dikhata hai
+3. **Data Buffering**: Transfer ho rahe data ko temporarily store karna
+4. **Error Detection**: Transmission errors identify aur report karna
+5. **Signal Conversion**: Electrical signals aur data ke beech conversion
+6. **Timing Control**: Device-specific timing requirements manage karna
 
 ---
 
 ## I/O Software Layers
 
-Operating systems organize I/O software into layers:
+**Kyun zaruri hai?** Ek hi jagah pe saara logic likhna maintain karna mushkil ho jaata — isliye OS I/O software ko layers mein organize karta hai, bilkul jaise ek restaurant mein alag-alag roles hote hain: waiter (user app), manager (OS abstraction), chef (device driver), kitchen equipment (hardware) — har layer apna specific kaam karti hai aur upar-neeche wali layer se baat karti hai.
 
 ```mermaid
 flowchart TB
@@ -572,21 +607,23 @@ I/O Software Stack (Top to Bottom):
 ### Layer Details
 
 **Layer 1: Interrupt Handlers**
-- Runs at highest priority
-- Minimal processing (save context, unblock driver, schedule deferred work)
-- Must be fast and non-blocking
+- Sabse highest priority pe chalte hain
+- Minimal processing (context save karna, driver ko unblock karna, deferred work schedule karna)
+- Fast aur non-blocking hona zaruri hai — jitna kam time yahan spend karo utna achha, kyunki ye baaki system ko rok deta hai
 
 **Layer 2: Device Drivers**
 - Device-specific implementation
-- Translates generic I/O requests to device commands
-- Manages device state
-- Loaded as kernel modules
+- Generic I/O requests ko device commands mein translate karta hai
+- Device ka state manage karta hai
+- Kernel modules ki tarah load hota hai
+
+Ye waise hi hai jaise Zomato app mein alag-alag restaurants ke liye alag menu/integration hoti hai — restaurant A ka API alag hai, restaurant B ka alag, lekin app (upar ki layer) ko sirf ek uniform "order karo" interface dikhta hai. Device driver hi wo layer hai jo device-specific complexity ko chhupata hai.
 
 **Layer 3: Device-Independent Software**
-- Provides uniform interface
-- Implements buffering and caching
-- Manages device allocation and protection
-- Error handling and reporting
+- Uniform interface provide karta hai
+- Buffering aur caching implement karta hai
+- Device allocation aur protection manage karta hai
+- Error handling aur reporting
 
 **Layer 4: User-Level Software**
 - Standard library functions (printf, fread)
@@ -597,9 +634,11 @@ I/O Software Stack (Top to Bottom):
 
 ## Blocking vs Non-Blocking I/O
 
+**Kya hota hai?** Ye samajhna Node.js developer ke liye especially important hai, kyunki Node ka poora asynchronous, non-blocking event loop model isi concept pe based hai.
+
 ### Blocking I/O
 
-Process waits (blocks) until I/O operation completes.
+Process wait karta hai (block ho jaata hai) jab tak I/O operation complete na ho.
 
 ```
 Blocking I/O Timeline:
@@ -612,6 +651,8 @@ Kernel:     [initiate I/O]──[wait]──[I/O complete]
                                     [copy data to process]
 Time ───────────────────────────────────────────────────→
 ```
+
+Socho tum ek IRCTC ke ticket counter pe line mein khade ho — jab tak tumhari baari na aaye aur ticket na mile, tum kahin aur nahi jaa sakte. Ye hai blocking behaviour — process bilkul freeze ho jaata hai jab tak data na aa jaaye.
 
 **Example (C)**:
 ```c
@@ -637,7 +678,7 @@ int main() {
 
 ### Non-Blocking I/O
 
-Process continues execution; I/O operation returns immediately (may not be complete).
+Process apna execution continue karta hai; I/O operation turant return kar deta hai (ho sakta hai data abhi complete na hua ho).
 
 ```
 Non-Blocking I/O Timeline:
@@ -650,6 +691,8 @@ Kernel:     [initiate I/O]───[in progress]───[complete]
                                 
 Time ───────────────────────────────────────────────────→
 ```
+
+Ye ab aisa hai jaise tum Zomato pe order place karke turant app se bahar aa jaate ho aur apna doosra kaam karte raho — beech-beech mein bas quickly check karte ho "order ready hua kya?" Agar nahi hua toh turant "abhi nahi" wala jawab (`EAGAIN`) milta hai aur tum apna kaam continue karte ho.
 
 **Example (C)**:
 ```c
@@ -683,13 +726,19 @@ int main() {
 
 ## Synchronous vs Asynchronous I/O
 
+**Kya hota hai?** Blocking/non-blocking se ek related-lekin-different concept hai. Yahan farak "process wait karta hai ya nahi" ka nahi, balki "OS turant notify karta hai ya process ko poll karna padta hai" ka hai.
+
 ### Synchronous I/O
 
-Process waits for I/O to complete before continuing (even if non-blocking).
+Process I/O complete hone ka wait karta hai continue karne se pehle (chahe non-blocking hi kyun na ho — process ko khud check karte rehna padta hai).
 
 ### Asynchronous I/O
 
-Process initiates I/O and continues immediately. OS notifies when complete.
+Process I/O initiate karke turant continue kar deta hai. OS complete hone pe khud notify karta hai — process ko baar-baar poochne ki zarurat nahi.
+
+Ye difference bilkul Swiggy ke do modes jaisa hai:
+- **Synchronous (polling wala)**: Tum baar-baar app kholke check karte ho "order aaya kya?"
+- **Asynchronous**: Tum bas relax karte ho, aur jab order ready hota hai, Swiggy khud tumhe push notification bhej deta hai — tumhe poochne ki zarurat nahi.
 
 ```
 Asynchronous I/O Timeline:
@@ -752,6 +801,9 @@ int main() {
 }
 ```
 
+> [!tip]
+> Node.js ka `fs.readFile(path, callback)` yahi asynchronous model use karta hai — tum callback de dete ho, event loop apna kaam continue karta hai, aur jab I/O complete hota hai OS/libuv khud callback fire kar deta hai. Isi wajah se Node single-threaded hoke bhi hazaaron concurrent connections handle kar leta hai.
+
 ### I/O Operation Comparison
 
 | Type | Blocking | Non-Blocking | Asynchronous |
@@ -766,7 +818,7 @@ int main() {
 
 ## Linux Device Files (/dev)
 
-Linux represents devices as files in the `/dev` directory.
+**Kya hota hai?** Linux mein "Everything is a file" wala philosophy follow hoti hai — devices bhi `/dev` directory mein files ki tarah represent hote hain. Chahe wo tumhara hard disk ho ya keyboard, sabko ek file path mil jaata hai jise tum normal file operations (open, read, write) se access kar sakte ho.
 
 ```bash
 # List devices with details
@@ -800,8 +852,10 @@ Device File Components:
 ```
 
 **Major and Minor Numbers**:
-- **Major number**: Identifies the device driver
-- **Minor number**: Identifies specific device instance
+- **Major number**: Device driver ko identify karta hai (kaunsa driver is device ko handle kar raha hai)
+- **Minor number**: Specific device instance ko identify karta hai (agar ek se zyaada same-type ke devices hon)
+
+Isko aise samjho — major number batata hai "ye ek Samsung phone hai" (driver/brand), aur minor number batata hai "ye specifically IMEI wala instance hai" (kaunsa specific device).
 
 ### Common Device Files
 
@@ -825,9 +879,14 @@ Device File Components:
 /dev/nvme0n1   # First NVMe disk
 ```
 
+> [!info]
+> `/dev/null` ko "black hole" bola jaata hai — jo bhi ismein likho, gayab ho jaata hai (kabhi bhi permanently discard). Developer log ise use karte hain output ko silently discard karne ke liye, jaise `command > /dev/null 2>&1`.
+
 ---
 
 ## Linux Device Inspection Commands
+
+**Kyun zaruri hai?** Jab bhi tumhe apne system pe kaunse devices connected hain ye dekhna ho, ya kisi hardware issue ko debug karna ho, ye commands kaam aate hain.
 
 ### lsblk - List Block Devices
 
@@ -1014,48 +1073,48 @@ int main() {
 
 ### Beginner
 
-1. **Device Exploration**: Use `lsblk`, `lsusb`, and `lspci` to list all devices on your system. Identify the major and minor numbers for your primary disk.
+1. **Device Exploration**: `lsblk`, `lsusb`, aur `lspci` use karke apne system ke saare devices list karo. Apni primary disk ke major aur minor numbers identify karo.
 
-2. **Character Device**: Write a program that reads 10 bytes from `/dev/urandom` and prints them in hexadecimal format.
+2. **Character Device**: Ek program likho jo `/dev/urandom` se 10 bytes read kare aur unhe hexadecimal format mein print kare.
 
-3. **Device Files**: Create a shell script that counts the number of block devices, character devices, and symbolic links in `/dev`.
+3. **Device Files**: Ek shell script banao jo `/dev` mein block devices, character devices, aur symbolic links ki count nikale.
 
 ### Intermediate
 
-4. **Non-Blocking I/O**: Modify the character device reading example to use non-blocking I/O with the `O_NONBLOCK` flag. Handle `EAGAIN` errors appropriately.
+4. **Non-Blocking I/O**: Character device reading wale example ko modify karo taaki wo `O_NONBLOCK` flag ke saath non-blocking I/O use kare. `EAGAIN` errors ko sahi tarike se handle karo.
 
-5. **Device Information**: Write a C program that opens a block device and uses `ioctl()` with `BLKGETSIZE64` to determine the device size in bytes.
+5. **Device Information**: Ek C program likho jo ek block device ko open kare aur `ioctl()` ke saath `BLKGETSIZE64` use karke device ka size bytes mein pata kare.
 
-6. **I/O Methods Comparison**: Write a benchmark program that compares the performance of reading a large file using:
+6. **I/O Methods Comparison**: Ek benchmark program likho jo large file read karne ke in teeno tariko ki performance compare kare:
    - Standard blocking read()
-   - Non-blocking read() with polling
+   - Polling ke saath non-blocking read()
    - POSIX AIO asynchronous I/O
 
 ### Advanced
 
-7. **DMA Simulation**: Create a simulation program that demonstrates how DMA transfers work. Use threads to represent the CPU, DMA controller, and device. Show how the CPU can do other work during DMA transfer.
+7. **DMA Simulation**: Ek simulation program banao jo dikhaye ki DMA transfers kaise kaam karte hain. Threads use karo CPU, DMA controller, aur device represent karne ke liye. Dikhao ki DMA transfer ke dauraan CPU kaise doosra kaam kar sakta hai.
 
-8. **Device Monitor**: Write a program using `select()` or `epoll()` to monitor multiple device files simultaneously (e.g., keyboard, mouse events from `/dev/input/`).
+8. **Device Monitor**: `select()` ya `epoll()` use karke ek program likho jo multiple device files ko ek saath monitor kare (jaise `/dev/input/` se keyboard, mouse events).
 
-9. **Memory-Mapped File**: Implement a program that creates a large file and uses `mmap()` to map it into memory. Compare performance with traditional `read()`/`write()` operations for random access patterns.
+9. **Memory-Mapped File**: Ek program implement karo jo ek badi file banaye aur `mmap()` use karke usse memory mein map kare. Random access patterns ke liye traditional `read()`/`write()` operations ke saath performance compare karo.
 
 ---
 
 ## Key Takeaways
 
-1. **Device Categories**: Block devices (random access), character devices (sequential), and network devices (packet-based) require different management strategies.
+- **Device Categories**: Block devices (random access), character devices (sequential), aur network devices (packet-based) — teenon ko alag-alag management strategies chahiye hoti hain.
 
-2. **I/O Communication**: Programmed I/O wastes CPU cycles, interrupt-driven I/O is more efficient, and DMA provides the best performance for bulk transfers.
+- **I/O Communication**: Programmed I/O CPU cycles waste karta hai, interrupt-driven I/O usse zyada efficient hai, aur DMA bulk transfers ke liye best performance deta hai.
 
-3. **I/O Addressing**: Port-mapped I/O uses separate address space with special instructions, while memory-mapped I/O unifies device registers with memory space.
+- **I/O Addressing**: Port-mapped I/O ek separate address space use karta hai special instructions ke saath, jabki memory-mapped I/O device registers ko memory space ke saath unify kar deta hai.
 
-4. **Software Layers**: I/O systems use layered architecture from hardware through interrupt handlers, device drivers, OS abstraction, to user applications.
+- **Software Layers**: I/O systems layered architecture use karte hain — hardware se lekar interrupt handlers, device drivers, OS abstraction, aur aakhir mein user applications tak.
 
-5. **I/O Modes**: Understand the differences between blocking/non-blocking and synchronous/asynchronous I/O for different application needs.
+- **I/O Modes**: Blocking/non-blocking aur synchronous/asynchronous I/O ka farak samajhna zaruri hai — Node.js jaise event-driven systems isi foundation pe bane hain.
 
-6. **Linux Device Model**: Devices appear as files in `/dev`, with major numbers identifying drivers and minor numbers identifying device instances.
+- **Linux Device Model**: Devices `/dev` mein files ki tarah appear hote hain, jahan major numbers drivers identify karte hain aur minor numbers specific device instances.
 
-7. **Inspection Tools**: `lsblk`, `lsusb`, and `lspci` provide essential device information for system administration and troubleshooting.
+- **Inspection Tools**: `lsblk`, `lsusb`, aur `lspci` system administration aur troubleshooting ke liye essential device information dete hain.
 
 ---
 

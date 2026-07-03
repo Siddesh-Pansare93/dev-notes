@@ -1,24 +1,35 @@
 # Authentication and Authorization
 
-## What You'll Learn
+## Kya Seekhoge Is Tutorial Mein
 
-In this tutorial, you'll master identity verification and access control in operating systems:
+Socho ek second — jab tum Zomato app khol ke login karte ho, phir order place karte ho, aur phir refund request karte ho — in teeno steps mein OS/system level pe bilkul alag-alag mechanism kaam kar raha hota hai. Login karte time system check karta hai "tum ho kaun" (authentication), aur order/refund ke time check karta hai "tumhe yeh karne ki permission hai ya nahi" (authorization). Yeh dono concepts operating systems aur secure applications ki backbone hain, aur is note mein hum dono ko root se samjhenge.
 
-- Distinction between authentication (who you are) and authorization (what you can do)
-- Password-based authentication with hashing and salting
-- Multi-factor authentication (2FA/MFA) concepts
-- Biometric and public key authentication
-- Kerberos authentication protocol
-- PAM (Pluggable Authentication Modules) in Linux
-- Authorization mechanisms and sudo
-- User and group management in Linux
-- Password policies and security best practices
+Is tutorial mein cover karenge:
+
+- Authentication (tum kaun ho) vs Authorization (tum kya kar sakte ho) — clear distinction
+- Password-based authentication — hashing aur salting ke saath
+- Multi-factor authentication (2FA/MFA) — concepts aur real implementation
+- Biometric aur public key authentication (SSH keys)
+- Kerberos authentication protocol — enterprise SSO ka backbone
+- PAM (Pluggable Authentication Modules) — Linux ka flexible auth system
+- Authorization mechanisms aur sudo
+- User aur group management Linux mein
+- Password policies aur security best practices
 
 **Time Required**: 40-50 minutes
 
 ---
 
 ## 1. Authentication vs Authorization
+
+### Kya Hota Hai?
+
+Yeh dono words sunne mein similar lagte hain, isliye log confuse ho jaate hain. Lekin inka kaam bilkul alag hai:
+
+- **Authentication** = "Tum kaun ho?" — Yeh identity verify karta hai. Jaise IRCTC pe login karte time username-password daalte ho, system verify karta hai ki tum wahi ho jo claim kar rahe ho.
+- **Authorization** = "Tum kya kar sakte ho?" — Yeh permissions check karta hai. Jaise IRCTC pe login ho jaane ke baad bhi, tum kisi aur ke tatkal ticket cancel nahi kar sakte — sirf apne ticket cancel kar sakte ho. Yeh authorization ka kaam hai.
+
+Simple trick yaad rakhne ka: **AuthN** (Authentication) = pehle N wala, **AuthZ** (Authorization) = doosra Z wala. Interview mein bhi yehi shorthand use hota hai.
 
 ```
 Authentication vs Authorization
@@ -52,7 +63,14 @@ Key Difference:
 - Authorization: Permission checking (access control)
 ```
 
+Ek aur real-life analogy socho — **airport**. Boarding pass aur ID check karna (security counter pe) authentication hai — woh verify kar rahe hain ki tum wahi ho jiska ticket hai. Lekin uske baad, boarding gate pe sirf business class wale hi priority lane use kar sakte hain — yeh authorization hai. Tumhari identity same rehti hai, lekin tumhare paas kya access hai woh alag hota hai (economy vs business class ticket ke basis pe).
+
+> [!tip]
+> Jab bhi koi bug report aaye "user X ko access nahi mil raha", sabse pehle yeh check karo — login fail ho raha hai (authentication issue) ya login toh ho gaya lekin permission nahi mil rahi (authorization issue)? Dono ka fix bilkul alag hota hai.
+
 ### Example: Web Application Flow
+
+Neeche ek simplified C example hai jo dikhata hai ki authentication aur authorization do separate functions kaise hote hain — pehle `authenticate()` chalta hai, tab jaake `authorize()` call hota hai:
 
 ```c
 // Simple authentication and authorization example
@@ -115,11 +133,17 @@ int main() {
 }
 ```
 
+Notice karo — `authenticate()` sirf yeh check karta hai ki username aur password hash match karta hai ya nahi. `authorize()` alag se check karta hai ki us user ka "role" required permission ke barabar hai ya woh admin hai. Real production systems (jaise Swiggy ka backend) mein yeh dono steps middleware layers ke through hote hain — authentication middleware pehle chalta hai (JWT/session verify), phir authorization middleware role/permission check karta hai.
+
 ---
 
 ## 2. Password-Based Authentication
 
-### Password Storage: Never Store Plaintext!
+### Kyun Zaruri Hai Password Ko Sahi Se Store Karna?
+
+Password sabse common authentication factor hai, lekin sabse zyada misuse bhi yahin hota hai. Agar kisi company ka database leak ho jaaye aur unhone passwords plaintext mein store kiye the, toh attacker ko sabke passwords mil jaayenge — aur log usually same password Gmail, Paytm, Instagram sab jagah use karte hain, toh ek leak se sab kuch compromise ho sakta hai. Isliye password storage ek bahut critical topic hai.
+
+### Password Storage: Plaintext Kabhi Mat Karo!
 
 ```
 Password Storage Evolution
@@ -146,7 +170,24 @@ Password Storage Evolution
    (Slow hashing prevents brute force)
 ```
 
+Isko step-by-step samjhte hain:
+
+1. **Plaintext**: Bilkul mat karo. Agar database dump ho jaaye, sab password directly visible ho jaayenge. Yeh sabse bada security disaster hai jo kisi bhi company ke saath ho sakta hai.
+
+2. **Simple Hash (MD5/SHA1)**: Yeh thoda better hai kyunki password directly visible nahi hota, lekin attacker "rainbow table" use kar sakta hai — yeh ek precomputed table hai jisme common passwords ke hashes already calculate karke store kiye hote hain. Toh attacker sirf table mein lookup karega aur match mil jaayega. Jaise ek phone book mein number dhoondhna — agar tumhe pata hai list already ready hai toh reverse lookup easy hai.
+
+3. **Hash + Fixed Salt**: Salt ek random string hoti hai jo password ke saath add ki jaati hai hash karne se pehle. Lekin agar salt fixed hai (sab users ke liye same), toh attacker ek hi baar rainbow table banayega us salt ke liye aur phir sabko crack kar sakta hai.
+
+4. **Hash + Random Salt (per user)**: Har user ka apna unique random salt hota hai. Isse rainbow table attack bekaar ho jaata hai kyunki attacker ko har user ke liye alag table banani padegi — practically impossible.
+
+5. **Key Derivation Functions (bcrypt/scrypt/Argon2)**: Yeh sabse best approach hai. Yeh functions **intentionally slow** hote hain — ek hash compute karne mein milliseconds lagte hain (normal SHA256 se hazaar guna zyada slow). Isse brute-force attack bahut mehenga ho jaata hai — agar attacker ek second mein sirf 10 passwords try kar sakta hai (instead of 10 million), toh unka attack practically infeasible ho jaata hai.
+
+> [!warning]
+> SHA-256/MD5 general-purpose hashing ke liye fast hone chahiye (file integrity check jaise use cases ke liye), lekin password hashing ke liye **fast hona hi problem hai** — kyunki attacker bhi fast hash try kar sakta hai brute force mein. Isiliye password ke liye specifically bcrypt/scrypt/Argon2 use karo, plain SHA-256 nahi.
+
 ### Implementation: Secure Password Hashing
+
+Yeh ek simplified C example hai jo dikhata hai ki salt kaise generate hoti hai aur password kaise hash + verify hota hai (production mein tum bcrypt/Argon2 library use karoge, yeh sirf concept samjhane ke liye hai):
 
 ```c
 // Password hashing with salt (simplified example)
@@ -233,7 +274,11 @@ int main() {
 // Compile: gcc -o password_hash password_hash.c -lssl -lcrypto
 ```
 
+Yaad rakhna — verify karte time hum dobara password + stored salt se hash compute karte hain aur compare karte hain original stored hash se. Kabhi bhi hash reverse nahi kiya jaata (yeh mathematically possible hi nahi hai, isiliye hash "one-way function" kehlata hai).
+
 ### /etc/shadow Format
+
+Linux mein actual passwords `/etc/passwd` mein nahi, balki `/etc/shadow` file mein store hote hain (aur woh bhi hashed form mein, root ke alawa koi read nahi kar sakta). Chalo iska structure dekhte hain:
 
 ```bash
 #!/bin/bash
@@ -270,11 +315,19 @@ else
 fi
 ```
 
+Notice karo `$6$` prefix — yeh batata hai ki kaunsa hashing algorithm use hua hai. `$1` = MD5, `$5` = SHA-256, `$6` = SHA-512 (modern default). Yeh format ek standard hai jise "Modular Crypt Format" kehte hain, taaki system ko pata rahe kaunsa algorithm use karke hash generate hua tha.
+
 ---
 
 ## 3. Multi-Factor Authentication (MFA)
 
+### Kya Hota Hai?
+
+Socho tumhara bank account sirf password se protected hai. Agar kisi tarah tumhara password leak ho gaya (phishing email, keylogger, ya data breach), toh attacker seedha tumhare paise nikaal sakta hai. Isliye banks aur serious apps (Paytm, CRED, Google) **multi-factor authentication** use karte hain — matlab sirf password kaafi nahi, ek aur "factor" bhi chahiye hoga.
+
 ### Authentication Factors
+
+Authentication ke teen fundamental "factors" hote hain:
 
 ```
 Three Authentication Factors
@@ -302,7 +355,18 @@ Three Authentication Factors
 2FA/MFA = Using 2 or more different factors
 ```
 
+Real-life example samjho — jab tum PhonePe se paisa transfer karte ho:
+1. Pehle app khol ke login karte ho (password ya fingerprint — factor 1 ya 3)
+2. Phir UPI PIN daalte ho transaction confirm karne ke liye (factor 1 — kuch aur jo tumhe pata hai)
+
+Yeh do alag factors ka combination hai, isliye agar koi tumhara phone chura bhi le, sirf PIN pata na hone se woh transaction nahi kar sakta.
+
+> [!info]
+> Important gotcha: **do passwords use karna 2FA nahi hai**. 2FA ke liye do **different categories** ke factors chahiye — jaise password (know) + OTP phone pe (have). Agar tum password + security question dono use karo, yeh technically single-factor hi hai kyunki dono "something you know" category mein aate hain.
+
 ### TOTP (Time-Based One-Time Password) Example
+
+Google Authenticator, Microsoft Authenticator jaise apps TOTP algorithm use karte hain — yeh ek shared secret key aur current time ka combination use karke har 30 second mein naya 6-digit code generate karta hai. Server bhi same secret aur time use karke same code compute karta hai, isliye match ho jaata hai bina kisi network communication ke.
 
 ```bash
 #!/bin/bash
@@ -357,9 +421,17 @@ else
 fi
 ```
 
+Yeh dekhna interesting hai ki jab tum QR code scan karte ho apne Authenticator app se, actual mein tum sirf yeh `SECRET` key share kar rahe ho — uske baad koi network call nahi hoti, dono taraf (tumhara phone aur server) independently same formula (secret + current timestamp) use karke code compute karte hain. Isiliye internet band hone par bhi Authenticator app codes generate karta rehta hai.
+
 ---
 
 ## 4. Public Key Authentication (SSH)
+
+### Kya Hota Hai Aur Kyun Better Hai Password Se?
+
+Jab tum kisi remote server pe SSH karte ho (jaise koi AWS EC2 instance, ya production server), password use karne ki jagah **public-private key pair** use karna zyada secure hota hai. Isme private key sirf tumhare paas hoti hai (kabhi network pe travel nahi karti), aur public key server pe already registered hoti hai.
+
+Socho isko is tarah — tumhare ghar ki chaabi (private key) sirf tumhare paas hai. Ghar ka taala (public key equivalent) building ke security guard ke paas registered hai ki "yeh chaabi is address ke liye valid hai". Guard kabhi tumhari chaabi nahi maangta, bas verify karta hai ki tumhari chaabi taale mein fit ho rahi hai ya nahi.
 
 ### How SSH Key Authentication Works
 
@@ -403,6 +475,10 @@ Client                                    Server
 │      │                                │      │
 └──────┘                                └──────┘
 ```
+
+Yahan sabse important point yeh hai — **private key kabhi network pe nahi jaati**. Server sirf ek random challenge bhejta hai, client us challenge ko apni private key se "sign" karta hai (jaise digital signature), aur server sirf yeh verify karta hai ki signature valid hai using public key. Chahe koi beech mein traffic sniff kar le, unhe private key ka koi clue nahi milega — matlab man-in-the-middle attack se bhi safe.
+
+Isiliye jab tum GitHub pe SSH key add karte ho, tumhe apni **public** key paste karni hoti hai — private key kabhi kahin share nahi karni, woh sirf tumhare laptop pe rehni chahiye (`~/.ssh/id_rsa` — file permission bhi strict honi chahiye, `600`).
 
 ### SSH Key Setup
 
@@ -481,9 +557,18 @@ EOF
 secure_ssh_config
 ```
 
+> [!warning]
+> Production servers pe `PasswordAuthentication no` set karna best practice hai — isse brute-force password attacks completely block ho jaate hain kyunki server password authentication accept hi nahi karega, sirf key-based auth allow hoga.
+
 ---
 
 ## 5. Kerberos Authentication
+
+### Kya Hota Hai Aur Kyun Chahiye?
+
+Socho ek bade corporate office ka scenario — jaha employee ko email, file server, printer, internal tools sab access karne hain. Agar har service ke liye alag password daalna pade, toh bahut painful hoga. **Kerberos** yeh problem solve karta hai — ek baar login karo, phir saari services automatically accessible ho jaati hain bina baar-baar password daale. Isse **Single Sign-On (SSO)** kehte hain.
+
+Yeh bilkul waise hi hai jaise tumhara **Aadhaar-linked digital locker** — ek baar Aadhaar se verify ho gaye, phir multiple government services access kar sakte ho bina baar-baar ID proof dikhaye.
 
 ### Kerberos Architecture
 
@@ -569,9 +654,23 @@ Advantages:
 ✓ Time-limited tickets
 ```
 
+Isko simplify karke samjhein toh — pehle tum ek "master ticket" (TGT — Ticket Granting Ticket) lete ho AS (Authentication Server) se, apna username-password ek baar de kar. Yeh TGT thodi der ke liye valid rehta hai (usually 8-10 hours, jaise office shift). Har baar jab tumhe koi specific service chahiye hoti hai (jaise file server), tum TGS ko yeh TGT dikhate ho aur woh tumhe ek chota "service-specific ticket" de deta hai — jo sirf us particular service ke liye kaam karega.
+
+Yeh ekdum railway station ke locker system jaisa hai — pehle tum station master se ek main token lete ho (TGT), phir har locker ke liye us token ko dikhake specific locker chaabi (service ticket) lete ho, bina baar-baar ID proof dikhaye.
+
+Sabse important cheez — **password kabhi network pe nahi jaata baar-baar**. Sirf pehli baar AS ko bhejte time jaata hai, uske baad sab kuch encrypted tickets ke through hota hai. Isse **replay attacks** aur **credential sniffing** ka risk kaafi kam ho jaata hai. Windows Active Directory internally Kerberos hi use karta hai domain login ke liye.
+
 ---
 
 ## 6. PAM (Pluggable Authentication Modules)
+
+### Kya Hota Hai?
+
+Linux mein alag-alag applications (login, ssh, sudo, cron) ko authentication chahiye hoti hai. Agar har application apna khud ka authentication logic likhe, toh maintain karna nightmare ban jaayega — password check kaha hoga, LDAP integrate karna hai toh sab jagah code change karna padega.
+
+**PAM** yeh problem solve karta hai — yeh ek **pluggable/modular framework** hai jo authentication logic ko application se **decouple** kar deta hai. Application sirf PAM library call karta hai, aur PAM decide karta hai actual authentication kaise hogi (local password, LDAP, Kerberos, Google Authenticator, waisa kuch bhi) — **bina application ka code change kiye**.
+
+Socho isko payment gateway integration ki tarah — Zomato/Swiggy apne app mein "Razorpay" ya "PayU" plug karte hain payment ke liye. Agar kal woh gateway switch karna chahein (Razorpay se Cashfree), unhe apna poora checkout flow rewrite nahi karna padta — bas configuration change karni padti hai. PAM bhi authentication ke liye yehi flexibility deta hai.
 
 ### PAM Architecture
 
@@ -670,7 +769,11 @@ dictcheck = 1
 EOF
 ```
 
+`/etc/pam.d/` ke andar har application ke liye ek config file hoti hai jisme "stack" of modules define hote hain. Yeh stack top se bottom order mein execute hota hai, aur control flags (`required`, `requisite`, `sufficient`, `optional`) decide karte hain agar ek module fail ho jaaye toh kya hoga — jaise ek pipeline jisme kai checks sequentially chalte hain (thoda CI/CD pipeline jaisa socho, jaha har stage pass hone ke baad hi next stage chalta hai).
+
 ### Custom PAM Module Example
+
+Tum apna khud ka custom PAM module bhi likh sakte ho — jaise neeche wala example jo sirf business hours (9 AM - 5 PM) mein login allow karta hai:
 
 ```c
 // Simple custom PAM module (pam_time_restriction.c)
@@ -712,9 +815,17 @@ PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
 // Configure: Add to /etc/pam.d/login: auth required pam_time_restriction.so
 ```
 
+Yeh dikhata hai PAM ki asli power — koi bhi custom business logic (time-based restriction, IP-based restriction, custom 2FA) authentication flow mein plug kar sakte ho bina existing applications ka code touch kiye.
+
 ---
 
-## 7. sudo and Privilege Escalation
+## 7. sudo aur Privilege Escalation
+
+### Kya Hota Hai?
+
+Linux mein `root` user ke paas sab kuch kar sakne ki power hoti hai (unrestricted access). Lekin roz-roz root ke through login karna dangerous hai — ek galat command (`rm -rf /`) poora system tabaah kar sakti hai. Isliye `sudo` ("superuser do") aata hai — jisse normal user apna khud ka account use karke temporarily elevated privileges ke saath specific commands run kar sakta hai, without directly root ban ke login kiye.
+
+Yeh company ke "temporary access card" jaisa hai — normal employee card se sirf apna floor access milta hai, lekin agar server room mein kaam karna hai toh IT team temporary elevated access card issue karti hai — sirf us specific kaam ke liye, sab jagah ke liye nahi.
 
 ### sudo Configuration
 
@@ -763,6 +874,11 @@ cat << 'EOF'
 EOF
 ```
 
+> [!warning]
+> `/etc/sudoers` file ko kabhi directly `vim`/`nano` se edit mat karo — hamesha `visudo` command use karo. Yeh command syntax validate karta hai save karne se pehle. Agar tumne direct edit kiya aur ek typo reh gaya, toh sudo hi completely broken ho jaayega aur tum khud ko lock out kar loge system se!
+
+Notice karo — `bob` sirf `nginx restart` command run kar sakta hai, poora root access nahi. Yeh **principle of least privilege** ka best example hai — jitna zaruri hai utna hi access do, extra kuch nahi. Production companies mein yehi practice follow hoti hai — DevOps engineer ko poora server root access dene ki jagah specific commands (deploy scripts, service restart) ke liye scoped sudo access diya jaata hai.
+
 ### Logging sudo Usage
 
 ```bash
@@ -791,9 +907,15 @@ echo "Watching /var/log/auth.log for sudo activity..."
 # tail -f /var/log/auth.log | grep --line-buffered sudo
 ```
 
+Production servers pe sudo usage ko monitor karna security audit ka standard part hota hai — agar koi employee suspicious commands run kar raha hai (jaise 3 AM ko database drop karne ki koshish), yeh logs se turant pata chal jaata hai.
+
 ---
 
-## 8. User and Group Management
+## 8. User aur Group Management
+
+### Kya Hota Hai?
+
+Linux mein har user ek unique ID (UID) rakhta hai, aur users ko groups mein organize kiya jaata hai taaki permissions manage karna aasan ho. Socho isko office ke department structure jaisa — har employee (user) ka apna ID hota hai, aur woh kisi department (group) ka member hota hai. HR department ke logon ko salary data access milta hai, engineering department ko codebase access milta hai — group-based permission assignment se yeh manage karna aasan ho jaata hai, har individual employee ke liye alag se rule banane ki zarurat nahi padti.
 
 ### User Management Commands
 
@@ -920,6 +1042,9 @@ View Information:
 EOF
 ```
 
+> [!warning]
+> `usermod -aG` mein `-a` (append) flag bhoolna common mistake hai. Agar sirf `usermod -G developers testuser` likha (bina `-a` ke), toh yeh user ke **saare existing groups replace** kar dega sirf `developers` se — matlab user apne baaki groups se remove ho jaayega! Hamesha `-aG` saath mein use karo.
+
 ### /etc/passwd, /etc/shadow, /etc/group
 
 ```bash
@@ -970,9 +1095,15 @@ if [ "$EUID" -eq 0 ]; then
 fi
 ```
 
+`/etc/passwd` mein `x` field dekh ke confuse mat hona — yeh actual password nahi hai, sirf ek placeholder hai jo batata hai "password `/etc/shadow` mein store hai". Purane Unix systems mein password directly `/etc/passwd` mein hota tha (jo world-readable hai), aur woh bahut bada security hole tha. Isiliye baad mein `/etc/shadow` file introduce ki gayi jo sirf root read kar sakta hai.
+
 ---
 
 ## 9. Password Policies
+
+### Kyun Zaruri Hai?
+
+Strong password enforce karna kaafi nahi — users agar chahein toh "Password123!" jaisa weak-but-technically-valid password bana lenge. Isliye system-level policies chahiye hoti hain jo enforce karein — minimum length, complexity, expiration, aur password reuse prevention.
 
 ### Implementing Password Policies
 
@@ -1080,20 +1211,25 @@ done
 EOF
 ```
 
+`remember = 5` wali setting interesting hai — yeh purane 5 passwords ka hash history store karta hai, taaki user "Password123" se "Password124" pe switch karke wapas "Password123" pe na aa jaaye har baar expiry ke time. Yeh CRED ya banking apps mein bhi common practice hai jaha "last N passwords repeat nahi kar sakte" wala rule hota hai.
+
+> [!tip]
+> `PASS_MAX_DAYS` aur `PASS_MIN_DAYS` dono set karna zaruri hai. Agar sirf max days set kiya (bina min days ke), toh smart users expiry ke time password change karke turant wapas same password pe switch kar sakte hain (do quick changes karke history bypass) — min days yeh trick rokta hai.
+
 ---
 
 ## Key Takeaways
 
-1. **Authentication vs Authorization**: Authentication verifies identity; authorization determines permissions
-2. **Password Security**: Always hash passwords with salt; use bcrypt/scrypt/Argon2 for new systems
-3. **Multi-Factor Authentication**: Combining multiple factors significantly improves security
-4. **Public Key Cryptography**: SSH keys provide stronger authentication than passwords
-5. **Kerberos**: Enables single sign-on and mutual authentication in distributed systems
-6. **PAM**: Provides flexible, pluggable authentication for Linux applications
-7. **sudo**: Use for temporary privilege escalation; configure with principle of least privilege
-8. **User Management**: Proper user/group management is fundamental to system security
-9. **Password Policies**: Enforce strong passwords and regular changes through system policies
-10. **Defense in Depth**: Use multiple authentication mechanisms together
+- **Authentication vs Authorization**: Authentication identity verify karta hai ("tum kaun ho"); authorization permissions check karta hai ("tum kya kar sakte ho"). Dono alag concerns hain, kabhi confuse mat karo.
+- **Password Security**: Kabhi plaintext store mat karo. Hamesha salt ke saath hash karo, aur naye systems ke liye bcrypt/scrypt/Argon2 use karo — inki intentional slowness brute-force attacks ko mehenga bana deti hai.
+- **Multi-Factor Authentication**: Do ya zyada alag categories ke factors (know/have/are) combine karna security dramatically improve karta hai — jaise PhonePe ka password + UPI PIN combo.
+- **Public Key Cryptography**: SSH keys password se zyada secure hain kyunki private key kabhi network pe travel nahi karti — sirf signed challenge bhejta hai.
+- **Kerberos**: Enterprise environments mein Single Sign-On aur mutual authentication enable karta hai — password sirf ek baar bhejna padta hai, uske baad time-limited tickets kaam karti hain.
+- **PAM**: Linux applications ke liye pluggable authentication framework — application code change kiye bina authentication backend (local, LDAP, Kerberos, 2FA) switch kiya ja sakta hai.
+- **sudo**: Principle of least privilege follow karo — poore root access ki jagah specific commands ke liye scoped access do, aur `visudo` hi use karo config edit ke liye.
+- **User/Group Management**: `/etc/passwd`, `/etc/shadow`, `/etc/group` — inka structure samajhna Linux security ki foundation hai. Groups se permission management scalable banta hai.
+- **Password Policies**: Length, complexity, expiration, aur history — sab enforce karna zaruri hai taaki weak/reused passwords se system compromise na ho.
+- **Defense in Depth**: Kabhi ek hi security mechanism pe depend mat karo — password + MFA + monitoring + least privilege sab layers milke system ko secure banate hain.
 
 ---
 
@@ -1101,26 +1237,26 @@ EOF
 
 ### Beginner
 
-1. Write a bash script that checks if passwords in /etc/shadow are properly encrypted
-2. Create users with different password policies and test expiration
-3. Set up SSH key authentication between two systems
-4. Configure sudo to allow a user to restart a service without full root access
+1. Ek bash script likho jo check kare ki `/etc/shadow` mein passwords properly encrypted hain ya nahi
+2. Different password policies wale users banao aur unki expiration test karo
+3. Do systems ke beech SSH key authentication set up karo
+4. sudo configure karo taaki ek user bina full root access ke sirf ek service restart kar sake
 
 ### Intermediate
 
-5. Implement a C program that verifies passwords using SHA-256 with salt
-6. Create a custom PAM module that restricts login based on time of day
-7. Write a script that audits sudo usage and reports suspicious activity
-8. Configure password quality requirements and test with various passwords
-9. Set up a simple 2FA system using TOTP (Google Authenticator)
+5. Ek C program implement karo jo SHA-256 with salt use karke passwords verify kare
+6. Ek custom PAM module banao jo time-of-day ke basis pe login restrict kare
+7. Ek script likho jo sudo usage audit kare aur suspicious activity report kare
+8. Password quality requirements configure karo aur alag-alag passwords se test karo
+9. TOTP (Google Authenticator) use karke ek simple 2FA system set up karo
 
 ### Advanced
 
-10. Implement a simplified Kerberos-like ticket system in C
-11. Create a comprehensive user provisioning system with automated password policies
-12. Build an authentication broker that supports multiple authentication methods (password, SSH key, 2FA)
-13. Develop a password strength meter that checks against common vulnerabilities
-14. Design and implement a single sign-on (SSO) system for multiple applications
+10. C mein ek simplified Kerberos-jaisa ticket system implement karo
+11. Automated password policies ke saath ek comprehensive user provisioning system banao
+12. Ek authentication broker banao jo multiple methods support kare (password, SSH key, 2FA)
+13. Ek password strength meter develop karo jo common vulnerabilities check kare
+14. Multiple applications ke liye ek single sign-on (SSO) system design aur implement karo
 
 ---
 
