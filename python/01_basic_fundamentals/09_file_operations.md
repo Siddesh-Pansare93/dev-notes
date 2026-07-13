@@ -1,26 +1,28 @@
 # 09 - File Operations
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aa rahe ho?
 
-In Node.js, file operations use the `fs` module with callbacks, promises, or sync variants. Python's approach is simpler: synchronous by default, with the `with` statement providing automatic cleanup. The `pathlib` module gives you an object-oriented path API that is cleaner than Node's `path` module.
+Node.js mein file operations ke liye `fs` module hai — callbacks, promises, ya sync variants, teeno options milte hain aur decide khud karna padta hai kaunsa use karein. Python ka approach seedha-saadha hai: by default synchronous, aur `with` statement automatic cleanup de deta hai — soch mat, bas likho. Aur `pathlib` module ek object-oriented path API deta hai jo Node ke `path` module se kaafi cleaner hai.
 
 ---
 
-## Opening Files
+## Files Kholna (Opening Files)
 
 ### The open() Function
 
+**Kya hota hai?** Socho file ek dabba hai jise tumne khola — kaam ho jaye toh band bhi karna padta hai, warna resource leak ho jaata hai (jaise fridge ka darwaza khula chhod dena). Python isko automate kar deta hai taaki tumhe yaad na rakhna pade.
+
 ```python
 # Basic file opening
-file = open("data.txt", "r")    # open for reading
+file = open("data.txt", "r")    # read ke liye khola
 content = file.read()
-file.close()                     # MUST close manually
+file.close()                     # MANUALLY band karna zaruri hai
 
-# THE PYTHON WAY: use 'with' statement (context manager)
+# PYTHON WALA TARIKA: 'with' statement (context manager) use karo
 with open("data.txt", "r") as file:
     content = file.read()
-# File is automatically closed when the block exits
-# Even if an exception occurs!
+# Block khatam hote hi file khud-ba-khud band ho jaati hai
+# Exception aaye tab bhi!
 ```
 
 ```javascript
@@ -37,101 +39,108 @@ fs.readFile('data.txt', 'utf-8', (err, data) => { ... });
 const data = await fs.promises.readFile('data.txt', 'utf-8');
 ```
 
+> [!tip]
+> `with` statement ko dabbawala samjho — tiffin deliver karke wapas dabba collect karna uska responsibility hai, tumhe yaad rakhne ki zarurat nahi. Yahi cheez `with` file close karne ke liye karta hai.
+
 ### File Modes
 
-| Mode   | Description                          | JS Equivalent              |
+Jab bhi `open()` karte ho, ek mode batana padta hai — matlab file ke saath karna kya hai: sirf padhna hai, likhna hai, ya purane content ke aage jodna hai.
+
+| Mode   | Kya karta hai                          | JS Equivalent              |
 |--------|--------------------------------------|----------------------------|
-| `"r"`  | Read (default). Error if no file.    | `readFile`                 |
-| `"w"`  | Write. Creates or truncates file.    | `writeFile`                |
-| `"a"`  | Append. Creates if not exists.       | `appendFile`               |
-| `"x"`  | Exclusive create. Error if exists.   | `writeFile` with `wx` flag |
-| `"r+"` | Read and write (file must exist).    | `open` with `r+`          |
-| `"w+"` | Read and write (truncates).          | `open` with `w+`          |
-| `"a+"` | Read and append.                     | `open` with `a+`          |
-| `"b"`  | Binary mode (add to any above).      | No encoding option         |
+| `"r"`  | Read (default). File na ho toh error.    | `readFile`                 |
+| `"w"`  | Write. File banata hai ya purani mita deta hai.    | `writeFile`                |
+| `"a"`  | Append. File na ho toh bana deta hai.       | `appendFile`               |
+| `"x"`  | Exclusive create. File pehle se ho toh error.   | `writeFile` with `wx` flag |
+| `"r+"` | Read aur write (file exist karni chahiye).    | `open` with `r+`          |
+| `"w+"` | Read aur write (purana content mit jaata hai).          | `open` with `w+`          |
+| `"a+"` | Read aur append.                     | `open` with `a+`          |
+| `"b"`  | Binary mode (kisi bhi upar wale mode ke saath jod do).      | No encoding option         |
 | `"t"`  | Text mode (default).                 | Specify `'utf-8'`         |
 
 ```python
 # Text mode (default)
-with open("data.txt", "r") as f:       # read text
+with open("data.txt", "r") as f:       # text padho
     pass
 
 # Binary mode
-with open("image.png", "rb") as f:     # read binary
+with open("image.png", "rb") as f:     # binary padho
     pass
 
-with open("output.bin", "wb") as f:    # write binary
+with open("output.bin", "wb") as f:    # binary likho
     pass
 
-# Explicit encoding (important for cross-platform!)
+# Explicit encoding (cross-platform ke liye zaruri!)
 with open("data.txt", "r", encoding="utf-8") as f:
     content = f.read()
 ```
 
 ---
 
-## Reading Files
+## Files Padhna (Reading Files)
 
-### read() -- Read Entire File
+Python file padhne ke teen tarike deta hai — poori file ek saath, ek line, ya sab lines ek list mein. Kaunsa use karna hai, ye depend karta hai file kitni badi hai.
+
+### read() -- Poori File Ek Saath Padho
 
 ```python
 with open("data.txt", "r", encoding="utf-8") as f:
-    content = f.read()          # entire file as one string
+    content = f.read()          # poori file ek hi string mein
     print(content)
 
-# Read limited number of characters
+# Limited characters padho
 with open("data.txt", "r") as f:
-    first_100 = f.read(100)    # first 100 characters
-    next_100 = f.read(100)     # next 100 characters
+    first_100 = f.read(100)    # pehle 100 characters
+    next_100 = f.read(100)     # agle 100 characters
 ```
 
-### readline() -- Read One Line
+### readline() -- Ek Line Padho
 
 ```python
 with open("data.txt", "r") as f:
-    first_line = f.readline()       # includes the \n
+    first_line = f.readline()       # \n bhi saath aata hai
     second_line = f.readline()
-    # Returns "" when file is exhausted
+    # File khatam hone par "" return karta hai
 ```
 
-### readlines() -- Read All Lines into a List
+### readlines() -- Saari Lines Ko List Mein Padho
 
 ```python
 with open("data.txt", "r") as f:
-    lines = f.readlines()          # list of strings, each with \n
+    lines = f.readlines()          # strings ki list, har ek ke saath \n
 
-# Remove newlines
+# Newlines hatao
 with open("data.txt", "r") as f:
     lines = [line.rstrip("\n") for line in f.readlines()]
 
-# Or equivalently:
+# Ya isi ke barabar:
 with open("data.txt", "r") as f:
-    lines = f.read().splitlines()   # splitlines() strips line endings
+    lines = f.read().splitlines()   # splitlines() line endings apne aap hata deta hai
 ```
 
-### Iterating Over Lines (THE BEST WAY)
+### Lines Pe Iterate Karna (SABSE BADHIYA TARIKA)
 
-For large files, iterate directly. This reads one line at a time -- memory efficient.
+Bade files ke liye seedha iterate karo. Ye ek time mein ek hi line padhta hai — memory efficient hai, jaise Swiggy ek order ek time process karta hai, poora din ka load ek saath memory mein nahi rakhta.
 
 ```python
 # Memory-efficient line iteration
 with open("large_file.txt", "r") as f:
-    for line in f:                 # f is iterable!
+    for line in f:                 # f khud iterable hai!
         line = line.rstrip("\n")
         process(line)
 
-# With line numbers
+# Line numbers ke saath
 with open("data.txt", "r") as f:
     for line_num, line in enumerate(f, start=1):
         print(f"{line_num}: {line.rstrip()}")
 
-# Collect lines that match a condition
+# Condition match karne wali lines collect karo
 with open("server.log", "r") as f:
     errors = [line for line in f if "ERROR" in line]
 ```
 
 ```javascript
-// Node.js line-by-line reading (more complex)
+// Node.js line-by-line reading (zyada complex)
 const readline = require('readline');
 const fs = require('fs');
 const rl = readline.createInterface({
@@ -155,50 +164,50 @@ binary_data = Path("image.png").read_bytes()
 
 ---
 
-## Writing Files
+## Files Likhna (Writing Files)
 
-### write() -- Write a String
+### write() -- String Likho
 
 ```python
-# Write (creates or overwrites)
+# Write (banata hai ya overwrite karta hai)
 with open("output.txt", "w", encoding="utf-8") as f:
     f.write("Hello, World!\n")
     f.write("Second line\n")
 
-# Write returns the number of characters written
+# write() likhe gaye characters ki count return karta hai
 with open("output.txt", "w") as f:
     chars_written = f.write("Hello")    # 5
 ```
 
-### writelines() -- Write Multiple Strings
+### writelines() -- Multiple Strings Likho
 
 ```python
 lines = ["First line\n", "Second line\n", "Third line\n"]
 
 with open("output.txt", "w") as f:
-    f.writelines(lines)     # does NOT add newlines -- you must include them!
+    f.writelines(lines)     # ye newlines ADD NAHI karta -- tumhe khud dalna padega!
 
-# Common pattern: add newlines
+# Common pattern: newlines add karo
 data = ["apple", "banana", "cherry"]
 with open("output.txt", "w") as f:
     f.writelines(f"{item}\n" for item in data)
 ```
 
-### print() to a File
+### File Mein print() Karna
 
 ```python
-# Use print's file parameter
+# print ka file parameter use karo
 with open("output.txt", "w") as f:
     print("Hello, World!", file=f)
     print("Second line", file=f)
     print(f"Value: {42}", file=f)
-    # print automatically adds newlines
+    # print khud newlines add kar deta hai
 ```
 
-### Appending
+### Append Karna
 
 ```python
-# Append to existing file
+# Existing file mein append karo
 with open("log.txt", "a") as f:
     f.write(f"[{datetime.now()}] New log entry\n")
 ```
@@ -215,22 +224,22 @@ Path("data.bin").write_bytes(b"\x00\x01\x02")
 
 ---
 
-## The `with` Statement (Context Managers)
+## `with` Statement (Context Managers)
 
-The `with` statement guarantees cleanup. It is not just for files -- it works with anything that implements the context manager protocol.
+**Kyun zaruri hai?** Kabhi socha hai agar file padhte waqt beech mein exception aa jaaye toh kya hoga? Bina `with` ke, `file.close()` call hi nahi hoga aur file khuli reh jaayegi. `with` statement cleanup guarantee karta hai, chahe kuch bhi ho jaaye. Aur ye sirf files ke liye nahi hai -- context manager protocol implement karne wali kisi bhi cheez ke saath kaam karta hai.
 
 ```python
-# File (most common use)
+# File (sabse common use)
 with open("file.txt") as f:
     data = f.read()
-# f.close() is called automatically
+# f.close() apne aap call ho jaata hai
 
-# Multiple files at once
+# Ek saath multiple files
 with open("input.txt") as infile, open("output.txt", "w") as outfile:
     for line in infile:
         outfile.write(line.upper())
 
-# Python 3.10+ parenthesized syntax for many files
+# Python 3.10+ mein bahut saari files ke liye parenthesized syntax
 with (
     open("file1.txt") as f1,
     open("file2.txt") as f2,
@@ -238,7 +247,7 @@ with (
 ):
     pass
 
-# Creating your own context manager
+# Apna khud ka context manager banana
 class Timer:
     def __enter__(self):
         import time
@@ -249,14 +258,14 @@ class Timer:
         import time
         self.elapsed = time.time() - self.start
         print(f"Elapsed: {self.elapsed:.4f}s")
-        return False  # don't suppress exceptions
+        return False  # exceptions ko suppress mat karo
 
 with Timer() as t:
-    # do some work
+    # kuch kaam karo
     sum(range(1_000_000))
 # Prints: Elapsed: 0.0312s
 
-# Or use contextlib for simpler context managers
+# Ya contextlib use karo simpler context managers ke liye
 from contextlib import contextmanager
 
 @contextmanager
@@ -272,16 +281,16 @@ with timer("Processing"):
 ```
 
 ```javascript
-// JS has no direct equivalent of 'with' for resource management.
-// Closest is try/finally:
+// JS mein 'with' jaisa resource-management direct equivalent nahi hai.
+// Sabse kareeb try/finally hai:
 const file = fs.openSync('file.txt', 'r');
 try {
-    // use file
+    // file use karo
 } finally {
     fs.closeSync(file);
 }
 
-// Or the newer Symbol.dispose (TC39 stage 3):
+// Ya newer Symbol.dispose (TC39 stage 3):
 // using file = openFile('file.txt');
 ```
 
@@ -289,23 +298,23 @@ try {
 
 ## pathlib.Path vs os.path
 
-`pathlib` is the modern, object-oriented way to handle paths. Prefer it over `os.path` in new code.
+`pathlib` paths handle karne ka modern, object-oriented tarika hai — string concatenation ki jagah `/` operator se paths bante hain, jo padhne mein bhi zyada natural lagta hai. Naye code mein `os.path` se better isse hi prefer karo.
 
 ```python
 from pathlib import Path
 import os
 
-# Creating paths
-# os.path way:
+# Paths banana
+# os.path wala tarika:
 path = os.path.join("home", "user", "documents", "file.txt")
 
-# pathlib way:
+# pathlib wala tarika:
 path = Path("home") / "user" / "documents" / "file.txt"
 
 # Common operations comparison
 filepath = Path("/home/user/documents/report.pdf")
 
-# Get parts
+# Parts nikalo
 filepath.name          # "report.pdf"       vs os.path.basename()
 filepath.stem          # "report"            vs os.path.splitext()[0]
 filepath.suffix        # ".pdf"              vs os.path.splitext()[1]
@@ -313,18 +322,18 @@ filepath.parent        # Path("/home/user/documents")
 filepath.parents[1]    # Path("/home/user")
 filepath.parts         # ('/', 'home', 'user', 'documents', 'report.pdf')
 
-# Check properties
+# Properties check karo
 filepath.exists()      # bool               vs os.path.exists()
 filepath.is_file()     # bool               vs os.path.isfile()
 filepath.is_dir()      # bool               vs os.path.isdir()
 filepath.stat().st_size  # file size in bytes
 
-# Resolve and absolute
-filepath.resolve()     # absolute path with symlinks resolved
+# Resolve aur absolute
+filepath.resolve()     # symlinks resolve karke absolute path
 filepath.absolute()    # absolute path
 filepath.is_absolute() # bool
 
-# Change extension
+# Extension badalna
 filepath.with_suffix(".docx")    # Path("/home/user/documents/report.docx")
 filepath.with_name("summary.pdf")  # Path("/home/user/documents/summary.pdf")
 
@@ -333,14 +342,14 @@ Path("new_dir").mkdir(exist_ok=True)
 Path("nested/deep/dir").mkdir(parents=True, exist_ok=True)
 
 # Glob
-list(Path(".").glob("*.py"))           # all .py in current dir
-list(Path(".").glob("**/*.py"))        # all .py recursively
-list(Path(".").rglob("*.py"))          # same as **/*.py
+list(Path(".").glob("*.py"))           # current dir ke saare .py files
+list(Path(".").glob("**/*.py"))        # recursively saare .py files
+list(Path(".").rglob("*.py"))          # **/*.py jaisa hi hai
 
 # Delete
-Path("file.txt").unlink(missing_ok=True)   # delete file
-Path("empty_dir").rmdir()                   # delete empty directory
-# For non-empty directories:
+Path("file.txt").unlink(missing_ok=True)   # file delete karo
+Path("empty_dir").rmdir()                   # empty directory delete karo
+# Non-empty directories ke liye:
 import shutil
 shutil.rmtree("dir_with_contents")
 ```
@@ -353,23 +362,23 @@ path.basename('/path/to/file.txt');
 path.extname('file.txt');
 path.dirname('/path/to/file.txt');
 path.resolve('relative/path');
-// Node has no built-in glob -- need 'glob' or 'fast-glob' package
+// Node mein built-in glob nahi hai -- 'glob' ya 'fast-glob' package chahiye
 ```
 
 ---
 
 ## JSON File Operations
 
-### Reading and Writing JSON
+### JSON Padhna Aur Likhna
 
 ```python
 import json
 
-# Read JSON file
+# JSON file padho
 with open("config.json", "r") as f:
     config = json.load(f)          # file -> dict
 
-# Write JSON file
+# JSON file likho
 data = {
     "name": "Alice",
     "age": 30,
@@ -383,11 +392,11 @@ data = {
 with open("output.json", "w") as f:
     json.dump(data, f, indent=2)    # dict -> file (pretty printed)
 
-# String operations (no file)
+# String operations (bina file ke)
 json_string = json.dumps(data, indent=2)          # dict -> string
 parsed = json.loads(json_string)                   # string -> dict
 
-# Handle special types (datetime, custom objects)
+# Special types handle karo (datetime, custom objects)
 from datetime import datetime
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -401,20 +410,22 @@ json.dumps(data_with_date, cls=DateTimeEncoder, indent=2)
 ```
 
 ```javascript
-// JS JSON (almost identical concepts)
+// JS JSON (concepts almost identical)
 JSON.parse(jsonString)
 JSON.stringify(data)
 JSON.stringify(data, null, 2)  // pretty print
 
-// File operations need fs:
+// File operations ke liye fs chahiye:
 const data = JSON.parse(fs.readFileSync('config.json', 'utf-8'));
 fs.writeFileSync('output.json', JSON.stringify(data, null, 2));
 ```
 
 ### JSON Lines (JSONL) Format
 
+JSONL samjho ek IRCTC ki waiting list jaisa — har row apne aap mein complete record hai, ek ke baad ek, bina kisi bade array bracket ke. Isliye bade datasets ke liye line-by-line process karna easy ho jaata hai.
+
 ```python
-# Write JSONL (one JSON object per line)
+# JSONL likho (ek line mein ek JSON object)
 records = [
     {"id": 1, "name": "Alice"},
     {"id": 2, "name": "Bob"},
@@ -425,7 +436,7 @@ with open("data.jsonl", "w") as f:
     for record in records:
         f.write(json.dumps(record) + "\n")
 
-# Read JSONL (memory efficient for large files)
+# JSONL padho (bade files ke liye memory efficient)
 with open("data.jsonl", "r") as f:
     for line in f:
         record = json.loads(line)
@@ -436,23 +447,25 @@ with open("data.jsonl", "r") as f:
 
 ## CSV File Operations
 
+Excel sheet jaisi files ke liye — jaise Flipkart apna order data CSV mein export karta hai, taaki tum Excel ya kisi bhi tool mein khol sako.
+
 ```python
 import csv
 
-# Read CSV
+# CSV padho
 with open("data.csv", "r") as f:
     reader = csv.reader(f)
-    header = next(reader)       # first row
+    header = next(reader)       # pehli row
     for row in reader:
-        print(row)              # list of strings
+        print(row)              # strings ki list
 
-# Read CSV as dictionaries
+# CSV ko dictionaries ki tarah padho
 with open("data.csv", "r") as f:
     reader = csv.DictReader(f)
     for row in reader:
         print(row["name"], row["age"])
 
-# Write CSV
+# CSV likho
 with open("output.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["name", "age", "city"])       # header
@@ -462,7 +475,7 @@ with open("output.csv", "w", newline="") as f:
         ["Charlie", 35, "Chicago"],
     ])
 
-# Write CSV from dicts
+# Dicts se CSV likho
 with open("output.csv", "w", newline="") as f:
     fieldnames = ["name", "age", "city"]
     writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -472,25 +485,27 @@ with open("output.csv", "w", newline="") as f:
 
 ---
 
-## Working with Binary Files
+## Binary Files Ke Saath Kaam Karna
+
+Text files ke alawa, images, PDFs, ya audio jaise files bhi handle karni padti hain — inhe `"b"` mode mein kholte hain, taaki Python inko string ki tarah decode karne ki koshish na kare aur raw bytes hi mile.
 
 ```python
-# Read binary file
+# Binary file padho
 with open("image.png", "rb") as f:
     data = f.read()
     print(f"File size: {len(data)} bytes")
     print(f"PNG header: {data[:8]}")
 
-# Write binary file
+# Binary file likho
 with open("copy.png", "wb") as f:
     f.write(data)
 
-# Copy a file
+# File copy karo
 import shutil
-shutil.copy2("source.txt", "destination.txt")    # preserves metadata
-shutil.copytree("source_dir", "dest_dir")         # copy entire directory
+shutil.copy2("source.txt", "destination.txt")    # metadata preserve karta hai
+shutil.copytree("source_dir", "dest_dir")         # poori directory copy karo
 
-# Read binary in chunks (memory efficient for large files)
+# Bade file ko chunks mein padho (memory efficient)
 CHUNK_SIZE = 8192
 with open("large_file.bin", "rb") as f:
     while chunk := f.read(CHUNK_SIZE):
@@ -501,40 +516,42 @@ with open("large_file.bin", "rb") as f:
 
 ## Temporary Files
 
+Socho ek room service ka disposable cup — kaam ho gaya, khud-ba-khud clean ho jaata hai, tumhe manually fenkna nahi padta. Temporary files bhi isi tarah kaam karte hain: process khatam hote hi khud disappear ho jaate hain.
+
 ```python
 import tempfile
 
-# Create a temporary file (auto-deleted when closed)
+# Temporary file banao (close hote hi auto-deleted)
 with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
     f.write("temporary data")
     temp_path = f.name
     print(f"Temp file: {temp_path}")
 
-# Create a temporary directory
+# Temporary directory banao
 with tempfile.TemporaryDirectory() as tmpdir:
     temp_file = Path(tmpdir) / "data.txt"
     temp_file.write_text("hello")
     print(f"Temp dir: {tmpdir}")
-# Directory and contents are auto-deleted when block exits
+# Block khatam hote hi directory aur uska content auto-delete ho jaata hai
 ```
 
 ---
 
 ## Common File Patterns
 
-### Process and Transform a File
+### File Ko Process Aur Transform Karna
 
 ```python
 def transform_file(input_path, output_path, transform_fn):
-    """Read a file, transform each line, write to new file."""
+    """File padho, har line transform karo, naye file mein likho."""
     with open(input_path, "r") as infile, open(output_path, "w") as outfile:
         for line in infile:
             outfile.write(transform_fn(line))
 
-# Usage: uppercase every line
+# Usage: har line ko uppercase karo
 transform_file("input.txt", "output.txt", str.upper)
 
-# Usage: number every line
+# Usage: har line pe number lagao
 def add_line_numbers(line, counter=[0]):
     counter[0] += 1
     return f"{counter[0]:4d}: {line}"
@@ -543,20 +560,23 @@ transform_file("input.txt", "numbered.txt", add_line_numbers)
 
 ### Safe File Writing (Atomic Write)
 
+> [!warning]
+> Agar UPI transaction beech mein crash ho jaaye toh ya toh poora paisa cut hoga ya bilkul nahi — half-transaction nahi hoti. File writing mein bhi yahi guarantee chahiye hoti hai kabhi-kabhi, taaki crash hone par file corrupt na ho.
+
 ```python
 import tempfile
 import os
 from pathlib import Path
 
 def safe_write(filepath, content):
-    """Write to a file atomically (won't corrupt on crash)."""
+    """File ko atomically likho (crash hone par corrupt nahi hogi)."""
     filepath = Path(filepath)
-    # Write to temp file in same directory
+    # Same directory mein temp file banao
     fd, tmp_path = tempfile.mkstemp(dir=filepath.parent)
     try:
         with os.fdopen(fd, "w") as f:
             f.write(content)
-        # Atomic rename (on same filesystem)
+        # Atomic rename (same filesystem par)
         os.replace(tmp_path, filepath)
     except:
         os.unlink(tmp_path)
@@ -570,7 +590,7 @@ import time
 from pathlib import Path
 
 def watch_file(filepath, callback, interval=1.0):
-    """Watch a file for changes and call callback when modified."""
+    """File mein changes dekho aur modify hone par callback call karo."""
     filepath = Path(filepath)
     last_modified = filepath.stat().st_mtime if filepath.exists() else 0
 
@@ -615,7 +635,7 @@ def watch_file(filepath, callback, interval=1.0):
 ## Practice Exercises
 
 ### Exercise 1: Log File Analyzer
-Write a function that reads a log file and returns a summary: total lines, error count, most common error, and the time range.
+Ek function likho jo log file padhe aur summary return kare: total lines, error count, sabse common error, aur time range.
 
 ```python
 # Sample log format:
@@ -673,7 +693,7 @@ def analyze_log(filepath):
         },
     }
 
-# Create a test log file and analyze it
+# Test log file banao aur analyze karo
 test_log = """2024-01-15 10:30:00 INFO Server started
 2024-01-15 10:30:05 ERROR Database connection failed
 2024-01-15 10:30:10 WARNING Slow query detected
@@ -693,7 +713,7 @@ Path("test.log").unlink()  # cleanup
 </details>
 
 ### Exercise 2: Config File Manager
-Build a config file manager that supports reading, writing, and updating JSON config files with dot-notation access for nested keys.
+Ek config file manager banao jo JSON config files ko read, write, aur update kare, nested keys ke liye dot-notation access ke saath.
 
 ```python
 class Config:
@@ -702,7 +722,7 @@ class Config:
     def set(self, dotted_key, value): pass
     def save(self): pass
 
-# config.get("database.host")  -> reads config["database"]["host"]
+# config.get("database.host")  -> config["database"]["host"] padhta hai
 # config.set("database.port", 3306)
 # config.save()
 ```
@@ -782,7 +802,7 @@ Path("app_config.json").unlink(missing_ok=True)
 </details>
 
 ### Exercise 3: File Deduplicator
-Write a script that finds duplicate files in a directory (by content hash, not name). Report the duplicates and how much space could be saved.
+Ek script likho jo kisi directory mein duplicate files dhoonde (content hash se, naam se nahi). Duplicates report karo aur kitni space bach sakti hai wo bhi batao.
 
 <details>
 <summary>Solution</summary>
@@ -793,7 +813,7 @@ from pathlib import Path
 from collections import defaultdict
 
 def hash_file(filepath, chunk_size=8192):
-    """Compute SHA-256 hash of a file."""
+    """File ka SHA-256 hash calculate karo."""
     sha256 = hashlib.sha256()
     with open(filepath, "rb") as f:
         while chunk := f.read(chunk_size):
@@ -801,17 +821,17 @@ def hash_file(filepath, chunk_size=8192):
     return sha256.hexdigest()
 
 def find_duplicates(directory, pattern="*"):
-    """Find duplicate files in a directory."""
+    """Directory mein duplicate files dhoondo."""
     directory = Path(directory)
     hash_map = defaultdict(list)
 
-    # First pass: group by size (quick filter)
+    # Pehla pass: size ke hisaab se group karo (quick filter)
     size_map = defaultdict(list)
     for filepath in directory.rglob(pattern):
         if filepath.is_file():
             size_map[filepath.stat().st_size].append(filepath)
 
-    # Second pass: hash only files with duplicate sizes
+    # Doosra pass: sirf unhi files ko hash karo jinke size duplicate hain
     for size, files in size_map.items():
         if len(files) < 2:
             continue
@@ -819,7 +839,7 @@ def find_duplicates(directory, pattern="*"):
             file_hash = hash_file(filepath)
             hash_map[file_hash].append(filepath)
 
-    # Filter to only actual duplicates
+    # Sirf actual duplicates ko filter karo
     duplicates = {
         hash_val: files
         for hash_val, files in hash_map.items()
@@ -829,7 +849,7 @@ def find_duplicates(directory, pattern="*"):
     return duplicates
 
 def report_duplicates(duplicates):
-    """Print a report of duplicate files."""
+    """Duplicate files ki report print karo."""
     if not duplicates:
         print("No duplicate files found.")
         return
@@ -852,3 +872,12 @@ def report_duplicates(duplicates):
 # report_duplicates(duplicates)
 ```
 </details>
+
+## Key Takeaways
+
+- `open()` ke saath `with` statement use karo -- file automatically close ho jaayegi, exception aaye tab bhi.
+- Bade files ke liye seedha `for line in f:` se iterate karo -- `readlines()` se poori file memory mein mat load karo.
+- `pathlib.Path` ko `os.path` se prefer karo -- cleaner, object-oriented, aur one-liner shortcuts (`read_text()`, `write_text()`) deta hai.
+- Cross-platform text files ke liye hamesha `encoding="utf-8"` explicitly specify karo.
+- JSON ke liye `json.load`/`json.dump`, CSV ke liye `csv.reader`/`csv.DictReader`, aur binary chunks ke liye `f.read(CHUNK_SIZE)` use karo.
+- Crash-safe writes ke liye atomic write pattern use karo (temp file likho, phir `os.replace` se rename karo) -- jaise UPI transaction, half-complete file nahi hona chahiye.

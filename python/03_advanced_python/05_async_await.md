@@ -1,31 +1,31 @@
 # Async/Await in Python
 
-## The Critical Mindset Shift from Node.js
+## Node.js se Sabse Bada Mindset Shift
 
-This is probably the **most important chapter** for a Node.js developer learning Python. The async models are fundamentally different:
+Ye chapter ek Node.js developer ke liye **sabse important chapter** hai. Kyun? Kyunki dono languages ka async model bilkul ulta hai:
 
 | Aspect | Node.js | Python |
 |---|---|---|
-| Default mode | **Async** -- everything is non-blocking | **Sync** -- everything is blocking |
-| Event loop | Always running, built into runtime | Must be explicitly started with `asyncio.run()` |
+| Default mode | **Async** -- sab kuch non-blocking | **Sync** -- sab kuch blocking |
+| Event loop | Hamesha chalta rehta hai, runtime mein built-in | `asyncio.run()` se explicitly start karna padta hai |
 | File I/O | Async by default (`fs.promises`) | Sync by default (`open()`) |
 | HTTP server | Async by default (Express, Fastify) | Sync by default (Flask, Django) |
-| Ecosystem | One world -- everything is async | **Two worlds** -- sync and async libraries |
+| Ecosystem | Ek hi duniya -- sab async hai | **Do duniya** -- sync aur async libraries alag |
 
-In Node.js, you live in an async world and occasionally do sync things. In Python, you live in a sync world and opt into async when you need it.
+Socho aise: Node.js mein tum ek async shehar mein rehte ho, aur kabhi-kabhi sync kaam karte ho. Python mein ulta hai — tum ek sync shehar mein rehte ho, aur zarurat padne pe async duniya mein enter karte ho.
 
 ```mermaid
 flowchart TB
     subgraph Sync["🔴 Python Sync (default)"]
         T1["Task 1\nrequest (200ms)"] --> T2["Task 2\nrequest (200ms)"] --> T3["Task 3\nrequest (200ms)"]
-        TotalS["Total: ~600ms\n(blocking — each waits for previous)"]
+        TotalS["Total: ~600ms\n(blocking — har ek pichle ka wait karta hai)"]
     end
 
     subgraph Async["🟢 Python Async (asyncio)"]
         EL["Event Loop\nasyncio.run(main())"]
         C1["coroutine 1\nawait request"] & C2["coroutine 2\nawait request"] & C3["coroutine 3\nawait request"]
         EL --> C1 & C2 & C3
-        TotalA["Total: ~200ms\n(all waiting concurrently)"]
+        TotalA["Total: ~200ms\n(sab ek saath wait kar rahe)"]
     end
 
     style EL fill:#059669,color:#fff
@@ -35,42 +35,42 @@ flowchart TB
 
 ---
 
-## Basic Syntax: Familiar Territory
+## Basic Syntax: Jaana Pehchana Ilaka
 
-The syntax is nearly identical to JavaScript:
+Syntax level pe good news hai — JavaScript se almost same hai:
 
 ```python
 import asyncio
 
 async def fetch_data(url: str) -> dict:
     print(f"Fetching {url}...")
-    await asyncio.sleep(1)  # Simulate network delay
+    await asyncio.sleep(1)  # Network delay simulate kar rahe hain
     return {"url": url, "data": "some content"}
 
 async def main():
     result = await fetch_data("https://api.example.com")
     print(result)
 
-# You MUST explicitly start the event loop
+# Event loop ko explicitly start karna PADEGA
 asyncio.run(main())
 ```
 
 ```javascript
-// JavaScript -- nearly identical syntax
+// JavaScript -- almost identical syntax
 async function fetchData(url) {
   console.log(`Fetching ${url}...`);
   await new Promise((resolve) => setTimeout(resolve, 1000));
   return { url, data: "some content" };
 }
 
-// Event loop is already running -- just call it
+// Event loop pehle se hi chal raha hai -- bas call karo
 const result = await fetchData("https://api.example.com");
 console.log(result);
 ```
 
-### Key difference: `asyncio.run()`
+### Farak yaha hai: `asyncio.run()`
 
-In Node.js, the event loop is always there. In Python, you must start it:
+Node.js mein event loop hamesha maujood rehta hai — jaise Zomato ka delivery system 24x7 chalta hai chahe order aaye ya na aaye. Python mein tumhe khud ye "system" chalu karna padta hai:
 
 ```python
 import asyncio
@@ -78,30 +78,32 @@ import asyncio
 async def main():
     print("Hello from async Python!")
 
-# This is the entry point -- starts the event loop, runs main, then stops
+# Ye entry point hai -- event loop start karta hai, main() run karta hai, phir band kar deta hai
 asyncio.run(main())
 
-# You CANNOT just await at the top level in a regular .py file
+# Normal .py file mein top-level pe seedha await nahi kar sakte
 # await main()  # SyntaxError!
 
-# (Python 3.12+ REPL does support top-level await, and Jupyter notebooks do too)
+# (Python 3.12+ ka REPL aur Jupyter notebooks top-level await support karte hain)
 ```
 
 ---
 
-## Coroutines Explained
+## Coroutines Samjho
 
-When you call an `async def` function, it doesn't execute -- it returns a coroutine object. This is different from JavaScript where calling an async function immediately starts execution and returns a Promise.
+Jab tum `async def` wala function call karte ho, wo turant execute nahi hota -- ek **coroutine object** return hota hai. Ye JavaScript se different hai, jahan async function call karte hi execution start ho jaata hai aur Promise milta hai.
+
+Socho ek Swiggy order ki tarah — order place karna (function call karna) matlab khana turant tumhare table pe nahi aa jaata. Pehle ek "order tracking object" milta hai (coroutine), aur jab tak tum us pe "wait" (await) nahi karoge, khana banna shuru hi nahi hoga.
 
 ```python
 async def greet(name: str) -> str:
     return f"Hello, {name}"
 
-# This does NOT execute the function body!
+# Ye function body ko EXECUTE NAHI karta!
 coro = greet("Alice")
 print(type(coro))  # <class 'coroutine'>
 
-# You must await it to get the result
+# Result paane ke liye await karna zaruri hai
 async def main():
     result = await greet("Alice")
     print(result)  # "Hello, Alice"
@@ -110,10 +112,10 @@ asyncio.run(main())
 ```
 
 ```javascript
-// JavaScript -- calling async function immediately starts execution
-const promise = greet("Alice"); // Already running!
+// JavaScript -- async function call karte hi execution start ho jaata hai
+const promise = greet("Alice"); // Pehle se hi chal raha hai!
 console.log(typeof promise); // 'object' (Promise)
-const result = await promise; // Just waiting for completion
+const result = await promise; // Bas completion ka wait
 ```
 
 ---
@@ -127,16 +129,19 @@ async def delayed_greet(name: str, delay: float) -> str:
     await asyncio.sleep(delay)  # Non-blocking sleep
     return f"Hello, {name}!"
 
-# DON'T use time.sleep() in async code -- it blocks the event loop!
+# Async code mein time.sleep() KABHI use mat karo -- ye event loop ko block kar deta hai!
 import time
 
 async def BAD_example():
-    time.sleep(5)  # BLOCKS the entire event loop for 5 seconds!
-    # Nothing else can run during this time
+    time.sleep(5)  # Poore event loop ko 5 second ke liye BLOCK kar deta hai!
+    # Is dauraan kuch aur nahi chal sakta
 
 async def GOOD_example():
-    await asyncio.sleep(5)  # Non-blocking -- other tasks can run
+    await asyncio.sleep(5)  # Non-blocking -- baaki tasks chalte reh sakte hain
 ```
+
+> [!warning]
+> `time.sleep()` aur `asyncio.sleep()` dikhne mein similar lagte hain lekin bilkul alag hain. `time.sleep()` poore restaurant ko band kar deta hai jab tak ek order nahi ban jaata. `asyncio.sleep()` sirf ye batata hai "mujhe abhi kuch nahi karna, tab tak doosre orders handle karo".
 
 ```javascript
 // JavaScript equivalent
@@ -152,9 +157,11 @@ async function delayedGreet(name, delay) {
 
 ---
 
-## Running Multiple Coroutines
+## Multiple Coroutines Chalana
 
 ### Sequential Execution
+
+Ye waise hi hai jaise IRCTC pe ek-ek karke 3 tatkal tickets book karna — pehli complete hone ka wait, phir doosri shuru:
 
 ```python
 import asyncio
@@ -168,7 +175,7 @@ async def fetch(url: str) -> str:
 async def main():
     start = time.time()
 
-    # Sequential -- each waits for the previous one
+    # Sequential -- har ek pichle wale ka wait karta hai
     r1 = await fetch("https://api1.example.com")
     r2 = await fetch("https://api2.example.com")
     r3 = await fetch("https://api3.example.com")
@@ -181,11 +188,13 @@ asyncio.run(main())
 
 ### Concurrent Execution with `asyncio.gather()`
 
+Ab teeno requests ek saath bhejo -- jaise ek saath 3 alag Zomato restaurants se order dena aur jo pehle ready ho use manage karna:
+
 ```python
 async def main():
     start = time.time()
 
-    # Concurrent -- all run at the same time
+    # Concurrent -- sab ek saath chalte hain
     r1, r2, r3 = await asyncio.gather(
         fetch("https://api1.example.com"),
         fetch("https://api2.example.com"),
@@ -211,7 +220,9 @@ const [r1, r2, r3] = await Promise.all([
 
 ## Tasks: Fire and (Optionally) Forget
 
-`asyncio.create_task()` schedules a coroutine to run concurrently, similar to calling an async function without awaiting it in JavaScript (but safer).
+`asyncio.create_task()` ek coroutine ko background mein turant chalu kar deta hai -- kuch-kuch JavaScript mein async function ko bina await kiye call karne jaisa (bas Python wala version zyada safe hai).
+
+Socho ek dabbawala ki tarah — tum use tiffin (task) de dete ho aur wo delivery ke liye nikal jaata hai, tum apna doosra kaam karte raho. Jab zarurat ho tabhi check karo "delivery hui ya nahi" (await task).
 
 ```python
 import asyncio
@@ -222,16 +233,16 @@ async def background_job(name: str) -> None:
     print(f"Finished {name}")
 
 async def main():
-    # Create task -- starts running immediately in the background
+    # Task create karo -- background mein turant chalna shuru ho jaata hai
     task1 = asyncio.create_task(background_job("job1"))
     task2 = asyncio.create_task(background_job("job2"))
 
-    # Do other work while tasks run
+    # Tasks chalte rehne do, tab tak apna kaam karo
     print("Doing other work...")
     await asyncio.sleep(1)
     print("Still working...")
 
-    # Wait for tasks to complete
+    # Ab tasks complete hone ka wait karo
     await task1
     await task2
     print("All done!")
@@ -242,8 +253,8 @@ asyncio.run(main())
 ```javascript
 // JavaScript -- similar concept
 async function main() {
-  const promise1 = backgroundJob("job1"); // Started, not awaited
-  const promise2 = backgroundJob("job2"); // Started, not awaited
+  const promise1 = backgroundJob("job1"); // Start ho gaya, await nahi kiya
+  const promise2 = backgroundJob("job2"); // Start ho gaya, await nahi kiya
 
   console.log("Doing other work...");
   await sleep(1000);
@@ -263,13 +274,13 @@ async def long_running():
             await asyncio.sleep(1)
     except asyncio.CancelledError:
         print("Task was cancelled -- cleaning up")
-        raise  # Re-raise to properly mark task as cancelled
+        raise  # Task ko properly "cancelled" mark karne ke liye re-raise karo
 
 async def main():
     task = asyncio.create_task(long_running())
 
     await asyncio.sleep(3)
-    task.cancel()  # Request cancellation
+    task.cancel()  # Cancellation request bhejo
 
     try:
         await task
@@ -283,7 +294,7 @@ asyncio.run(main())
 
 ## Async HTTP with `aiohttp`
 
-In Node.js, `fetch` is built-in and async. In Python, the standard `requests` library is sync. For async HTTP, you need `aiohttp`:
+Node.js mein `fetch` built-in aur async hota hai. Python mein standard `requests` library sync hai. Async HTTP ke liye tumhe `aiohttp` chahiye:
 
 ```bash
 pip install aiohttp
@@ -316,7 +327,7 @@ asyncio.run(main())
 ```
 
 ```javascript
-// JavaScript equivalent -- much simpler because fetch is built-in
+// JavaScript equivalent -- kaafi simple hai kyunki fetch built-in hai
 const data1 = await fetch("https://jsonplaceholder.typicode.com/posts/1").then(
   (r) => r.json()
 );
@@ -341,19 +352,19 @@ async def create_post(title: str, body: str) -> dict:
 
 ---
 
-## The "Two Worlds" Problem (Colored Functions)
+## "Do Duniya" Wali Problem (Colored Functions)
 
-This is the biggest pain point for Python async. In Node.js, everything speaks the same async language. In Python, sync and async are separate worlds:
+Ye Python async ka sabse bada pain point hai. Node.js mein sab ek hi async bhasha bolte hain. Python mein sync aur async do alag duniyayein hain — jaise UPI aur cash payment: dono paise transfer karte hain, lekin ek dusre ke saath directly compatible nahi hain, beech mein "bridge" chahiye hota hai.
 
 ```python
-# SYNC world
+# SYNC duniya
 import requests
 
 def get_user_sync(id: int) -> dict:
     response = requests.get(f"https://api.example.com/users/{id}")
     return response.json()
 
-# ASYNC world
+# ASYNC duniya
 import aiohttp
 
 async def get_user_async(id: int) -> dict:
@@ -361,38 +372,38 @@ async def get_user_async(id: int) -> dict:
         async with session.get(f"https://api.example.com/users/{id}") as resp:
             return await resp.json()
 
-# The problem: you can't mix them easily!
+# Problem: dono ko aasani se mix nahi kar sakte!
 async def process_user():
-    # You can't call a sync blocking function in async without blocking the loop
-    user = get_user_sync(1)  # BAD: blocks the event loop
+    # Async function ke andar sync blocking function seedha call nahi kar sakte
+    user = get_user_sync(1)  # BAD: event loop ko block kar deta hai
 
-    # You must use the async version
+    # Async version hi use karna padega
     user = await get_user_async(1)  # GOOD
 
 def sync_function():
-    # You can't await in a sync function
+    # Sync function ke andar await nahi kar sakte
     user = await get_user_async(1)  # SyntaxError!
 
-    # You'd need to start an event loop
-    user = asyncio.run(get_user_async(1))  # Creates new loop (not always possible)
+    # Iske liye ek naya event loop start karna padega
+    user = asyncio.run(get_user_async(1))  # Naya loop banata hai (hamesha possible nahi)
 ```
 
-### The Bridge: Running Sync Code in Async Context
+### Bridge: Sync Code ko Async Context Mein Chalana
 
 ```python
 import asyncio
 import requests
 
 def blocking_fetch(url: str) -> str:
-    """Sync function that blocks."""
+    """Sync function jo blocking hai."""
     response = requests.get(url)
     return response.text
 
 async def main():
-    # Run blocking code in a thread pool to avoid blocking the event loop
+    # Blocking code ko thread pool mein chalao taaki event loop block na ho
     loop = asyncio.get_event_loop()
     result = await loop.run_in_executor(
-        None,  # Use default ThreadPoolExecutor
+        None,  # Default ThreadPoolExecutor use karo
         blocking_fetch,
         "https://example.com",
     )
@@ -403,7 +414,7 @@ asyncio.run(main())
 
 ### Library Duplication
 
-This two-worlds problem means Python has duplicate libraries:
+Isi "do duniya" problem ki wajah se Python mein duplicate libraries hain -- har cheez ka ek sync version aur ek async version:
 
 | Sync Library | Async Library |
 |---|---|
@@ -414,7 +425,8 @@ This two-worlds problem means Python has duplicate libraries:
 | `Flask` | `FastAPI`, `Starlette` |
 | `Django` | `Django (async views, 3.1+)` |
 
-> **`httpx`** is notable because it supports BOTH sync and async with the same API:
+> [!tip]
+> **`httpx`** special hai kyunki wo BOTH sync aur async support karta hai, same API ke saath:
 > ```python
 > import httpx
 >
@@ -430,19 +442,19 @@ This two-worlds problem means Python has duplicate libraries:
 
 ## Async Generators
 
-Just like regular generators, but async:
+Regular generators jaise hi, bas async version:
 
 ```python
 import asyncio
 
 async def async_range(start: int, stop: int, delay: float = 0.1):
-    """Async generator -- yields values with delays."""
+    """Async generator -- delay ke saath values yield karta hai."""
     for i in range(start, stop):
         await asyncio.sleep(delay)
         yield i
 
 async def main():
-    # Use async for to consume
+    # async for use karke consume karo
     async for num in async_range(0, 5, 0.5):
         print(num)
 
@@ -465,12 +477,14 @@ for await (const num of asyncRange(0, 5, 500)) {
 
 ### Real-World: Async Data Stream
 
+Ye Flipkart jaise kisi API se page-by-page products fetch karne jaisa hai — har page aane pe process karo, sab pages ek saath memory mein load karne ki zarurat nahi:
+
 ```python
 import asyncio
 import aiohttp
 
 async def fetch_pages(base_url: str, max_pages: int = 100):
-    """Async generator that fetches paginated API data."""
+    """Async generator jo paginated API data fetch karta hai."""
     async with aiohttp.ClientSession() as session:
         for page in range(1, max_pages + 1):
             url = f"{base_url}?page={page}"
@@ -478,7 +492,7 @@ async def fetch_pages(base_url: str, max_pages: int = 100):
                 data = await response.json()
 
                 if not data["results"]:
-                    return  # No more pages
+                    return  # Aur pages nahi hain
 
                 yield data["results"]
 
@@ -502,18 +516,18 @@ async def might_fail(name: str) -> str:
     return f"Success: {name}"
 
 async def main():
-    # Basic try/except -- same as sync
+    # Basic try/except -- sync jaisa hi hai
     try:
         result = await might_fail("bad")
     except ValueError as e:
         print(f"Caught: {e}")
 
-    # Error handling with gather
+    # gather() ke saath error handling
     results = await asyncio.gather(
         might_fail("good"),
         might_fail("bad"),
         might_fail("also_good"),
-        return_exceptions=True,  # Don't raise, return exceptions as values
+        return_exceptions=True,  # Raise mat karo, exceptions ko values ki tarah return karo
     )
 
     for result in results:
@@ -544,39 +558,39 @@ results.forEach((result) => {
 
 ---
 
-## When to Use Async in Python
+## Python Mein Async Kab Use Karein
 
-### Use async when:
-- Building a web server that handles many concurrent connections (FastAPI, Starlette)
-- Making many HTTP requests concurrently
-- Working with WebSockets
-- Building a chat server, real-time system
-- I/O-bound tasks with high concurrency needs
+### Async use karo jab:
+- Web server bana rahe ho jo bohot saare concurrent connections handle kare (FastAPI, Starlette)
+- Ek saath bohot saari HTTP requests bhejni ho
+- WebSockets ke saath kaam kar rahe ho
+- Chat server ya real-time system bana rahe ho
+- I/O-bound tasks hain jinme high concurrency chahiye
 
-### Stick with sync when:
-- Simple scripts
-- CPU-bound processing
-- Using libraries that are sync-only
-- Low concurrency needs
-- CLI tools
-- Data science / ML work
+### Sync pe hi tike raho jab:
+- Simple scripts likh rahe ho
+- CPU-bound processing hai
+- Aisi libraries use kar rahe ho jo sync-only hain
+- Concurrency ki zarurat kam hai
+- CLI tools bana rahe ho
+- Data science / ML ka kaam hai
 
 ### The Python Way
 
 ```python
-# For a web scraper that hits 100 URLs:
-# Node.js dev instinct: "async all the things!"
-# Python approach: depends on the use case
+# Ek web scraper ke liye jo 100 URLs hit karega:
+# Node.js dev ka instinct: "sab kuch async bana do!"
+# Python approach: use case pe depend karta hai
 
-# Option 1: Simple script, scrape 5 URLs
-# Just use requests (sync). It's simpler.
+# Option 1: Simple script, 5 URLs scrape karni hain
+# Bas requests (sync) use karo. Simple rehta hai.
 import requests
 for url in urls:
     response = requests.get(url)
     process(response)
 
-# Option 2: Need to scrape 100 URLs fast
-# Use async for concurrency
+# Option 2: 100 URLs fast scrape karni hain
+# Concurrency ke liye async use karo
 import aiohttp
 import asyncio
 
@@ -585,8 +599,8 @@ async def scrape_all(urls):
         tasks = [session.get(url) for url in urls]
         return await asyncio.gather(*tasks)
 
-# Option 3: Web server handling thousands of requests
-# Use FastAPI (async framework)
+# Option 3: Web server jo hazaaron requests handle karega
+# FastAPI (async framework) use karo
 from fastapi import FastAPI
 app = FastAPI()
 
@@ -598,64 +612,64 @@ async def get_data():
 
 ---
 
-## Common Pitfalls for Node.js Developers
+## Node.js Developers ke Liye Common Pitfalls
 
-### 1. Forgetting `asyncio.run()`
+### 1. `asyncio.run()` bhool jaana
 ```python
-# Wrong -- nothing happens
+# Galat -- kuch nahi hota
 async def main():
     print("Hello")
 
-main()  # Returns a coroutine, doesn't execute!
+main()  # Coroutine return karta hai, execute nahi karta!
 
-# Right
+# Sahi
 asyncio.run(main())
 ```
 
-### 2. Blocking the Event Loop
+### 2. Event Loop ko Block Karna
 ```python
-# Wrong -- blocks the loop
+# Galat -- loop block ho jaata hai
 async def handler(request):
     data = requests.get("https://api.example.com")  # BLOCKING!
     return data.json()
 
-# Right -- use async HTTP client
+# Sahi -- async HTTP client use karo
 async def handler(request):
     async with aiohttp.ClientSession() as session:
         async with session.get("https://api.example.com") as resp:
             return await resp.json()
 
-# Right -- or run blocking code in executor
+# Sahi -- ya blocking code ko executor mein chalao
 async def handler(request):
     loop = asyncio.get_event_loop()
     data = await loop.run_in_executor(None, requests.get, "https://api.example.com")
     return data.json()
 ```
 
-### 3. Creating Multiple Event Loops
+### 3. Multiple Event Loops Create Karna
 ```python
-# Wrong -- can't nest asyncio.run()
+# Galat -- asyncio.run() ko nest nahi kar sakte
 async def inner():
     return 42
 
 async def outer():
-    result = asyncio.run(inner())  # ERROR! Loop already running
+    result = asyncio.run(inner())  # ERROR! Loop already running hai
 
-# Right
+# Sahi
 async def outer():
     result = await inner()
 ```
 
-### 4. Not Awaiting Coroutines
+### 4. Coroutines Ko Await Na Karna
 ```python
-# Wrong -- creates coroutine but never awaits it
+# Galat -- coroutine banaya lekin kabhi await nahi kiya
 async def main():
     fetch_data("https://api.example.com")  # RuntimeWarning: coroutine was never awaited
 
-# Right
+# Sahi
 async def main():
     await fetch_data("https://api.example.com")
-    # Or create a task if you want background execution
+    # Ya background execution chahiye to task banao
     task = asyncio.create_task(fetch_data("https://api.example.com"))
 ```
 
@@ -664,22 +678,22 @@ async def main():
 ## Practice Exercises
 
 ### Exercise 1: Async Fetcher
-Write an async function that:
-- Takes a list of URLs
-- Fetches all of them concurrently using `aiohttp`
-- Returns results in the same order as the input URLs
-- Has a configurable concurrency limit (max N requests at once)
-- Handles individual failures gracefully (returns None for failed URLs)
+Ek async function likho jo:
+- URLs ki ek list le
+- Sabko `aiohttp` se concurrently fetch kare
+- Results ko input URLs ke same order mein return kare
+- Configurable concurrency limit ho (ek time pe max N requests)
+- Individual failures ko gracefully handle kare (failed URLs ke liye None return kare)
 
 ### Exercise 2: Async Cache
-Build an async key-value cache with:
+Ek async key-value cache banao jisme ho:
 - `async get(key) -> value | None`
 - `async set(key, value, ttl_seconds) -> None`
-- Automatic expiration of old entries
-- Simulate slow storage with `asyncio.sleep()`
+- Purani entries ka automatic expiration
+- `asyncio.sleep()` se slow storage simulate karo
 
-### Exercise 3: Convert Sync to Async
-Take this synchronous code and convert it to async:
+### Exercise 3: Sync Ko Async Mein Convert Karo
+Ye synchronous code lo aur async mein convert karo:
 ```python
 import requests
 import time
@@ -701,19 +715,19 @@ main()
 ```
 
 ### Exercise 4: Async Pipeline
-Build an async data processing pipeline:
-1. An async generator that produces items from a paginated API
-2. An async filter that keeps only items matching a condition
-3. An async transformer that enriches each item with additional data
-4. A consumer that processes the final results
+Ek async data processing pipeline banao:
+1. Ek async generator jo paginated API se items produce kare
+2. Ek async filter jo sirf condition match karne wale items rakhe
+3. Ek async transformer jo har item ko additional data se enrich kare
+4. Ek consumer jo final results ko process kare
 
-Chain them together using `async for`.
+Inko `async for` use karke chain karo.
 
 ### Exercise 5: Sync-Async Bridge
-Write a utility function `run_sync_in_async(func, *args)` that:
-- Takes a synchronous (blocking) function and its arguments
-- Runs it in a thread pool executor
-- Returns the result as an awaitable
-- Properly handles exceptions
+Ek utility function `run_sync_in_async(func, *args)` likho jo:
+- Ek synchronous (blocking) function aur uske arguments le
+- Use thread pool executor mein chalaye
+- Result ko awaitable ki tarah return kare
+- Exceptions ko properly handle kare
 
-Then write the reverse: `run_async_in_sync(coro)` that safely runs an async coroutine from synchronous code.
+Phir iska ulta likho: `run_async_in_sync(coro)` jo synchronous code se ek async coroutine ko safely chala sake.

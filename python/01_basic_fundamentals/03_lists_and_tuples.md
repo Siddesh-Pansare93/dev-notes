@@ -1,23 +1,25 @@
 # 03 - Lists and Tuples
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aane walon ke liye
 
-Python lists are essentially JavaScript arrays. Same concept: ordered, mutable, heterogeneous collections. But Python adds tuples (immutable lists with no real JS equivalent) and a slicing system that will change how you think about working with sequences.
+Python ki lists basically JavaScript arrays hi hain — ordered, mutable, aur heterogeneous collections. Same cheez jo tum JS mein use karte ho. Lekin Python mein do extra cheezein milti hain: **tuples** (immutable lists, jinka JS mein koi seedha equivalent nahi hai) aur ek **slicing system** jo sequences ke saath kaam karne ka tarika hi badal dega.
 
 ---
 
 ## Lists = JavaScript Arrays
 
-### Creating Lists
+### List Banana
+
+Zomato ka cart socho — items add karo, remove karo, order change karo. Python list bilkul yehi karti hai.
 
 ```python
-# Creating lists
+# Lists banana
 numbers = [1, 2, 3, 4, 5]
-mixed = [1, "hello", True, 3.14, None]      # heterogeneous (like JS)
+mixed = [1, "hello", True, 3.14, None]      # heterogeneous (JS jaisa hi)
 empty = []
 nested = [[1, 2], [3, 4], [5, 6]]
 
-# From other iterables
+# Doosre iterables se
 from_range = list(range(5))                   # [0, 1, 2, 3, 4]
 from_string = list("hello")                   # ['h', 'e', 'l', 'l', 'o']
 from_tuple = list((1, 2, 3))                  # [1, 2, 3]
@@ -30,7 +32,7 @@ let fromRange = Array.from({length: 5}, (_, i) => i);  // [0, 1, 2, 3, 4]
 let fromString = Array.from("hello");                   // ['h', 'e', 'l', 'l', 'o']
 ```
 
-### Accessing Elements
+### Elements Access Karna
 
 ```python
 fruits = ["apple", "banana", "cherry", "date", "elderberry"]
@@ -41,11 +43,11 @@ fruits[2]          # "cherry"
 fruits[-1]         # "elderberry" (last element)
 fruits[-2]         # "date" (second to last)
 
-# Slicing (returns new list)
+# Slicing (naya list return karta hai)
 fruits[1:3]        # ["banana", "cherry"]
 fruits[:3]         # ["apple", "banana", "cherry"]
 fruits[2:]         # ["cherry", "date", "elderberry"]
-fruits[::2]        # ["apple", "cherry", "elderberry"] (every 2nd)
+fruits[::2]        # ["apple", "cherry", "elderberry"] (har 2nd)
 fruits[::-1]       # reversed list
 
 # Length
@@ -55,151 +57,159 @@ len(fruits)        # 5
 ```javascript
 // JS
 fruits[0]                    // "apple"
-fruits[fruits.length - 1]   // "elderberry" (no negative indexing)
+fruits[fruits.length - 1]   // "elderberry" (negative indexing nahi hoti)
 fruits.at(-1)                // "elderberry" (ES2022)
 fruits.slice(1, 3)           // ["banana", "cherry"]
 fruits.length                // 5
 ```
 
+> [!tip]
+> `fruits[-1]` jaisi negative indexing Python ka superpower hai — JS mein tumhe `.length - 1` calculate karna padta hai ya `.at(-1)` use karna padta hai. Python mein seedha `-1` likh do, kaam khatam.
+
 ---
 
 ## List Methods: Python vs JavaScript
 
-### Adding Elements
+### Elements Add Karna
 
 ```python
 fruits = ["apple", "banana"]
 
-# Add to end
+# End mein add
 fruits.append("cherry")           # ["apple", "banana", "cherry"]
 
-# Add at specific index
+# Specific index pe add
 fruits.insert(1, "blueberry")     # ["apple", "blueberry", "banana", "cherry"]
 
-# Add multiple elements to end
-fruits.extend(["date", "elderberry"])  # appends each element
-# OR
+# Multiple elements end mein add
+fruits.extend(["date", "elderberry"])  # har element ko append karta hai
+# YA
 fruits += ["fig", "grape"]             # same effect
 
 # GOTCHA: append vs extend
-fruits.append(["kiwi", "lemon"])       # adds the LIST as a single element!
+fruits.append(["kiwi", "lemon"])       # yeh poori LIST ko ek hi element ki tarah add karta hai!
 # ["apple", ..., ["kiwi", "lemon"]]
 ```
 
 ```javascript
 // JS equivalents
 fruits.push("cherry");                 // append
-fruits.splice(1, 0, "blueberry");     // insert at index
+fruits.splice(1, 0, "blueberry");     // index pe insert
 fruits.push(...["date", "elderberry"]); // extend (spread)
-fruits = fruits.concat(["fig"]);       // concat returns new array
+fruits = fruits.concat(["fig"]);       // concat naya array return karta hai
 ```
 
-### Removing Elements
+> [!warning]
+> `append` aur `extend` ka confusion sabse common Python mistake hai. `append(["kiwi", "lemon"])` puri list ko ek single nested item bana dega — tumhe `extend` chahiye tha agar individual items add karne the. UPI app mein galat amount daal dena jaisa hi embarrassing bug hai yeh.
+
+### Elements Remove Karna
 
 ```python
 fruits = ["apple", "banana", "cherry", "banana", "date"]
 
-# Remove by value (first occurrence)
+# Value se remove karo (pehla occurrence)
 fruits.remove("banana")       # ["apple", "cherry", "banana", "date"]
-# Raises ValueError if not found!
+# Agar nahi mila to ValueError aayega!
 
-# Remove by index and return the value
-last = fruits.pop()           # removes and returns "date"
-second = fruits.pop(1)        # removes and returns "cherry"
+# Index se remove karo aur value return karo
+last = fruits.pop()           # "date" ko remove aur return karta hai
+second = fruits.pop(1)        # "cherry" ko remove aur return karta hai
 
-# Remove by index (no return)
-del fruits[0]                 # removes "apple"
+# Index se remove (kuch return nahi karta)
+del fruits[0]                 # "apple" remove hota hai
 
-# Remove a slice
-del fruits[1:3]               # removes elements at index 1 and 2
+# Slice remove karo
+del fruits[1:3]               # index 1 aur 2 wale elements remove
 
-# Clear all elements
+# Sab clear karo
 fruits.clear()                # []
 ```
 
 ```javascript
 // JS equivalents
 let idx = fruits.indexOf("banana");
-if (idx !== -1) fruits.splice(idx, 1);  // remove by value
+if (idx !== -1) fruits.splice(idx, 1);  // value se remove
 
-fruits.pop()                  // remove and return last
-fruits.splice(1, 1)           // remove at index 1
-fruits.length = 0             // clear (or fruits = [])
+fruits.pop()                  // last remove aur return
+fruits.splice(1, 1)           // index 1 pe remove
+fruits.length = 0             // clear (ya fruits = [])
 ```
 
-### Searching
+### Search Karna
 
 ```python
 fruits = ["apple", "banana", "cherry", "banana"]
 
-# Check membership
+# Membership check
 "banana" in fruits             # True
 "mango" not in fruits          # True
 
-# Find index
-fruits.index("banana")        # 1 (first occurrence)
-fruits.index("banana", 2)     # 3 (search starting from index 2)
-# fruits.index("mango")       # ValueError! Always check 'in' first
+# Index dhoondo
+fruits.index("banana")        # 1 (pehla occurrence)
+fruits.index("banana", 2)     # 3 (index 2 se search shuru)
+# fruits.index("mango")       # ValueError! Pehle 'in' se check kar lo
 
-# Count occurrences
+# Kitni baar aaya, count karo
 fruits.count("banana")        # 2
 ```
 
 ```javascript
 // JS equivalents
 fruits.includes("banana")     // true
-fruits.indexOf("banana")      // 1 (-1 if not found, no error)
-// No built-in count -- need filter().length
+fruits.indexOf("banana")      // 1 (agar nahi mila to -1, error nahi)
+// Koi built-in count nahi -- filter().length use karna padta hai
 fruits.filter(f => f === "banana").length  // 2
 ```
 
 ### Sorting
 
+Sabse jaruri baat yaad rakhna: `sort()` list ko **badal deta hai** (in-place), aur `sorted()` ek **naya** list return karta hai, original waisa hi rehta hai.
+
 ```python
 numbers = [3, 1, 4, 1, 5, 9, 2, 6]
 
-# Sort in place (modifies the list)
+# In place sort (list badal jaati hai)
 numbers.sort()                 # [1, 1, 2, 3, 4, 5, 6, 9]
 numbers.sort(reverse=True)     # [9, 6, 5, 4, 3, 2, 1, 1]
 
-# Return a new sorted list (original unchanged)
+# Naya sorted list return karo (original waisa hi rehta hai)
 original = [3, 1, 4, 1, 5]
 new_sorted = sorted(original)           # [1, 1, 3, 4, 5]
-print(original)                          # [3, 1, 4, 1, 5] -- unchanged!
+print(original)                          # [3, 1, 4, 1, 5] -- ye change nahi hua!
 
-# Sort with a key function
+# Key function se sort
 words = ["banana", "apple", "cherry", "date"]
 words.sort(key=len)                      # ["date", "apple", "banana", "cherry"]
 words.sort(key=str.lower)                # case-insensitive sort
 
-# Sort complex objects
+# Complex objects ko sort karna
 users = [
     {"name": "Charlie", "age": 25},
     {"name": "Alice", "age": 30},
     {"name": "Bob", "age": 20},
 ]
-users.sort(key=lambda u: u["age"])       # sort by age
-sorted_by_name = sorted(users, key=lambda u: u["name"])  # new list, sorted by name
+users.sort(key=lambda u: u["age"])       # age se sort
+sorted_by_name = sorted(users, key=lambda u: u["name"])  # naya list, name se sorted
 
 # Multi-key sorting
 from operator import itemgetter
-users.sort(key=itemgetter("age", "name"))  # sort by age, then name
+users.sort(key=itemgetter("age", "name"))  # pehle age, phir name se sort
 ```
 
 ```javascript
 // JS sort
 numbers.sort((a, b) => a - b);           // ascending
 numbers.sort((a, b) => b - a);           // descending
-// JS sort mutates in place and has no built-in sorted()
+// JS sort in-place hi karta hai, sorted() jaisa kuch nahi hai
 let newSorted = [...numbers].sort((a, b) => a - b);  // copy + sort
 
-words.sort((a, b) => a.length - b.length);  // sort by length
-users.sort((a, b) => a.age - b.age);        // sort by age
+words.sort((a, b) => a.length - b.length);  // length se sort
+users.sort((a, b) => a.age - b.age);        // age se sort
 ```
 
-**Key difference:** Python's `sort()` is stable (equal elements maintain their relative order). JS's `sort()` is also stable in modern engines, but this was not guaranteed before ES2019.
+**Key difference:** Python ka `sort()` stable hota hai (equal elements apna relative order maintain karte hain). JS ka `sort()` bhi modern engines mein stable hai, lekin ES2019 se pehle yeh guarantee nahi tha.
 
-### Reversing
+### Reverse Karna
 
 ```python
 numbers = [1, 2, 3, 4, 5]
@@ -207,16 +217,16 @@ numbers = [1, 2, 3, 4, 5]
 # In place
 numbers.reverse()              # [5, 4, 3, 2, 1]
 
-# New list
-reversed_list = list(reversed(numbers))   # new reversed list
+# Naya list
+reversed_list = list(reversed(numbers))   # naya reversed list
 reversed_list = numbers[::-1]             # slicing approach
 ```
 
 ---
 
-## List Slicing In Depth
+## List Slicing — Detail Mein
 
-Slicing works on any sequence (lists, tuples, strings). The syntax is `sequence[start:stop:step]`.
+Slicing kisi bhi sequence pe kaam karti hai (lists, tuples, strings). Syntax hai `sequence[start:stop:step]`.
 
 ```python
 nums = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -228,26 +238,29 @@ nums[6:]           # [6, 7, 8, 9]
 nums[:]            # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] (shallow copy!)
 
 # Step
-nums[::2]          # [0, 2, 4, 6, 8] (every 2nd)
-nums[1::2]         # [1, 3, 5, 7, 9] (every 2nd starting at 1)
+nums[::2]          # [0, 2, 4, 6, 8] (har 2nd)
+nums[1::2]         # [1, 3, 5, 7, 9] (index 1 se shuru, har 2nd)
 nums[::3]          # [0, 3, 6, 9]
 
-# Negative step (reverses direction)
+# Negative step (direction reverse ho jaati hai)
 nums[::-1]         # [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
 nums[7:2:-1]       # [7, 6, 5, 4, 3]
 
-# Slice assignment (modifying a portion of the list)
-nums[2:5] = [20, 30, 40]     # replace elements at indices 2, 3, 4
-nums[2:5] = [20, 30, 40, 50] # can even change the length!
-nums[2:2] = [99, 98]         # insert without removing (empty slice)
+# Slice assignment (list ke portion ko modify karna)
+nums[2:5] = [20, 30, 40]     # index 2, 3, 4 ke elements replace
+nums[2:5] = [20, 30, 40, 50] # length bhi change kar sakte ho!
+nums[2:2] = [99, 98]         # kuch remove kiye bina insert karna (empty slice)
 ```
+
+> [!info]
+> `nums[:]` ek shallow copy return karta hai — original list se koi link nahi rehta (upar wale level pe). Yeh cheez neeche "Copying Lists" section mein aur detail mein aayegi.
 
 ### Slice Objects
 
 ```python
-# You can store a slice as a reusable object
-first_three = slice(None, 3)     # equivalent to [:3]
-every_other = slice(None, None, 2)  # equivalent to [::2]
+# Slice ko reusable object ki tarah store kar sakte ho
+first_three = slice(None, 3)     # [:3] ke barabar
+every_other = slice(None, None, 2)  # [::2] ke barabar
 
 nums = [0, 1, 2, 3, 4, 5]
 nums[first_three]      # [0, 1, 2]
@@ -258,7 +271,7 @@ nums[every_other]      # [0, 2, 4]
 
 ## Unpacking (Destructuring)
 
-Python's unpacking is like JS destructuring, with some extra tricks.
+Python ki unpacking JS destructuring jaisi hi hai, bas kuch extra tricks ke saath.
 
 ```python
 # Basic unpacking
@@ -268,10 +281,10 @@ print(a, b, c)          # 1 2 3
 # Swap
 a, b = b, a
 
-# Ignore values with _
-first, _, third = [1, 2, 3]    # _ is convention for "don't care"
+# _ se values ignore karo
+first, _, third = [1, 2, 3]    # _ convention hai "mujhe iski parwaah nahi" ke liye
 
-# Extended unpacking with * (like JS ...rest)
+# * se extended unpacking (JS ke ...rest jaisa)
 first, *rest = [1, 2, 3, 4, 5]
 print(first)             # 1
 print(rest)              # [2, 3, 4, 5]
@@ -294,31 +307,33 @@ print(a, b, c, d)       # 1 2 3 4
 // JS destructuring
 let [a, b, c] = [1, 2, 3];
 let [first, ...rest] = [1, 2, 3, 4, 5];
-// JS cannot put rest in the middle: [first, ...middle, last] is invalid!
+// JS mein rest beech mein nahi rakh sakte: [first, ...middle, last] invalid hai!
 ```
 
-**Python wins here:** The `*` operator can go anywhere (beginning, middle, end), whereas JS's `...rest` can only be the last element.
+**Yahan Python jeet gaya:** `*` operator kahin bhi laga sakte ho (shuru mein, beech mein, end mein), jabki JS ka `...rest` sirf last element hi ho sakta hai.
 
 ---
 
-## Tuples -- Immutable Lists
+## Tuples — Immutable Lists
 
-Tuples are ordered, immutable sequences. Think of them as lists that cannot be changed after creation. JavaScript has no direct equivalent.
+Tuples ordered, immutable sequences hain. Inhe list samjho jo banne ke baad kabhi badal nahi sakti. JavaScript mein iska koi direct equivalent nahi hai.
 
-### Creating Tuples
+Socho ek train ticket — jaise ek IRCTC PNR pe passenger ka naam, seat number, aur coach ek baar book hone ke baad fix ho jaate hain, waise hi tuple ke elements fix ho jaate hain creation ke baad.
+
+### Tuple Banana
 
 ```python
-# Created with parentheses (or just commas)
+# Parentheses se banate hain (ya sirf commas se bhi)
 point = (3, 4)
 rgb = (255, 128, 0)
-single = (42,)           # MUST have trailing comma for single-element tuple!
-not_a_tuple = (42)        # this is just the integer 42 in parentheses
+single = (42,)           # single-element tuple ke liye trailing comma ZARURI hai!
+not_a_tuple = (42)        # yeh sirf integer 42 hai parentheses mein
 
-# Parentheses are optional when unambiguous
-point = 3, 4              # also a tuple
+# Jab ambiguity na ho, parentheses optional hain
+point = 3, 4              # yeh bhi tuple hai
 a, b = 1, 2               # tuple unpacking
 
-# From other iterables
+# Doosre iterables se
 tuple([1, 2, 3])           # (1, 2, 3)
 tuple("hello")             # ('h', 'e', 'l', 'l', 'o')
 
@@ -327,16 +342,19 @@ empty = ()
 empty = tuple()
 ```
 
-### Why Use Tuples?
+> [!warning]
+> `(42,)` aur `(42)` mein farak yaad rakhna. Comma nahi lagaya to Python usse tuple nahi mानेगा, sirf ek number samjhega — yeh gotcha bahut logon ko lagta hai.
 
-1. **Immutability guarantees:** Once created, it cannot change. Useful for data that should not be modified.
-2. **Dictionary keys:** Tuples can be used as dict keys (lists cannot -- they are not hashable).
-3. **Function returns:** Functions naturally return tuples for multiple values.
-4. **Performance:** Slightly faster than lists, smaller memory footprint.
-5. **Signal intent:** Using a tuple tells other developers "this data is fixed."
+### Tuples Kyun Use Karein?
+
+1. **Immutability ki guarantee:** Ek baar ban gaya to badal nahi sakta. Us data ke liye useful jo modify nahi hona chahiye.
+2. **Dictionary keys:** Tuples dict keys ban sakte hain (lists nahi ban sakti — woh hashable nahi hoti).
+3. **Function returns:** Functions naturally multiple values ke liye tuple return karte hain.
+4. **Performance:** Lists se thoda fast, memory bhi kam leta hai.
+5. **Intent signal:** Tuple use karke tum doosre developers ko batate ho "yeh data fixed hai."
 
 ```python
-# Tuples as dict keys (lists would cause TypeError)
+# Dict keys ki tarah tuples (lists se TypeError aata)
 locations = {
     (40.7128, -74.0060): "New York",
     (51.5074, -0.1278): "London",
@@ -346,9 +364,9 @@ print(locations[(40.7128, -74.0060)])  # "New York"
 
 # Multiple return values
 def get_user():
-    return "Alice", 30, "admin"   # returns a tuple
+    return "Alice", 30, "admin"   # tuple return hota hai
 
-name, age, role = get_user()       # unpack the tuple
+name, age, role = get_user()       # tuple ko unpack karo
 
 # Immutability
 point = (3, 4)
@@ -357,49 +375,49 @@ point = (3, 4)
 
 ### Tuple Methods
 
-Tuples have only two methods (because they are immutable):
+Tuples ke sirf do methods hain (kyunki woh immutable hain):
 
 ```python
 t = (1, 2, 3, 2, 4, 2)
 t.count(2)         # 3
-t.index(2)         # 1 (first occurrence)
+t.index(2)         # 1 (pehla occurrence)
 ```
 
-### Tuple vs List: When to Use Which
+### Tuple vs List: Kab Kya Use Karein
 
-| Use a **list** when...                    | Use a **tuple** when...                |
+| **List** use karo jab...                    | **Tuple** use karo jab...                |
 |-------------------------------------------|----------------------------------------|
-| The collection will change                | The data is fixed/constant             |
-| You need append, remove, sort             | Returning multiple values from a func  |
-| Homogeneous data (list of users, etc.)    | Heterogeneous fixed structure (record) |
-| Order matters and may change              | Using as a dictionary key              |
-| Sequence of similar things                | Named group of related values          |
+| Collection change hone wala hai            | Data fixed/constant hai                |
+| Append, remove, sort chahiye             | Function se multiple values return karni hain |
+| Homogeneous data (users ki list, etc.)    | Heterogeneous fixed structure (record) |
+| Order matter karta hai aur change ho sakta hai | Dictionary key ki tarah use karna hai |
+| Similar cheezon ki sequence hai            | Related values ka named group hai      |
 
 ```python
-# List: collection of similar things (will change)
+# List: similar cheezon ka collection (change hoga)
 shopping_cart = ["apple", "bread", "milk"]
 shopping_cart.append("eggs")
 
-# Tuple: fixed record (won't change)
+# Tuple: fixed record (change nahi hoga)
 http_response = (200, "OK", {"Content-Type": "text/html"})
 database_row = ("Alice", 30, "alice@example.com")
 ```
 
-### Named Tuples -- Tuples with Names
+### Named Tuples — Naam Wale Tuples
 
-For structured data, named tuples give you named fields (like a lightweight class or a TypeScript interface).
+Structured data ke liye, named tuples tumhe named fields dete hain (ek lightweight class ya TypeScript interface jaisa).
 
 ```python
 from collections import namedtuple
 
-# Define a named tuple type
+# Named tuple type define karo
 Point = namedtuple("Point", ["x", "y"])
-User = namedtuple("User", "name age email")  # string syntax also works
+User = namedtuple("User", "name age email")  # string syntax bhi chalti hai
 
-# Create instances
+# Instances banao
 p = Point(3, 4)
 print(p.x, p.y)         # 3 4
-print(p[0], p[1])       # 3 4 (still indexable)
+print(p[0], p[1])       # 3 4 (abhi bhi indexable hai)
 
 user = User("Alice", 30, "alice@example.com")
 print(user.name)         # "Alice"
@@ -408,21 +426,21 @@ print(user.age)          # 30
 # Immutable
 # p.x = 5   # AttributeError
 
-# Convert to dict
+# Dict mein convert karo
 print(user._asdict())   # {'name': 'Alice', 'age': 30, 'email': 'alice@example.com'}
 
-# Create modified copy
+# Modified copy banao
 older_user = user._replace(age=31)
 ```
 
 ```typescript
-// Closest TS equivalent
+// Sabse close TS equivalent
 interface Point { x: number; y: number; }
 interface User { name: string; age: number; email: string; }
-// But these are mutable and just types, not runtime constructs
+// Lekin ye mutable hain aur sirf types hain, runtime constructs nahi
 ```
 
-For more features, use `typing.NamedTuple` (modern style):
+Aur zyada features ke liye, `typing.NamedTuple` use karo (modern style):
 
 ```python
 from typing import NamedTuple
@@ -438,18 +456,18 @@ print(p.label)       # "origin"
 
 ---
 
-## List Comprehensions (Preview)
+## List Comprehensions (Jhalak)
 
-List comprehensions are covered in depth in `10_comprehensions.md`, but here is a quick preview since they are so fundamental.
+List comprehensions ko detail mein `10_comprehensions.md` mein cover kiya gaya hai, lekin yeh itni fundamental cheez hai ki ek quick preview yahan de rahe hain.
 
 ```python
-# Create a list from a transformation
+# Transformation se list banao
 squares = [x ** 2 for x in range(10)]          # [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 
-# With a filter
+# Filter ke saath
 evens = [x for x in range(20) if x % 2 == 0]  # [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
 
-# Transform and filter
+# Transform aur filter dono
 words = ["hello", "world", "hi", "python"]
 long_upper = [w.upper() for w in words if len(w) > 3]  # ['HELLO', 'WORLD', 'PYTHON']
 ```
@@ -457,7 +475,7 @@ long_upper = [w.upper() for w in words if len(w) > 3]  # ['HELLO', 'WORLD', 'PYT
 ```javascript
 // JS equivalents
 let squares = Array.from({length: 10}, (_, i) => i ** 2);
-// or: [...Array(10)].map((_, i) => i ** 2);
+// ya: [...Array(10)].map((_, i) => i ** 2);
 
 let evens = [...Array(20).keys()].filter(x => x % 2 === 0);
 
@@ -468,25 +486,25 @@ let longUpper = words.filter(w => w.length > 3).map(w => w.toUpperCase());
 
 ## Common List Operations
 
-### Copying Lists
+### Lists Copy Karna
 
 ```python
 original = [1, 2, [3, 4]]
 
-# Shallow copy (3 ways)
+# Shallow copy (3 tarike)
 copy1 = original.copy()
 copy2 = original[:]
 copy3 = list(original)
 
-# All three create shallow copies -- nested objects are shared!
+# Teeno shallow copies banate hain -- nested objects shared rehte hain!
 copy1[2].append(5)
-print(original)       # [1, 2, [3, 4, 5]] -- original was affected!
+print(original)       # [1, 2, [3, 4, 5]] -- original bhi affect hua!
 
 # Deep copy
 import copy
 deep = copy.deepcopy(original)
 deep[2].append(6)
-print(original)       # [1, 2, [3, 4, 5]] -- original NOT affected
+print(original)       # [1, 2, [3, 4, 5]] -- original affect NAHI hua
 ```
 
 ```javascript
@@ -497,20 +515,23 @@ let copy2 = original.slice();
 let deep = structuredClone(original);
 ```
 
-### Flattening Nested Lists
+> [!warning]
+> Yeh sabse bada gotcha hai jo har Python beginner ko lagta hai. Shallow copy sirf **top-level** elements ki nayi list banati hai — andar ki nested lists/dicts wahi purani wali hi rehti hain, shared reference. Socho tumne Swiggy order ka "copy" banaya, lekin address wahi purana object hai — usmein change karoge to original order ka address bhi badal jaayega. Nested data ke liye hamesha `copy.deepcopy()` use karo.
+
+### Nested Lists Flatten Karna
 
 ```python
 nested = [[1, 2], [3, 4], [5, 6]]
 
-# One level of nesting
+# Ek level ki nesting
 flat = [item for sublist in nested for item in sublist]
 # [1, 2, 3, 4, 5, 6]
 
-# Using itertools for any depth
+# Kisi bhi depth ke liye itertools use karo
 import itertools
 flat = list(itertools.chain.from_iterable(nested))
 
-# For deeply nested, recursive approach
+# Bahut deeply nested ke liye, recursive approach
 def flatten(lst):
     result = []
     for item in lst:
@@ -526,22 +547,22 @@ print(flatten(deeply_nested))   # [1, 2, 3, 4, 5]
 
 ```javascript
 // JS flat
-nested.flat()       // one level
-nested.flat(Infinity)  // any depth
+nested.flat()       // ek level
+nested.flat(Infinity)  // kisi bhi depth tak
 ```
 
-### Zipping Lists
+### Lists Zip Karna
 
 ```python
 names = ["Alice", "Bob", "Charlie"]
 ages = [30, 25, 35]
 cities = ["NYC", "LA", "Chicago"]
 
-# zip combines corresponding elements
+# zip corresponding elements ko combine karta hai
 combined = list(zip(names, ages))
 # [('Alice', 30), ('Bob', 25), ('Charlie', 35)]
 
-# With three lists
+# Teen lists ke saath
 combined = list(zip(names, ages, cities))
 # [('Alice', 30, 'NYC'), ('Bob', 25, 'LA'), ('Charlie', 35, 'Chicago')]
 
@@ -549,17 +570,17 @@ combined = list(zip(names, ages, cities))
 for name, age in zip(names, ages):
     print(f"{name} is {age}")
 
-# Enumerate -- get index + value (like entries() in JS)
+# Enumerate -- index + value dono milte hain (JS ke entries() jaisa)
 for i, name in enumerate(names):
     print(f"{i}: {name}")
 
-for i, name in enumerate(names, start=1):  # start counting from 1
+for i, name in enumerate(names, start=1):  # counting 1 se shuru
     print(f"{i}. {name}")
 ```
 
 ```javascript
-// JS has no built-in zip
-// entries() is similar to enumerate
+// JS mein built-in zip nahi hai
+// entries() enumerate jaisa hi hai
 for (let [i, name] of names.entries()) {
     console.log(`${i}: ${name}`);
 }
@@ -570,20 +591,20 @@ for (let [i, name] of names.entries()) {
 ## Methods Comparison Table
 
 | Operation              | Python                           | JavaScript                          |
-|------------------------|----------------------------------|-------------------------------------|
-| Add to end             | `lst.append(x)`                  | `arr.push(x)`                       |
-| Add to beginning       | `lst.insert(0, x)`              | `arr.unshift(x)`                    |
-| Remove last            | `lst.pop()`                      | `arr.pop()`                         |
-| Remove first           | `lst.pop(0)`                     | `arr.shift()`                       |
-| Remove at index        | `lst.pop(i)` or `del lst[i]`   | `arr.splice(i, 1)`                 |
-| Remove by value        | `lst.remove(x)`                 | `arr.splice(arr.indexOf(x), 1)`    |
+|------------------------|-----------------------------------|--------------------------------------|
+| End mein add           | `lst.append(x)`                  | `arr.push(x)`                       |
+| Beginning mein add     | `lst.insert(0, x)`              | `arr.unshift(x)`                    |
+| Last remove            | `lst.pop()`                      | `arr.pop()`                         |
+| First remove           | `lst.pop(0)`                     | `arr.shift()`                       |
+| Index se remove        | `lst.pop(i)` ya `del lst[i]`   | `arr.splice(i, 1)`                 |
+| Value se remove        | `lst.remove(x)`                 | `arr.splice(arr.indexOf(x), 1)`    |
 | Extend                 | `lst.extend([1,2])`             | `arr.push(...[1,2])`               |
 | Concatenate            | `lst1 + lst2`                   | `arr1.concat(arr2)` / `[...a,...b]` |
-| Find index             | `lst.index(x)`                  | `arr.indexOf(x)`                    |
-| Check membership       | `x in lst`                      | `arr.includes(x)`                   |
+| Index dhoondo          | `lst.index(x)`                  | `arr.indexOf(x)`                    |
+| Membership check       | `x in lst`                      | `arr.includes(x)`                   |
 | Count                  | `lst.count(x)`                  | `arr.filter(e=>e===x).length`      |
 | Sort (in place)        | `lst.sort()`                    | `arr.sort()`                        |
-| Sort (new)             | `sorted(lst)`                   | `[...arr].sort()`                   |
+| Sort (naya)            | `sorted(lst)`                   | `[...arr].sort()`                   |
 | Reverse (in place)     | `lst.reverse()`                 | `arr.reverse()`                     |
 | Length                 | `len(lst)`                      | `arr.length`                        |
 | Shallow copy           | `lst.copy()` / `lst[:]`        | `[...arr]` / `arr.slice()`         |
@@ -602,7 +623,7 @@ for (let [i, name] of names.entries()) {
 ## Practice Exercises
 
 ### Exercise 1: List Manipulation
-Start with a list of numbers 1-10. Remove all even numbers, double the remaining odds, and reverse the result. Do this in as few lines as possible.
+Numbers 1-10 ki list se shuru karo. Saare even numbers hatao, bache huye odds ko double karo, aur result ko reverse karo. Kam se kam lines mein karo.
 
 ```python
 numbers = list(range(1, 11))
@@ -620,7 +641,7 @@ print(result)  # [18, 14, 10, 6, 2]
 </details>
 
 ### Exercise 2: Matrix Operations
-Create a 3x3 matrix (list of lists), then write functions to: (a) get a specific row, (b) get a specific column, (c) get the diagonal, (d) transpose the matrix.
+Ek 3x3 matrix banao (list of lists), phir functions likho jo: (a) specific row de, (b) specific column de, (c) diagonal de, (d) matrix ko transpose kare.
 
 ```python
 matrix = [
@@ -665,7 +686,7 @@ print(transpose(matrix))       # [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
 </details>
 
 ### Exercise 3: Tuple Records
-Create a list of student tuples (name, grade, gpa). Write functions to find the student with the highest GPA, all students above a given GPA threshold, and the average GPA. Use named tuples for bonus points.
+Student tuples (name, grade, gpa) ki list banao. Functions likho jo: highest GPA wala student dhoondein, ek given GPA threshold se upar wale saare students dein, aur average GPA calculate karein. Bonus points ke liye named tuples use karo.
 
 ```python
 students = [
@@ -714,7 +735,7 @@ print(f"Average GPA: {average_gpa(students):.2f}")
 </details>
 
 ### Exercise 4: Interleave and Chunk
-Write two utility functions: (a) `interleave` that merges two lists alternately, and (b) `chunk` that splits a list into groups of n.
+Do utility functions likho: (a) `interleave` jo do lists ko alternately merge kare, aur (b) `chunk` jo ek list ko n-size ke groups mein split kare.
 
 ```python
 def interleave(a, b): pass
@@ -732,12 +753,12 @@ def interleave(a, b):
     result = []
     for pair in zip(a, b):
         result.extend(pair)
-    # Handle remaining elements if lists are different lengths
+    # Agar lists ki length alag hai to bache hue elements handle karo
     longer = a if len(a) > len(b) else b
     result.extend(longer[min(len(a), len(b)):])
     return result
 
-# More Pythonic version:
+# Zyada Pythonic version:
 def interleave_v2(a, b):
     from itertools import zip_longest
     result = []
@@ -764,7 +785,7 @@ print(chunk([1, 2, 3, 4, 5, 6, 7], 3))
 </details>
 
 ### Exercise 5: List Rotation
-Write a function that rotates a list by `k` positions. Positive `k` rotates right, negative rotates left. Do it without using `collections.deque`.
+Ek function likho jo list ko `k` positions se rotate kare. Positive `k` right rotate karega, negative left. `collections.deque` use kiye bina karo.
 
 ```python
 def rotate(lst, k): pass
@@ -780,7 +801,7 @@ print(rotate([1, 2, 3, 4, 5], -2))  # [3, 4, 5, 1, 2]
 def rotate(lst, k):
     if not lst:
         return lst
-    k = k % len(lst)  # handle k > len(lst)
+    k = k % len(lst)  # k > len(lst) wala case handle karo
     return lst[-k:] + lst[:-k] if k else lst[:]
 
 print(rotate([1, 2, 3, 4, 5], 2))    # [4, 5, 1, 2, 3]
@@ -789,3 +810,13 @@ print(rotate([1, 2, 3, 4, 5], 7))    # [4, 5, 1, 2, 3] (7 % 5 = 2)
 print(rotate([1, 2, 3, 4, 5], 0))    # [1, 2, 3, 4, 5]
 ```
 </details>
+
+## Key Takeaways
+
+- Python lists JS arrays jaisi hi hain, lekin negative indexing (`fruits[-1]`) aur powerful slicing (`[start:stop:step]`) extra milta hai.
+- `append` vs `extend` ka farak yaad rakho — `append` poori list ko ek element bana deta hai, `extend` har element ko alag se add karta hai.
+- `sort()` list ko in-place modify karta hai, `sorted()` naya list return karta hai — original untouched rehta hai.
+- Unpacking mein `*` operator kahin bhi (start, middle, end) laga sakte ho — JS ke `...rest` se zyada flexible hai.
+- Tuples immutable hain — dict keys ban sakte hain, function se multiple values return karne ke liye best hain, aur "yeh data fixed hai" wala intent signal karte hain.
+- Named tuples (`namedtuple` ya `typing.NamedTuple`) tumhe TypeScript interface jaisa readable, structured data dete hain — lekin runtime pe bhi kaam karte hain.
+- Shallow copy (`.copy()`, `[:]`, `list()`) sirf top-level copy karti hai — nested lists/dicts shared reference rehte hain. Deep copy ke liye `copy.deepcopy()` use karo.

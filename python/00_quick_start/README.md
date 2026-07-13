@@ -1,64 +1,72 @@
 # Python Quick Start
 
-Everything you need to go from zero to a working Python environment in one sitting. This section is written specifically for Node.js and TypeScript developers — every concept is mapped to something you already know so you can get productive fast.
+Kya hota hai jab ek Node.js developer achanak Python seekhne baith jaye? Pehle 10 minute confusion hota hai — `npm` kahan gaya, `package.json` kahan hai, yeh `venv` kya bala hai — phir dheere dheere sab click karne lagta hai. Yeh section exactly wahi confusion khatam karne ke liye hai.
+
+Zero se lekar ek working Python environment tak — sab kuch ek hi baithak mein. Yeh section khaas taur pe Node.js aur TypeScript developers ke liye likha gaya hai — har concept ko us cheez se map kiya gaya hai jo tumhe pehle se pata hai, taaki tum jaldi productive ho jao.
+
+> [!tip]
+> Socho aisa jaise tum Swiggy pe already expert order-placer ho, aur ab Zomato try kar rahe ho. App alag hai, buttons alag jagah hain, lekin underlying idea — khana order karna — same hi hai. Python bhi Node.js se aisa hi hai: syntax alag, mental model same.
 
 ## Table of Contents
 
-1. [Python Installation & Version Management](./01_python_installation.md) — Install Python and manage versions with `pyenv` (Python's `nvm`)
-2. [Virtual Environments](./02_virtual_environments.md) — Isolate project dependencies with `venv` (Python's answer to `node_modules`)
-3. [Package Management](./03_package_management.md) — Install, manage, and lock packages with `pip` and `pip-tools` (like `npm` + `package-lock.json`)
-4. [Node.js/TypeScript to Python Cheatsheet](./04_nodejs_to_python_cheatsheet.md) — Side-by-side syntax reference covering variables, functions, classes, async, modules, and more
-5. [Your First Python Script](./05_first_python_script.md) — Run a real script, use the REPL, handle CLI args, and understand `if __name__ == "__main__"`
+1. [Python Installation & Version Management](./01_python_installation.md) — Python install karo aur `pyenv` (Python ka `nvm`) se versions manage karo
+2. [Virtual Environments](./02_virtual_environments.md) — `venv` se project dependencies isolate karo (Python ka jawab `node_modules` ko)
+3. [Package Management](./03_package_management.md) — `pip` aur `pip-tools` se packages install, manage aur lock karo (jaise `npm` + `package-lock.json`)
+4. [Node.js/TypeScript to Python Cheatsheet](./04_nodejs_to_python_cheatsheet.md) — Side-by-side syntax reference — variables, functions, classes, async, modules, aur bhi bahut kuch
+5. [Your First Python Script](./05_first_python_script.md) — Ek real script chalao, REPL use karo, CLI args handle karo aur `if __name__ == "__main__"` samjho
 
 ---
 
 ## Learning Path
 
-### Beginner — Get set up and write your first code
-1. [Python Installation](./01_python_installation.md) — install Python, set up `pyenv`
-2. [Virtual Environments](./02_virtual_environments.md) — create and activate a `venv`
-3. [Your First Python Script](./05_first_python_script.md) — run `hello.py`, explore the REPL
+### Beginner — Setup karo aur pehla code likho
+1. [Python Installation](./01_python_installation.md) — Python install karo, `pyenv` set up karo
+2. [Virtual Environments](./02_virtual_environments.md) — ek `venv` banao aur activate karo
+3. [Your First Python Script](./05_first_python_script.md) — `hello.py` chalao, REPL explore karo
 
-### Intermediate — Understand the ecosystem and syntax differences
-4. [Package Management](./03_package_management.md) — `pip install`, `requirements.txt`, freezing dependencies
-5. [Node.js to Python Cheatsheet](./04_nodejs_to_python_cheatsheet.md) — systematically work through each syntax section
+### Intermediate — Ecosystem aur syntax differences samjho
+4. [Package Management](./03_package_management.md) — `pip install`, `requirements.txt`, dependencies freeze karna
+5. [Node.js to Python Cheatsheet](./04_nodejs_to_python_cheatsheet.md) — har syntax section ko systematically cover karo
 
-### Advanced — Solidify the mental model
-- Revisit the cheatsheet sections on async/await, type annotations, and common gotchas after you've written a few real scripts
-- Use the cheatsheet as a daily reference while working through the core Python topics in the sections that follow
+### Advanced — Mental model pakka karo
+- Cheatsheet ke async/await, type annotations aur common gotchas wale sections ko dobara padho — kuch real scripts likhne ke baad
+- Cheatsheet ko roz ke reference ki tarah use karo, jab tum aage ke core Python topics padh rahe ho
 
 ---
 
 ## What You'll Learn
 
-- How to install Python on Windows, macOS, and Linux using direct installers or package managers
-- How to manage multiple Python versions per-project using `pyenv` (global, local, and shell scopes)
-- How virtual environments work and why every Python project needs one
-- How to install packages with `pip`, generate `requirements.txt`, and pin dependency versions
-- How Python's module system differs from Node.js CommonJS and ESM imports
-- Side-by-side translations for variables, data types, strings, lists, dicts, sets, tuples, functions, lambdas, destructuring, loops, error handling, and classes
-- How async/await works in Python compared to JavaScript
-- The `if __name__ == "__main__"` pattern and when to use it
-- How to accept command-line arguments in a Python script
+- Windows, macOS aur Linux pe Python install karna — direct installers ya package managers se
+- `pyenv` se per-project multiple Python versions manage karna (global, local aur shell scopes)
+- Virtual environments kaise kaam karte hain aur har Python project ko ek kyun chahiye
+- `pip` se packages install karna, `requirements.txt` generate karna, aur dependency versions pin karna
+- Python ka module system Node.js ke CommonJS aur ESM imports se kaise alag hai
+- Variables, data types, strings, lists, dicts, sets, tuples, functions, lambdas, destructuring, loops, error handling aur classes ke side-by-side translations
+- JavaScript ke mukable Python mein async/await kaise kaam karta hai
+- `if __name__ == "__main__"` pattern aur ise kab use karna hai
+- Python script mein command-line arguments kaise accept karte hain
 
 ---
 
 ## Prerequisites
 
-- Comfortable with Node.js and/or TypeScript — this guide leans heavily on that background to explain Python concepts
-- A terminal (PowerShell, bash, or zsh)
-- No prior Python experience needed
+- Node.js aur/ya TypeScript ke saath comfortable ho — yeh guide us background ka use karke Python concepts samjhaata hai
+- Ek terminal (PowerShell, bash, ya zsh)
+- Python ka pehle se koi experience zaruri nahi
 
 ---
 
 ## How to Use This Guide
 
-1. **Follow the numbered order on your first pass.** The files are sequenced so each one builds on the previous — environment setup before writing code, writing code before referencing the cheatsheet at speed.
-2. **Run every code example yourself.** Open a terminal alongside each file and type the commands out; Python muscle memory builds faster than you'd expect.
-3. **Keep the cheatsheet open in a second tab.** Once you start writing real Python, `04_nodejs_to_python_cheatsheet.md` is the file you'll return to daily. Bookmark it.
-4. **Use the practice exercises.** Each file ends with exercises that take 5-15 minutes. Do them — they expose the gotchas that reading alone won't.
-5. **Don't get stuck on perfecting your environment.** A plain `python` install without `pyenv` is fine to start. Layer in the tooling as you need it.
+1. **Pehli baar mein numbered order follow karo.** Files is tarah sequence ki gayi hain ki har ek pichli pe build karti hai — pehle environment setup, phir code likhna, phir speed ke liye cheatsheet reference karna.
+2. **Har code example khud chalao.** Har file ke saath ek terminal open rakho aur commands khud type karo — Python ki muscle memory jitni jaldi banti hai, utni umeed bhi nahi hogi.
+3. **Cheatsheet ko doosre tab mein khula rakho.** Jaise hi tum real Python likhna shuru karoge, `04_nodejs_to_python_cheatsheet.md` woh file hai jispe tum roz wapas aaoge. Bookmark kar lo.
+4. **Practice exercises use karo.** Har file ke end mein exercises hain jo 5-15 minute lete hain. Unhe zaroor karo — sirf padhne se jo gotchas nahi dikhte, woh yeh expose karte hain.
+5. **Environment ko perfect banane mein atko mat.** `pyenv` ke bina simple `python` install shuru karne ke liye theek hai. Jaise jaise zarurat pade, tooling layer karte jao.
+
+> [!warning]
+> Setup mein zyada time mat lagao. `pyenv`, virtual envs, sab tools hain — lekin agar tum pehle hi din perfect environment banane mein atak gaye, toh actual Python seekhna peeche chala jayega. Basic `python` install se shuru karo, code likho, phir zarurat padne pe tooling add karo.
 
 ---
 
-You already know how to think like a programmer — this section just hands you the Python vocabulary. Let's get started.
+Tumhe pehle se pata hai programmer ki tarah sochna kaise hai — yeh section bas tumhe Python ki vocabulary thama raha hai. Chalo shuru karte hain.

@@ -1,18 +1,18 @@
 # 06 - Functions
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aane walon ke liye
 
-Functions in Python are first-class objects, just like in JavaScript. The big differences: `def` instead of `function`, indentation instead of braces, and Python's parameter system is far more powerful -- with keyword arguments, `*args`, `**kwargs`, and positional-only parameters.
+Python mein functions bhi first-class objects hote hain, bilkul JavaScript ki tarah. Bade differences ye hain: `function` ki jagah `def`, braces ki jagah indentation, aur Python ka parameter system JS se kaafi zyada powerful hai — keyword arguments, `*args`, `**kwargs`, aur positional-only parameters ke saath.
 
 ---
 
-## Defining Functions
+## Functions Define Karna
 
 ### Basic Syntax
 
 ```python
 def greet(name):
-    """Return a greeting string."""    # docstring (like JSDoc)
+    """Return a greeting string."""    # docstring (JSDoc jaisa)
     return f"Hello, {name}!"
 
 result = greet("Alice")
@@ -29,13 +29,15 @@ const greet = (name) => `Hello, ${name}!`;
 ```
 
 Key differences:
-- `def` keyword instead of `function`
-- Colon `:` after the signature
-- Indentation defines the body
-- **Docstrings** (triple-quoted first line) serve as built-in documentation
-- No braces, no semicolons
+- `function` ki jagah `def` keyword
+- Signature ke baad colon `:`
+- Body indentation se define hoti hai
+- **Docstrings** (triple-quote wali pehli line) built-in documentation ka kaam karti hain
+- Na braces, na semicolons
 
 ### Docstrings
+
+Socho docstring ek chhota sa README hai jo function ke andar hi baitha hai — koi bhi `help()` maar ke dekh sakta hai function kya karta hai, bina code padhe.
 
 ```python
 def calculate_bmi(weight_kg, height_m):
@@ -56,42 +58,44 @@ def calculate_bmi(weight_kg, height_m):
         raise ValueError("Height must be positive")
     return weight_kg / (height_m ** 2)
 
-# Access the docstring
+# Docstring ko access karna
 print(calculate_bmi.__doc__)
 help(calculate_bmi)          # formatted display
 ```
 
 ---
 
-## Parameters and Arguments
+## Parameters aur Arguments
 
-### Positional and Keyword Arguments
+### Positional aur Keyword Arguments
 
-Python distinguishes between positional and keyword arguments. This does not exist in JavaScript.
+Python positional aur keyword arguments mein farak karta hai. Ye cheez JavaScript mein exist hi nahi karti.
+
+Zomato pe order karte waqt socho — kabhi tum bolte ho "2 pizza, extra cheese, address ye hai" (order matters), aur kabhi app khud pooch leta hai "address kya hai? cheese chahiye?" (naam se bata do, order nahi matter karta). Python mein bhi arguments aise hi kaam karte hain.
 
 ```python
 def create_user(name, age, city="Unknown"):
     return {"name": name, "age": age, "city": city}
 
-# Positional arguments (order matters)
+# Positional arguments (order matter karta hai)
 create_user("Alice", 30, "NYC")
 
-# Keyword arguments (order doesn't matter)
+# Keyword arguments (order matter nahi karta)
 create_user(age=30, name="Alice", city="NYC")
 
-# Mix positional and keyword
+# Positional aur keyword mix kar sakte ho
 create_user("Alice", 30, city="NYC")
 
-# RULE: positional args must come before keyword args
+# RULE: positional args, keyword args se pehle aane chahiye
 # create_user(name="Alice", 30)   # SyntaxError!
 ```
 
 ```javascript
-// JS doesn't have keyword arguments. The pattern is:
+// JS mein keyword arguments nahi hote. Pattern kuch aisa hota hai:
 function createUser(name, age, city = "Unknown") {
     return { name, age, city };
 }
-// Or with an options object:
+// Ya options object ke saath:
 function createUser({ name, age, city = "Unknown" }) {
     return { name, age, city };
 }
@@ -104,20 +108,20 @@ createUser({ name: "Alice", age: 30, city: "NYC" });
 def connect(host="localhost", port=5432, timeout=30, ssl=False):
     print(f"Connecting to {host}:{port} (timeout={timeout}, ssl={ssl})")
 
-# Skip some defaults using keyword arguments
-connect(ssl=True)                          # all defaults except ssl
-connect("prod-server", ssl=True)           # change host and ssl
-connect(port=3306, host="db.example.com")  # any order for keyword args
+# Keyword arguments use karke kuch defaults skip karo
+connect(ssl=True)                          # baaki sab default, sirf ssl badla
+connect("prod-server", ssl=True)           # host aur ssl badla
+connect(port=3306, host="db.example.com")  # keyword args kisi bhi order mein
 
 # GOTCHA: Mutable default arguments!
-def add_item(item, lst=[]):     # BUG! Default list is shared across calls
+def add_item(item, lst=[]):     # BUG! Default list saare calls mein shared hai
     lst.append(item)
     return lst
 
 print(add_item("a"))    # ['a']
-print(add_item("b"))    # ['a', 'b'] -- unexpected! Same list!
+print(add_item("b"))    # ['a', 'b'] -- yahi to problem hai! Wahi list use ho rahi!
 
-# The fix: use None as sentinel
+# Fix: None ko sentinel ki tarah use karo
 def add_item(item, lst=None):
     if lst is None:
         lst = []
@@ -126,27 +130,30 @@ def add_item(item, lst=None):
 ```
 
 ```javascript
-// JS has the same default parameter syntax
+// JS mein default parameter syntax same hai
 function connect(host = "localhost", port = 5432) { ... }
-// JS doesn't have the mutable default bug since defaults are evaluated each call
+// JS mein mutable default wala bug nahi aata kyunki defaults har call pe fresh evaluate hote hain
 ```
 
-**Critical difference:** In Python, default values are evaluated ONCE when the function is defined, not each time it is called. Mutable defaults (lists, dicts, sets) are a classic Python gotcha.
+> [!warning]
+> **Critical difference:** Python mein default values sirf ONE BAAR evaluate hoti hain — jab function define hota hai, har call pe nahi. Isliye mutable defaults (list, dict, set) ek classic Python gotcha hai. Isko yaad rakhna, ye interview mein bhi puchha jaata hai.
 
 ### *args -- Variable Positional Arguments
 
-Like JavaScript's rest parameters (`...args`), but Python uses `*`.
+JavaScript ke rest parameters (`...args`) jaisa hi hai, bas Python `*` use karta hai.
+
+Socho ek dabbawala jo pata nahi kitne dabbe uthaata hai — 1 ho ya 10, function sabko handle kar lega.
 
 ```python
 def sum_all(*numbers):
-    """Accept any number of positional arguments."""
+    """Kitne bhi positional arguments accept karo."""
     print(type(numbers))     # <class 'tuple'>
     return sum(numbers)
 
 print(sum_all(1, 2, 3))          # 6
 print(sum_all(1, 2, 3, 4, 5))    # 15
 
-# Combine with regular parameters
+# Regular parameters ke saath combine karo
 def log(level, *messages):
     for msg in messages:
         print(f"[{level}] {msg}")
@@ -165,11 +172,11 @@ function sumAll(...numbers) {
 
 ### **kwargs -- Variable Keyword Arguments
 
-This has NO JavaScript equivalent. It collects all extra keyword arguments into a dictionary.
+Iska JavaScript mein koi equivalent hi NAHI hai. Ye saare extra keyword arguments ko ek dictionary mein collect kar leta hai — jaise koi form jisme jitne fields chaho utne bhar do.
 
 ```python
 def create_element(tag, **attributes):
-    """Create an HTML element with arbitrary attributes."""
+    """Arbitrary attributes ke saath HTML element banao."""
     print(type(attributes))  # <class 'dict'>
     attrs = " ".join(f'{k}="{v}"' for k, v in attributes.items())
     return f"<{tag} {attrs}></{tag}>" if attrs else f"<{tag}></{tag}>"
@@ -181,17 +188,17 @@ print(create_element("input", type="text", name="email", required="true"))
 # <input type="text" name="email" required="true"></input>
 ```
 
-### Combining All Parameter Types
+### Sab Parameter Types Ko Combine Karna
 
 ```python
-# The full parameter order:
+# Poora parameter order:
 def full_example(
-    pos_only,        # positional-only (before /)
-    /,               # separator: everything before is positional-only
-    normal,          # normal (positional or keyword)
-    *,               # separator: everything after is keyword-only
-    kw_only,         # keyword-only (after *)
-    **kwargs         # remaining keyword args
+    pos_only,        # positional-only (/ se pehle)
+    /,               # separator: isse pehle sab positional-only
+    normal,          # normal (positional ya keyword)
+    *,               # separator: iske baad sab keyword-only
+    kw_only,         # keyword-only (* ke baad)
+    **kwargs         # bache hue keyword args
 ):
     pass
 
@@ -211,11 +218,11 @@ flexible("hello", 1, 2, 3, option=True, extra="data", debug=False)
 
 ### Keyword-Only Arguments
 
-Force callers to use keyword syntax by placing parameters after `*`.
+`*` ke baad parameters rakh kar caller ko force karo ki wo keyword syntax hi use kare.
 
 ```python
 def fetch(url, *, method="GET", headers=None, timeout=30):
-    """Parameters after * MUST be passed as keywords."""
+    """* ke baad wale parameters ko keyword se hi pass karna hoga."""
     print(f"{method} {url} (timeout={timeout})")
 
 fetch("https://api.example.com")                          # OK
@@ -223,21 +230,21 @@ fetch("https://api.example.com", method="POST")            # OK
 # fetch("https://api.example.com", "POST")                 # TypeError!
 ```
 
-### Unpacking Arguments
+### Arguments Unpack Karna
 
 ```python
-# Unpack a list/tuple as positional args
+# List/tuple ko positional args ki tarah unpack karo
 def add(a, b, c):
     return a + b + c
 
 numbers = [1, 2, 3]
-print(add(*numbers))    # 6 (same as add(1, 2, 3))
+print(add(*numbers))    # 6 (add(1, 2, 3) jaisa hi)
 
-# Unpack a dict as keyword args
+# Dict ko keyword args ki tarah unpack karo
 config = {"host": "localhost", "port": 5432, "ssl": True}
-# connect(**config)  # same as connect(host="localhost", port=5432, ssl=True)
+# connect(**config)  # connect(host="localhost", port=5432, ssl=True) jaisa hi
 
-# Combine
+# Combine bhi kar sakte ho
 args = [1, 2]
 kwargs = {"c": 3}
 print(add(*args, **kwargs))  # 6
@@ -246,42 +253,42 @@ print(add(*args, **kwargs))  # 6
 ```javascript
 // JS spread
 const numbers = [1, 2, 3];
-add(...numbers);  // JS only has positional spread
+add(...numbers);  // JS mein sirf positional spread hota hai
 ```
 
 ---
 
 ## Return Values
 
-### Single and Multiple Returns
+### Single aur Multiple Returns
 
 ```python
 # Single return
 def double(x):
     return x * 2
 
-# No return statement (or bare return) returns None
+# Return statement nahi hai (ya bare return) to None return hota hai
 def greet(name):
     print(f"Hello, {name}")
-    # implicitly returns None
+    # implicitly None return hota hai
 
 result = greet("Alice")
 print(result)    # None
 
-# Multiple return values (actually returns a tuple)
+# Multiple return values (asal mein ek tuple return hota hai)
 def divide(a, b):
     quotient = a // b
     remainder = a % b
-    return quotient, remainder    # returns a tuple
+    return quotient, remainder    # ek tuple return karta hai
 
-q, r = divide(17, 5)            # unpack the tuple
+q, r = divide(17, 5)            # tuple unpack karo
 print(f"17 / 5 = {q} remainder {r}")
 
-result = divide(17, 5)          # or keep as tuple
+result = divide(17, 5)          # ya tuple hi rehne do
 print(result)                    # (3, 2)
 print(type(result))              # <class 'tuple'>
 
-# Return a dict for named results (common pattern)
+# Named results ke liye dict return karo (common pattern)
 def analyze_text(text):
     words = text.split()
     return {
@@ -292,7 +299,7 @@ def analyze_text(text):
 ```
 
 ```javascript
-// JS can only return one value. Multiple returns use objects/arrays:
+// JS sirf ek value return kar sakta hai. Multiple returns ke liye objects/arrays use hote hain:
 function divide(a, b) {
     return { quotient: Math.floor(a / b), remainder: a % b };
 }
@@ -303,7 +310,7 @@ const { quotient, remainder } = divide(17, 5);
 
 ## Lambda Functions
 
-Lambdas are anonymous, single-expression functions. They are more limited than JS arrow functions.
+Lambdas anonymous, single-expression functions hote hain. Ye JS arrow functions se zyada limited hote hain.
 
 ```python
 # Lambda syntax: lambda parameters: expression
@@ -314,27 +321,27 @@ greet = lambda name: f"Hello, {name}!"
 print(double(5))       # 10
 print(add(3, 4))       # 7
 
-# Lambdas are most useful as inline callbacks
+# Lambdas sabse zyada useful inline callbacks ki tarah hote hain
 numbers = [5, 2, 8, 1, 9]
 sorted(numbers, key=lambda x: -x)            # [9, 8, 5, 2, 1]
 
 users = [{"name": "Bob", "age": 25}, {"name": "Alice", "age": 30}]
-sorted(users, key=lambda u: u["name"])        # sorted by name
+sorted(users, key=lambda u: u["name"])        # naam se sort
 
-# Lambda limitations (vs JS arrow functions):
-# - Only a SINGLE expression (no statements, no multiple lines)
-# - No assignments, no if/else statements (but conditional expressions work)
-# - No type hints
+# Lambda limitations (JS arrow functions ke muqable):
+# - Sirf EK expression (koi statements nahi, multiple lines nahi)
+# - Koi assignments nahi, koi if/else statements nahi (par conditional expressions chalte hain)
+# - Koi type hints nahi
 
-# This is NOT valid:
+# Ye VALID nahi hai:
 # bad = lambda x: if x > 0: return x  # SyntaxError
 
-# But conditional expressions are valid:
+# Par conditional expressions valid hain:
 absolute = lambda x: x if x >= 0 else -x
 ```
 
 ```javascript
-// JS arrow functions are more flexible
+// JS arrow functions zyada flexible hote hain
 const double = x => x * 2;              // single expression
 const process = x => {                  // multi-line with statements
     if (x > 0) return x;
@@ -342,13 +349,16 @@ const process = x => {                  // multi-line with statements
 };
 ```
 
-**Rule of thumb:** If a lambda does not fit on one line or is hard to read, use `def` instead.
+> [!tip]
+> **Rule of thumb:** Agar lambda ek line mein fit nahi ho raha ya padhna mushkil ho raha hai, to `def` use karo.
 
 ---
 
 ## Type Hints
 
-Python type hints look like TypeScript annotations but are NOT enforced at runtime. They are for documentation and static analysis tools (mypy, pyright).
+Python type hints dikhte to TypeScript annotations jaise hain, par ye runtime pe enforce NAHI hote. Ye sirf documentation aur static analysis tools (mypy, pyright) ke liye hain.
+
+Isko aise socho — TypeScript ek strict security guard hai jo galat entry ko gate pe hi rok deta hai, jabki Python type hints sirf ek board hai jisme likha hai "yahan cycle chalane ki permission nahi" — par koi rok nahi raha, tum chahe to chala hi sakte ho.
 
 ```python
 def greet(name: str) -> str:
@@ -360,13 +370,13 @@ def add(a: int, b: int) -> int:
 def process_items(items: list[str], limit: int = 10) -> dict[str, int]:
     return {item: len(item) for item in items[:limit]}
 
-# Optional (can be None)
+# Optional (None bhi ho sakta hai)
 from typing import Optional
-def find_user(user_id: int) -> Optional[dict]:      # dict or None
+def find_user(user_id: int) -> Optional[dict]:      # dict ya None
     pass
 
 # Python 3.10+ union syntax
-def find_user(user_id: int) -> dict | None:          # same as above
+def find_user(user_id: int) -> dict | None:          # upar wale jaisa hi
     pass
 
 # Complex types
@@ -382,12 +392,12 @@ def apply_transform(
         data = [item for item in data if filter_fn(item)]
     return [transform(item) for item in data]
 
-# These are just hints -- Python does NOT check them at runtime!
-greet(42)    # No error at runtime, just returns "Hello, 42!"
+# Ye sirf hints hain -- Python inko runtime pe check NAHI karta!
+greet(42)    # Runtime pe koi error nahi, bas "Hello, 42!" return hoga
 ```
 
 ```typescript
-// TypeScript -- enforced at compile time
+// TypeScript -- compile time pe enforce hota hai
 function greet(name: string): string {
     return `Hello, ${name}!`;
 }
@@ -396,13 +406,13 @@ greet(42);   // Compile error!
 
 ---
 
-## Closures and Scope
+## Closures aur Scope
 
-Closures work similarly in Python and JavaScript, with a few differences.
+Closures Python aur JavaScript dono mein similar kaam karte hain, bas kuch differences hain.
 
 ### LEGB Scope Rule
 
-Python resolves names using LEGB: Local, Enclosing, Global, Built-in.
+Python names resolve karne ke liye LEGB use karta hai: Local, Enclosing, Global, Built-in.
 
 ```python
 x = "global"          # Global scope
@@ -423,11 +433,13 @@ print(x)               # "global"
 
 ### Closures
 
+Closure ko UPI jaisa socho — ek baar QR generate hua (function banaya), usme merchant ka ID already "capture" ho chuka hai. Baad mein jab bhi scan karo, wo ID uske saath hi rehta hai.
+
 ```python
 def make_multiplier(factor):
-    """Return a function that multiplies by factor."""
+    """Ek aisa function return karo jo factor se multiply kare."""
     def multiply(x):
-        return x * factor    # factor is captured from enclosing scope
+        return x * factor    # factor enclosing scope se capture hua hai
     return multiply
 
 double = make_multiplier(2)
@@ -435,11 +447,11 @@ triple = make_multiplier(3)
 print(double(5))    # 10
 print(triple(5))    # 15
 
-# Closure with state
+# State ke saath closure
 def make_counter(start=0):
     count = start
     def increment():
-        nonlocal count       # needed to modify enclosing variable
+        nonlocal count       # enclosing variable modify karne ke liye zaruri
         count += 1
         return count
     return increment
@@ -450,23 +462,23 @@ print(counter())    # 2
 print(counter())    # 3
 ```
 
-### nonlocal and global
+### nonlocal aur global
 
 ```python
-# Without nonlocal, you cannot MODIFY an enclosing variable
+# nonlocal ke bina, enclosing variable ko MODIFY nahi kar sakte
 def outer():
     count = 0
     def inner():
-        # count += 1         # UnboundLocalError! Python thinks count is local
-        nonlocal count        # tells Python to look in enclosing scope
+        # count += 1         # UnboundLocalError! Python soch raha hai count local hai
+        nonlocal count        # Python ko bolo enclosing scope mein dhoondho
         count += 1
         return count
     return inner
 
-# global keyword (generally avoided)
+# global keyword (generally avoid karna chahiye)
 total = 0
 def add_to_total(n):
-    global total              # modifies the global variable
+    global total              # global variable ko modify karta hai
     total += n
 
 add_to_total(5)
@@ -474,10 +486,10 @@ print(total)    # 5
 ```
 
 ```javascript
-// JS closures work similarly but without the nonlocal issue
+// JS closures similar kaam karte hain, bas nonlocal wali dikkat nahi hoti
 function makeCounter() {
     let count = 0;
-    return () => ++count;    // can modify count directly
+    return () => ++count;    // count ko directly modify kar sakte ho
 }
 ```
 
@@ -485,24 +497,24 @@ function makeCounter() {
 
 ## First-Class Functions
 
-Functions are objects in Python. They can be passed around, stored in variables, and inspected.
+Python mein functions bhi objects hain. Inhe idhar-udhar pass kiya ja sakta hai, variables mein store kiya ja sakta hai, aur inspect bhi kiya ja sakta hai.
 
 ```python
-# Assign to variable
+# Variable mein assign karo
 def shout(text):
     return text.upper()
 
-yell = shout           # no parentheses -- assigning the function itself
+yell = shout           # koi parentheses nahi -- function khud assign ho raha hai
 print(yell("hello"))   # "HELLO"
 
-# Pass as argument
+# Argument ki tarah pass karo
 def apply_twice(func, value):
     return func(func(value))
 
-print(apply_twice(shout, "hello"))   # "HELLO" (already upper, so no visible change)
+print(apply_twice(shout, "hello"))   # "HELLO" (already upper hai, to koi visible change nahi)
 print(apply_twice(lambda x: x + "!", "hello"))  # "hello!!"
 
-# Store in data structures
+# Data structures mein store karo
 operations = {
     "+": lambda a, b: a + b,
     "-": lambda a, b: a - b,
@@ -515,7 +527,7 @@ print(operations["*"](10, 5))   # 50
 
 # Function attributes
 print(shout.__name__)            # "shout"
-print(shout.__doc__)             # None (we didn't add a docstring)
+print(shout.__doc__)             # None (humne docstring nahi daali)
 
 # Higher-order functions
 numbers = [1, -2, 3, -4, 5]
@@ -525,22 +537,24 @@ doubled = list(map(lambda x: x * 2, numbers))         # [2, -4, 6, -8, 10]
 from functools import reduce
 total = reduce(lambda a, b: a + b, numbers)            # 3
 
-# But prefer comprehensions over map/filter in Python:
-positives = [x for x in numbers if x > 0]             # more Pythonic
-doubled = [x * 2 for x in numbers]                     # more Pythonic
+# Par Python mein map/filter se zyada comprehensions prefer karo:
+positives = [x for x in numbers if x > 0]             # zyada Pythonic
+doubled = [x * 2 for x in numbers]                     # zyada Pythonic
 ```
 
 ---
 
-## Decorators (Brief Introduction)
+## Decorators (Chhota Introduction)
 
-Decorators are functions that wrap other functions. They are heavily used in Python frameworks (Flask, Django, FastAPI).
+Decorators aise functions hain jo dusre functions ko "wrap" karte hain. Python frameworks (Flask, Django, FastAPI) mein inka bahut use hota hai.
+
+Isko aise socho — jaise Swiggy pe order ke upar "packaging charge" automatically add ho jata hai, bina tumhe order dobara likhne ke. Decorator bhi original function ke around ek extra layer chadha deta hai.
 
 ```python
 import time
 
 def timer(func):
-    """Decorator that times function execution."""
+    """Decorator jo function ka execution time measure karta hai."""
     def wrapper(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
@@ -551,20 +565,20 @@ def timer(func):
 
 @timer
 def slow_function(n):
-    """Simulate a slow operation."""
+    """Ek slow operation simulate karo."""
     total = sum(range(n))
     return total
 
 result = slow_function(10_000_000)
 # slow_function took 0.2345 seconds
 
-# @timer is equivalent to:
+# @timer iske equivalent hai:
 # slow_function = timer(slow_function)
 ```
 
 ```javascript
-// JS decorators (Stage 3 proposal, or TypeScript experimental)
-// Python decorators are a well-established language feature
+// JS decorators (Stage 3 proposal, ya TypeScript experimental)
+// Python decorators ek well-established language feature hai
 ```
 
 ---
@@ -573,17 +587,17 @@ result = slow_function(10_000_000)
 
 | Feature                  | Python                           | JavaScript                       |
 |--------------------------|----------------------------------|----------------------------------|
-| Define function          | `def func():`                    | `function func() {}` / `() => {}` |
+| Function define karna     | `def func():`                    | `function func() {}` / `() => {}` |
 | Lambda                   | `lambda x: x * 2`               | `x => x * 2`                     |
 | Default params           | `def f(x=10):`                   | `function f(x = 10) {}`          |
 | Rest params              | `def f(*args):`                  | `function f(...args) {}`          |
 | Keyword args             | `f(key=value)`                   | `f({key: value})` (convention)    |
-| **kwargs                 | `def f(**kwargs):`               | No equivalent                     |
-| Keyword-only             | `def f(*, key):`                 | No equivalent                     |
+| **kwargs                 | `def f(**kwargs):`               | Equivalent nahi hai               |
+| Keyword-only             | `def f(*, key):`                 | Equivalent nahi hai               |
 | Multiple returns         | `return a, b` (tuple)            | `return {a, b}` (object)         |
 | Type hints               | `def f(x: int) -> str:`         | TypeScript: `(x: number): string` |
 | Docstrings               | `"""docs"""`                     | `/** JSDoc */`                    |
-| Closure modification     | Needs `nonlocal`                 | Direct access                     |
+| Closure modification     | `nonlocal` chahiye                | Direct access                     |
 | Decorators               | `@decorator`                     | TC39 Stage 3 proposal             |
 
 ---
@@ -591,7 +605,7 @@ result = slow_function(10_000_000)
 ## Practice Exercises
 
 ### Exercise 1: Flexible Calculator
-Write a `calculate` function that takes two numbers and a variable number of operations to apply sequentially.
+Ek `calculate` function likho jo do numbers aur operations ki variable list le, aur unhe sequentially apply kare.
 
 ```python
 def calculate(a, b, *operations):
@@ -599,7 +613,7 @@ def calculate(a, b, *operations):
 
 print(calculate(10, 3, "add"))              # 13
 print(calculate(10, 3, "add", "multiply"))  # 30 (10+3=13, 13*3=39... hmm)
-# Define the behavior clearly and implement it
+# Behavior clearly define karo aur implement karo
 ```
 
 <details>
@@ -608,9 +622,9 @@ print(calculate(10, 3, "add", "multiply"))  # 30 (10+3=13, 13*3=39... hmm)
 ```python
 def calculate(initial, *operations, **constants):
     """
-    Apply operations sequentially to an initial value.
-    Operations are (operator, operand) tuples or just operator strings
-    that use the 'by' constant.
+    Initial value pe operations ko sequentially apply karo.
+    Operations ya to (operator, operand) tuples hain, ya sirf operator strings
+    jo 'by' constant use karte hain.
     """
     ops = {
         "add": lambda a, b: a + b,
@@ -640,7 +654,7 @@ print(calculate(100, ("divide", 3), ("multiply", 3)))     # 99.999...
 </details>
 
 ### Exercise 2: Retry Decorator
-Write a decorator `retry` that re-runs a function up to `n` times if it raises an exception, with an optional delay between retries.
+Ek `retry` decorator likho jo function ko exception aane par `n` baar tak re-run kare, retries ke beech optional delay ke saath.
 
 ```python
 def retry(max_attempts=3, delay=0):
@@ -663,7 +677,7 @@ import functools
 
 def retry(max_attempts=3, delay=0):
     def decorator(func):
-        @functools.wraps(func)   # preserves __name__, __doc__
+        @functools.wraps(func)   # __name__, __doc__ ko preserve karta hai
         def wrapper(*args, **kwargs):
             last_exception = None
             for attempt in range(1, max_attempts + 1):
@@ -694,7 +708,7 @@ except ConnectionError as e:
 </details>
 
 ### Exercise 3: Function Pipeline
-Create a `pipe` function that composes multiple functions left-to-right (like Unix pipes or RxJS pipe).
+Ek `pipe` function banao jo multiple functions ko left-to-right compose kare (Unix pipes ya RxJS pipe jaisa).
 
 ```python
 def pipe(*functions):
@@ -717,7 +731,7 @@ print(process("  Hello World  "))  # "hello_world"
 from functools import reduce
 
 def pipe(*functions):
-    """Create a pipeline of functions, applied left to right."""
+    """Functions ka ek pipeline banao, left to right apply hoga."""
     def pipeline(value):
         return reduce(lambda v, f: f(v), functions, value)
     return pipeline
@@ -745,7 +759,7 @@ print(transform(5))    # "400" (5*2=10, 10+10=20, 20^2=400, str="400")
 </details>
 
 ### Exercise 4: Memoize Decorator
-Write a `memoize` decorator that caches function results based on arguments. Handle both positional and keyword arguments.
+Ek `memoize` decorator likho jo function ke results ko arguments ke basis pe cache kare. Positional aur keyword dono arguments handle karo.
 
 ```python
 def memoize(func):
@@ -757,7 +771,7 @@ def fibonacci(n):
         return n
     return fibonacci(n - 1) + fibonacci(n - 2)
 
-print(fibonacci(100))  # should be fast with memoization
+print(fibonacci(100))  # memoization ke saath fast hona chahiye
 ```
 
 <details>
@@ -771,14 +785,14 @@ def memoize(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Create a hashable key from args and kwargs
+        # args aur kwargs se ek hashable key banao
         key = (args, tuple(sorted(kwargs.items())))
         if key not in cache:
             cache[key] = func(*args, **kwargs)
         return cache[key]
 
-    wrapper.cache = cache          # expose cache for inspection
-    wrapper.cache_clear = cache.clear  # allow clearing
+    wrapper.cache = cache          # inspection ke liye cache expose karo
+    wrapper.cache_clear = cache.clear  # clear karne ki suvidha
     return wrapper
 
 @memoize
@@ -790,7 +804,7 @@ def fibonacci(n):
 print(fibonacci(100))   # 354224848179261915075 (instant!)
 print(f"Cache size: {len(fibonacci.cache)}")  # 101
 
-# Note: Python has this built-in!
+# Note: Python mein ye built-in hi milta hai!
 from functools import lru_cache
 
 @lru_cache(maxsize=None)
@@ -805,7 +819,7 @@ print(fib.cache_info())  # CacheInfo(hits=98, misses=101, maxsize=None, currsize
 </details>
 
 ### Exercise 5: Event Emitter
-Build a simple event emitter class using functions as first-class citizens. Support `on`, `off`, `emit`, and `once`.
+Functions ko first-class citizens ki tarah use karke ek simple event emitter class banao. `on`, `off`, `emit`, aur `once` support karo.
 
 ```python
 class EventEmitter:
@@ -829,7 +843,7 @@ class EventEmitter:
 
     def on(self, event, callback):
         self._listeners[event].append(callback)
-        return self   # allow chaining
+        return self   # chaining allow karne ke liye
 
     def off(self, event, callback):
         self._listeners[event] = [
@@ -846,7 +860,7 @@ class EventEmitter:
         return self
 
     def emit(self, event, *args, **kwargs):
-        for callback in self._listeners[event][:]:  # copy list to allow modification
+        for callback in self._listeners[event][:]:  # list copy taaki modification allow ho
             callback(*args, **kwargs)
         return self
 
@@ -864,11 +878,11 @@ emitter.on("error", on_error)
 emitter.once("connect", lambda: print("Connected!"))
 
 emitter.emit("connect")     # Connected!
-emitter.emit("connect")     # (nothing -- once handler removed)
+emitter.emit("connect")     # (kuch nahi -- once handler already remove ho chuka)
 emitter.emit("data", {"user": "Alice"})  # Received: {'user': 'Alice'}
 emitter.emit("error", "timeout")          # Error: timeout
 
 emitter.off("data", on_data)
-emitter.emit("data", "ignored")           # (nothing)
+emitter.emit("data", "ignored")           # (kuch nahi)
 ```
 </details>

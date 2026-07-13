@@ -1,8 +1,8 @@
 # 08 - Error Handling
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aa rahe ho toh
 
-Python's error handling looks similar to JavaScript's try/catch/finally, but with some important additions: `except` instead of `catch`, an `else` clause, a rich exception hierarchy, and a strong culture of "ask forgiveness not permission" (EAFP) instead of checking everything upfront.
+Python ka error handling dekhne mein JavaScript ke try/catch/finally jaisa hi lagta hai, lekin kuch important cheezein add ho jaati hain — `catch` ki jagah `except`, ek `else` clause, exceptions ki ek poori rich hierarchy, aur ek strong culture hai "pehle permission maango ki nahi, bas try karo aur agar problem aaye toh maafi maang lo" (EAFP) — permission-first approach ke bajaye.
 
 ---
 
@@ -26,37 +26,37 @@ try {
 }
 ```
 
-**Important difference:** Many things that silently "work" in JS (returning `Infinity`, `NaN`, `undefined`) will throw exceptions in Python. Python is stricter about errors.
+**Important difference:** JS mein jo cheezein chup-chaap "chal jaati hain" (`Infinity`, `NaN`, `undefined` return karke), Python mein wahi cheezein exception throw kar deti hain. Python errors ke maamle mein zyada strict hai.
 
-### The Full Structure
+### Poora Structure
 
 ```python
 try:
-    # Code that might raise an exception
+    # Aisa code jo exception raise kar sakta hai
     value = int(input("Enter a number: "))
     result = 100 / value
 except ValueError:
-    # Handles the specific exception: invalid input for int()
+    # Specific exception handle karo: int() ke liye invalid input
     print("That's not a valid number!")
 except ZeroDivisionError:
-    # Handles another specific exception
+    # Ek aur specific exception handle karo
     print("Can't divide by zero!")
 except (TypeError, AttributeError) as e:
-    # Handle multiple exception types, capture the exception object
+    # Multiple exception types ek saath handle karo, exception object bhi pakdo
     print(f"Type or attribute error: {e}")
 except Exception as e:
-    # Catch-all for any other exception (use sparingly)
+    # Har cheez ke liye catch-all (sambhal ke use karo)
     print(f"Unexpected error: {e}")
 else:
-    # Runs ONLY if NO exception was raised in the try block
+    # Sirf tab chalega jab try block mein KOI exception NAHI aaya
     print(f"Result: {result}")
 finally:
-    # ALWAYS runs, whether or not an exception occurred
+    # Hamesha chalega, exception aaya ho ya nahi
     print("Cleanup complete")
 ```
 
 ```javascript
-// JS only has try/catch/finally (no else clause)
+// JS mein sirf try/catch/finally hota hai (else clause nahi hoti)
 try {
     // ...
 } catch (error) {
@@ -68,32 +68,35 @@ try {
 }
 ```
 
-### The else Clause -- Why It Matters
+### else Clause -- Yeh Kyun Matter Karta Hai
 
-The `else` block runs only when the `try` block succeeds. This is better than putting code at the end of `try` because it narrows the scope of what is being "tried."
+`else` block sirf tab chalta hai jab `try` block successfully complete ho jaaye. Yeh `try` ke andar hi sab code likhne se better hai, kyunki isse pata chalta hai ki asal mein "try" kya kiya ja raha hai — scope narrow ho jaata hai.
 
 ```python
-# Without else (wider catch scope -- bad)
+# else ke bina (wider catch scope -- bura tareeka)
 try:
     data = json.loads(raw_input)
-    process(data)     # if process() raises, it's caught too!
+    process(data)     # agar process() mein error aaya, woh bhi yahin catch ho jaayega!
 except json.JSONDecodeError:
     print("Invalid JSON")
 
-# With else (only catches what you intend)
+# else ke saath (sirf wahi catch hoga jo tum chahte ho)
 try:
     data = json.loads(raw_input)
 except json.JSONDecodeError:
     print("Invalid JSON")
 else:
-    process(data)     # if process() raises, it propagates normally
+    process(data)     # agar process() mein error aaya, woh normally propagate hoga
 ```
+
+> [!tip]
+> Socho `try` block ko sirf "risky" step ke liye use karo (jaise JSON parse karna), aur `else` mein woh code rakho jo tabhi chalna chahiye jab woh risky step safal ho. Isse bugs chhupte nahi hain.
 
 ---
 
-## The Exception Hierarchy
+## Exception Hierarchy
 
-Python's exceptions form a class hierarchy. Understanding this helps you catch the right exceptions.
+Python ke exceptions ek class hierarchy banate hain — bilkul dabbawala system jaisa, jahan har cheez ka ek parent category hota hai. Yeh samajhna zaruri hai taaki tum sahi exception catch kar sako.
 
 ```mermaid
 graph TD
@@ -142,10 +145,10 @@ graph TD
     style GE fill:#6b7280,color:#fff
 ```
 
-### Catching Specific vs Broad Exceptions
+### Specific vs Broad Exceptions Catch Karna
 
 ```python
-# GOOD: Catch specific exceptions
+# ACCHA: Specific exceptions catch karo
 try:
     with open("config.json") as f:
         config = json.load(f)
@@ -154,60 +157,63 @@ except FileNotFoundError:
     print("Config file not found, using defaults")
 except json.JSONDecodeError as e:
     print(f"Invalid JSON in config: {e}")
-    raise   # re-raise after logging
+    raise   # log karne ke baad re-raise karo
 except PermissionError:
     print("Permission denied reading config file")
 
-# BAD: Bare except (catches EVERYTHING including Ctrl+C)
+# BURA: Bare except (SAB kuch catch kar lega, Ctrl+C bhi)
 try:
     do_something()
-except:               # NEVER do this
+except:               # KABHI mat karo yeh
     pass
 
-# BAD: Catching Exception too broadly
+# BURA: Exception ko bahut broad tarike se catch karna
 try:
     do_something()
-except Exception:     # too broad -- masks real bugs
+except Exception:     # bahut broad -- असली bugs chhupa deta hai
     pass
 
-# ACCEPTABLE: Broad catch with logging
+# THEEK HAI: Logging ke saath broad catch
 try:
     do_something()
 except Exception as e:
     logger.error(f"Unexpected error: {e}", exc_info=True)
-    raise             # re-raise so it's not silently swallowed
+    raise             # re-raise karo taaki chup-chaap gum na ho
 ```
+
+> [!warning]
+> Bare `except:` ya bhi broad `except Exception:` bina re-raise ke — yeh production mein sabse zyada dard dene wali galti hai. Zomato ka payment fail hua aur tumne `except: pass` likh diya toh user ko pata bhi nahi chalega ki uska paisa kat gaya lekin order place nahi hua!
 
 ---
 
-## raise -- Throwing Exceptions
+## raise -- Exception Throw Karna
 
 ```python
-# Raise a built-in exception
+# Ek built-in exception raise karo
 raise ValueError("Age must be positive")
 raise TypeError(f"Expected str, got {type(value).__name__}")
 raise FileNotFoundError(f"Config file not found: {path}")
 
-# Raise without arguments (re-raise the current exception)
+# Bina arguments ke raise karo (current exception ko re-raise karta hai)
 try:
     process_data()
 except ValueError:
     log_error()
-    raise             # re-raises the original exception with traceback
+    raise             # original exception ko traceback ke saath re-raise karta hai
 
-# Raise from another exception (chaining)
+# Ek exception se doosra raise karo (chaining)
 try:
     value = int(user_input)
 except ValueError as original:
     raise ValidationError(f"Invalid input: {user_input}") from original
-# The traceback will show both: "The above exception was the direct cause..."
+# Traceback dono dikhaayega: "The above exception was the direct cause..."
 
-# Suppress the chain
+# Chain ko suppress karo
 try:
     value = int(user_input)
 except ValueError:
     raise ValidationError(f"Invalid input") from None
-# Only shows the new exception
+# Sirf naya exception dikhega
 ```
 
 ```javascript
@@ -221,7 +227,7 @@ try { ... } catch (e) {
     throw e;
 }
 
-// JS has no built-in exception chaining (need error.cause in ES2022)
+// JS mein built-in exception chaining nahi hai (ES2022 mein error.cause chahiye)
 throw new Error("wrapper", { cause: originalError });
 ```
 
@@ -229,29 +235,29 @@ throw new Error("wrapper", { cause: originalError });
 
 ## Custom Exception Classes
 
-Creating custom exceptions is more idiomatic in Python than in JS.
+Python mein apne custom exceptions banana JS ke muqable mein zyada idiomatic hai — yeh normal practice hai.
 
 ```python
 # Simple custom exception
 class AppError(Exception):
-    """Base exception for our application."""
+    """Hamare application ka base exception."""
     pass
 
 class ValidationError(AppError):
-    """Raised when input validation fails."""
+    """Jab input validation fail ho tab raise hota hai."""
     pass
 
 class NotFoundError(AppError):
-    """Raised when a resource is not found."""
+    """Jab koi resource na mile tab raise hota hai."""
     pass
 
 class AuthenticationError(AppError):
-    """Raised when authentication fails."""
+    """Jab authentication fail ho tab raise hota hai."""
     pass
 
-# Custom exception with extra data
+# Extra data ke saath custom exception
 class APIError(AppError):
-    """Raised when an API call fails."""
+    """Jab koi API call fail ho jaaye."""
     def __init__(self, message, status_code=None, response=None):
         super().__init__(message)
         self.status_code = status_code
@@ -262,7 +268,7 @@ class APIError(AppError):
             return f"APIError {self.status_code}: {super().__str__()}"
         return f"APIError: {super().__str__()}"
 
-# Using custom exceptions
+# Custom exceptions use karna
 def get_user(user_id):
     if not isinstance(user_id, int):
         raise ValidationError(f"user_id must be int, got {type(user_id).__name__}")
@@ -273,7 +279,7 @@ def get_user(user_id):
         raise NotFoundError(f"User {user_id} not found")
     return user
 
-# Catching custom exceptions
+# Custom exceptions catch karna
 try:
     user = get_user(user_id)
 except ValidationError as e:
@@ -300,72 +306,75 @@ class ValidationError extends AppError {
 }
 ```
 
+> [!info]
+> Ek `AppError` base class banao aur uske neeche saare specific errors ka hierarchy khada karo (`ValidationError`, `NotFoundError`, waghera). Ye Swiggy jaisa hi hai — "OrderError" ek umbrella hai, uske andar "RestaurantClosedError", "PaymentFailedError" waghera aate hain. Isse tum kabhi bhi broad ya narrow level pe catch kar sakte ho.
+
 ---
 
-## Reading Tracebacks
+## Tracebacks Padhna
 
-Tracebacks are Python's stack traces. Read them **bottom to top** (the actual error is at the bottom).
+Tracebacks Python ke stack traces hote hain. Inko **neeche se upar** padho (asli error sabse neeche hota hai).
 
 ```
 Traceback (most recent call last):          <-- header
-  File "main.py", line 15, in <module>      <-- where it started
+  File "main.py", line 15, in <module>      <-- yahan se shuru hua
     result = process_data(raw)
-  File "main.py", line 10, in process_data  <-- through here
+  File "main.py", line 10, in process_data  <-- yahan se guzra
     parsed = parse_json(data)
-  File "utils.py", line 5, in parse_json    <-- to here
+  File "utils.py", line 5, in parse_json    <-- yahan tak
     return json.loads(data)
            ^^^^^^^^^^^^^^^^
 json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
-                              ^-- THE ACTUAL ERROR (read this first!)
+                              ^-- ASLI ERROR (pehle yeh padho!)
 ```
 
-### Tips for Reading Tracebacks
+### Tracebacks Padhne Ke Tips
 
-1. **Start at the bottom** -- the last line tells you what went wrong
-2. **Read up** -- the lines above show you the call chain
-3. **Look at YOUR code** -- ignore standard library lines unless necessary
-4. **The caret `^`** (Python 3.11+) points to the exact expression that failed
+1. **Sabse neeche se shuru karo** -- last line hi batati hai ki kya galat hua
+2. **Upar padhte jao** -- upar wali lines call chain dikhati hain
+3. **Apne khud ke code pe focus karo** -- standard library ki lines ignore karo, jab tak zaruri na ho
+4. **Caret `^`** (Python 3.11+) exact expression point karta hai jo fail hua
 
 ```python
-# Python 3.11+ has even better tracebacks:
+# Python 3.11+ mein aur bhi acche tracebacks hain:
 # Traceback (most recent call last):
 #   File "example.py", line 3, in <module>
 #     x["a"]["b"]["c"]
 #     ~~~~~~~^^^^^
 # TypeError: 'NoneType' object is not subscriptable
-# (The carets show exactly which part failed!)
+# (Caret exactly dikhata hai kaunsa part fail hua!)
 ```
 
 ---
 
 ## EAFP vs LBYL
 
-Python favors **EAFP** (Easier to Ask Forgiveness than Permission) over **LBYL** (Look Before You Leap).
+Python **EAFP** (Easier to Ask Forgiveness than Permission — pehle try karo, error aaye toh sambhal lo) ko **LBYL** (Look Before You Leap — pehle check karo phir karo) se zyada pasand karta hai.
 
 ```python
-# LBYL (JS-style thinking -- check first)
+# LBYL (JS-style thinking -- pehle check karo)
 if "key" in my_dict:
     value = my_dict["key"]
 else:
     value = default
 
-# EAFP (Pythonic -- just try it)
+# EAFP (Pythonic -- bas try kar do)
 try:
     value = my_dict["key"]
 except KeyError:
     value = default
 
-# Even more Pythonic:
+# Aur bhi zyada Pythonic:
 value = my_dict.get("key", default)
 
-# LBYL for file access
+# LBYL file access ke liye
 import os
 if os.path.exists(filepath):
     with open(filepath) as f:
         data = f.read()
-    # PROBLEM: file could be deleted between check and open! (TOCTOU race)
+    # PROBLEM: check aur open ke beech file delete ho sakti hai! (TOCTOU race)
 
-# EAFP for file access (better!)
+# EAFP file access ke liye (behtar!)
 try:
     with open(filepath) as f:
         data = f.read()
@@ -373,17 +382,20 @@ except FileNotFoundError:
     data = None
 ```
 
+> [!tip]
+> Socho IRCTC ka tatkal booking — pehle "seat available hai kya" check karke phir book karne ki koshish karoge toh tab tak koi aur book kar lega (LBYL race condition). Isse better hai directly book karne ki koshish karo, agar seat nahi hai toh error handle kar lo (EAFP). Yehi soch Python ke code mein bhi lagti hai.
+
 ---
 
 ## Common Error Handling Patterns
 
-### Context Manager for Cleanup
+### Cleanup Ke Liye Context Manager
 
 ```python
-# Guaranteed cleanup with 'with' statement
+# 'with' statement se guaranteed cleanup
 with open("file.txt") as f:
     data = f.read()
-# File is automatically closed, even if an exception occurs
+# File apne aap close ho jaati hai, exception aaye ya na aaye
 
 # Database connection pattern
 class DatabaseConnection:
@@ -393,14 +405,14 @@ class DatabaseConnection:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
-        return False   # don't suppress exceptions
+        return False   # exception ko suppress mat karo
 
 with DatabaseConnection() as conn:
     conn.execute("SELECT ...")
-# Connection is always closed
+# Connection hamesha close ho jaata hai
 ```
 
-### Retry with Exponential Backoff
+### Exponential Backoff Ke Saath Retry
 
 ```python
 import time
@@ -412,13 +424,16 @@ def retry_with_backoff(func, max_retries=3, base_delay=1):
             return func()
         except (ConnectionError, TimeoutError) as e:
             if attempt == max_retries - 1:
-                raise  # last attempt, re-raise
+                raise  # last attempt tha, re-raise karo
             delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
             print(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay:.1f}s...")
             time.sleep(delay)
 ```
 
-### Collecting Multiple Errors
+> [!info]
+> Yeh exactly wahi pattern hai jo UPI payment apps use karte hain — agar server se connection fail ho jaaye, turant retry mat karo, thoda wait karo aur har baar wait time double karte jao. Isse server pe load bhi kam padta hai.
+
+### Multiple Errors Collect Karna
 
 ```python
 def validate_user(data):
@@ -457,7 +472,7 @@ except ValidationError as e:
 ### Exception Groups (Python 3.11+)
 
 ```python
-# Handle multiple exceptions that occurred concurrently
+# Ek saath (concurrently) hue multiple exceptions handle karo
 try:
     raise ExceptionGroup("multiple errors", [
         ValueError("invalid value"),
@@ -474,9 +489,9 @@ except* KeyError as eg:
 
 ---
 
-## Warnings (Not Exceptions)
+## Warnings (Exceptions Nahi Hain)
 
-Warnings are for non-fatal issues that should not crash the program.
+Warnings un non-fatal issues ke liye hoti hain jo program ko crash nahi karni chahiye.
 
 ```python
 import warnings
@@ -493,9 +508,9 @@ def connect(host, port, use_ssl=False):
 connect("localhost", 5432)
 # UserWarning: Connection without SSL is deprecated...
 
-# Control warning behavior
+# Warning ka behavior control karo
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-warnings.filterwarnings("error", category=UserWarning)  # treat as exception
+warnings.filterwarnings("error", category=UserWarning)  # exception jaisa treat karo
 ```
 
 ---
@@ -524,14 +539,14 @@ warnings.filterwarnings("error", category=UserWarning)  # treat as exception
 ## Practice Exercises
 
 ### Exercise 1: Safe JSON Parser
-Write a `safe_json_parse` function that handles all possible errors and returns a tuple of `(data, error)` -- similar to Go's error handling pattern or a Result type.
+Ek `safe_json_parse` function likho jo saare possible errors handle kare aur `(data, error)` ka tuple return kare -- bilkul Go ke error handling pattern ya Result type jaisa.
 
 ```python
 def safe_json_parse(json_string, expected_keys=None):
     """Parse JSON and optionally validate expected keys."""
     pass
 
-# Should handle: invalid JSON, wrong type (not a dict), missing keys
+# Handle karna hai: invalid JSON, wrong type (dict nahi hai), missing keys
 ```
 
 <details>
@@ -542,8 +557,8 @@ import json
 
 def safe_json_parse(json_string, expected_keys=None):
     """
-    Parse JSON safely.
-    Returns (data, None) on success, (None, error_message) on failure.
+    JSON ko safely parse karo.
+    Success pe (data, None) return karta hai, failure pe (None, error_message).
     """
     try:
         data = json.loads(json_string)
@@ -577,7 +592,7 @@ print(data, err)  # None Missing required keys: {'age'}
 </details>
 
 ### Exercise 2: Custom Exception Hierarchy
-Build a file processing system with a custom exception hierarchy. Create `FileProcessingError` as the base, with subtypes for `FileFormatError`, `FileSizeError`, and `FilePermissionError`. Each should carry relevant context.
+Ek file processing system banao jisme custom exception hierarchy ho. `FileProcessingError` ko base banao, aur `FileFormatError`, `FileSizeError`, `FilePermissionError` uske subtypes hon. Har ek apna relevant context carry kare.
 
 <details>
 <summary>Solution</summary>
@@ -586,27 +601,27 @@ Build a file processing system with a custom exception hierarchy. Create `FilePr
 from pathlib import Path
 
 class FileProcessingError(Exception):
-    """Base exception for file processing errors."""
+    """File processing errors ke liye base exception."""
     def __init__(self, message, filepath=None):
         super().__init__(message)
         self.filepath = filepath
 
 class FileFormatError(FileProcessingError):
-    """Raised when file format is invalid."""
+    """Jab file format invalid ho tab raise hota hai."""
     def __init__(self, message, filepath=None, expected_format=None, actual_format=None):
         super().__init__(message, filepath)
         self.expected_format = expected_format
         self.actual_format = actual_format
 
 class FileSizeError(FileProcessingError):
-    """Raised when file exceeds size limit."""
+    """Jab file size limit se zyada ho tab raise hota hai."""
     def __init__(self, message, filepath=None, size=None, max_size=None):
         super().__init__(message, filepath)
         self.size = size
         self.max_size = max_size
 
 class FilePermissionError(FileProcessingError):
-    """Raised when we lack permission to process the file."""
+    """Jab file process karne ki permission na ho tab raise hota hai."""
     def __init__(self, message, filepath=None, required_permission=None):
         super().__init__(message, filepath)
         self.required_permission = required_permission
@@ -617,7 +632,7 @@ ALLOWED_FORMATS = {".csv", ".json", ".xml"}
 def process_file(filepath):
     path = Path(filepath)
 
-    # Check format
+    # Format check karo
     if path.suffix not in ALLOWED_FORMATS:
         raise FileFormatError(
             f"Unsupported file format: {path.suffix}",
@@ -626,7 +641,7 @@ def process_file(filepath):
             actual_format=path.suffix,
         )
 
-    # Check existence and permissions
+    # Existence aur permissions check karo
     try:
         size = path.stat().st_size
     except PermissionError:
@@ -638,7 +653,7 @@ def process_file(filepath):
     except FileNotFoundError:
         raise FileProcessingError(f"File not found: {path}", filepath=str(path))
 
-    # Check size
+    # Size check karo
     if size > MAX_FILE_SIZE:
         raise FileSizeError(
             f"File too large: {size / 1024 / 1024:.1f}MB (max: {MAX_FILE_SIZE / 1024 / 1024:.0f}MB)",
@@ -666,11 +681,11 @@ except FileProcessingError as e:
 </details>
 
 ### Exercise 3: Error-Resilient Data Pipeline
-Write a data processing pipeline that continues processing even when individual records fail. Collect all errors and report them at the end.
+Ek data processing pipeline likho jo individual records fail hone par bhi processing continue rakhe. Saare errors collect karo aur end mein report karo.
 
 ```python
 def process_records(records):
-    """Process a list of records. Continue on individual failures."""
+    """Records ki list process karo. Individual failures pe bhi rukna nahi hai."""
     pass
 
 records = [
@@ -709,7 +724,7 @@ class ProcessingResult:
             print(f"    Record {record_id}: {error}")
 
 def validate_record(record):
-    """Validate and transform a single record."""
+    """Ek single record ko validate aur transform karo."""
     if not record.get("name"):
         raise ValueError("Name is required")
 
@@ -763,3 +778,14 @@ for r in result.successes:
     print(f"  {r}")
 ```
 </details>
+
+## Key Takeaways
+
+- `except` = JS ka `catch`, lekin `else` clause bhi milta hai jo sirf tab chalta hai jab try successful ho — isse scope narrow rehta hai.
+- Python errors ke maamle mein JS se zyada strict hai — division by zero, missing dict key waghera silently pass nahi hote, exception throw karte hain.
+- Specific exceptions catch karo (`FileNotFoundError`, `ValueError`), bare `except:` ya broad `except Exception:` bina re-raise ke kabhi mat likho.
+- `raise X from Y` se exception chaining milti hai — original error ka context bhi preserve hota hai.
+- Custom exceptions banana Python mein bahut common practice hai — apna `AppError` base class banao aur uske neeche specific errors ka hierarchy khada karo.
+- Traceback hamesha **neeche se upar** padho — asli error last line pe hota hai.
+- EAFP (pehle try karo, error aaye toh sambhalo) Python ka pasandida style hai, LBYL (pehle check karo) ke muqable — especially file access aur dict lookups mein TOCTOU races bachane ke liye.
+- `with` statement guaranteed cleanup deta hai — exception aaye ya na aaye, resource close ho jaata hai.

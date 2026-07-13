@@ -1,8 +1,8 @@
 # pytest Basics: Testing in Python
 
-> **Coming from Node.js/TypeScript?** pytest is Python's most popular testing framework,
-> and it shares a lot of philosophy with Jest. If anything, you'll find pytest *simpler*
-> because Python's built-in `assert` replaces Jest's entire `expect()` API.
+> **Node.js/TypeScript se aa rahe ho?** pytest Python ka sabse popular testing framework hai,
+> aur iska philosophy Jest se kaafi milta-julta hai. Actually pytest thoda *simpler* lagega
+> kyunki Python ka built-in `assert` hi Jest ke pure `expect()` API ka kaam kar deta hai.
 
 ---
 
@@ -23,14 +23,16 @@
 
 ## pytest vs Jest: Quick Comparison
 
+Socho tumne Jest use kiya hai — ab bas naam badal rahe hain, concept wahi hai. Table dekh lo:
+
 | Feature | Jest (Node.js/TS) | pytest (Python) |
 |---|---|---|
 | Install | `npm install --save-dev jest` | `pip install pytest` |
-| Config file | `jest.config.js` | `pyproject.toml` or `pytest.ini` |
+| Config file | `jest.config.js` | `pyproject.toml` ya `pytest.ini` |
 | Test file naming | `*.test.js`, `*.spec.js` | `test_*.py`, `*_test.py` |
-| Test function naming | `test('name', () => {})` or `it()` | `def test_name():` |
+| Test function naming | `test('name', () => {})` ya `it()` | `def test_name():` |
 | Assertions | `expect(x).toBe(y)` | `assert x == y` |
-| Setup/Teardown | `beforeEach`, `afterEach` | Fixtures (covered in next chapter) |
+| Setup/Teardown | `beforeEach`, `afterEach` | Fixtures (agle chapter mein cover karenge) |
 | Mocking | `jest.mock()`, `jest.fn()` | `unittest.mock` / `pytest-mock` |
 | Parameterized tests | `test.each([...])` | `@pytest.mark.parametrize` |
 | Skip tests | `test.skip()`, `xtest()` | `@pytest.mark.skip` |
@@ -39,8 +41,7 @@
 | Coverage | `jest --coverage` | `pytest-cov` plugin |
 | Snapshot testing | Built-in | `pytest-snapshot` plugin |
 
-**Key insight:** Jest tries to be an all-in-one solution. pytest has a lean core with a
-rich plugin ecosystem. You install only what you need.
+**Key insight:** Jest ek all-in-one solution banne ki koshish karta hai — Zomato Gold jaisa, sab kuch ek subscription mein. pytest ka core lean rakha gaya hai, aur uske upar rich plugin ecosystem hai. Jo chahiye wahi install karo, extra bloat nahi.
 
 ---
 
@@ -49,39 +50,39 @@ rich plugin ecosystem. You install only what you need.
 ### Installation
 
 ```bash
-# In Node.js you'd do:
+# Node.js mein tum karte:
 # npm install --save-dev jest @types/jest ts-jest
 
-# In Python, just:
+# Python mein bas itna kaafi hai:
 pip install pytest
 
-# Or better, add it to your project dependencies:
-# In pyproject.toml:
+# Ya behtar, project dependencies mein add karo:
+# pyproject.toml mein:
 # [project.optional-dependencies]
 # dev = ["pytest>=8.0"]
 ```
 
-### Running Tests
+### Tests Run Karna
 
 ```bash
-# Jest equivalents:
-# npx jest                    -> Run all tests
-# npx jest path/to/file       -> Run specific file
-# npx jest -t "test name"     -> Run tests matching name
+# Jest ke equivalents:
+# npx jest                    -> Saare tests chalao
+# npx jest path/to/file       -> Specific file chalao
+# npx jest -t "test name"     -> Name match karne wale tests chalao
 # npx jest --watch            -> Watch mode
 
-# pytest equivalents:
-pytest                         # Run all tests
-pytest tests/test_math.py      # Run specific file
-pytest tests/test_math.py::test_addition  # Run specific test
-pytest -k "addition"           # Run tests matching keyword expression
+# pytest ke equivalents:
+pytest                         # Saare tests chalao
+pytest tests/test_math.py      # Specific file chalao
+pytest tests/test_math.py::test_addition  # Specific test chalao
+pytest -k "addition"           # Keyword expression match karne wale tests
 pytest -k "addition or subtract"  # Boolean keyword matching
-pytest -x                      # Stop on first failure (like --bail)
-pytest --lf                    # Re-run only last failed tests
-pytest --ff                    # Run failed tests first, then the rest
+pytest -x                      # Pehli failure pe stop (jaise --bail)
+pytest --lf                    # Sirf last failed tests dobara chalao
+pytest --ff                    # Pehle failed tests, phir baaki sab
 ```
 
-### Your First Test
+### Tumhara Pehla Test
 
 ```python
 # tests/test_calculator.py
@@ -99,7 +100,7 @@ def test_add_zero():
     assert add(5, 0) == 5
 ```
 
-Compare with Jest:
+Jest se compare karo:
 
 ```typescript
 // calculator.test.ts
@@ -120,14 +121,13 @@ test('adds zero', () => {
 });
 ```
 
-Notice: In Python, the test function name IS the test description. There is no separate
-string argument. Name your functions descriptively: `test_add_returns_sum_of_two_positive_integers`.
+Ek cheez notice karo: Python mein test function ka naam hi test ka description hai. Alag se koi string argument nahi dena padta. Isliye function names descriptive rakho: `test_add_returns_sum_of_two_positive_integers`.
 
 ---
 
 ## Test Discovery
 
-pytest automatically finds your tests using these conventions:
+pytest apne aap tumhare tests dhoond leta hai, in conventions ke through — bilkul waise jaise Swiggy delivery boy tumhara address dhoond leta hai bina tumhe call kiye, agar naming sahi ho.
 
 ### File Discovery
 
@@ -136,31 +136,31 @@ my_project/
     src/
         calculator.py
     tests/
-        __init__.py          # Can be empty, helps with imports
-        test_calculator.py   # Discovered! (test_ prefix)
-        calculator_test.py   # Discovered! (_test suffix)
-        helper.py            # NOT discovered (no test_ or _test)
+        __init__.py          # Empty ho sakta hai, imports mein help karta hai
+        test_calculator.py   # Mil gaya! (test_ prefix)
+        calculator_test.py   # Mil gaya! (_test suffix)
+        helper.py            # NAHI milega (na test_ hai na _test)
 ```
 
-**Jest comparison:**
-- Jest looks for `*.test.js`, `*.spec.js`, or files in `__tests__/` directories.
-- pytest looks for `test_*.py` or `*_test.py` files.
-- Both search recursively from the project root.
+**Jest se comparison:**
+- Jest `*.test.js`, `*.spec.js`, ya `__tests__/` directories ke andar ki files dhoondta hai.
+- pytest `test_*.py` ya `*_test.py` files dhoondta hai.
+- Dono project root se recursively search karte hain.
 
-### Function and Class Discovery
+### Function aur Class Discovery
 
 ```python
 # test_example.py
 
-# Discovered - starts with test_
+# Discover hoga - test_ se start hota hai
 def test_something():
     assert True
 
-# NOT discovered - doesn't start with test_
+# NAHI hoga discover - test_ se start nahi hota
 def helper_function():
     return 42
 
-# Discovered - class starts with Test, methods start with test_
+# Discover hoga - class Test se start, methods test_ se
 class TestCalculator:
     def test_add(self):
         assert 1 + 1 == 2
@@ -168,20 +168,20 @@ class TestCalculator:
     def test_subtract(self):
         assert 5 - 3 == 2
 
-    # NOT discovered - doesn't start with test_
+    # NAHI hoga discover - test_ se start nahi hota
     def helper(self):
         return "I'm a helper"
 
-# NOT discovered - class doesn't start with Test
+# NAHI hoga discover - class Test se start nahi hoti
 class CalculatorTests:
     def test_add(self):
         assert 1 + 1 == 2
 ```
 
-**Important:** Test classes must NOT have an `__init__` method. pytest uses plain classes
-purely for grouping, unlike unittest which requires inheritance.
+> [!warning]
+> Test classes mein `__init__` method NAHI hona chahiye. pytest plain classes ka use sirf grouping ke liye karta hai — unittest ki tarah inheritance ki zaroorat nahi.
 
-### Jest's describe() Equivalent
+### Jest ke describe() ka Equivalent
 
 ```typescript
 // Jest: Nested describe blocks
@@ -196,7 +196,7 @@ describe('Calculator', () => {
 ```
 
 ```python
-# pytest: Classes for grouping (flat, no nesting)
+# pytest: Grouping ke liye classes (flat, nesting nahi)
 class TestCalculatorAdd:
     def test_adds_two_numbers(self):
         assert add(1, 2) == 3
@@ -205,7 +205,7 @@ class TestCalculatorSubtract:
     def test_subtracts_two_numbers(self):
         assert subtract(5, 3) == 2
 
-# Or just use descriptive function names (more Pythonic):
+# Ya bas descriptive function names use karo (zyada Pythonic):
 def test_calculator_add_returns_sum():
     assert add(1, 2) == 3
 
@@ -217,13 +217,13 @@ def test_calculator_subtract_returns_difference():
 
 ## The Power of assert
 
-This is where pytest really shines. Instead of learning dozens of matcher methods
-(`toBe`, `toEqual`, `toContain`, `toHaveLength`, etc.), you just use Python's `assert`.
+Yahan pytest sach mein chamakta hai. Dozens matcher methods yaad karne ki bajaye
+(`toBe`, `toEqual`, `toContain`, `toHaveLength`, waghera), bas Python ka `assert` use karo.
 
-### Basic Assertions
+### Kya hota hai? Basic Assertions
 
 ```python
-# pytest - just use assert with any Python expression
+# pytest - koi bhi Python expression ke saath assert use karo
 
 def test_equality():
     assert 1 + 1 == 2
@@ -232,18 +232,18 @@ def test_not_equal():
     assert 1 + 1 != 3
 
 def test_truthy():
-    assert "hello"        # Non-empty strings are truthy
-    assert [1, 2, 3]      # Non-empty lists are truthy
-    assert 42              # Non-zero numbers are truthy
+    assert "hello"        # Non-empty strings truthy hote hain
+    assert [1, 2, 3]      # Non-empty lists truthy hote hain
+    assert 42              # Non-zero numbers truthy hote hain
 
 def test_falsy():
-    assert not ""          # Empty string is falsy
-    assert not []          # Empty list is falsy
-    assert not 0           # Zero is falsy
-    assert not None        # None is falsy
+    assert not ""          # Empty string falsy hai
+    assert not []          # Empty list falsy hai
+    assert not 0           # Zero falsy hai
+    assert not None        # None falsy hai
 
 def test_identity():
-    assert None is None    # Use 'is' for None/True/False checks
+    assert None is None    # None/True/False check ke liye 'is' use karo
 
 def test_containment():
     assert 3 in [1, 2, 3]
@@ -259,10 +259,10 @@ def test_type_checking():
     assert isinstance("hello", str)
 ```
 
-Compare with Jest:
+Jest se compare karo:
 
 ```typescript
-// Jest - need to remember specific matchers
+// Jest - specific matchers yaad rakhne padte hain
 test('various assertions', () => {
     expect(1 + 1).toBe(2);
     expect(1 + 1).not.toBe(3);
@@ -276,9 +276,9 @@ test('various assertions', () => {
 });
 ```
 
-### pytest's Secret Weapon: Assert Rewriting
+### pytest ka Secret Weapon: Assert Rewriting
 
-When an assert fails, pytest gives you incredibly detailed output:
+Jab assert fail hota hai, pytest tumhe bohot detailed output deta hai:
 
 ```python
 def test_list_equality():
@@ -299,9 +299,10 @@ FAILED test_example.py::test_list_equality
       ?                ^
 ```
 
-pytest rewrites your `assert` statements at import time to capture intermediate values
-and show you exactly what went wrong. This is magic you do NOT get from vanilla Python
-`assert` -- it is a pytest-specific feature.
+pytest import time pe tumhare `assert` statements ko rewrite karta hai taaki intermediate values capture karke exactly dikha sake kya galat hua. Yeh magic vanilla Python ke `assert` mein NAHI milega — yeh pure pytest-specific feature hai.
+
+> [!tip]
+> Isi wajah se pytest mein `assertEquals`, `assertTrue` jaisi koi separate method yaad rakhne ki zaroorat nahi — bas plain `assert` likho aur pytest baaki sambhaal lega.
 
 ### Custom Messages
 
@@ -311,27 +312,27 @@ def test_with_message():
     assert value > 0, f"Expected positive value, got {value}"
 ```
 
-### Comparing Complex Objects
+### Complex Objects Compare Karna
 
 ```python
 def test_dict_comparison():
     result = {"name": "Alice", "age": 30, "city": "NYC"}
     expected = {"name": "Alice", "age": 31, "city": "NYC"}
     assert result == expected
-    # Output shows: E       'age': 30 != 31
+    # Output dikhata hai: E       'age': 30 != 31
 
 def test_set_comparison():
     result = {1, 2, 3, 4}
     expected = {1, 2, 3, 5}
     assert result == expected
-    # Output shows: Extra items in the left set: {4}
-    #               Extra items in the right set: {5}
+    # Output dikhata hai: Extra items in the left set: {4}
+    #                     Extra items in the right set: {5}
 ```
 
 ### Approximate Comparisons (Floating Point)
 
 ```python
-# Instead of Jest's toBeCloseTo:
+# Jest ke toBeCloseTo ki jagah:
 def test_floating_point():
     assert 0.1 + 0.2 == pytest.approx(0.3)
     assert [0.1 + 0.2, 0.2 + 0.4] == pytest.approx([0.3, 0.6])
@@ -343,8 +344,8 @@ def test_floating_point():
 
 ## Parametrize: Data-Driven Tests
 
-Parametrize lets you run the same test with different inputs. This is like Jest's
-`test.each()` but with a cleaner decorator syntax.
+Kyun zaruri hai? Socho tumhe same test, alag-alag inputs ke saath baar-baar likhna pad raha hai —
+Zomato pe ek hi order 10 different addresses pe deliver karna ho toh tum function call baar baar copy-paste nahi karoge, loop chalaoge na? Parametrize wahi karta hai. Jest ke `test.each()` jaisa, bas cleaner decorator syntax ke saath.
 
 ### Basic Parametrize
 
@@ -377,7 +378,7 @@ test.each([
 });
 ```
 
-### Parametrize with IDs
+### IDs ke saath Parametrize
 
 ```python
 @pytest.mark.parametrize("input_val, expected", [
@@ -390,7 +391,7 @@ def test_square_with_ids(input_val, expected):
     assert input_val ** 2 == expected
 ```
 
-Running gives you:
+Run karne pe milta hai:
 ```
 test_math.py::test_square_with_ids[one] PASSED
 test_math.py::test_square_with_ids[two] PASSED
@@ -404,12 +405,12 @@ test_math.py::test_square_with_ids[negative] PASSED
 @pytest.mark.parametrize("x", [0, 1, 2])
 @pytest.mark.parametrize("y", [10, 20])
 def test_addition_combinations(x, y):
-    """This runs 6 tests: (0,10), (0,20), (1,10), (1,20), (2,10), (2,20)"""
+    """Yeh 6 tests chalata hai: (0,10), (0,20), (1,10), (1,20), (2,10), (2,20)"""
     result = x + y
     assert result == x + y
 ```
 
-### Parametrize with Expected Failures
+### Expected Failures ke saath Parametrize
 
 ```python
 @pytest.mark.parametrize("input_val, expected", [
@@ -421,7 +422,7 @@ def test_square_with_xfail(input_val, expected):
     assert input_val ** 2 == expected
 ```
 
-### Real-World Example: Testing an API Validator
+### Real-World Example: API Validator Test Karna
 
 ```python
 import pytest
@@ -455,9 +456,9 @@ def test_validate_email(email: str, is_valid: bool):
 
 ## Markers
 
-Markers are like labels you attach to tests. Some are built-in, others you define yourself.
+Markers labels jaise hote hain jo tum tests pe laga sakte ho — kuch built-in hain, kuch khud define karte ho.
 
-### @pytest.mark.skip - Always Skip
+### @pytest.mark.skip - Hamesha Skip Karo
 
 ```python
 import pytest
@@ -468,7 +469,7 @@ def test_future_feature():
 
 # Jest equivalent:
 # test.skip('future feature', () => { ... });
-# or: xtest('future feature', () => { ... });
+# ya: xtest('future feature', () => { ... });
 ```
 
 ### @pytest.mark.skipif - Conditional Skip
@@ -490,8 +491,7 @@ def test_new_python_feature():
     pass
 ```
 
-No direct Jest equivalent for conditional skipping -- you would normally use `if` inside
-the test or skip manually.
+Jest mein iska direct equivalent nahi hai — normally tum test ke andar `if` use karoge ya manually skip karoge.
 
 ### @pytest.mark.xfail - Expected Failure
 
@@ -500,20 +500,20 @@ the test or skip manually.
 def test_known_bug():
     assert buggy_function() == expected_value
 
-# If the test unexpectedly PASSES, pytest reports it as XPASS (unexpected pass).
-# This is great for tracking known bugs - you'll know when they're fixed!
+# Agar test unexpectedly PASS ho jaye, pytest ise XPASS (unexpected pass) report karta hai.
+# Yeh known bugs track karne ke liye zabardast hai - pata chal jayega jab bug fix ho jaye!
 
 @pytest.mark.xfail(strict=True)
 def test_strict_xfail():
-    """With strict=True, an unexpected pass is treated as a FAILURE.
-    Use this when you want to be notified the moment a bug is fixed."""
+    """strict=True ke saath, unexpected pass ko FAILURE treat kiya jaata hai.
+    Isse use karo jab tumhe turant pata chalna ho ki bug fix ho gaya."""
     assert buggy_function() == expected_value
 ```
 
 ### Custom Markers
 
 ```python
-# Define custom markers in pyproject.toml:
+# pyproject.toml mein custom markers define karo:
 # [tool.pytest.ini_options]
 # markers = [
 #     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -523,24 +523,24 @@ def test_strict_xfail():
 
 @pytest.mark.slow
 def test_large_dataset_processing():
-    """Takes 30 seconds to run."""
+    """30 seconds lagte hain run hone mein."""
     process_million_records()
 
 @pytest.mark.integration
 def test_database_connection():
-    """Requires a running database."""
+    """Running database chahiye."""
     db = connect_to_db()
     assert db.is_connected()
 ```
 
 ```bash
-# Run only fast tests (exclude slow):
+# Sirf fast tests chalao (slow exclude karke):
 pytest -m "not slow"
 
-# Run only integration tests:
+# Sirf integration tests chalao:
 pytest -m integration
 
-# Run unit tests but not integration:
+# Unit tests chalao par integration nahi:
 pytest -m "unit and not integration"
 ```
 
@@ -549,6 +549,8 @@ pytest -m "unit and not integration"
 ## Testing Exceptions
 
 ### pytest.raises()
+
+Socho tumhara IRCTC app agar tatkal booking mein balance kam ho toh error throw karta hai — tumhe test karna hai ki wo error sahi se throw ho raha hai ya nahi. Yahi kaam `pytest.raises()` karta hai.
 
 ```python
 import pytest
@@ -563,12 +565,12 @@ def test_divide_by_zero_raises():
     with pytest.raises(ValueError):
         divide(10, 0)
 
-# Check the exception message
+# Exception message check karo
 def test_divide_by_zero_message():
     with pytest.raises(ValueError, match="Cannot divide by zero"):
         divide(10, 0)
 
-# Access the exception object
+# Exception object access karo
 def test_divide_by_zero_details():
     with pytest.raises(ValueError) as exc_info:
         divide(10, 0)
@@ -590,7 +592,7 @@ test('divide by zero throws', () => {
 });
 ```
 
-### Testing Multiple Exception Types
+### Multiple Exception Types Test Karna
 
 ```python
 def test_type_errors():
@@ -598,13 +600,13 @@ def test_type_errors():
         divide("not", "numbers")  # type: ignore
 
 def test_does_not_raise():
-    """Sometimes you want to verify NO exception is raised."""
-    # Just call the function - if it raises, the test fails automatically
+    """Kabhi-kabhi verify karna hota hai ki koi exception RAISE nahi hua."""
+    # Bas function call karo - agar raise hua toh test automatically fail ho jayega
     result = divide(10, 2)
     assert result == 5.0
 ```
 
-### match Parameter Uses Regex
+### match Parameter Regex Use Karta Hai
 
 ```python
 def test_exception_message_pattern():
@@ -622,64 +624,64 @@ def test_exception_message_pattern():
 ### Output Levels
 
 ```bash
-# Default: dots for pass, F for fail
+# Default: pass ke liye dots, fail ke liye F
 pytest
 # Output: ...F..
 
-# Verbose: show each test name
+# Verbose: har test ka naam dikhao
 pytest -v
 # Output:
 # test_calc.py::test_add PASSED
 # test_calc.py::test_subtract PASSED
 # test_calc.py::test_divide FAILED
 
-# Extra verbose: show full assertion details
+# Extra verbose: full assertion details dikhao
 pytest -vv
 
 # Quiet: minimal output
 pytest -q
 
-# Show print statements (by default, pytest captures stdout)
+# print statements dikhao (default mein pytest stdout capture kar leta hai)
 pytest -s
 
-# Combine: verbose + show prints
+# Combine: verbose + prints dikhao
 pytest -vs
 
-# Show local variables in tracebacks
+# Tracebacks mein local variables dikhao
 pytest -l
 
 # Short traceback format
 pytest --tb=short
 
-# No traceback
+# Koi traceback nahi
 pytest --tb=no
 
-# Only show first failure details
+# Sirf pehli failure ki details dikhao
 pytest --tb=line
 ```
 
-### Using print() for Debugging
+### Debugging ke liye print() Use Karna
 
 ```python
 def test_debugging_example():
     data = fetch_some_data()
-    print(f"DEBUG: Got data = {data}")  # Only visible with -s flag
+    print(f"DEBUG: Got data = {data}")  # Sirf -s flag ke saath dikhega
     assert data["status"] == "ok"
 ```
 
 ```bash
-# Without -s: print output is captured and only shown on failure
-# With -s: print output always shown
+# -s ke bina: print output capture ho jaata hai, sirf failure pe dikhta hai
+# -s ke saath: print output hamesha dikhega
 pytest -s test_example.py
 ```
 
-### Show Test Durations
+### Test Durations Dikhana
 
 ```bash
-# Show the 10 slowest tests:
+# 10 sabse slow tests dikhao:
 pytest --durations=10
 
-# Show all test durations:
+# Saari test durations dikhao:
 pytest --durations=0
 ```
 
@@ -693,22 +695,22 @@ pytest --durations=0
 # pyproject.toml
 
 [tool.pytest.ini_options]
-# Equivalent to jest.config.js options
+# jest.config.js options ke equivalent
 
-# Where to find tests (like jest's testMatch/roots)
+# Tests kahan dhoondein (jest ke testMatch/roots jaisa)
 testpaths = ["tests"]
 
 # Minimum pytest version
 minversion = "8.0"
 
-# Default command-line options (like jest's CLI flags)
+# Default command-line options (jest ke CLI flags jaisa)
 addopts = [
-    "-ra",          # Show summary of all non-passing tests
+    "-ra",          # Saare non-passing tests ka summary dikhao
     "-q",           # Quiet mode
-    "--strict-markers",  # Error on unknown markers
+    "--strict-markers",  # Unknown markers pe error do
 ]
 
-# Test file pattern (like jest's testRegex)
+# Test file pattern (jest ke testRegex jaisa)
 python_files = ["test_*.py", "*_test.py"]
 
 # Test function pattern
@@ -724,17 +726,17 @@ markers = [
     "unit: marks unit tests",
 ]
 
-# Filter warnings
+# Warnings filter karo
 filterwarnings = [
-    "error",                              # Treat warnings as errors
-    "ignore::DeprecationWarning",         # Except deprecation warnings
+    "error",                              # Warnings ko error treat karo
+    "ignore::DeprecationWarning",         # Deprecation warnings ke alawa
 ]
 ```
 
-### Comparison with jest.config.js
+### jest.config.js se Comparison
 
 ```javascript
-// jest.config.js - for reference
+// jest.config.js - reference ke liye
 module.exports = {
     testMatch: ['**/__tests__/**/*.ts', '**/*.test.ts'],
     transform: { '^.+\\.tsx?$': 'ts-jest' },
@@ -749,27 +751,27 @@ module.exports = {
 # pyproject.toml equivalent
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["-v", "--timeout=10"]  # requires pytest-timeout
-# No transform needed - Python doesn't need compilation
-# Coverage is handled by pytest-cov plugin
+addopts = ["-v", "--timeout=10"]  # pytest-timeout chahiye
+# Transform ki zaroorat nahi - Python ko compilation nahi chahiye
+# Coverage pytest-cov plugin handle karta hai
 ```
 
-### Other Config Files (Less Common)
+### Doosre Config Files (Kam Common)
 
 ```ini
-# pytest.ini (older style, still works)
+# pytest.ini (purana style, ab bhi kaam karta hai)
 [pytest]
 testpaths = tests
 addopts = -ra -q
 
-# setup.cfg (older style)
+# setup.cfg (purana style)
 [tool:pytest]
 testpaths = tests
 addopts = -ra -q
 ```
 
-**Recommendation:** Always use `pyproject.toml`. It is the modern standard and keeps
-all your project configuration in one file.
+> [!tip]
+> **Recommendation:** Hamesha `pyproject.toml` use karo. Yeh modern standard hai aur tumhari saari project configuration ek hi file mein rakhta hai.
 
 ---
 
@@ -777,38 +779,38 @@ all your project configuration in one file.
 
 ### Exercise 1: String Utilities
 
-Write tests for these functions. Create two files:
+In functions ke tests likho. Do files banao:
 
 ```python
 # src/string_utils.py
 
 def capitalize_words(text: str) -> str:
-    """Capitalize the first letter of each word."""
+    """Har word ka pehla letter capitalize karo."""
     return " ".join(word.capitalize() for word in text.split())
 
 def truncate(text: str, max_length: int, suffix: str = "...") -> str:
-    """Truncate text to max_length, adding suffix if truncated."""
+    """Text ko max_length tak truncate karo, agar truncate hua toh suffix add karo."""
     if len(text) <= max_length:
         return text
     return text[:max_length - len(suffix)] + suffix
 
 def is_palindrome(text: str) -> bool:
-    """Check if text is a palindrome (ignoring case and spaces)."""
+    """Check karo ki text palindrome hai ya nahi (case aur spaces ignore karke)."""
     cleaned = text.lower().replace(" ", "")
     return cleaned == cleaned[::-1]
 
 def count_vowels(text: str) -> int:
-    """Count the number of vowels in text."""
+    """Text mein vowels count karo."""
     return sum(1 for char in text.lower() if char in "aeiou")
 ```
 
 ```python
 # tests/test_string_utils.py
-# YOUR CODE HERE:
-# 1. Write at least 3 tests for each function
-# 2. Use @pytest.mark.parametrize for is_palindrome and count_vowels
-# 3. Test edge cases: empty strings, None input, unicode characters
-# 4. Test that truncate raises TypeError for non-string input
+# YAHAN TUMHARA CODE:
+# 1. Har function ke liye kam se kam 3 tests likho
+# 2. is_palindrome aur count_vowels ke liye @pytest.mark.parametrize use karo
+# 3. Edge cases test karo: empty strings, None input, unicode characters
+# 4. Test karo ki truncate non-string input ke liye TypeError raise karta hai
 ```
 
 ### Exercise 2: Shopping Cart
@@ -845,26 +847,26 @@ class ShoppingCart:
 
 ```python
 # tests/test_cart.py
-# YOUR CODE HERE:
-# 1. Test adding items and checking totals
-# 2. Test removing items
-# 3. Test discount calculations (use pytest.approx for float comparison!)
-# 4. Test error cases with pytest.raises
-# 5. Use @pytest.mark.parametrize for discount edge cases
-# 6. Group related tests in classes (TestAddItem, TestDiscount, etc.)
+# YAHAN TUMHARA CODE:
+# 1. Items add karne aur totals check karne ke tests likho
+# 2. Items remove karne ka test likho
+# 3. Discount calculations test karo (float comparison ke liye pytest.approx use karo!)
+# 4. pytest.raises ke saath error cases test karo
+# 5. Discount edge cases ke liye @pytest.mark.parametrize use karo
+# 6. Related tests ko classes mein group karo (TestAddItem, TestDiscount, waghera)
 ```
 
 ### Exercise 3: FizzBuzz (Classic TDD)
 
-Practice test-driven development:
+Test-driven development practice karo — Flipkart ke dabbe ki tarah, pehle packing list banao (tests), phir saaman pack karo (implementation):
 
 ```python
 # tests/test_fizzbuzz.py
-# Write these tests FIRST, then implement the function.
+# Pehle yeh tests likho, phir function implement karo.
 
 import pytest
 
-# Step 1: Write parametrized tests
+# Step 1: Parametrized tests likho
 @pytest.mark.parametrize("number, expected", [
     (1, "1"),
     (2, "2"),
@@ -880,7 +882,7 @@ def test_fizzbuzz(number, expected):
     from src.fizzbuzz import fizzbuzz
     assert fizzbuzz(number) == expected
 
-# Step 2: Test edge cases
+# Step 2: Edge cases test karo
 def test_fizzbuzz_zero():
     from src.fizzbuzz import fizzbuzz
     with pytest.raises(ValueError):
@@ -891,32 +893,32 @@ def test_fizzbuzz_negative():
     with pytest.raises(ValueError):
         fizzbuzz(-1)
 
-# Step 3: Now implement src/fizzbuzz.py to make all tests pass!
+# Step 3: Ab src/fizzbuzz.py implement karo taaki saare tests pass ho jayein!
 ```
 
 ### Exercise 4: pytest Configuration
 
-Create a `pyproject.toml` with:
-1. Test discovery configured for a `tests/` directory
-2. Verbose output by default
-3. Custom markers for `slow`, `integration`, and `unit`
+Ek `pyproject.toml` banao jisme ho:
+1. `tests/` directory ke liye test discovery configure ho
+2. Default verbose output
+3. `slow`, `integration`, aur `unit` ke liye custom markers
 4. Strict marker enforcement
-5. Warning filters that convert DeprecationWarnings to errors
+5. Warning filters jo DeprecationWarnings ko errors mein convert karein
 
-Then write at least one test using each custom marker and verify you can select them
-with `-m` flags.
+Fir har custom marker use karke kam se kam ek test likho aur verify karo ki tum unhe
+`-m` flags se select kar sakte ho.
 
 ---
 
 ## Key Takeaways
 
-1. **assert is all you need.** Forget the dozens of Jest matchers -- `assert` plus Python
-   operators covers everything.
-2. **pytest rewrites assert.** You get detailed failure messages for free.
-3. **Parametrize > copy-paste.** Use `@pytest.mark.parametrize` for data-driven tests.
-4. **Markers organize tests.** Use built-in markers (`skip`, `xfail`) and custom ones.
-5. **Configuration is simple.** One section in `pyproject.toml` replaces `jest.config.js`.
-6. **Run what you need.** Use `-k`, `-m`, and node IDs to run specific tests quickly.
+1. **assert hi kaafi hai.** Jest ke dozens matchers bhool jao -- `assert` + Python operators
+   sab kuch cover kar deta hai.
+2. **pytest assert ko rewrite karta hai.** Detailed failure messages free mein milte hain.
+3. **Parametrize > copy-paste.** Data-driven tests ke liye `@pytest.mark.parametrize` use karo.
+4. **Markers tests ko organize karte hain.** Built-in markers (`skip`, `xfail`) aur custom markers dono use karo.
+5. **Configuration simple hai.** `pyproject.toml` ka ek section `jest.config.js` ki jagah le leta hai.
+6. **Jo chahiye wahi run karo.** Specific tests jaldi chalane ke liye `-k`, `-m`, aur node IDs use karo.
 
-Next up: [Fixtures and Mocking](./02_fixtures_and_mocking.md) -- pytest's killer feature
-that makes `beforeEach`/`afterEach` look primitive.
+Next up: [Fixtures and Mocking](./02_fixtures_and_mocking.md) -- pytest ka killer feature
+jo `beforeEach`/`afterEach` ko primitive bana dega.

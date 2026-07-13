@@ -1,19 +1,21 @@
 # Abstract Classes & Protocols
 
-> Python's abstract base classes and structural subtyping for Node.js/TypeScript developers
+> Python ke abstract base classes aur structural subtyping — Node.js/TypeScript devs ke liye
 
 ---
 
-## ABC (Abstract Base Class) from `abc` Module
+## ABC (Abstract Base Class) — `abc` Module Se
 
-Python's ABCs are similar to TypeScript's `abstract` classes. They define a contract that subclasses MUST fulfill. You cannot instantiate an abstract class directly.
+Python ke ABCs bilkul TypeScript ke `abstract` classes jaise hain. Ye ek contract define karte hain jise subclasses ko MANDATORY follow karna padta hai. Abstract class ko directly instantiate nahi kar sakte.
+
+Socho tum Zomato jaisa payment system bana rahe ho — chahe Stripe ho ya PayPal, sabko charge, refund aur balance check karna hi padega. `PaymentProcessor` ek blueprint hai, koi usse seedha use nahi kar sakta — usko extend karke hi kaam chalega.
 
 ```python
 from abc import ABC, abstractmethod
 
 
 class PaymentProcessor(ABC):
-    """Abstract base class - cannot be instantiated directly."""
+    """Abstract base class - isko directly instantiate nahi kar sakte."""
 
     def __init__(self, merchant_id: str):
         self.merchant_id = merchant_id
@@ -21,22 +23,22 @@ class PaymentProcessor(ABC):
 
     @abstractmethod
     def charge(self, amount: float, currency: str) -> dict:
-        """Subclasses MUST implement this."""
+        """Subclasses ko YE zaroor implement karna hai."""
         ...
 
     @abstractmethod
     def refund(self, transaction_id: str) -> dict:
-        """Subclasses MUST implement this."""
+        """Subclasses ko YE zaroor implement karna hai."""
         ...
 
     @abstractmethod
     def get_balance(self) -> float:
-        """Subclasses MUST implement this."""
+        """Subclasses ko YE zaroor implement karna hai."""
         ...
 
-    # Concrete methods (shared implementation) are allowed too
+    # Concrete methods (shared implementation) bhi allowed hain
     def log_transaction(self, transaction: dict) -> None:
-        """Shared implementation - subclasses inherit this."""
+        """Shared implementation - subclasses ko free mein milta hai."""
         self._transactions.append(transaction)
         print(f"[{self.merchant_id}] Transaction: {transaction}")
 
@@ -44,12 +46,12 @@ class PaymentProcessor(ABC):
         return self._transactions.copy()
 
 
-# Cannot instantiate abstract class
+# Abstract class ko instantiate nahi kar sakte
 # processor = PaymentProcessor("m_123")  # TypeError!
 
 
 class StripeProcessor(PaymentProcessor):
-    """Concrete implementation for Stripe."""
+    """Stripe ke liye concrete implementation."""
 
     def __init__(self, merchant_id: str, api_key: str):
         super().__init__(merchant_id)
@@ -82,7 +84,7 @@ class StripeProcessor(PaymentProcessor):
 
 
 class PayPalProcessor(PaymentProcessor):
-    """Concrete implementation for PayPal."""
+    """PayPal ke liye concrete implementation."""
 
     def __init__(self, merchant_id: str, client_id: str, secret: str):
         super().__init__(merchant_id)
@@ -109,9 +111,9 @@ class PayPalProcessor(PaymentProcessor):
         return self._balance
 
 
-# Usage - program to the interface
+# Usage - interface ke against code likho, implementation ke against nahi
 def process_payment(processor: PaymentProcessor, amount: float) -> dict:
-    """Works with ANY PaymentProcessor implementation."""
+    """Kisi bhi PaymentProcessor implementation ke saath kaam karega."""
     print(f"Processing ${amount:.2f} via {processor.__class__.__name__}")
     return processor.charge(amount, "USD")
 
@@ -158,26 +160,29 @@ class StripeProcessor extends PaymentProcessor {
 }
 ```
 
-### What Happens if You Forget an Abstract Method?
+### Agar Ek Abstract Method Bhool Jao To?
 
 ```python
 class IncompleteProcessor(PaymentProcessor):
     def charge(self, amount: float, currency: str) -> dict:
         return {}
-    # Forgot refund() and get_balance()!
+    # refund() aur get_balance() bhool gaye!
 
 
-# TypeError is raised at INSTANTIATION time, not definition time
+# TypeError INSTANTIATION time pe aayega, definition time pe nahi
 # proc = IncompleteProcessor("m_789")
 # TypeError: Can't instantiate abstract class IncompleteProcessor
 # with abstract methods get_balance, refund
 ```
 
+> [!warning]
+> Yaha bada difference hai TypeScript se. TS mein compile-time pe hi error mil jaata hai agar abstract method miss ho. Python mein class define karte waqt kuch nahi hota — jaise hi tum us class ka object banane ki koshish karoge, tabhi `TypeError` fatega. Matlab bug production tak chhup sakta hai agar us class ko kabhi instantiate hi na kiya ho.
+
 ---
 
-## `@abstractmethod` with Properties, Class Methods, and Static Methods
+## `@abstractmethod` Ke Saath Property, Classmethod, Staticmethod
 
-You can combine `@abstractmethod` with other decorators:
+`@abstractmethod` ko doosre decorators ke saath bhi combine kar sakte ho:
 
 ```python
 from abc import ABC, abstractmethod
@@ -189,7 +194,7 @@ class Cache(ABC):
     @property
     @abstractmethod
     def size(self) -> int:
-        """Number of items in the cache."""
+        """Cache mein kitne items hain."""
         ...
 
     @abstractmethod
@@ -207,7 +212,7 @@ class Cache(ABC):
     @classmethod
     @abstractmethod
     def create(cls, config: dict) -> "Cache":
-        """Factory method that must be implemented."""
+        """Factory method jo implement karna zaroori hai."""
         ...
 
 
@@ -242,21 +247,26 @@ print(cache.get("theme"))  # dark
 print(cache.size)          # 1
 ```
 
+> [!tip]
+> Order yaad rakho: `@classmethod` upar, `@abstractmethod` neeche. Decorators bottom-to-top apply hote hain, isliye ye order zaroori hai warna Python confuse ho jaata hai.
+
 ---
 
-## Protocol - Structural Subtyping (Duck Typing)
+## Protocol — Structural Subtyping (Duck Typing)
 
-This is the Python equivalent of **TypeScript interfaces**. Protocols define a structural type - any class that has the right methods/attributes matches, WITHOUT explicitly inheriting from it.
+Ye Python ka **TypeScript interface** wala equivalent hai. Protocol ek structural type define karta hai — jis bhi class ke paas sahi methods/attributes hain wo match ho jaayegi, bina explicitly usse inherit kiye.
+
+Socho IRCTC ka ticket printer hai. Usse farak nahi padta tumhara ticket kaunsi company ne banaya — agar usme `print()` method hai, printer chala dega. Wahi Protocol ka idea hai: "agar duck ki tarah quack karta hai, to duck hi hai" — chahe wo `Duck` class se inherit kare ya na kare.
 
 ```python
 from typing import Protocol, runtime_checkable
 
 
 class Renderable(Protocol):
-    """Any object with a render() method matches this Protocol.
+    """Jis bhi object ke paas render() method hai, wo isse match karega.
 
-    This is STRUCTURAL typing - like TypeScript interfaces.
-    No inheritance required!
+    Ye STRUCTURAL typing hai - TypeScript interfaces jaisa.
+    Koi inheritance zaroori nahi!
     """
 
     def render(self) -> str:
@@ -264,7 +274,7 @@ class Renderable(Protocol):
 
 
 class HTMLComponent:
-    """Does NOT inherit from Renderable, but matches its structure."""
+    """Renderable se inherit NAHI karta, lekin structure match karta hai."""
 
     def __init__(self, tag: str, content: str):
         self.tag = tag
@@ -275,7 +285,7 @@ class HTMLComponent:
 
 
 class MarkdownComponent:
-    """Also matches Renderable without inheriting from it."""
+    """Ye bhi bina inherit kiye Renderable match karta hai."""
 
     def __init__(self, level: int, text: str):
         self.level = level
@@ -286,7 +296,7 @@ class MarkdownComponent:
 
 
 class JSONResponse:
-    """Does NOT match Renderable - no render() method."""
+    """Renderable match NAHI karta - koi render() method nahi hai."""
 
     def __init__(self, data: dict):
         self.data = data
@@ -296,13 +306,13 @@ class JSONResponse:
         return json.dumps(self.data)
 
 
-# This function accepts anything with a render() method
+# Ye function kisi bhi cheez ko accept karta hai jiske paas render() method ho
 def render_page(components: list[Renderable]) -> str:
-    """Type checker knows these objects have render()."""
+    """Type checker ko pata hai in objects ke paas render() hai."""
     return "\n".join(c.render() for c in components)
 
 
-# All these work - they have render()
+# Ye sab kaam karega - sabke paas render() hai
 page = render_page([
     HTMLComponent("h1", "Hello World"),
     MarkdownComponent(2, "Subtitle"),
@@ -315,13 +325,13 @@ print(page)
 ```
 
 ```typescript
-// TypeScript - interfaces work the same way (structural typing)
+// TypeScript - interfaces bhi isi tarah kaam karte hain (structural typing)
 interface Renderable {
   render(): string;
 }
 
 class HTMLComponent {
-  // No "implements Renderable" needed!
+  // "implements Renderable" likhne ki zarurat nahi!
   constructor(private tag: string, private content: string) {}
 
   render(): string {
@@ -333,11 +343,11 @@ function renderPage(components: Renderable[]): string {
   return components.map((c) => c.render()).join("\n");
 }
 
-// HTMLComponent matches Renderable structurally
+// HTMLComponent structurally Renderable ko match karta hai
 renderPage([new HTMLComponent("h1", "Hello")]);
 ```
 
-### Protocol with Properties
+### Property Wala Protocol
 
 ```python
 from typing import Protocol
@@ -356,7 +366,7 @@ class HasAge(Protocol):
 
 
 class Identifiable(HasName, HasAge, Protocol):
-    """Compose protocols - like extending interfaces in TypeScript."""
+    """Protocols ko compose karo - jaise TS mein interfaces extend karte ho."""
 
     @property
     def id(self) -> str:
@@ -404,7 +414,7 @@ print(get_display(user)) # [u1] Alice (age 30)
 
 ## `runtime_checkable` Protocol
 
-By default, Protocols are only checked by static type checkers (like mypy). Add `@runtime_checkable` to enable `isinstance()` checks at runtime.
+By default, Protocols sirf static type checkers (jaise mypy) hi check karte hain. `@runtime_checkable` add karo to `isinstance()` checks runtime pe bhi kaam karengi.
 
 ```python
 from typing import Protocol, runtime_checkable
@@ -440,11 +450,11 @@ class RawData:
 user = UserDTO("Alice", "alice@example.com")
 raw = RawData(b"hello")
 
-# Runtime isinstance checks work!
+# Runtime isinstance checks ab kaam karengi!
 print(isinstance(user, Serializable))  # True
 print(isinstance(raw, Serializable))   # False
 
-# Use in conditional logic
+# Conditional logic mein use karo
 def save(obj: object) -> None:
     if isinstance(obj, Serializable):
         print(f"Saving: {obj.to_json()}")
@@ -456,34 +466,35 @@ save(user)  # Saving: {"name": "Alice", "email": "alice@example.com"}
 save(raw)   # Cannot serialize RawData
 ```
 
-**Caveat**: `runtime_checkable` only checks method EXISTENCE, not signatures. It does not verify parameter types or return types at runtime.
+> [!warning]
+> **Caveat**: `runtime_checkable` sirf method ka EXISTENCE check karta hai, signature nahi. Parameter types ya return types runtime pe verify nahi hote. Matlab agar tumhare `to_json` method ne wrong type return kiya, `isinstance()` check phir bhi pass ho jaayega.
 
 ---
 
-## ABC vs Protocol: When to Use Which
+## ABC vs Protocol: Kab Kya Use Karo
 
 | Feature | ABC | Protocol |
 |---------|-----|----------|
-| Inheritance required? | **Yes** - must subclass | **No** - structural matching |
-| `isinstance()` checks | Yes (always) | Only with `@runtime_checkable` |
-| Shared implementation | **Yes** - can have concrete methods | **No** - purely structural |
-| Enforces implementation | **Yes** - at instantiation time | **Only at type-check time** (mypy) |
+| Inheritance zaroori? | **Haan** - subclass karna hi padega | **Nahi** - structural matching |
+| `isinstance()` checks | Haan (hamesha) | Sirf `@runtime_checkable` ke saath |
+| Shared implementation | **Haan** - concrete methods rakh sakte ho | **Nahi** - purely structural |
+| Implementation enforce karta hai | **Haan** - instantiation time pe | **Sirf type-check time pe** (mypy) |
 | TS equivalent | `abstract class` | `interface` |
 | Use case | Frameworks, plugins | APIs, duck typing |
 
-### Use ABC When:
+### ABC Kab Use Karo:
 
-1. You want to **enforce** that subclasses implement specific methods (fail at instantiation)
-2. You want to provide **shared implementation** (concrete methods alongside abstract ones)
-3. You are building a **framework/plugin system** where classes must register as subclasses
-4. You need reliable **runtime `isinstance()` checks**
+1. Jab tumhe **enforce** karna ho ki subclasses specific methods implement karein (instantiation pe fail ho)
+2. Jab tumhe **shared implementation** deni ho (concrete methods, abstract methods ke saath)
+3. Jab tum ek **framework/plugin system** bana rahe ho jaha classes ko subclass banke register hona hai
+4. Jab tumhe reliable **runtime `isinstance()` checks** chahiye
 
 ```python
 from abc import ABC, abstractmethod
 
 
 class DatabaseDriver(ABC):
-    """Use ABC: we want shared connection logic + enforced interface."""
+    """ABC use karo: hume shared connection logic + enforced interface chahiye."""
 
     def __init__(self, connection_string: str):
         self.connection_string = connection_string
@@ -509,19 +520,19 @@ class DatabaseDriver(ABC):
         ...
 ```
 
-### Use Protocol When:
+### Protocol Kab Use Karo:
 
-1. You want **duck typing** - "if it quacks like a duck"
-2. You are writing **library code** that should work with any object matching a shape
-3. You do NOT want to force users to inherit from your classes
-4. You want behavior similar to **TypeScript interfaces**
+1. Jab tumhe **duck typing** chahiye - "quack karta hai to duck hai"
+2. Jab tum **library code** likh rahe ho jo kisi bhi shape-matching object ke saath kaam kare
+3. Jab tum users ko apni classes se inherit karne ke liye force nahi karna chahte
+4. Jab tumhe **TypeScript interfaces** jaisa behaviour chahiye
 
 ```python
 from typing import Protocol
 
 
 class Closeable(Protocol):
-    """Use Protocol: any object with close() should work."""
+    """Protocol use karo: close() wala koi bhi object chalega."""
 
     def close(self) -> None:
         ...
@@ -533,32 +544,32 @@ class Flushable(Protocol):
 
 
 def cleanup(resource: Closeable) -> None:
-    """Works with files, connections, sockets - anything with close()."""
+    """Files, connections, sockets - close() wala kuch bhi chalega."""
     resource.close()
 
 
-# All of these work without inheriting from Closeable:
-# - open("file.txt")  (file objects have close())
-# - socket.socket()   (sockets have close())
-# - sqlite3.connect() (DB connections have close())
+# Ye sab bina Closeable se inherit kiye kaam karenge:
+# - open("file.txt")  (file objects ke paas close() hai)
+# - socket.socket()   (sockets ke paas close() hai)
+# - sqlite3.connect() (DB connections ke paas close() hai)
 ```
 
-### Combining ABC and Protocol
+### ABC Aur Protocol Ko Combine Karna
 
-You can use both in the same codebase:
+Ek hi codebase mein dono use kar sakte ho:
 
 ```python
 from abc import ABC, abstractmethod
 from typing import Protocol
 
 
-# Protocol for external code - no inheritance required
+# External code ke liye Protocol - inheritance zaroori nahi
 class MessageSender(Protocol):
     def send(self, to: str, body: str) -> bool:
         ...
 
 
-# ABC for your internal implementation hierarchy
+# Apni internal implementation hierarchy ke liye ABC
 class BaseNotifier(ABC):
     def __init__(self, config: dict):
         self.config = config
@@ -584,15 +595,15 @@ class SMSNotifier(BaseNotifier):
         return True
 
 
-# This function accepts ANYTHING with send() - ABC subclass or not
+# Ye function send() wali KISI bhi cheez ko accept karega - ABC subclass ho ya na ho
 def notify_user(sender: MessageSender, user_email: str, message: str):
     sender.send(user_email, message)
 
 
-# Works with ABC subclasses
+# ABC subclasses ke saath kaam karta hai
 notify_user(EmailNotifier({}), "alice@example.com", "Hello!")
 
-# Also works with any object that has send() - no inheritance needed
+# Kisi bhi object ke saath bhi kaam karta hai jiske paas send() ho - inheritance zaroori nahi
 class SlackWebhook:
     def send(self, to: str, body: str) -> bool:
         print(f"Slack to #{to}: {body}")
@@ -605,9 +616,9 @@ notify_user(SlackWebhook(), "general", "Deployed v2.0!")
 
 ## Practice Exercises
 
-### Exercise 1: Repository Pattern with ABC
+### Exercise 1: ABC Ke Saath Repository Pattern
 
-Create an abstract `Repository[T]` base class:
+Ek abstract `Repository[T]` base class banao:
 
 ```python
 class Repository(ABC, Generic[T]):
@@ -624,11 +635,11 @@ class Repository(ABC, Generic[T]):
     def delete(self, id: str) -> bool: ...
 ```
 
-Implement `InMemoryRepository` and `FileRepository`. Add shared methods like `find_by(predicate)` and `count()` as concrete methods on the ABC.
+`InMemoryRepository` aur `FileRepository` implement karo. `find_by(predicate)` aur `count()` jaise shared methods ABC pe concrete methods ki tarah add karo.
 
-### Exercise 2: Plugin System with Protocols
+### Exercise 2: Protocol Ke Saath Plugin System
 
-Create a Protocol-based plugin system:
+Ek Protocol-based plugin system banao:
 
 ```python
 class Plugin(Protocol):
@@ -640,22 +651,22 @@ class Plugin(Protocol):
     def cleanup(self) -> None: ...
 ```
 
-Write 3 plugins that match this Protocol WITHOUT inheriting from it. Create a `PluginManager` that discovers and runs plugins using `isinstance()` with `@runtime_checkable`.
+3 plugins likho jo is Protocol ko match karein BINA usse inherit kiye. Ek `PluginManager` banao jo `@runtime_checkable` ke saath `isinstance()` use karke plugins discover aur run kare.
 
-### Exercise 3: Compare with TypeScript
+### Exercise 3: TypeScript Se Compare Karo
 
-Write the TypeScript equivalent of the `PaymentProcessor` ABC example above using:
-1. An `abstract class`
-2. An `interface`
+Upar wale `PaymentProcessor` ABC example ka TypeScript equivalent likho, in dono tareeko se:
+1. Ek `abstract class`
+2. Ek `interface`
 
-Note the differences:
-- Which approach allows shared implementation?
-- Which requires explicit `implements`?
-- How does error detection differ (compile-time vs runtime)?
+Difference note karo:
+- Kaunsa approach shared implementation allow karta hai?
+- Kaunsa explicit `implements` maangta hai?
+- Error detection kaise differ karta hai (compile-time vs runtime)?
 
 ### Exercise 4: Event System
 
-Build an event system using both ABC and Protocol:
+ABC aur Protocol dono use karke ek event system banao:
 
 ```python
 class EventHandler(Protocol):
@@ -669,16 +680,17 @@ class BaseEventBus(ABC):
     def publish(self, event_type: str, data: dict) -> None: ...
 ```
 
-Implement `InMemoryEventBus` and create several handlers. The handlers should use Protocol (no inheritance), while the event bus uses ABC (shared logic).
+`InMemoryEventBus` implement karo aur kai handlers banao. Handlers Protocol use karein (koi inheritance nahi), jabki event bus ABC use kare (shared logic ke liye).
 
 ---
 
 ## Key Takeaways for Node.js Developers
 
-1. **ABC = TypeScript `abstract class`** - requires inheritance, enforces implementation at instantiation
-2. **Protocol = TypeScript `interface`** - structural typing, no inheritance needed
-3. **ABCs can have concrete methods** - shared implementation like abstract classes in TS
-4. **Protocols are checked by mypy** - add `@runtime_checkable` for `isinstance()` support
-5. **You can combine both** - ABC for your internal hierarchy, Protocol for external consumers
-6. **Python's duck typing philosophy** favors Protocol over ABC in most cases
-7. **Missing abstract methods fail at instantiation** in Python vs compile-time in TypeScript
+1. **ABC = TypeScript `abstract class`** - inheritance zaroori hai, instantiation time pe implementation enforce karta hai
+2. **Protocol = TypeScript `interface`** - structural typing, inheritance ki zarurat nahi
+3. **ABCs mein concrete methods ho sakte hain** - TS ke abstract classes jaisi shared implementation
+4. **Protocols mypy se check hote hain** - `isinstance()` support ke liye `@runtime_checkable` add karo
+5. **Dono ko combine kar sakte ho** - internal hierarchy ke liye ABC, external consumers ke liye Protocol
+6. **Python ki duck typing philosophy** zyada cases mein ABC se zyada Protocol ko prefer karti hai
+7. **Missing abstract methods Python mein instantiation time pe fail** hote hain, TypeScript mein compile-time pe
+</content>

@@ -1,6 +1,6 @@
 # 03 - Package Management (pip, Poetry, pyproject.toml)
 
-> **For Node.js developers:** `pip` is like a bare-bones `npm`. `Poetry` is the full-featured equivalent -- with dependency resolution, lock files, and project scaffolding -- like `npm` or `yarn` done right.
+> **Node.js devs ke liye:** `pip` samjho bare-bones `npm` jaisa hai — bas install karta hai, lock file waghera ka jhanjhat nahi rakhta. `Poetry` uska full-featured avatar hai: dependency resolution, lock files, project scaffolding sab kuch — matlab `npm` ya `yarn` jaisa proper, tameez wala experience.
 
 ---
 
@@ -20,68 +20,68 @@
 
 ## Package Management Landscape
 
-Python has more package management options than Node.js, which can be confusing at first. Here's the lay of the land:
+Kya hota hai? Python mein Node.js ke mukable zyada package management options milte hain, isliye shuru mein thoda "itne options kyun bhai" wala feeling aata hai. Chalo poora landscape ek baar mein saaf kar dete hain — jaise Swiggy pe order karne se pehle menu dekh lete ho, waise hi:
 
 | Tool | Node.js Equivalent | Description |
 |---|---|---|
-| `pip` | Bare `npm install` | Basic package installer, no lock file by default |
+| `pip` | Bare `npm install` | Basic package installer, by default lock file nahi hota |
 | `pip` + `requirements.txt` | `npm` + `package.json` | Manual dependency tracking |
-| `Poetry` | `npm` / `yarn` / `pnpm` | Full dependency management with lock files |
-| `pipx` | `npx` | Run/install global CLI tools in isolation |
-| `conda` | No equivalent | Package manager for scientific computing |
-| `uv` | `npm` (Rust-fast) | Newer, extremely fast pip/Poetry alternative |
+| `Poetry` | `npm` / `yarn` / `pnpm` | Lock files ke saath full dependency management |
+| `pipx` | `npx` | Global CLI tools ko isolation mein run/install karta hai |
+| `conda` | Koi equivalent nahi | Scientific computing ke liye package manager |
+| `uv` | `npm` (Rust-fast) | Naya, super fast pip/Poetry alternative |
 
-For this guide, we'll focus on **pip** (you'll encounter it everywhere) and **Poetry** (the modern best practice).
+Is guide mein hum focus karenge **pip** (jo har jagah milega, jaise UPI) aur **Poetry** (jo modern best practice hai) pe.
 
 ---
 
 ## pip Basics
 
-You already saw pip in the previous chapter. Let's go deeper.
+Pichle chapter mein pip se milaqat ho chuki hai. Ab thoda deep dive karte hain.
 
 ### Essential pip Commands
 
 ```bash
-# Always activate your venv first!
+# Pehle apna venv activate karo!
 source venv/bin/activate
 
-# Install a package
+# Package install karo
 pip install requests
 
-# Install a specific version
+# Specific version install karo
 pip install requests==2.31.0
 
-# Install with version constraints
+# Version constraints ke saath install karo
 pip install "requests>=2.28.0,<3.0.0"   # Range
 pip install "requests~=2.31.0"           # Compatible release (>=2.31.0, <2.32.0)
 pip install "requests>=2.31"             # Minimum version
 
-# Upgrade a package
+# Package upgrade karo
 pip install --upgrade requests
 pip install -U requests  # Shorthand
 
-# Uninstall a package
+# Package uninstall karo
 pip uninstall requests
-pip uninstall -y requests  # Skip confirmation
+pip uninstall -y requests  # Confirmation skip karo
 
-# List all installed packages
+# Saare installed packages list karo
 pip list
 
-# List outdated packages (like: npm outdated)
+# Outdated packages list karo (jaise: npm outdated)
 pip list --outdated
 
-# Show info about a package (like: npm info requests)
+# Package ki info dikhao (jaise: npm info requests)
 pip show requests
 
-# Search is no longer available via CLI, use https://pypi.org instead
+# Search ab CLI se available nahi, https://pypi.org use karo
 
-# Install from requirements.txt
+# requirements.txt se install karo
 pip install -r requirements.txt
 
-# Export installed packages
+# Installed packages export karo
 pip freeze > requirements.txt
 
-# Install in editable mode (like: npm link)
+# Editable mode mein install karo (jaise: npm link)
 pip install -e .
 pip install -e ./my-local-package
 ```
@@ -92,67 +92,67 @@ pip install -e ./my-local-package
 |---|---|---|
 | Install package | `npm install pkg` | `pip install pkg` |
 | Install exact version | `npm install pkg@1.2.3` | `pip install pkg==1.2.3` |
-| Install from file | `npm install` (reads package.json) | `pip install -r requirements.txt` |
+| Install from file | `npm install` (package.json padhta hai) | `pip install -r requirements.txt` |
 | Uninstall | `npm uninstall pkg` | `pip uninstall pkg` |
 | List packages | `npm list` | `pip list` |
 | Outdated packages | `npm outdated` | `pip list --outdated` |
 | Package info | `npm info pkg` | `pip show pkg` |
 | Upgrade package | `npm update pkg` | `pip install -U pkg` |
-| Upgrade all | `npm update` | No built-in command (pip has no equivalent) |
-| Global install | `npm install -g pkg` | `pip install pkg` (outside venv) |
+| Upgrade all | `npm update` | Koi built-in command nahi (pip ka koi equivalent nahi) |
+| Global install | `npm install -g pkg` | `pip install pkg` (venv ke bahar) |
 | Link local package | `npm link` | `pip install -e .` |
 
-### pip Limitations (Why Poetry Exists)
+### pip Ki Limitations (Isliye Poetry Bana)
 
-pip has some gaps that will annoy you coming from npm:
+pip mein kuch gaps hain jo tumhe npm se aake khalege — jaise ek naya restaurant jisme menu toh accha hai, par table booking system nahi hai:
 
-1. **No automatic `package.json` updates** -- You must manually run `pip freeze > requirements.txt`
-2. **No lock file** -- `requirements.txt` with pinned versions is the closest thing
-3. **No dev dependency separation** -- You need separate files (`requirements-dev.txt`)
-4. **No dependency resolution before install** -- pip installs in order, which can cause conflicts
-5. **No project scaffolding** -- No `npm init` equivalent
+1. **`package.json` automatically update nahi hota** — Manually `pip freeze > requirements.txt` chalana padta hai
+2. **Lock file nahi hota** — Pinned versions wali `requirements.txt` hi sabse paas ki cheez hai
+3. **Dev dependency separation nahi hai** — Alag file chahiye (`requirements-dev.txt`)
+4. **Install se pehle dependency resolution nahi hota** — pip order mein install karta hai, jisse conflicts ho sakte hain
+5. **Project scaffolding nahi hai** — `npm init` jaisa kuch nahi
 
 ---
 
 ## Poetry: The npm of Python
 
-[Poetry](https://python-poetry.org/) solves all of pip's limitations. It's the closest thing to a full npm experience in Python.
+[Poetry](https://python-poetry.org/) pip ki saari limitations solve kar deta hai. Python mein ye sabse zyada npm jaisa feel deta hai — thoda strict, thoda organized, bilkul dabbawala system jaisa jahan har cheez ka apna slot hota hai.
 
-### Installing Poetry
+### Poetry Install Karna
 
 ```bash
-# Official installer (recommended, works on all platforms)
+# Official installer (recommended, sab platforms pe chalta hai)
 curl -sSL https://install.python-poetry.org | python3 -
 
-# Or with pip (less recommended but works)
+# Ya pip se (thoda less recommended, par chalta hai)
 pip install poetry
 
-# Or with pipx (ideal -- isolated global install)
+# Ya pipx se (ideal -- isolated global install)
 pipx install poetry
 
-# Verify
+# Verify karo
 poetry --version
 ```
 
-On Windows (PowerShell):
+Windows pe (PowerShell):
 
 ```powershell
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
 
-# Verify
+# Verify karo
 poetry --version
 ```
 
-### What Poetry Gives You
+### Poetry Kya Deta Hai
 
 | Feature | npm | Poetry | pip |
 |---|---|---|---|
 | Project manifest | `package.json` | `pyproject.toml` | `requirements.txt` |
-| Lock file | `package-lock.json` | `poetry.lock` | (none) |
-| Dependency resolution | Yes | Yes | Limited |
-| Dev dependencies | `devDependencies` | `[tool.poetry.group.dev]` | Separate file |
-| Scripts/commands | `npm run` / `scripts` | `poetry run` / `[tool.poetry.scripts]` | (none) |
-| Project scaffolding | `npm init` | `poetry new` / `poetry init` | (none) |
+| Lock file | `package-lock.json` | `poetry.lock` | (kuch nahi) |
+| Dependency resolution | Haan | Haan | Limited |
+| Dev dependencies | `devDependencies` | `[tool.poetry.group.dev]` | Alag file |
+| Scripts/commands | `npm run` / `scripts` | `poetry run` / `[tool.poetry.scripts]` | (kuch nahi) |
+| Project scaffolding | `npm init` | `poetry new` / `poetry init` | (kuch nahi) |
 | Publishing | `npm publish` | `poetry publish` | `twine` |
 | Virtual env management | N/A (node_modules) | Automatic | Manual |
 
@@ -160,7 +160,7 @@ poetry --version
 
 ## pyproject.toml vs package.json
 
-`pyproject.toml` is Python's answer to `package.json`. Here's a side-by-side comparison:
+`pyproject.toml` Python ka jawab hai `package.json` ko. Side-by-side comparison dekho:
 
 ### package.json (Node.js)
 
@@ -236,18 +236,18 @@ build-backend = "poetry.core.masonry.api"
 | `name` | `[tool.poetry] name` | Same concept |
 | `version` | `[tool.poetry] version` | Same concept |
 | `description` | `[tool.poetry] description` | Same concept |
-| `main` | N/A | Python uses `__init__.py` for packages |
-| `scripts` | `[tool.poetry.scripts]` | Points to `module:function` instead of shell commands |
+| `main` | N/A | Python packages ke liye `__init__.py` use hota hai |
+| `scripts` | `[tool.poetry.scripts]` | Shell commands ki jagah `module:function` point karta hai |
 | `dependencies` | `[tool.poetry.dependencies]` | Same concept |
 | `devDependencies` | `[tool.poetry.group.dev.dependencies]` | Same concept |
-| `engines.node` | `python = "^3.11"` | In the dependencies section |
+| `engines.node` | `python = "^3.11"` | Dependencies section ke andar |
 | `license` | `license` | Same concept |
-| `author` | `authors` | List of strings in Poetry |
+| `author` | `authors` | Poetry mein strings ki list hoti hai |
 | `repository` | `repository` | Same concept |
 
 ### Custom Scripts Comparison
 
-In Node.js, you define scripts as shell commands:
+Node.js mein tum scripts ko shell commands ki tarah define karte ho:
 
 ```json
 {
@@ -265,31 +265,31 @@ npm test
 npm run lint
 ```
 
-In Poetry, you can use `[tool.poetry.scripts]` for entry points or use `poetry run` to execute commands:
+Poetry mein tum entry points ke liye `[tool.poetry.scripts]` use kar sakte ho, ya commands run karne ke liye `poetry run`:
 
 ```toml
 [tool.poetry.scripts]
-start = "my_app.main:main"  # Points to a Python function
+start = "my_app.main:main"  # Ek Python function ko point karta hai
 ```
 
 ```bash
-# Run scripts defined in pyproject.toml
+# pyproject.toml mein defined scripts run karo
 poetry run start
 
-# Run any command in the venv context
+# venv context mein koi bhi command run karo
 poetry run python src/main.py
 poetry run pytest --coverage
 poetry run ruff check src/
 
-# Or activate the shell (like: source venv/bin/activate)
+# Ya shell activate kar do (jaise: source venv/bin/activate)
 poetry shell
 python src/main.py
-pytest
 ```
 
-> **Tip:** Many Python projects use a `Makefile` or a tool like `taskipy` for the equivalent of npm scripts. Poetry's scripts are limited to Python function entry points.
+> [!tip]
+> Kai Python projects `Makefile` ya `taskipy` jaisa tool use karte hain npm scripts jaisa experience paane ke liye. Poetry ke scripts sirf Python function entry points tak limited hain.
 
-For general-purpose task running (closer to npm scripts), you can add `taskipy`:
+General-purpose task running ke liye (jo npm scripts ke zyada kareeb hai), tum `taskipy` add kar sakte ho:
 
 ```toml
 [tool.taskipy.tasks]
@@ -307,42 +307,42 @@ poetry run task test
 
 ## Poetry Commands vs npm Commands
 
-This is your go-to reference table:
+Ye tumhara go-to reference table hai, bookmark kar lo:
 
 | Task | npm | Poetry |
 |---|---|---|
-| Create new project | `npm init` | `poetry new my-project` |
-| Initialize in existing dir | `npm init` | `poetry init` |
-| Install all dependencies | `npm install` | `poetry install` |
-| Add a dependency | `npm install flask` | `poetry add flask` |
-| Add a dev dependency | `npm install -D jest` | `poetry add --group dev pytest` |
-| Remove a dependency | `npm uninstall flask` | `poetry remove flask` |
-| Update a dependency | `npm update flask` | `poetry update flask` |
-| Update all | `npm update` | `poetry update` |
-| Show outdated | `npm outdated` | `poetry show --outdated` |
-| Run a script | `npm run start` | `poetry run start` |
-| Run a command in env | `npx tsc` | `poetry run mypy .` |
-| Open a shell | N/A | `poetry shell` |
-| Show dependency tree | `npm list --all` | `poetry show --tree` |
-| Show package info | `npm info flask` | `poetry show flask` |
-| Build package | `npm pack` | `poetry build` |
-| Publish package | `npm publish` | `poetry publish` |
-| Lock dependencies | auto (package-lock.json) | `poetry lock` |
-| Check lock file | `npm ci` | `poetry install --sync` |
+| Naya project banao | `npm init` | `poetry new my-project` |
+| Existing dir mein initialize | `npm init` | `poetry init` |
+| Saari dependencies install karo | `npm install` | `poetry install` |
+| Dependency add karo | `npm install flask` | `poetry add flask` |
+| Dev dependency add karo | `npm install -D jest` | `poetry add --group dev pytest` |
+| Dependency remove karo | `npm uninstall flask` | `poetry remove flask` |
+| Dependency update karo | `npm update flask` | `poetry update flask` |
+| Sab update karo | `npm update` | `poetry update` |
+| Outdated dikhao | `npm outdated` | `poetry show --outdated` |
+| Script run karo | `npm run start` | `poetry run start` |
+| Env mein command run karo | `npx tsc` | `poetry run mypy .` |
+| Shell open karo | N/A | `poetry shell` |
+| Dependency tree dikhao | `npm list --all` | `poetry show --tree` |
+| Package info dikhao | `npm info flask` | `poetry show flask` |
+| Package build karo | `npm pack` | `poetry build` |
+| Package publish karo | `npm publish` | `poetry publish` |
+| Dependencies lock karo | auto (package-lock.json) | `poetry lock` |
+| Lock file check karo | `npm ci` | `poetry install --sync` |
 
 ---
 
 ## Poetry Workflow in Practice
 
-### Creating a New Project
+### Naya Project Banana
 
 ```bash
-# Scaffold a new project (like: npx create-react-app my-app)
+# Naya project scaffold karo (jaise: npx create-react-app my-app)
 poetry new my-web-app
 
-# This creates:
+# Ye create karta hai:
 # my-web-app/
-#   pyproject.toml         # Your package.json equivalent
+#   pyproject.toml         # Tumhara package.json equivalent
 #   README.md
 #   my_web_app/
 #     __init__.py           # Package init
@@ -350,88 +350,89 @@ poetry new my-web-app
 #     __init__.py
 ```
 
-Or initialize in an existing directory:
+Ya existing directory mein initialize karo:
 
 ```bash
 cd my-existing-project/
-poetry init  # Interactive setup, like npm init
+poetry init  # Interactive setup, npm init jaisa
 ```
 
-### Adding Dependencies
+### Dependencies Add Karna
 
 ```bash
-# Add production dependency (like: npm install flask)
+# Production dependency add karo (jaise: npm install flask)
 poetry add flask
 
-# Add dev dependency (like: npm install -D pytest)
+# Dev dependency add karo (jaise: npm install -D pytest)
 poetry add --group dev pytest
 
-# Add with version constraint
+# Version constraint ke saath add karo
 poetry add "requests>=2.28,<3.0"
 poetry add flask@^3.0.0
 poetry add flask@latest
 
-# Add from git
+# Git se add karo
 poetry add git+https://github.com/user/repo.git
 ```
 
-When you run `poetry add`, it:
-1. Resolves dependencies (like npm does)
-2. Updates `pyproject.toml` (like updating `package.json`)
-3. Updates `poetry.lock` (like updating `package-lock.json`)
-4. Installs the package
+Jab tum `poetry add` chalate ho, wo bilkul ek efficient dabbawala jaisa kaam karta hai:
+1. Dependencies resolve karta hai (jaise npm karta hai)
+2. `pyproject.toml` update karta hai (jaise `package.json` update hota hai)
+3. `poetry.lock` update karta hai (jaise `package-lock.json` update hota hai)
+4. Package install karta hai
 
-This is exactly like `npm install <package>`.
+Bilkul `npm install <package>` jaisa — bas ek command, baaki sab khud handle ho jaata hai.
 
-### Installing Dependencies (Cloning a Project)
+### Dependencies Install Karna (Project Clone Karke)
 
 ```bash
-# Clone and install (like: git clone && npm install)
+# Clone karo aur install karo (jaise: git clone && npm install)
 git clone https://github.com/user/python-app.git
 cd python-app
-poetry install  # Reads pyproject.toml + poetry.lock, creates venv
+poetry install  # pyproject.toml + poetry.lock padhta hai, venv banata hai
 
-# Install production only (like: npm install --production)
+# Sirf production install karo (jaise: npm install --production)
 poetry install --only main
 
-# Sync environment to lock file exactly (like: npm ci)
+# Environment ko lock file se exactly sync karo (jaise: npm ci)
 poetry install --sync
 ```
 
 ### Virtual Environment Handling
 
-Poetry manages virtual environments automatically:
+Poetry virtual environments ko automatically manage karta hai — tumhe khud `venv` banane ki zaroorat hi nahi:
 
 ```bash
-# Poetry creates and manages the venv for you!
-poetry install  # Creates venv if it doesn't exist
+# Poetry tumhare liye venv create aur manage karta hai!
+poetry install  # Agar exist nahi karta to venv create karta hai
 
-# Run commands in the venv
+# venv mein commands run karo
 poetry run python my_script.py
 poetry run pytest
 
-# Or activate the venv shell
+# Ya venv shell activate karo
 poetry shell
-python my_script.py  # Now python points to the venv Python
-exit                  # Leave the poetry shell
+python my_script.py  # Ab python venv wale Python ko point karega
+exit                  # Poetry shell chhod do
 
-# See where the venv is located
+# Dekho venv kahan located hai
 poetry env info
 
-# Configure Poetry to create venv in project directory (like node_modules)
+# Poetry ko config karo ki venv project directory mein bane (jaise node_modules)
 poetry config virtualenvs.in-project true
-# Now the venv will be at .venv/ in your project (recommended!)
+# Ab venv tumhare project mein .venv/ pe hoga
 ```
 
-> **Recommended setting:** Run `poetry config virtualenvs.in-project true` globally. This makes Poetry create `.venv/` in your project directory, which is easier to find and works better with IDEs.
+> [!tip]
+> Recommended setting: `poetry config virtualenvs.in-project true` globally run karo. Isse Poetry `.venv/` tumhare project directory mein banata hai, jo dhundhna aasan hai aur IDEs ke saath better kaam karta hai.
 
 ---
 
 ## pipx: Global Tools (Like npx)
 
-`pipx` installs Python CLI tools in isolated environments globally. It's like `npx` or `npm install -g` but safer.
+`pipx` Python CLI tools ko isolated environments mein globally install karta hai. Ye `npx` ya `npm install -g` jaisa hai, bas zyada safe — har tool apni alag jagah mein rehta hai, ek dusre ke saath ghulta-milta nahi.
 
-### Installing pipx
+### pipx Install Karna
 
 ```bash
 # macOS
@@ -447,7 +448,7 @@ pip install pipx
 pipx ensurepath
 ```
 
-### Using pipx
+### pipx Use Karna
 
 ```bash
 # npx equivalent:                    pipx equivalent:
@@ -455,23 +456,23 @@ pipx ensurepath
 # npm install -g typescript      ->  pipx install poetry
 # npm install -g eslint          ->  pipx install ruff
 
-# Install a tool globally (isolated)
+# Tool ko globally install karo (isolated)
 pipx install poetry
 pipx install black
 pipx install ruff
 pipx install httpie
 
-# Run a tool without installing (like npx)
+# Bina install kiye tool run karo (jaise npx)
 pipx run black my_file.py
 pipx run cowsay "Hello from Python!"
 
-# List globally installed tools
+# Globally installed tools list karo
 pipx list
 
-# Upgrade a tool
+# Tool upgrade karo
 pipx upgrade poetry
 
-# Uninstall a tool
+# Tool uninstall karo
 pipx uninstall poetry
 ```
 
@@ -479,19 +480,21 @@ pipx uninstall poetry
 
 | Task | npx | pipx |
 |---|---|---|
-| Run without installing | `npx cowsay hello` | `pipx run cowsay hello` |
-| Install globally | `npm install -g typescript` | `pipx install poetry` |
-| List global tools | `npm list -g` | `pipx list` |
-| Upgrade global tool | `npm update -g typescript` | `pipx upgrade poetry` |
-| Uninstall global tool | `npm uninstall -g typescript` | `pipx uninstall poetry` |
+| Bina install kiye run karo | `npx cowsay hello` | `pipx run cowsay hello` |
+| Globally install karo | `npm install -g typescript` | `pipx install poetry` |
+| Global tools list karo | `npm list -g` | `pipx list` |
+| Global tool upgrade karo | `npm update -g typescript` | `pipx upgrade poetry` |
+| Global tool uninstall karo | `npm uninstall -g typescript` | `pipx uninstall poetry` |
 
 ---
 
 ## Which Tool Should You Use?
 
-### For Learning / Small Scripts
+Kaunsa tool kab use karein? Seedhi si guideline hai:
 
-Use **pip + venv + requirements.txt**. It's simple and you'll encounter it everywhere.
+### Learning / Chhote Scripts Ke Liye
+
+**pip + venv + requirements.txt** use karo. Simple hai aur har jagah milega — jaise cash payment, kabhi fail nahi hota.
 
 ```bash
 python -m venv venv
@@ -500,9 +503,9 @@ pip install requests
 pip freeze > requirements.txt
 ```
 
-### For Real Projects
+### Real Projects Ke Liye
 
-Use **Poetry**. It gives you the npm-like experience you're used to.
+**Poetry** use karo. Ye tumhe wahi npm-jaisa experience deta hai jo tumhe pehle se aata hai.
 
 ```bash
 poetry new my-project
@@ -512,9 +515,9 @@ poetry add --group dev pytest ruff
 poetry run python main.py
 ```
 
-### For Global CLI Tools
+### Global CLI Tools Ke Liye
 
-Use **pipx**. Never install tools globally with pip.
+**pipx** use karo. Kabhi bhi pip se tools globally install mat karo — isse system-wide mess ho jaata hai.
 
 ```bash
 pipx install poetry
@@ -525,12 +528,12 @@ pipx install ruff
 ### Quick Decision Chart
 
 ```
-Need to install a CLI tool globally?  -> pipx
-Starting a new project?              -> poetry new
-Working on an existing project
-  with pyproject.toml?               -> poetry install
-  with requirements.txt?             -> pip install -r requirements.txt
-Quick script / learning?             -> pip + venv
+CLI tool globally install karna hai?  -> pipx
+Naya project shuru kar rahe ho?       -> poetry new
+Existing project pe kaam kar rahe ho
+  aur pyproject.toml hai?             -> poetry install
+  aur requirements.txt hai?           -> pip install -r requirements.txt
+Quick script / learning?              -> pip + venv
 ```
 
 ---
@@ -540,82 +543,82 @@ Quick script / learning?             -> pip + venv
 ### Exercise 1: pip Deep Dive
 
 ```bash
-# 1. Create a new project with venv
+# 1. venv ke saath naya project banao
 mkdir pip-practice && cd pip-practice
 python -m venv venv
 source venv/bin/activate
 
-# 2. Install these packages:
+# 2. Ye packages install karo:
 #    - requests
 #    - flask
 #    - python-dotenv
 
-# 3. Use pip show to inspect the flask package
-#    - What version was installed?
-#    - What are its dependencies?
+# 3. pip show use karke flask package inspect karo
+#    - Kaunsa version install hua?
+#    - Iski dependencies kya hain?
 
-# 4. Use pip list --outdated to check for updates
+# 4. Updates check karne ke liye pip list --outdated use karo
 
-# 5. Freeze requirements and examine the file
+# 5. requirements freeze karo aur file examine karo
 pip freeze > requirements.txt
 
-# 6. How many total packages are installed? (pip list | wc -l)
-#    Why are there more than the 3 you installed?
+# 6. Total kitne packages install hain? (pip list | wc -l)
+#    3 install kiye the, itne zyada kyun hain?
 ```
 
 ### Exercise 2: Poetry Project Setup
 
 ```bash
-# 1. Install Poetry if you haven't already
+# 1. Agar pehle nahi kiya to Poetry install karo
 pipx install poetry
-# or: curl -sSL https://install.python-poetry.org | python3 -
+# ya: curl -sSL https://install.python-poetry.org | python3 -
 
-# 2. Configure Poetry to create venvs in project directory
+# 2. Poetry ko config karo ki venv project directory mein bane
 poetry config virtualenvs.in-project true
 
-# 3. Create a new project
+# 3. Naya project banao
 poetry new my-poetry-app
 cd my-poetry-app
 
-# 4. Add dependencies
+# 4. Dependencies add karo
 poetry add requests flask
 
-# 5. Add dev dependencies
+# 5. Dev dependencies add karo
 poetry add --group dev pytest ruff
 
-# 6. Examine the generated pyproject.toml
-#    Compare it mentally to a package.json
+# 6. Generated pyproject.toml examine karo
+#    Mentally isko package.json se compare karo
 
-# 7. Look at the poetry.lock file
-#    How does it compare to package-lock.json?
+# 7. poetry.lock file dekho
+#    Ye package-lock.json se kaise compare hota hai?
 
-# 8. Run a Python command through Poetry
+# 8. Poetry ke through Python command run karo
 poetry run python -c "import flask; print(flask.__version__)"
 ```
 
-### Exercise 3: Simulate the Full Workflow
+### Exercise 3: Full Workflow Simulate Karo
 
 ```bash
-# Pretend you're another developer joining the project
+# Socho tum ek naya developer ho jo project join kar raha hai
 
-# 1. Move out of the project and delete the .venv
+# 1. Project se bahar jao aur .venv delete karo
 cd ..
 rm -rf my-poetry-app/.venv
 
-# 2. Go back in and install (like a fresh clone)
+# 2. Wapas andar jao aur install karo (fresh clone jaisa)
 cd my-poetry-app
 poetry install
 
-# 3. Verify everything works
+# 3. Sab kuch verify karo ki chal raha hai
 poetry run python -c "import requests; print('requests:', requests.__version__)"
-poetry run pytest  # Should run (even with no tests yet)
+poetry run pytest  # Chalna chahiye (koi test na ho tab bhi)
 
-# 4. Compare: how does this feel vs npm install + npm test?
+# 4. Compare karo: ye npm install + npm test se kaisa feel hota hai?
 ```
 
-### Exercise 4: Explore pyproject.toml
+### Exercise 4: pyproject.toml Explore Karo
 
-Create this `pyproject.toml` by hand (without Poetry) and understand each section:
+Ye `pyproject.toml` haath se banao (Poetry ke bina) aur har section samjho:
 
 ```toml
 [tool.poetry]
@@ -639,33 +642,33 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 ```
 
-Then:
-1. Create the corresponding `exercise_app/main.py` with a `greet()` function that prints "Hello from Poetry!"
-2. Create `exercise_app/__init__.py` (empty file)
-3. Run `poetry install`
-4. Run `poetry run greet`
-5. Compare: this is like setting `"scripts": { "greet": "node src/greet.js" }` in package.json
+Fir:
+1. `exercise_app/main.py` banao jisme `greet()` function ho jo "Hello from Poetry!" print kare
+2. `exercise_app/__init__.py` banao (empty file)
+3. `poetry install` chalao
+4. `poetry run greet` chalao
+5. Compare karo: ye bilkul waisa hi hai jaise package.json mein `"scripts": { "greet": "node src/greet.js" }` set karna
 
 ### Exercise 5: pipx Exploration
 
 ```bash
-# 1. Install pipx if you haven't
-# 2. Install a fun CLI tool
+# 1. Agar nahi kiya to pipx install karo
+# 2. Ek fun CLI tool install karo
 pipx install cowsay
 
-# 3. Run it
+# 3. Run karo
 cowsay "I'm learning Python package management!"
 
-# 4. Try running without installing (npx-style)
+# 4. Bina install kiye run karke dekho (npx-style)
 pipx run pyfiglet "Hello"
 
-# 5. List installed tools
+# 5. Installed tools list karo
 pipx list
 
-# 6. Clean up
+# 6. Clean up karo
 pipx uninstall cowsay
 ```
 
 ---
 
-**Next:** [04 - Node.js to Python Cheatsheet](./04_nodejs_to_python_cheatsheet.md) -- A comprehensive side-by-side syntax reference you'll keep coming back to.
+**Next:** [04 - Node.js to Python Cheatsheet](./04_nodejs_to_python_cheatsheet.md) -- Ek comprehensive side-by-side syntax reference jo tumhe baar-baar kaam aayega.

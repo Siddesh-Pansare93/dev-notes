@@ -1,31 +1,33 @@
 # 07 - Modules and Imports
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aa rahe ho? Yeh samjho
 
-JavaScript has gone through `require()` (CommonJS) to `import/export` (ES Modules). Python's import system is simpler and more consistent, though it has its own quirks. The biggest win: Python's massive standard library means you rarely need to `pip install` for common tasks.
+JavaScript ne `require()` (CommonJS) se `import/export` (ES Modules) tak ka safar tay kiya hai. Python ka import system usse zyada simple aur consistent hai, though iske apne quirks hai. Sabse badi baat: Python ki standard library itni bharipuri hai ki common kaamon ke liye `pip install` karne ki zarurat kam hi padti hai — jaise Zomato apne app mein khud hi payment, delivery tracking, sab kuch bana ke deta hai, alag se third-party integrate karne ki zarurat nahi.
 
 ---
 
 ## Import Basics
 
-### import Styles
+**Kya hota hai?** Import matlab ek file ka code doosri file mein use karna — bilkul waisa hi jaise tum Swiggy app mein "payments" module ko "checkout" screen mein use karte ho, poora payment gateway dobara likhne ki zarurat nahi.
+
+### import ke Styles
 
 ```python
-# 1. Import entire module
+# 1. Poora module import karo
 import os
 print(os.getcwd())
 
-# 2. Import specific items
+# 2. Specific cheez import karo
 from os.path import join, exists
 print(join("/home", "user", "file.txt"))
 
-# 3. Import with alias
+# 3. Alias ke saath import
 import numpy as np
 import pandas as pd
 from collections import defaultdict as dd
 
-# 4. Import everything (generally AVOID)
-from os.path import *    # pollutes namespace, hard to track origins
+# 4. Sab kuch import karna (generally AVOID karo)
+from os.path import *    # namespace pollute karta hai, pata nahi chalta kahan se aaya
 ```
 
 ```javascript
@@ -40,24 +42,29 @@ import * as path from 'path';
 import path from 'path';     // default export
 ```
 
-### Key Differences from JavaScript
+### JavaScript se Key Differences
 
 | Python                        | JavaScript                           |
 |-------------------------------|--------------------------------------|
 | `import os`                   | `import * as os from 'os'`           |
 | `from os import getcwd`       | `import { getcwd } from 'os'`       |
 | `from os import getcwd as cwd` | `import { getcwd as cwd } from 'os'` |
-| `import json`                 | `const json = require('json')` (no install needed!) |
+| `import json`                 | `const json = require('json')` (install ki zarurat nahi!) |
 | No default exports            | `export default` / `import x from`   |
 | No `export` keyword           | `export function ...`                |
 
-**In Python, everything defined at module level is automatically "exported."** There is no `export` keyword. By convention, names starting with `_` are private.
+**Python mein, module level pe define ki gayi har cheez automatically "exported" hoti hai.** Koi `export` keyword nahi hota. Convention se, `_` se shuru hone wale naam "private" maane jaate hain.
+
+> [!info]
+> JS mein tumhe explicitly `export` likhna padta hai, warna cheez file ke bahar nahi jaati. Python mein ulta hai — sab kuch by default accessible hai, aur underscore sirf ek "please isko mत chhedo" wala sign board hai, koi lock nahi.
 
 ---
 
-## Creating Your Own Modules
+## Apne Khud ke Modules Banana
 
-### A Module Is Just a .py File
+**Kyun zaruri hai?** Jaise hi project badhta hai, ek hi `main.py` mein sab kuch thoos ke rakhna mushkil ho jaata hai — bilkul waisa jaise ek hi Zomato outlet mein kitchen, billing aur delivery sab ek room mein karne ki koshish karoge. Alag files (modules) banake responsibilities split karna zaruri hai.
+
+### Module Matlab Sirf Ek .py File
 
 ```
 my_project/
@@ -78,7 +85,7 @@ def truncate(text, length=100):
 
 PI = 3.14159
 
-_internal_cache = {}     # underscore prefix = "private by convention"
+_internal_cache = {}     # underscore prefix = "convention se private"
 ```
 
 ```python
@@ -90,23 +97,25 @@ from utils import slugify, truncate, PI
 print(slugify("Hello World"))
 print(PI)
 
-# _internal_cache is accessible but signaled as private
-# utils._internal_cache  # works but you shouldn't
+# _internal_cache accessible hai but private signal diya hai
+# utils._internal_cache  # kaam karega but karna nahi chahiye
 ```
 
 ---
 
-## Packages (Directories of Modules)
+## Packages (Modules ki Directories)
+
+**Kya hota hai?** Package basically ek folder hai jisme related modules ikattha rakhe jaate hain — jaise ek Swiggy ke "database" department mein connection, models aur queries teeno alag files hain, but sab ek hi folder ke andar organized hain.
 
 ### __init__.py
 
-A directory becomes a Python package when it contains `__init__.py`. This is like `index.js` in Node.js.
+Ek directory Python package tab banti hai jab usme `__init__.py` ho. Yeh Node.js ke `index.js` jaisa hai — ek entry point jo bata deta hai "yahan se andar aao."
 
 ```
 my_project/
     main.py
     database/
-        __init__.py        # makes 'database' a package
+        __init__.py        # 'database' ko package banata hai
         connection.py
         models.py
         queries.py
@@ -114,14 +123,14 @@ my_project/
 
 ```python
 # database/__init__.py
-# Can be empty, or can re-export for convenience:
+# Empty bhi ho sakta hai, ya convenience ke liye re-export kar sakte ho:
 from .connection import connect, disconnect
 from .models import User, Post
 from .queries import find_user, create_user
 
-# Now users can do:
+# Ab users seedha yeh kar sakte hain:
 # from database import connect, User, find_user
-# Instead of:
+# Iski jagah yeh likhne ke bajaye:
 # from database.connection import connect
 # from database.models import User
 ```
@@ -133,16 +142,18 @@ export { User, Post } from './models.js';
 export { findUser, createUser } from './queries.js';
 ```
 
+Socho ek Swiggy ka backend hai jisme `database` folder hai — `__init__.py` ek receptionist ki tarah kaam karta hai jo bahar se aane wale requests ko seedha sahi jagah bhej deta hai, tumhe har baar `database.connection.connect` type ki lambi chain nahi likhni padti.
+
 ### Relative vs Absolute Imports
 
 ```python
 # database/queries.py
 
-# Absolute import (from project root)
+# Absolute import (project root se)
 from database.models import User
 from database.connection import get_db
 
-# Relative import (relative to current package)
+# Relative import (current package ke relative)
 from .models import User                    # same directory
 from .connection import get_db              # same directory
 from ..utils import slugify                 # parent directory
@@ -156,31 +167,34 @@ import { getDb } from './connection.js';
 import { slugify } from '../utils.js';
 ```
 
-**Python relative imports** use dots: `.` is current package, `..` is parent package. These only work inside packages (not in directly-run scripts).
+**Python ke relative imports** dots use karte hain: `.` matlab current package, `..` matlab parent package. Yeh sirf packages ke andar kaam karte hain (directly-run scripts mein nahi).
+
+> [!warning]
+> Agar tum ek script ko directly `python queries.py` se chalane ki koshish karoge jisme relative import (`.models`) hai, toh error milega. Relative imports sirf tab kaam karte hain jab file kisi package ke part ke roop mein import ho rahi ho, standalone script ke roop mein nahi.
 
 ---
 
 ## Module Search Path
 
-When you write `import something`, Python searches these locations in order:
+**Kya hota hai?** Jab tum `import xyz` likhte ho, Python ko pata kaise chalta hai `xyz` kahan dhundhe? Bilkul IRCTC ki tarah, jo pehle tumhare nearest station check karta hai, phir zone, phir poora network — order fix hai. Python bhi in jagahon pe order se dhundta hai:
 
-1. The directory of the running script
-2. Directories in `PYTHONPATH` environment variable
+1. Chal rahi script ki directory
+2. `PYTHONPATH` environment variable mein di gayi directories
 3. Standard library directories
-4. `site-packages` (where pip installs packages)
+4. `site-packages` (jahan pip packages install karta hai)
 
 ```python
 import sys
-print(sys.path)   # shows the full search path
+print(sys.path)   # poora search path dikhata hai
 
-# You can modify it (but generally shouldn't)
+# Isko modify kar sakte ho (but generally nahi karna chahiye)
 sys.path.append("/path/to/my/modules")
 ```
 
 ```javascript
 // JS equivalents
 // NODE_PATH environment variable
-// node_modules directories (searched upward)
+// node_modules directories (upar ki taraf search hoti hai)
 // require.resolve.paths('module')
 ```
 
@@ -191,40 +205,43 @@ sys.path.append("/path/to/my/modules")
 # -> pip install requests
 
 # ImportError: cannot import name 'xyz' from 'module'
-# -> check spelling, check if the name exists in that module
+# -> spelling check karo, check karo ki naam us module mein exist karta hai ya nahi
 
 # Circular imports
-# a.py imports from b.py, b.py imports from a.py
+# a.py, b.py se import karta hai, b.py, a.py se import karta hai
 # Solutions:
-# 1. Move the import inside the function that needs it
-# 2. Restructure to eliminate the circle
-# 3. Use TYPE_CHECKING for type hints only
+# 1. Import ko us function ke andar move karo jisko zarurat hai
+# 2. Circle todne ke liye restructure karo
+# 3. Sirf type hints ke liye TYPE_CHECKING use karo
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .models import User    # only imported for type checking, not at runtime
+    from .models import User    # sirf type checking ke liye import, runtime pe nahi
 ```
+
+> [!tip]
+> Circular imports bilkul waisa hi hai jaise do dost ek dusre ko "pehle tum bolo" keh ke wait kar rahe hon — koi shuru hi nahi karta. Fix simple hai: kisi ek ko import ko function ke andar daal do, taaki woh sirf tabhi chale jab actually zarurat ho, module load hote hi nahi.
 
 ---
 
-## The Standard Library: Python's Superpower
+## Standard Library: Python Ka Superpower
 
-Python's standard library is enormous compared to Node.js's. Many things that require npm packages in Node are built into Python.
+**Kyun zaruri hai?** Node.js mein zyaadatar kaam ke liye tum npm pe jaake package dhundte ho. Python ki standard library Node.js ke muqable bohot bhari hai — jo cheezein Node mein npm packages maangti hain, woh Python mein built-in hoti hain, jaise ek all-in-one Flipkart warehouse jahan tumhe har cheez already stock mein mil jaati hai.
 
-### os and sys -- System and OS Operations
+### os aur sys -- System aur OS Operations
 
 ```python
 import os
 import sys
 
 # Current directory
-os.getcwd()                          # like process.cwd()
+os.getcwd()                          # process.cwd() jaisa
 
 # Environment variables
-os.environ.get("HOME")              # like process.env.HOME
+os.environ.get("HOME")              # process.env.HOME jaisa
 os.environ.get("API_KEY", "default")
 
-# Path operations (prefer pathlib for new code)
+# Path operations (naye code ke liye pathlib prefer karo)
 os.path.join("dir", "subdir", "file.txt")
 os.path.exists("/some/path")
 os.path.isfile("/some/path")
@@ -234,23 +251,23 @@ os.path.dirname("/path/to/file.txt")     # "/path/to"
 os.path.splitext("file.txt")            # ("file", ".txt")
 
 # System info
-sys.argv                # command line arguments (like process.argv)
+sys.argv                # command line arguments (process.argv jaisa)
 sys.platform            # "linux", "darwin", "win32"
 sys.version             # Python version string
-sys.exit(1)             # exit with code (like process.exit(1))
+sys.exit(1)             # exit code ke saath (process.exit(1) jaisa)
 ```
 
 ### pathlib -- Modern Path Handling
 
-`pathlib` is the modern replacement for `os.path`. It uses an object-oriented approach.
+`pathlib` `os.path` ka modern replacement hai. Yeh object-oriented approach use karta hai.
 
 ```python
 from pathlib import Path
 
-# Create paths
+# Paths banao
 home = Path.home()                    # /home/username
 cwd = Path.cwd()                     # current working directory
-config = Path("/etc") / "myapp" / "config.yml"   # / operator joins paths!
+config = Path("/etc") / "myapp" / "config.yml"   # / operator paths joins karta hai!
 
 # Path operations
 p = Path("/home/user/documents/report.pdf")
@@ -260,24 +277,24 @@ p.suffix        # ".pdf"
 p.parent        # Path("/home/user/documents")
 p.parts         # ('/', 'home', 'user', 'documents', 'report.pdf')
 
-# Check existence
+# Existence check karo
 p.exists()
 p.is_file()
 p.is_dir()
 
-# Read/write files
+# Files read/write karo
 content = Path("config.yml").read_text()
 Path("output.txt").write_text("hello")
 
-# Glob (find files)
+# Glob (files dhundo)
 for py_file in Path(".").glob("**/*.py"):
     print(py_file)
 
-# List directory contents
+# Directory contents list karo
 for item in Path(".").iterdir():
     print(item)
 
-# Create directories
+# Directories banao
 Path("new/nested/dir").mkdir(parents=True, exist_ok=True)
 ```
 
@@ -287,15 +304,17 @@ const path = require('path');
 path.join('/home', 'user', 'file.txt');
 path.basename('/path/to/file.txt');
 path.extname('file.txt');
-// No built-in glob -- need 'glob' package
+// Built-in glob nahi hai -- 'glob' package chahiye
 ```
+
+`Path("/etc") / "myapp" / "config.yml"` dekh ke thoda ajeeb lagega — `/` operator se paths join ho rahe hain! Yeh Python ka operator overloading hai, string concatenation nahi. IRCTC ke ticket path jaisa socho: `station / platform / seat` — har `/` ek level neeche le jaata hai.
 
 ### json -- JSON Handling
 
 ```python
 import json
 
-# Parse JSON string -> Python dict
+# JSON string -> Python dict parse karo
 data = json.loads('{"name": "Alice", "age": 30}')
 print(data["name"])    # "Alice"
 
@@ -304,13 +323,13 @@ json_str = json.dumps(data)
 json_str = json.dumps(data, indent=2)           # pretty print
 json_str = json.dumps(data, sort_keys=True)     # sorted keys
 
-# Read JSON file
+# JSON file read karo
 with open("config.json") as f:
-    config = json.load(f)                       # note: load (not loads)
+    config = json.load(f)                       # note: load (loads nahi)
 
-# Write JSON file
+# JSON file write karo
 with open("output.json", "w") as f:
-    json.dump(data, f, indent=2)                # note: dump (not dumps)
+    json.dump(data, f, indent=2)                # note: dump (dumps nahi)
 ```
 
 ```javascript
@@ -318,32 +337,32 @@ with open("output.json", "w") as f:
 JSON.parse('{"name": "Alice"}');
 JSON.stringify(data);
 JSON.stringify(data, null, 2);    // pretty print
-// File reading requires fs module
+// File reading ke liye fs module chahiye
 ```
 
-**Naming convention:** `loads`/`dumps` work with **s**trings. `load`/`dump` work with **f**iles.
+**Naming convention:** `loads`/`dumps` **s**trings ke saath kaam karte hain. `load`/`dump` **f**iles ke saath kaam karte hain. Yaad rakhne ka tarika: extra "s" = string.
 
-### datetime -- Date and Time
+### datetime -- Date aur Time
 
 ```python
 from datetime import datetime, date, time, timedelta
 
 # Current time
 now = datetime.now()                    # local time
-utc_now = datetime.utcnow()            # UTC time (deprecated in 3.12)
+utc_now = datetime.utcnow()            # UTC time (3.12 mein deprecated)
 from datetime import timezone
-utc_now = datetime.now(timezone.utc)    # preferred way
+utc_now = datetime.now(timezone.utc)    # preferred tarika
 
-# Create specific dates
+# Specific dates banao
 birthday = datetime(1990, 6, 15, 14, 30)
 today = date.today()
 
-# Format to string
+# String mein format karo
 now.strftime("%Y-%m-%d %H:%M:%S")      # "2024-01-15 14:30:00"
 now.strftime("%B %d, %Y")              # "January 15, 2024"
 now.isoformat()                         # "2024-01-15T14:30:00.123456"
 
-# Parse from string
+# String se parse karo
 dt = datetime.strptime("2024-01-15", "%Y-%m-%d")
 dt = datetime.fromisoformat("2024-01-15T14:30:00")
 
@@ -355,74 +374,76 @@ print(duration.total_seconds())         # 86400.0
 ```
 
 ```javascript
-// JS Date is notoriously painful
+// JS Date badnaam hi hai apni takleef ke liye
 new Date();
 new Date().toISOString();
-// Most JS devs use date-fns or dayjs. Python's datetime is built-in.
+// Zyadatar JS devs date-fns ya dayjs use karte hain. Python ki datetime built-in hai.
 ```
 
 ### collections -- Advanced Data Structures
 
 ```python
 from collections import (
-    namedtuple,      # covered in lists_and_tuples
-    defaultdict,     # covered in dictionaries
-    Counter,         # covered in dictionaries
+    namedtuple,      # lists_and_tuples mein cover hua
+    defaultdict,     # dictionaries mein cover hua
+    Counter,         # dictionaries mein cover hua
     deque,           # double-ended queue
-    OrderedDict,     # insertion-ordered dict (less needed since Python 3.7)
+    OrderedDict,     # insertion-ordered dict (Python 3.7 ke baad kam zarurat)
 )
 
-# deque -- efficient append/pop from both ends
+# deque -- dono ends se efficient append/pop
 from collections import deque
 
 dq = deque([1, 2, 3])
 dq.appendleft(0)        # [0, 1, 2, 3]
 dq.append(4)            # [0, 1, 2, 3, 4]
 dq.popleft()             # 0
-dq.rotate(2)             # rotate right by 2
+dq.rotate(2)             # right ki taraf 2 se rotate karo
 
-# Fixed-size deque (auto-drops oldest)
+# Fixed-size deque (purana automatically drop hota hai)
 recent = deque(maxlen=3)
 for i in range(5):
     recent.append(i)
 print(recent)            # deque([2, 3, 4], maxlen=3)
 ```
 
+`deque(maxlen=3)` ko ek "last 3 orders" wali Swiggy notification list jaisa socho — naya order aate hi sabse purana automatically hat jaata hai, tumhe manually delete nahi karna padta.
+
 ### itertools -- Iteration Tools
 
 ```python
 import itertools
 
-# chain -- concatenate iterables
+# chain -- iterables ko concatenate karo
 list(itertools.chain([1, 2], [3, 4], [5]))     # [1, 2, 3, 4, 5]
 
 # product -- Cartesian product
 list(itertools.product("AB", "12"))
 # [('A', '1'), ('A', '2'), ('B', '1'), ('B', '2')]
 
-# permutations and combinations
+# permutations aur combinations
 list(itertools.permutations("ABC", 2))
 # [('A','B'), ('A','C'), ('B','A'), ('B','C'), ('C','A'), ('C','B')]
 
 list(itertools.combinations("ABCD", 2))
 # [('A','B'), ('A','C'), ('A','D'), ('B','C'), ('B','D'), ('C','D')]
 
-# groupby (requires sorted input)
+# groupby (sorted input chahiye)
 data = [("A", 1), ("A", 2), ("B", 3), ("B", 4)]
 for key, group in itertools.groupby(data, key=lambda x: x[0]):
     print(f"{key}: {list(group)}")
 # A: [('A', 1), ('A', 2)]
 # B: [('B', 3), ('B', 4)]
 
-# islice -- slice an iterator
+# islice -- ek iterator ko slice karo
 list(itertools.islice(range(1000000), 5))  # [0, 1, 2, 3, 4]
 
 # count, cycle, repeat -- infinite iterators
 counter = itertools.count(start=10, step=2)  # 10, 12, 14, 16, ...
-cycler = itertools.cycle(["red", "green", "blue"])  # repeats forever
+cycler = itertools.cycle(["red", "green", "blue"])  # hamesha repeat hota rahega
 ```
 
-### Other Essential Standard Library Modules
+### Baaki Zaruri Standard Library Modules
 
 ```python
 # re -- Regular expressions
@@ -431,7 +452,7 @@ match = re.search(r"\d+", "age: 30")
 if match:
     print(match.group())    # "30"
 
-# copy -- Deep and shallow copying
+# copy -- Deep aur shallow copying
 import copy
 deep_copy = copy.deepcopy(nested_object)
 
@@ -463,7 +484,7 @@ str(uuid.uuid4())    # "550e8400-e29b-41d4-a716-446655440000"
 # typing -- Type hints
 from typing import Optional, Union, Any, Callable
 
-# dataclasses -- Structured data (covered later)
+# dataclasses -- Structured data (aage cover hoga)
 from dataclasses import dataclass
 
 # enum -- Enumerations
@@ -486,9 +507,11 @@ import unittest
 
 ## Module Patterns
 
+**Kya hota hai?** Ek hi file kabhi standalone script ki tarah chalti hai, kabhi doosri file mein import hoke helper ki tarah kaam karti hai. Python ke paas is do-mode behavior ko handle karne ke liye chand smart patterns hain.
+
 ### if __name__ == "__main__"
 
-This is Python's equivalent of checking if a file is being run directly vs imported.
+Yeh Python ka tarika hai check karne ka ki file directly run ho rahi hai ya import ki gayi hai.
 
 ```python
 # utils.py
@@ -496,15 +519,15 @@ def helper():
     return "I'm a helper"
 
 def main():
-    """This runs only when the file is executed directly."""
+    """Yeh sirf tab chalega jab file directly execute ki jaaye."""
     print(helper())
     print("Running utils.py directly")
 
 if __name__ == "__main__":
     main()
 
-# When imported: __name__ == "utils"  (the module name)
-# When run directly: __name__ == "__main__"
+# Jab import kiya jaaye: __name__ == "utils"  (module ka naam)
+# Jab directly run kiya jaaye: __name__ == "__main__"
 ```
 
 ```javascript
@@ -513,8 +536,10 @@ if __name__ == "__main__":
 if (require.main === module) {
     main();
 }
-// ES Modules -- no clean equivalent, need workarounds
+// ES Modules -- koi clean equivalent nahi, workarounds chahiye
 ```
+
+Socho `utils.py` ek dabbawala hai jo do mode mein kaam karta hai — agar tum usse "seedha jaao" bolo (`python utils.py`), toh woh apna kaam khud shuru kar dega. Agar koi doosra module usse "bulata" hai (`import utils`), toh woh chup chap sirf apne functions available karwa deta hai, khud kuch print nahi karta.
 
 ### Module-Level Configuration
 
@@ -522,57 +547,59 @@ if (require.main === module) {
 # config.py
 import os
 
-# Module-level code runs ONCE when first imported
+# Module-level code sirf EK BAAR chalta hai jab pehli baar import ho
 DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///db.sqlite3")
 MAX_RETRIES = int(os.environ.get("MAX_RETRIES", "3"))
 
-print(f"Config loaded. DEBUG={DEBUG}")  # prints once on first import
+print(f"Config loaded. DEBUG={DEBUG}")  # pehle import pe ek baar print hota hai
 ```
 
 ### Lazy Imports
 
 ```python
-# For heavy modules, import inside the function
+# Heavy modules ke liye, function ke andar import karo
 def process_data(data):
-    import pandas as pd     # only imported when function is called
+    import pandas as pd     # sirf tab import hoga jab function call ho
     df = pd.DataFrame(data)
     return df.describe()
 
-# Useful for:
-# - Reducing startup time
-# - Optional dependencies
-# - Breaking circular imports
+# Useful hai:
+# - Startup time kam karne ke liye
+# - Optional dependencies ke liye
+# - Circular imports todne ke liye
 ```
 
 ---
 
 ## Third-Party Packages (pip)
 
+**Kya hota hai?** Standard library sab kuch nahi de sakti — kabhi kabhi tumhe koi third-party library chahiye hoti hai, bilkul waise hi jaise Zomato apna delivery khud nahi karta, kabhi third-party logistics partner use karta hai. Python mein iske liye `pip` hai — Node.js ke `npm` jaisa package manager.
+
 ```bash
-# Install packages (like npm install)
+# Packages install karo (npm install jaisa)
 pip install requests
 pip install flask sqlalchemy
 
-# Install specific version
+# Specific version install karo
 pip install requests==2.31.0
 pip install "requests>=2.28,<3.0"
 
-# Install from requirements file (like package.json dependencies)
+# Requirements file se install karo (package.json dependencies jaisa)
 pip install -r requirements.txt
 
-# Create requirements file
+# Requirements file banao
 pip freeze > requirements.txt
 
-# Uninstall
+# Uninstall karo
 pip uninstall requests
 
-# List installed
+# Installed list dekho
 pip list
 ```
 
 ```
-# requirements.txt (like package.json but simpler)
+# requirements.txt (package.json jaisa but simpler)
 requests==2.31.0
 flask>=2.3.0
 sqlalchemy~=2.0
@@ -580,12 +607,15 @@ python-dotenv
 ```
 
 ```bash
-# Virtual environments (like node_modules isolation)
-python -m venv venv           # create
-source venv/bin/activate      # activate (Linux/Mac)
-venv\Scripts\activate         # activate (Windows)
-deactivate                    # deactivate
+# Virtual environments (node_modules isolation jaisa)
+python -m venv venv           # banao
+source venv/bin/activate      # activate karo (Linux/Mac)
+venv\Scripts\activate         # activate karo (Windows)
+deactivate                    # deactivate karo
 ```
+
+> [!tip]
+> Virtual environment ko socho apne project ka apna alag "kitchen" jaisa — jaise har Zomato restaurant ka apna kitchen hota hai, ek doosre ki ingredients mix nahi hoti. `venv` bina, saare projects ke packages global system pe mix ho jaate hain aur version clashes ho sakte hain.
 
 ---
 
@@ -593,23 +623,23 @@ deactivate                    # deactivate
 
 | Task                       | Python                            | JavaScript                        |
 |----------------------------|-----------------------------------|-----------------------------------|
-| Import module              | `import os`                       | `import * as os from 'os'`        |
-| Import specific            | `from os import path`             | `import { path } from 'os'`      |
-| Import with alias          | `import numpy as np`              | `import np from 'numpy'`          |
-| Relative import            | `from .utils import helper`       | `import { helper } from './utils'`|
-| Package entry point        | `__init__.py`                     | `index.js`                        |
-| Main check                 | `if __name__ == "__main__":`      | `if (require.main === module)`    |
-| Package manager            | `pip`                             | `npm` / `yarn` / `pnpm`          |
-| Dependencies file          | `requirements.txt` / `pyproject.toml` | `package.json`               |
-| Lock file                  | `requirements.txt` (pinned)       | `package-lock.json`              |
-| Isolation                  | `venv` / `virtualenv`             | `node_modules` (per project)      |
+| Module import               | `import os`                       | `import * as os from 'os'`        |
+| Specific import             | `from os import path`             | `import { path } from 'os'`      |
+| Alias ke saath import       | `import numpy as np`              | `import np from 'numpy'`          |
+| Relative import              | `from .utils import helper`       | `import { helper } from './utils'`|
+| Package entry point         | `__init__.py`                     | `index.js`                        |
+| Main check                  | `if __name__ == "__main__":`      | `if (require.main === module)`    |
+| Package manager              | `pip`                             | `npm` / `yarn` / `pnpm`          |
+| Dependencies file            | `requirements.txt` / `pyproject.toml` | `package.json`               |
+| Lock file                   | `requirements.txt` (pinned)       | `package-lock.json`              |
+| Isolation                    | `venv` / `virtualenv`             | `node_modules` (per project)      |
 
 ---
 
 ## Practice Exercises
 
-### Exercise 1: Create a Mini Package
-Create a `mathtools` package with three modules: `basic.py` (add, subtract, multiply, divide), `stats.py` (mean, median, mode), and `__init__.py` that re-exports everything. Then use it from a main script.
+### Exercise 1: Ek Mini Package Banao
+`mathtools` naam ka package banao jisme teen modules hon: `basic.py` (add, subtract, multiply, divide), `stats.py` (mean, median, mode), aur `__init__.py` jo sab kuch re-export kare. Fir usse ek main script se use karo.
 
 <details>
 <summary>Solution</summary>
@@ -655,7 +685,7 @@ def mode(numbers):
 
 # main.py
 from mathtools import add, mean, median
-# or: import mathtools; mathtools.add(1, 2)
+# ya: import mathtools; mathtools.add(1, 2)
 
 print(add(10, 5))                    # 15
 print(mean([1, 2, 3, 4, 5]))        # 3.0
@@ -664,12 +694,12 @@ print(median([1, 3, 5, 7, 9]))      # 5
 </details>
 
 ### Exercise 2: Standard Library Scavenger Hunt
-Without installing any packages, write a script that:
-1. Generates a random password of 16 characters
-2. Hashes it with SHA-256
-3. Gets the current date formatted as "January 15, 2024"
-4. Creates a UUID
-5. Pretty-prints a nested dictionary as JSON
+Bina koi package install kiye, ek script likho jo:
+1. 16 characters ka random password generate kare
+2. Usse SHA-256 se hash kare
+3. Current date ko "January 15, 2024" format mein le
+4. Ek UUID banaye
+5. Ek nested dictionary ko JSON ke roop mein pretty-print kare
 
 <details>
 <summary>Solution</summary>
@@ -687,7 +717,7 @@ chars = string.ascii_letters + string.digits + string.punctuation
 password = "".join(random.choices(chars, k=16))
 print(f"Password: {password}")
 
-# Better: use secrets module for cryptographic randomness
+# Better: cryptographic randomness ke liye secrets module use karo
 import secrets
 secure_password = "".join(secrets.choice(chars) for _ in range(16))
 print(f"Secure password: {secure_password}")
@@ -721,7 +751,7 @@ print(json.dumps(data, indent=2))
 </details>
 
 ### Exercise 3: Path Explorer
-Using `pathlib`, write a script that takes a directory path and produces a tree-like output of its structure, showing file sizes and filtering by extension.
+`pathlib` use karke, ek script likho jo ek directory path le aur uski structure ko tree jaisa dikhaye, saath mein file sizes aur extension filter bhi de.
 
 ```python
 from pathlib import Path
@@ -739,7 +769,7 @@ def show_tree(directory, extension=None, indent=0):
 from pathlib import Path
 
 def show_tree(directory, extension=None, indent=0, max_depth=5):
-    """Display directory tree with optional extension filter."""
+    """Extension filter ke saath directory tree dikhao."""
     directory = Path(directory)
     if not directory.is_dir():
         print(f"Not a directory: {directory}")
@@ -753,7 +783,7 @@ def show_tree(directory, extension=None, indent=0, max_depth=5):
 
     for item in items:
         if item.name.startswith("."):
-            continue  # skip hidden files
+            continue  # hidden files skip karo
 
         if item.is_dir():
             print(f"{prefix}[DIR]  {item.name}/")
@@ -769,7 +799,7 @@ def show_tree(directory, extension=None, indent=0, max_depth=5):
             print(f"{prefix}       {item.name} ({size_str})")
 
 def summary(directory, extension=None):
-    """Summarize directory contents."""
+    """Directory contents ka summary do."""
     directory = Path(directory)
     pattern = f"**/*{extension}" if extension else "**/*"
     files = [f for f in directory.glob(pattern) if f.is_file()]
@@ -787,3 +817,14 @@ def summary(directory, extension=None):
 # summary(".", extension=".py")
 ```
 </details>
+
+## Key Takeaways
+
+- Python mein koi `export` keyword nahi hota — module level pe define ki har cheez automatically accessible hai; `_` prefix sirf "private by convention" hai.
+- `import x` poora module import karta hai, `from x import y` specific cheez, aur `as` se alias milta hai — `from x import *` avoid karo.
+- Directory ko package banane ke liye `__init__.py` chahiye — yeh Node.js ke `index.js` jaisa entry point hai.
+- Relative imports (`.` current package, `..` parent) sirf packages ke andar kaam karte hain, standalone scripts mein nahi.
+- Circular imports fix karne ke teen tarike: import ko function ke andar daalo, code restructure karo, ya sirf type hints ke liye `TYPE_CHECKING` use karo.
+- Standard library (`os`, `pathlib`, `json`, `datetime`, `collections`, `itertools`) itni powerful hai ki bohot saare common kaamon ke liye pip install ki zarurat hi nahi padti.
+- `if __name__ == "__main__":` batata hai ki file directly run ho rahi hai ya kahin se import ki gayi hai.
+- `pip` + `venv` mila ke Python ka `npm` + `node_modules` jaisa isolation dete hain — har project ka apna alag environment.

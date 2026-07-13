@@ -1,8 +1,8 @@
 # 01 - Variables and Data Types
 
-## Coming from Node.js/TypeScript: What Changes?
+## Node.js/TypeScript se aa rahe ho? Yeh sab badalne wala hai
 
-In JavaScript/TypeScript, you declare variables with `let`, `const`, or `var`. Python throws all of that away. There are no declaration keywords -- you just assign a value to a name, and it exists.
+JS/TS mein tum `let`, `const`, ya `var` se variable declare karte ho. Python mein yeh sab drama hi nahi hai. Koi declaration keyword nahi -- bas ek naam ko value assign karo, aur woh exist karne lagta hai. Bilkul waise jaise Zomato pe naya order create karte waqt tumhe koi "order declare karo" wala step nahi hota -- bas order daalo, ho gaya.
 
 ```python
 # Python
@@ -26,18 +26,18 @@ No semicolons. No declaration keywords. No braces. Welcome to Python.
 
 ### Basic Assignment
 
-Python variables are just names that point to objects in memory. There is no separate "declaration" step.
+Python mein variables sirf naam hote hain jo memory mein pade objects ko point karte hain. Koi alag se "declaration" step nahi hota -- seedha assign karo.
 
 ```python
-x = 10          # x now refers to the integer object 10
-x = "hello"     # x now refers to the string object "hello" (perfectly valid)
+x = 10          # x ab integer object 10 ko point kar raha hai
+x = "hello"     # x ab string object "hello" ko point kar raha hai (bilkul valid hai)
 ```
 
-This is similar to `let` in JS (rebindable), but there is no equivalent to `const`. Every variable can be reassigned.
+Yeh JS ke `let` jaisa hai (rebind kar sakte ho), lekin `const` ka koi equivalent nahi hai. Har variable reassign ho sakta hai -- Python mein "pakka wala" variable jaisi cheez hai hi nahi.
 
 ### Naming Conventions
 
-Python uses `snake_case` for almost everything. This is not just a preference -- it is codified in PEP 8, Python's official style guide.
+Python mein har jagah `snake_case` use hota hai. Yeh sirf pasand ki baat nahi hai -- PEP 8 mein, jo Python ka official style guide hai, likha hua hai.
 
 | Concept          | Python (PEP 8)         | JS/TS Convention       |
 |------------------|------------------------|------------------------|
@@ -54,35 +54,38 @@ first_name = "Alice"
 last_login_time = "2024-01-15"
 max_connections = 100
 
-# Bad Python style (but it works -- Python won't stop you)
-firstName = "Alice"       # camelCase is a JS habit
+# Bad Python style (chalega, lekin Python tumhe rokega nahi)
+firstName = "Alice"       # camelCase toh JS ki aadat hai
 lastLoginTime = "2024-01-15"
 ```
 
+> [!tip]
+> Agar tum Python code mein camelCase likh rahe ho, toh samajh lo ki tumhari JS ki purani aadat abhi tak gayi nahi hai. Snake_case pe switch kar lo, warna code review mein taane sunoge.
+
 ### Multiple Assignment
 
-Python supports assigning multiple variables in a single line.
+Python mein ek hi line mein multiple variables assign kar sakte ho.
 
 ```python
-# Assign multiple variables at once
+# Ek saath multiple variables assign karo
 x, y, z = 1, 2, 3
 
-# Same value to multiple variables
+# Same value multiple variables ko
 a = b = c = 0
 
-# Swap values -- no temp variable needed!
+# Swap values -- temp variable ki zarurat hi nahi!
 x, y = y, x
 ```
 
 ```javascript
-// JS equivalent of multiple assignment
+// JS mein multiple assignment ka equivalent
 let [x, y, z] = [1, 2, 3];  // destructuring
 
-// Swap in JS requires temp or destructuring
+// JS mein swap ke liye temp variable ya destructuring chahiye
 [x, y] = [y, x];
 ```
 
-The swap trick is idiomatic Python. Under the hood, Python evaluates the entire right side first, creating a tuple, then unpacks it into the left side.
+Yeh swap wala trick Python mein bahut idiomatic hai. Peeche kya hota hai -- Python pehle poora right side evaluate karke ek tuple bana leta hai, phir usse left side mein unpack kar deta hai. Bilkul waise jaise ek dabbawala pehle sab dabbe collect karta hai, phir ek saath sahi ghar pe deliver karta hai.
 
 ---
 
@@ -106,34 +109,36 @@ The swap trick is idiomatic Python. Under the hood, Python evaluates the entire 
 
 ### int -- Arbitrary Precision Integers
 
-Unlike JavaScript's `number` (IEEE 754 double, max safe integer ~9 quadrillion), Python integers have **no size limit**.
+JavaScript ke `number` (IEEE 754 double, max safe integer ~90 lakh crore) ke ulat, Python ke integers ki **koi size limit hi nahi** hai.
 
 ```python
-# Python handles arbitrarily large integers natively
-big = 10 ** 100  # a googol, 101 digits
+# Python bade se bade integers ko bina kisi drama ke handle karta hai
+big = 10 ** 100  # ek googol, 101 digits
 print(big)
 # 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
-# Underscores for readability (like JS numeric separators)
+# Readability ke liye underscores (JS ke numeric separators jaise)
 population = 7_900_000_000
 ```
 
 ```javascript
-// JS struggles with big numbers
+// JS bade numbers ke saath struggle karta hai
 console.log(Number.MAX_SAFE_INTEGER);  // 9007199254740991
-// Need BigInt for larger values
+// Bade values ke liye BigInt chahiye
 let big = 10n ** 100n;
 ```
 
+Socho India ki population count kar rahe ho, ya kisi crypto exchange mein satoshi jaise chhote-chhote units mein bade transactions -- Python mein overflow ka tension hi nahi hai.
+
 ### float -- Floating Point Numbers
 
-Both languages use IEEE 754 doubles, so the same quirks apply.
+Dono languages IEEE 754 doubles use karte hain, isliye same quirks dono mein milte hain.
 
 ```python
-print(0.1 + 0.2)          # 0.30000000000000004 (same as JS!)
+print(0.1 + 0.2)          # 0.30000000000000004 (JS jaisa hi!)
 print(0.1 + 0.2 == 0.3)   # False
 
-# Use decimal module for precision-critical work
+# Precision-critical kaam (jaise paisa) ke liye decimal module use karo
 from decimal import Decimal
 print(Decimal("0.1") + Decimal("0.2") == Decimal("0.3"))  # True
 
@@ -147,29 +152,32 @@ math.isnan(float("nan"))   # True
 math.isinf(float("inf"))   # True
 ```
 
+> [!warning]
+> Agar UPI ya Paytm jaisa payment system bana rahe ho aur paison ka calculation float se kar rahe ho, toh rounding errors se product manager ki gaali padegi. Wahan `Decimal` use karo, `float` nahi.
+
 ### str -- Strings
 
-Single quotes and double quotes are interchangeable in Python (unlike JS/TS where convention often prefers one).
+Python mein single quotes aur double quotes bilkul interchangeable hain (JS/TS ke ulat, jahan aksar ek convention follow karte hain).
 
 ```python
 name = "Alice"
-name = 'Alice'     # identical
+name = 'Alice'     # dono same hain
 
-# Triple quotes for multiline
+# Multiline ke liye triple quotes
 message = """
 This is a
 multiline string.
 """
 
-# Raw strings (no escape processing) -- useful for regex, file paths
-path = r"C:\Users\new_folder\test"   # backslashes are literal
+# Raw strings (escape processing nahi hota) -- regex, file paths ke liye useful
+path = r"C:\Users\new_folder\test"   # backslashes literal rehte hain
 ```
 
-Strings are covered in depth in `02_strings.md`.
+Strings ke baare mein detail mein `02_strings.md` mein padhenge.
 
 ### bool -- Booleans
 
-Python booleans are `True` and `False` (capitalized). They are actually a subclass of `int`.
+Python ke booleans `True` aur `False` hain (capital letter se shuru). Yeh asal mein `int` ke subclass hain.
 
 ```python
 print(True + True)    # 2
@@ -177,65 +185,64 @@ print(True * 10)      # 10
 print(False + 1)      # 1
 print(isinstance(True, int))  # True
 
-# Truthy/falsy values (similar concept to JS but different rules)
-# Falsy in Python: False, 0, 0.0, "", [], {}, set(), None, 0j
-# Everything else is truthy
+# Truthy/falsy values (JS jaisa concept, par rules alag hain)
+# Python mein falsy: False, 0, 0.0, "", [], {}, set(), None, 0j
+# Baaki sab truthy hai
 
 if []:
-    print("won't print")   # empty list is falsy
+    print("yeh print nahi hoga")   # empty list falsy hai
 
 if [0]:
-    print("will print")    # non-empty list is truthy, even if it contains 0
+    print("yeh print hoga")    # non-empty list truthy hai, chahe andar 0 ho
 ```
 
 ```javascript
 // JS falsy: false, 0, -0, 0n, "", null, undefined, NaN
-// Key difference: empty array [] is TRUTHY in JS but FALSY in Python... wait:
-// Actually, [] is truthy in JS! And falsy in Python.
-if ([]) console.log("prints in JS!");  // This DOES print in JS
+// Bada difference: JS mein [] TRUTHY hai, Python mein FALSY...
+if ([]) console.log("JS mein print hota hai!");  // Yeh sach mein print karega
 ```
 
-**Key difference:** In JS, `[]` and `{}` are truthy. In Python, empty containers (`[]`, `{}`, `set()`, `""`) are all falsy.
+**Key difference:** JS mein `[]` aur `{}` truthy hote hain. Python mein empty containers (`[]`, `{}`, `set()`, `""`) sab falsy hote hain.
 
 ### None -- The Absence of Value
 
-Python has `None` where JS has both `null` and `undefined`. Python unified this into a single concept.
+Python mein `None` hai, jahan JS mein `null` aur `undefined` dono hote hain. Python ne isse ek hi concept mein unify kar diya hai -- ek hi "kuch nahi hai" ka signal.
 
 ```python
 result = None
 
-# Always use 'is' to check for None, not ==
+# None check karne ke liye hamesha 'is' use karo, == nahi
 if result is None:
-    print("No result")
+    print("Kuch nahi mila")
 
 if result is not None:
-    print("Got a result")
+    print("Result mil gaya")
 ```
 
 ```javascript
-// JS has two "nothing" values
-let a = null;       // intentional absence
-let b = undefined;  // not yet assigned / missing
+// JS mein "kuch nahi" ke do version
+let a = null;       // jaan-boojh kar khaali chhoda
+let b = undefined;  // abhi assign nahi hua / missing
 let c;              // implicitly undefined
 ```
 
-**Why `is` instead of `==`?** The `is` operator checks identity (same object in memory). There is exactly one `None` object in Python, so `is` is the correct and faster check. Using `==` could be fooled by objects that override `__eq__`.
+**`is` kyun, `==` kyun nahi?** `is` operator identity check karta hai (memory mein same object hai ya nahi). Python mein `None` ka exactly ek hi object hota hai, isliye `is` sahi aur fast check hai. `==` use karoge toh koi object jisne `__eq__` override kiya ho, tumhe dhokha de sakta hai.
 
 ---
 
 ## Dynamic Typing
 
-Both Python and JavaScript are dynamically typed -- you can reassign a variable to a different type.
+Python aur JavaScript dono dynamically typed hain -- ek variable ko different type mein reassign kar sakte ho.
 
 ```python
 x = 42          # int
-x = "hello"     # now a str
-x = [1, 2, 3]   # now a list
+x = "hello"     # ab str
+x = [1, 2, 3]   # ab list
 ```
 
 ### The `type()` Function
 
-Use `type()` to check a value's type at runtime. This is like `typeof` in JS, but returns a type object rather than a string.
+Kisi value ka type runtime pe check karne ke liye `type()` use karo. Yeh JS ke `typeof` jaisa hi hai, bas yeh string ke bajaye type object return karta hai.
 
 ```python
 print(type(42))          # <class 'int'>
@@ -246,10 +253,10 @@ print(type(None))        # <class 'NoneType'>
 print(type([1, 2]))      # <class 'list'>
 print(type({"a": 1}))    # <class 'dict'>
 
-# Check if something is a specific type
+# Kisi specific type ka check
 print(type(42) == int)            # True
-print(isinstance(42, int))       # True (preferred -- handles inheritance)
-print(isinstance(True, int))     # True (bool is a subclass of int)
+print(isinstance(42, int))       # True (preferred -- inheritance bhi handle karta hai)
+print(isinstance(True, int))     # True (bool, int ka subclass hai)
 print(isinstance(True, bool))    # True
 ```
 
@@ -258,19 +265,19 @@ print(isinstance(True, bool))    # True
 typeof 42         // "number"
 typeof "hello"    // "string"
 typeof true       // "boolean"
-typeof null       // "object"  <-- the famous JS bug
+typeof null       // "object"  <-- JS ka famous bug
 typeof undefined  // "undefined"
 typeof []         // "object"
 typeof {}         // "object"
-// Arrays need Array.isArray([])
+// Arrays check karne ke liye Array.isArray([]) chahiye
 ```
 
-### Type Hints (Python's Answer to TypeScript)
+### Type Hints (Python ka TypeScript wala jawab)
 
-Python 3.5+ supports type hints. They look like TypeScript annotations but are **not enforced at runtime** by default.
+Python 3.5+ mein type hints support hote hain. Yeh dekhne mein TypeScript annotations jaise lagte hain, lekin default mein **runtime pe enforce nahi hote**.
 
 ```python
-# Type hints -- informational only at runtime
+# Type hints -- runtime pe sirf informational hain
 name: str = "Alice"
 age: int = 30
 scores: list[int] = [90, 85, 92]
@@ -279,64 +286,64 @@ user: dict[str, str] = {"name": "Alice", "role": "admin"}
 def greet(name: str) -> str:
     return f"Hello, {name}"
 
-# This will NOT raise an error at runtime!
-age: int = "not a number"   # Python doesn't care at runtime
+# Yeh runtime pe koi error NAHI dega!
+age: int = "not a number"   # Python ko koi farak nahi padta
 ```
 
 ```typescript
-// TypeScript -- enforced at compile time
+// TypeScript -- compile time pe enforce hota hai
 let name: string = "Alice";
 let age: number = 30;
 let scores: number[] = [90, 85, 92];
 
-// This WOULD raise a compile-time error in TS
+// Yeh TS mein compile-time error dega
 // let age: number = "not a number";
 ```
 
-To get TS-like checking, you run a separate tool like `mypy` or `pyright` on your Python code (covered more in the functions chapter).
+TS jaisa checking chahiye toh alag se `mypy` ya `pyright` jaisa tool chalana padega (functions wale chapter mein aur detail mein dekhenge).
 
 ---
 
-## Type Coercion -- Python Is Stricter
+## Type Coercion -- Python Zyada Strict Hai
 
-This is one of the biggest differences. JavaScript is infamous for loose type coercion. Python refuses to mix types implicitly in most cases.
+Yeh sabse bada difference hai. JavaScript apni loose type coercion ke liye badnaam hai. Python zyadatar cases mein types ko implicitly mix karne se saaf mana kar deta hai.
 
 ```python
-# Python -- explicit is better than implicit
-print("Age: " + str(30))    # Must explicitly convert int to str
+# Python -- explicit hamesha behtar hai implicit se
+print("Age: " + str(30))    # int ko str mein explicitly convert karna padega
 print("Age: " + 30)         # TypeError: can only concatenate str to str
 
-print(1 + 1.5)              # 2.5 (int + float works, int is promoted)
-print(1 + True)             # 2 (bool is a subclass of int)
+print(1 + 1.5)              # 2.5 (int + float chal jaata hai, int promote hota hai)
+print(1 + True)             # 2 (bool, int ka subclass hai)
 
-# No implicit conversion to bool in comparisons
-print(1 == True)             # True (because True == 1)
-print(1 == "1")              # False (no coercion!)
-print(0 == False)            # True (because False == 0)
-print(0 == "")               # False (no coercion!)
-print("" == False)           # False (no coercion!)
+# Comparisons mein implicit conversion nahi hoti
+print(1 == True)             # True (kyunki True == 1)
+print(1 == "1")              # False (koi coercion nahi!)
+print(0 == False)            # True (kyunki False == 0)
+print(0 == "")               # False (koi coercion nahi!)
+print("" == False)           # False (koi coercion nahi!)
 ```
 
 ```javascript
-// JS -- the wild west of type coercion
-console.log("Age: " + 30);       // "Age: 30" (auto-converts)
-console.log(1 + "1");            // "11" (string wins)
-console.log(1 - "1");            // 0 (now it converts to number)
-console.log(1 == "1");           // true (loose equality coerces)
+// JS -- type coercion ka wild west
+console.log("Age: " + 30);       // "Age: 30" (auto-convert ho gaya)
+console.log(1 + "1");            // "11" (string jeet gaya)
+console.log(1 - "1");            // 0 (ab number mein convert ho gaya)
+console.log(1 == "1");           // true (loose equality coerce karti hai)
 console.log(0 == "");            // true
 console.log("" == false);        // true
 console.log([] == false);        // true
 console.log(null == undefined);  // true
 ```
 
-**Bottom line:** Python does not have `===` because `==` already behaves strictly (no type coercion). You will never need `===` in Python.
+**Bottom line:** Python mein `===` hai hi nahi kyunki `==` pehle se hi strict behave karta hai (koi type coercion nahi). Python mein tumhe kabhi `===` ki zarurat hi nahi padegi.
 
 ### Explicit Type Conversion
 
 ```python
-# Converting between types
+# Types ke beech convert karna
 int("42")         # 42
-int(3.9)          # 3 (truncates, does NOT round)
+int(3.9)          # 3 (truncate karta hai, round NAHI karta)
 float("3.14")     # 3.14
 str(42)           # "42"
 bool(0)           # False
@@ -350,32 +357,32 @@ list("hello")     # ['h', 'e', 'l', 'l', 'o']
 
 ## Constants Convention
 
-Python has no `const` keyword. The convention is to use `UPPER_SNAKE_CASE` to signal that a value should not be changed.
+Python mein `const` keyword hai hi nahi. Convention yeh hai ki `UPPER_SNAKE_CASE` use karo, taaki signal mile ki yeh value change nahi honi chahiye -- bilkul ek unwritten office rule jaisa, jise sab follow karte hain par koi force nahi karta.
 
 ```python
-# Constants by convention (nothing actually prevents reassignment)
+# Convention se constants (asal mein reassignment ko koi rokta nahi)
 MAX_CONNECTIONS = 100
 DATABASE_URL = "postgresql://localhost:5432/mydb"
 PI = 3.14159265358979
 API_VERSION = "v2"
 
-# These are just variables. Python trusts you not to reassign them.
-MAX_CONNECTIONS = 200   # Python won't stop you, but linters will warn
+# Yeh sirf variables hain. Python tumpe bharosa karta hai ki tum inhe reassign nahi karoge.
+MAX_CONNECTIONS = 200   # Python rokega nahi, par linters warning zaroor denge
 ```
 
 ```javascript
-// JS enforces const
+// JS const enforce karta hai
 const MAX_CONNECTIONS = 100;
 MAX_CONNECTIONS = 200;  // TypeError: Assignment to constant variable
 ```
 
-If you want enforced immutability, you can use `Final` from the `typing` module (checked by type checkers like mypy, but still not enforced at runtime).
+Agar tumhe enforced immutability chahiye, toh `typing` module se `Final` use kar sakte ho (type checkers jaise mypy check karte hain, lekin runtime pe abhi bhi enforce nahi hota).
 
 ```python
 from typing import Final
 
 MAX_CONNECTIONS: Final = 100
-# mypy will flag reassignment, but Python itself won't prevent it
+# mypy reassignment pe flag karega, lekin Python khud nahi rokega
 ```
 
 ---
@@ -387,23 +394,23 @@ MAX_CONNECTIONS: Final = 100
 10 + 3      # 13
 10 - 3      # 7
 10 * 3      # 30
-10 / 3      # 3.3333... (always returns float!)
-10 // 3     # 3 (floor/integer division -- no JS equivalent operator)
+10 / 3      # 3.3333... (hamesha float return karta hai!)
+10 // 3     # 3 (floor/integer division -- JS mein koi equivalent operator nahi)
 10 % 3      # 1 (modulo)
-10 ** 3     # 1000 (exponentiation -- like JS **)
+10 ** 3     # 1000 (exponentiation -- JS ke ** jaisa)
 
-# Division difference from JS:
-# Python: / always returns float, // returns int (floor division)
-# JS: / returns whatever the math gives you
+# JS se division ka difference:
+# Python: / hamesha float deta hai, // int deta hai (floor division)
+# JS: / jo bhi math se aaye, wahi deta hai
 
-print(10 / 2)    # 5.0 (float in Python!)
+print(10 / 2)    # 5.0 (Python mein float!)
 print(10 // 2)   # 5 (int)
 ```
 
 ```javascript
 // JS division
 10 / 3           // 3.3333...
-Math.floor(10/3) // 3 (Python's // equivalent)
+Math.floor(10/3) // 3 (Python ke // ka equivalent)
 10 % 3           // 1
 10 ** 3          // 1000
 ```
@@ -415,15 +422,15 @@ x = 10
 x += 5     # x = 15
 x -= 3     # x = 12
 x *= 2     # x = 24
-x /= 4     # x = 6.0 (note: becomes float!)
+x /= 4     # x = 6.0 (note: float ban gaya!)
 x //= 2    # x = 3.0
 x **= 3    # x = 27.0
 x %= 5     # x = 2.0
 
-# NO increment/decrement operators!
+# Koi increment/decrement operator nahi hai!
 # x++   SyntaxError
 # x--   SyntaxError
-x += 1   # use this instead
+x += 1   # iske bajaye yeh use karo
 ```
 
 ---
@@ -435,29 +442,29 @@ a = [1, 2, 3]
 b = [1, 2, 3]
 c = a
 
-# == checks value equality
-print(a == b)    # True (same contents)
+# == value equality check karta hai
+print(a == b)    # True (contents same hain)
 
-# 'is' checks identity (same object in memory)
-print(a is b)    # False (different objects)
-print(a is c)    # True (c points to same object as a)
+# 'is' identity check karta hai (memory mein same object)
+print(a is b)    # False (alag objects hain)
+print(a is c)    # True (c, a ke jaise hi object ko point karta hai)
 
-# Python caches small integers (-5 to 256) and some strings
+# Python chhote integers (-5 se 256) aur kuch strings ko cache karta hai
 x = 256
 y = 256
 print(x is y)    # True (cached)
 
 x = 257
 y = 257
-print(x is y)    # False (not cached -- implementation detail, don't rely on this)
+print(x is y)    # False (cached nahi -- yeh implementation detail hai, ispar bharosa mat karo)
 ```
 
 ```javascript
 // JS reference comparison
 let a = [1, 2, 3];
 let b = [1, 2, 3];
-console.log(a === b);  // false (different objects)
-// JS has no built-in deep equality for arrays/objects
+console.log(a === b);  // false (alag objects)
+// JS mein arrays/objects ke liye built-in deep equality hai hi nahi
 ```
 
 ---
@@ -485,7 +492,7 @@ console.log(a === b);  // false (different objects)
 ## Practice Exercises
 
 ### Exercise 1: Variable Basics
-Create variables for a user profile: name (str), age (int), balance (float), is_premium (bool), and referral_code (None). Print each with its type.
+Ek user profile ke liye variables banao: name (str), age (int), balance (float), is_premium (bool), aur referral_code (None). Har ek ko uske type ke saath print karo.
 
 ```python
 # Your code here
@@ -510,7 +517,7 @@ print(f"referral_code: {referral_code} -> {type(referral_code)}")
 </details>
 
 ### Exercise 2: Type Coercion Detective
-Predict the output of each line, then run it to check. Mark which ones would behave differently in JavaScript.
+Har line ka output guess karo, phir chalake check karo. Mark karo ki kaunse JavaScript mein alag behave karenge.
 
 ```python
 print(type(True + 1))
@@ -545,17 +552,17 @@ print(None == False)     # False! JS: null == false is false too actually
 </details>
 
 ### Exercise 3: Swap and Unpack
-Given the variables below, swap `a` and `b` without a temp variable, then unpack the tuple into individual variables.
+Neeche diye variables ke saath, `a` aur `b` ko bina temp variable ke swap karo, phir tuple ko individual variables mein unpack karo.
 
 ```python
 a = "first"
 b = "second"
 
-# Swap a and b (one line)
+# a aur b ko swap karo (ek line mein)
 # your code here
 
 coordinates = (41.8781, -87.6298, "Chicago")
-# Unpack into lat, lng, city
+# lat, lng, city mein unpack karo
 # your code here
 ```
 
@@ -577,12 +584,12 @@ print(f"{city} is at ({lat}, {lng})")
 </details>
 
 ### Exercise 4: Constants and Calculations
-Define constants for a circle calculator. Calculate and print the area and circumference of a circle with radius 5. Use floor division to also give the integer-only area.
+Ek circle calculator ke liye constants define karo. Radius 5 wale circle ka area aur circumference calculate karke print karo. Floor division use karke integer-only area bhi do.
 
 ```python
-# Define PI as a constant
-# Calculate area (pi * r^2) and circumference (2 * pi * r)
-# Print the float area, integer-only area (using //), and circumference
+# PI ko ek constant define karo
+# Area (pi * r^2) aur circumference (2 * pi * r) calculate karo
+# Float area, integer-only area (// use karke), aur circumference print karo
 ```
 
 <details>
@@ -594,7 +601,7 @@ RADIUS = 5
 
 area = PI * RADIUS ** 2
 circumference = 2 * PI * RADIUS
-area_int = PI * RADIUS ** 2 // 1  # floor division by 1 truncates to int-like float
+area_int = PI * RADIUS ** 2 // 1  # floor division by 1 se int-like float milta hai
 
 print(f"Area: {area}")              # 78.53981633974475
 print(f"Area (floor): {area_int}")  # 78.0
@@ -604,11 +611,11 @@ print(f"Circumference: {circumference}")  # 31.4159265358979
 </details>
 
 ### Exercise 5: Type Conversion Pipeline
-Write a function-like block that takes a string `"42.7"` and converts it through every numeric type: str -> float -> int -> bool -> int. Print each step.
+Ek code block likho jo string `"42.7"` ko har numeric type se pass kare: str -> float -> int -> bool -> int. Har step print karo.
 
 ```python
 value = "42.7"
-# Convert through each type and print the result and type at each step
+# Har type ke through convert karo aur har step ka result aur type print karo
 ```
 
 <details>
@@ -621,7 +628,7 @@ print(f"Start:    {value!r:>10} ({type(value).__name__})")
 as_float = float(value)
 print(f"-> float: {as_float!r:>10} ({type(as_float).__name__})")
 
-as_int = int(as_float)  # Note: int("42.7") would raise ValueError!
+as_int = int(as_float)  # Note: int("42.7") ValueError degi!
 print(f"-> int:   {as_int!r:>10} ({type(as_int).__name__})")
 
 as_bool = bool(as_int)

@@ -1,8 +1,8 @@
 # Advanced Decorators
 
-## Beyond the Basics
+## Basics se Aage
 
-You've seen simple decorators. Now let's explore the advanced patterns that make Python decorators one of the language's most powerful metaprogramming features. JavaScript/TypeScript has experimental decorators (Stage 3), but Python's are more mature and widely used.
+Simple decorators toh dekh hi liye. Ab dekhte hain woh advanced patterns jo Python decorators ko language ka sabse powerful metaprogramming feature banate hain. JavaScript/TypeScript mein experimental decorators hain (Stage 3), lekin Python ke decorators zyada mature hain aur har jagah use hote hain.
 
 ---
 
@@ -24,12 +24,12 @@ def my_decorator(func):
 def greet(name: str) -> str:
     return f"Hello, {name}"
 
-# @decorator is syntax sugar for:
+# @decorator yeh syntax sugar hai iske liye:
 # greet = my_decorator(greet)
 ```
 
 ```typescript
-// TypeScript decorator (different mechanism, class-focused)
+// TypeScript decorator (alag mechanism, class-focused)
 function Log(target: any, key: string, descriptor: PropertyDescriptor) {
   const original = descriptor.value;
   descriptor.value = function (...args: any[]) {
@@ -48,19 +48,19 @@ class Greeter {
 }
 ```
 
-> **Key difference**: Python decorators work on any function (or class). TypeScript decorators are primarily for class members. Python decorators are just functions that take a function and return a function -- no special syntax or protocol.
+> **Key difference**: Python decorators kisi bhi function (ya class) pe kaam karte hain. TypeScript decorators mostly class members ke liye hote hain. Python decorators bas plain functions hain jo ek function lete hain aur ek function return karte hain — koi special syntax ya protocol nahi chahiye.
 
 ---
 
-## Decorator Factories (Decorators with Arguments)
+## Decorator Factories (Arguments wale Decorators)
 
-When you need a decorator that takes parameters, you add an outer function:
+Jab tumhe decorator ko parameters dene ho, ek outer function add kar do — bilkul jaise Zomato ka "apply coupon" flow hota hai: pehle coupon code do (`@discount("FIRST50")`), phir woh actual order pe apply hota hai.
 
 ```python
 import functools
 import time
 
-# Decorator WITHOUT arguments
+# Decorator BINA arguments ke
 def timer(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -91,19 +91,21 @@ def query_db(sql: str) -> list:
     time.sleep(0.7)
     return [{"id": 1}]
 
-# Without arguments but with parentheses
+# Bina arguments ke, par parentheses ke saath
 @timer_with_label()
 def fast_function():
     pass
 ```
 
-### Flexible Decorator: Works With or Without Arguments
+Socho `timer_with_label` teen-level ka function hai: outer function config leta hai (`label`, `threshold`), woh andar `decorator` return karta hai jo actual function leta hai, aur woh `wrapper` return karta hai jo asal mein chalta hai. Confusing lage toh bas yaad rakho — **jitni bar `()` lagti hai, utna ek naya layer**.
+
+### Flexible Decorator: With ya Without Arguments, Dono Chalega
 
 ```python
 import functools
 
 def flexible_decorator(func=None, *, retries=3, delay=1.0):
-    """Can be used as @flexible_decorator or @flexible_decorator(retries=5)."""
+    """@flexible_decorator ya @flexible_decorator(retries=5) — dono chalega."""
 
     def decorator(func):
         @functools.wraps(func)
@@ -121,13 +123,13 @@ def flexible_decorator(func=None, *, retries=3, delay=1.0):
         return wrapper
 
     if func is not None:
-        # Called without arguments: @flexible_decorator
+        # Bina arguments ke call hua: @flexible_decorator
         return decorator(func)
     else:
-        # Called with arguments: @flexible_decorator(retries=5)
+        # Arguments ke saath call hua: @flexible_decorator(retries=5)
         return decorator
 
-# Both work:
+# Dono chalega:
 @flexible_decorator
 def api_call_v1():
     pass
@@ -137,11 +139,13 @@ def api_call_v2():
     pass
 ```
 
+Trick simple hai — check karo `func` diya gaya hai ya nahi. Agar diya hai, matlab kisi ne bina `()` ke decorator lagaya (`@flexible_decorator`), toh seedha decorate kar do. Agar `func=None` hai, matlab kisi ne `()` ke saath call kiya, toh `decorator` function wapas bhej do jo Python khud call karega.
+
 ---
 
-## `functools.wraps` and Why It Matters
+## `functools.wraps` aur Yeh Kyun Zaruri Hai
 
-Without `@functools.wraps`, the decorator replaces the original function's metadata:
+`@functools.wraps` ke bina, decorator original function ka metadata chura leta hai — matlab tumhara function apni "identity" khho deta hai:
 
 ```python
 def bad_decorator(func):
@@ -150,7 +154,7 @@ def bad_decorator(func):
     return wrapper
 
 def good_decorator(func):
-    @functools.wraps(func)  # Preserves original function's metadata
+    @functools.wraps(func)  # Original function ka metadata preserve karta hai
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
     return wrapper
@@ -160,26 +164,29 @@ def my_func():
     """My docstring."""
     pass
 
-print(my_func.__name__)    # "wrapper" (wrong!)
-print(my_func.__doc__)     # None (lost!)
+print(my_func.__name__)    # "wrapper" (galat!)
+print(my_func.__doc__)     # None (gayab!)
 
 @good_decorator
 def my_func():
     """My docstring."""
     pass
 
-print(my_func.__name__)    # "my_func" (correct!)
+print(my_func.__name__)    # "my_func" (sahi!)
 print(my_func.__doc__)     # "My docstring." (preserved!)
-print(my_func.__wrapped__)  # Original function (added by wraps)
+print(my_func.__wrapped__)  # Original function (wraps ne add kiya)
 ```
 
-**Always use `@functools.wraps`** -- it copies `__name__`, `__qualname__`, `__doc__`, `__dict__`, `__module__`, and `__annotations__`, and adds `__wrapped__` to access the original function.
+**Hamesha `@functools.wraps` use karo** — yeh `__name__`, `__qualname__`, `__doc__`, `__dict__`, `__module__`, aur `__annotations__` copy karta hai, aur `__wrapped__` add karta hai jisse original function tak access mil jaata hai.
+
+> [!warning]
+> Agar `wraps` bhool gaye toh debugging mein pareeshani hogi — stack traces, `help()`, aur IDE tooltips sab galat function ka naam dikhayenge. Chota sa decorator likha aur `functools.wraps` bhool gaye — yeh sabse common Python mistake hai.
 
 ---
 
-## Stacking Multiple Decorators
+## Multiple Decorators Stack Karna
 
-Decorators execute bottom-up (closest to the function first), but their wrapper functions execute top-down:
+Decorators bottom-up execute hote hain (function ke sabse paas wala pehle), lekin unke wrapper functions top-down chalte hain. Isko samjho jaise gift wrapping — pehle innermost layer lagta hai, phir uske upar aur layers, lekin jab gift kholte ho (call karte ho), toh sabse bahar wali layer pehle khulti hai.
 
 ```python
 def bold(func):
@@ -209,10 +216,10 @@ def greet(name: str) -> str:
 print(greet("World"))
 # <b><i><u>Hello, World</u></i></b>
 
-# This is equivalent to:
+# Yeh iske equivalent hai:
 # greet = bold(italic(underline(greet)))
-# Execution order: underline wraps first, italic wraps second, bold wraps third
-# But when called: bold's wrapper runs first -> italic's -> underline's -> original
+# Wrapping order: underline sabse pehle wrap hota hai, phir italic, phir bold
+# Lekin call karne pe: bold ka wrapper pehle chalta hai -> italic ka -> underline ka -> original
 ```
 
 ### Real-World Stacking
@@ -226,15 +233,17 @@ def create_user():
     ...
 ```
 
+Yeh bilkul Express.js ke middleware chain jaisa hai — request pehle rate limiter se guzarti hai, phir validation, phir auth, tab jaake actual handler tak pahunchti hai.
+
 ---
 
 ## Class-Based Decorators
 
-Use a class with `__call__` when your decorator needs to maintain state:
+Jab decorator ko **state** yaad rakhni ho (jaise kitni baar call hua), toh function ke bajaye ek class use karo jisme `__call__` method ho.
 
 ```python
 class CountCalls:
-    """Decorator that counts how many times a function is called."""
+    """Decorator jo track karta hai function kitni baar call hua."""
 
     def __init__(self, func):
         functools.update_wrapper(self, func)
@@ -255,11 +264,13 @@ process_item("world")  # "process_item called 2 times"
 print(process_item.count)  # 2
 ```
 
+Yahan `CountCalls("process_item")` khud ek object ban jaata hai jo function ki jagah rakh leta hai — aur kyunki object hai, isme apna state (`self.count`) rakh sakta hai. Function-based decorators mein state rakhne ke liye closure ya global variable chahiye hota, class-based decorator mein yeh naturally milta hai.
+
 ### Class Decorator with Arguments
 
 ```python
 class Retry:
-    """Decorator class with configurable retry logic."""
+    """Configurable retry logic wala decorator class."""
 
     def __init__(self, max_attempts: int = 3, exceptions: tuple = (Exception,)):
         self.max_attempts = max_attempts
@@ -284,13 +295,15 @@ def connect_to_service():
     ...
 ```
 
+Yahan `Retry(max_attempts=5, ...)` pehle ek object banata hai (config store karke), aur phir Python us object ko `func` ke saath call karta hai — jo `__call__` method trigger karta hai.
+
 ---
 
-## `functools.lru_cache` and `@cache` -- Memoization
+## `functools.lru_cache` aur `@cache` — Memoization
 
 ### `@functools.cache` (Python 3.9+)
 
-Simple unbounded cache:
+Simple unbounded cache — socho jaise Swiggy ek baar restaurant ka menu fetch karke rakh leta hai, baar baar server ko hit nahi karta:
 
 ```python
 import functools
@@ -301,37 +314,37 @@ def fibonacci(n: int) -> int:
         return n
     return fibonacci(n - 1) + fibonacci(n - 2)
 
-# Without cache: fibonacci(35) takes seconds (exponential time)
-# With cache: fibonacci(35) is instant (linear time, each value computed once)
+# Cache ke bina: fibonacci(35) seconds leta hai (exponential time)
+# Cache ke saath: fibonacci(35) instant hai (linear time, har value ek hi baar compute hoti hai)
 print(fibonacci(100))  # Instant!
 
 # Cache info
 print(fibonacci.cache_info())
 # CacheInfo(hits=98, misses=101, maxsize=None, currsize=101)
 
-# Clear cache
+# Cache clear karo
 fibonacci.cache_clear()
 ```
 
-### `@functools.lru_cache` -- Bounded Cache
+### `@functools.lru_cache` — Bounded Cache
 
 ```python
-@functools.lru_cache(maxsize=128)  # Keep last 128 results
+@functools.lru_cache(maxsize=128)  # Sirf last 128 results rakho
 def expensive_computation(x: int, y: int) -> int:
-    """Only first call with given args computes; rest are cached."""
-    time.sleep(1)  # Simulate expensive work
+    """Same args ke saath sirf pehli call compute karti hai; baaki cached milti hain."""
+    time.sleep(1)  # Expensive kaam simulate kar rahe hain
     return x ** y
 
-# First call: slow (computes)
-result1 = expensive_computation(2, 10)  # Takes 1 second
+# Pehli call: slow (compute hoti hai)
+result1 = expensive_computation(2, 10)  # 1 second lagega
 
-# Second call with same args: instant (cached)
+# Same args ke saath dusri call: instant (cached)
 result2 = expensive_computation(2, 10)  # Instant!
 
-# IMPORTANT: Arguments must be hashable (no lists, dicts)
-# This will ERROR:
+# IMPORTANT: Arguments hashable hone chahiye (list, dict nahi chalenge)
+# Yeh ERROR dega:
 # @functools.lru_cache
-# def bad(data: list) -> int:  # list is not hashable
+# def bad(data: list) -> int:  # list hashable nahi hai
 #     return sum(data)
 ```
 
@@ -351,7 +364,7 @@ function memoize(fn) {
 
 ### `@functools.cached_property`
 
-Compute once, cache as property:
+Ek baar compute karo, phir property ki tarah cache kar do:
 
 ```python
 import functools
@@ -362,26 +375,26 @@ class DataAnalyzer:
 
     @functools.cached_property
     def mean(self) -> float:
-        """Computed only once, then cached."""
+        """Sirf ek baar compute hota hai, phir cache."""
         print("Computing mean...")
         return sum(self.data) / len(self.data)
 
     @functools.cached_property
     def std_dev(self) -> float:
-        """Also computed only once."""
+        """Yeh bhi sirf ek baar compute hota hai."""
         print("Computing std_dev...")
         variance = sum((x - self.mean) ** 2 for x in self.data) / len(self.data)
         return variance ** 0.5
 
 analyzer = DataAnalyzer([1, 2, 3, 4, 5])
-print(analyzer.mean)      # "Computing mean..." then 3.0
-print(analyzer.mean)      # 3.0 (no recomputation!)
-print(analyzer.std_dev)   # "Computing std_dev..." then 1.414...
+print(analyzer.mean)      # "Computing mean..." phir 3.0
+print(analyzer.mean)      # 3.0 (dobara compute nahi hoga!)
+print(analyzer.std_dev)   # "Computing std_dev..." phir 1.414...
 ```
 
 ```typescript
-// TypeScript doesn't have built-in cached_property
-// Closest approach: manual lazy getter
+// TypeScript mein built-in cached_property nahi hai
+// Sabse close approach: manual lazy getter
 class DataAnalyzer {
   private _mean?: number;
 
@@ -399,6 +412,8 @@ class DataAnalyzer {
 ## Real-World Decorator Patterns
 
 ### Retry with Exponential Backoff
+
+IRCTC ya kisi bhi flaky API ko call karte waqt yeh pattern bohot common hai — fail ho toh thoda ruko, phir try karo, aur har baar wait time double karte jao:
 
 ```python
 import functools
@@ -426,7 +441,7 @@ def retry(
                         base_delay * (backoff_factor ** (attempt - 1)),
                         max_delay,
                     )
-                    # Add jitter to prevent thundering herd
+                    # Thundering herd rokne ke liye jitter add karo
                     delay *= (0.5 + random.random())
                     print(f"Attempt {attempt} failed: {e}. "
                           f"Retrying in {delay:.1f}s...")
@@ -487,11 +502,11 @@ import functools
 from typing import Callable
 
 def require_permission(*permissions: str):
-    """Decorator that checks user permissions before executing."""
+    """User ke permissions check karta hai execute karne se pehle."""
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # Get current user (assume first arg or from context)
+            # Current user nikaalo (maan lo pehla arg ya context se aayega)
             user = kwargs.get("user") or (args[0] if args else None)
             if user is None:
                 raise PermissionError("No user provided")
@@ -509,16 +524,20 @@ def require_permission(*permissions: str):
 def delete_record(user: dict, record_id: int) -> None:
     print(f"Deleted record {record_id}")
 
-# Works
+# Chal jaayega
 admin = {"name": "Alice", "permissions": ["admin", "write", "read"]}
 delete_record(user=admin, record_id=42)
 
-# Fails
+# Fail hoga
 viewer = {"name": "Bob", "permissions": ["read"]}
 delete_record(user=viewer, record_id=42)  # PermissionError!
 ```
 
+Yeh bilkul waisa hai jaise Zomato admin panel mein "sirf restaurant owner hi menu delete kar sakta hai" — role check pehle, kaam baad mein.
+
 ### Rate Limiting
+
+UPI transactions ki tarah — ek limit ke baad "try again later" bol dena padta hai:
 
 ```python
 import functools
@@ -526,7 +545,7 @@ import time
 from collections import deque
 
 def rate_limit(calls: int, period: float):
-    """Allow max `calls` invocations per `period` seconds."""
+    """`period` seconds mein max `calls` invocations allow karo."""
     def decorator(func):
         timestamps: deque = deque()
 
@@ -534,7 +553,7 @@ def rate_limit(calls: int, period: float):
         def wrapper(*args, **kwargs):
             now = time.monotonic()
 
-            # Remove timestamps outside the window
+            # Window ke bahar wale timestamps hatao
             while timestamps and timestamps[0] <= now - period:
                 timestamps.popleft()
 
@@ -562,12 +581,12 @@ import functools
 from typing import get_type_hints
 
 def validate_types(func):
-    """Decorator that validates argument types match type hints at runtime."""
+    """Decorator jo runtime pe check karta hai arguments type hints se match karte hain ya nahi."""
     hints = get_type_hints(func)
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Get parameter names
+        # Parameter names nikaalo
         import inspect
         sig = inspect.signature(func)
         bound = sig.bind(*args, **kwargs)
@@ -595,16 +614,16 @@ create_user("Alice", "thirty", "alice@example.com")  # TypeError!
 
 ---
 
-## Decorating Classes
+## Classes ko Decorate Karna
 
-Decorators can also be applied to entire classes:
+Decorators sirf functions pe nahi, poori classes pe bhi lag sakte hain.
 
 ```python
 import functools
 import dataclasses
 
 def add_repr(cls):
-    """Add a __repr__ method to any class."""
+    """Kisi bhi class mein __repr__ method add kar do."""
     def __repr__(self):
         attrs = ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items())
         return f"{cls.__name__}({attrs})"
@@ -621,7 +640,7 @@ print(User("Alice", 30))  # User(name='Alice', age=30)
 
 # Singleton pattern
 def singleton(cls):
-    """Ensure only one instance of a class exists."""
+    """Class ka sirf ek hi instance ban paye, yeh ensure karta hai."""
     instances = {}
 
     @functools.wraps(cls)
@@ -639,14 +658,14 @@ class Database:
         print(f"Connecting to {url}")
 
 db1 = Database("postgresql://localhost/mydb")  # "Connecting to..."
-db2 = Database("postgresql://localhost/mydb")  # No output -- same instance
+db2 = Database("postgresql://localhost/mydb")  # Koi output nahi -- same instance
 print(db1 is db2)  # True
 
 # Registry pattern
 registry: dict[str, type] = {}
 
 def register(cls):
-    """Register a class in a global registry."""
+    """Class ko ek global registry mein register kar do."""
     registry[cls.__name__] = cls
     return cls
 
@@ -661,6 +680,8 @@ class OrderHandler:
 print(registry)  # {'UserHandler': <class 'UserHandler'>, 'OrderHandler': ...}
 ```
 
+`singleton` pattern bilkul database connection pool jaisa concept hai — poori app mein ek hi `Database` object rahe, baar baar naya connection na bane.
+
 ---
 
 ## Async Decorators
@@ -671,7 +692,7 @@ import asyncio
 import time
 
 def async_timer(func):
-    """Timer decorator for async functions."""
+    """Async functions ke liye timer decorator."""
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         start = time.perf_counter()
@@ -702,37 +723,40 @@ async def fetch_data(url: str) -> dict:
     return {"url": url}
 ```
 
+> [!tip]
+> Async function ko decorate karte waqt wrapper bhi `async def` hona chahiye aur andar `await func(...)` karna hoga — normal decorator lagaoge toh coroutine object return hoga, actual result nahi.
+
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: Debug Decorator
-Create a `@debug` decorator that:
-- Logs function name, arguments (with types), and keyword arguments on entry
-- Logs the return value (with type) on exit
-- Logs any exception raised
-- Shows execution time
-- Has an optional `verbose` flag for more/less detail
+Ek `@debug` decorator banao jo:
+- Entry pe function ka naam, arguments (unke types ke saath), aur keyword arguments log kare
+- Exit pe return value (uske type ke saath) log kare
+- Koi exception aaye toh usko log kare
+- Execution time dikhaye
+- Ek optional `verbose` flag ho jisse zyada/kam detail mile
 
 ### Exercise 2: Cache with Expiry
-Build a `@timed_cache(ttl_seconds=60)` decorator that:
-- Caches results like `lru_cache`
-- Automatically expires entries after TTL
-- Has a `cache_info()` method showing hits, misses, and size
-- Has a `cache_clear()` method
-- Is thread-safe
+`@timed_cache(ttl_seconds=60)` decorator banao jo:
+- `lru_cache` jaisa result cache kare
+- TTL ke baad entries automatically expire ho jayein
+- `cache_info()` method ho jo hits, misses, aur size dikhaye
+- `cache_clear()` method ho
+- Thread-safe ho
 
 ### Exercise 3: Decorator Stack
-Create these decorators and stack them:
-- `@validate_args` -- validates argument types against type hints
-- `@log_calls` -- logs every call with args and result
-- `@retry(n)` -- retries on exception
-- `@cache` -- caches results
+Yeh decorators banao aur stack karo:
+- `@validate_args` -- type hints ke against argument types validate kare
+- `@log_calls` -- har call ko args aur result ke saath log kare
+- `@retry(n)` -- exception aane pe retry kare
+- `@cache` -- results cache kare
 
-Apply all four to a function and verify they work correctly together. Think about the optimal order.
+Chaaron ko ek function pe apply karo aur verify karo ki saath mein sahi kaam karte hain. Optimal order pe socho.
 
 ### Exercise 4: Class Decorator
-Create a `@auto_init` class decorator that automatically generates `__init__` from class annotations:
+`@auto_init` class decorator banao jo class annotations se `__init__` automatically generate kare:
 ```python
 @auto_init
 class Point:
@@ -740,17 +764,27 @@ class Point:
     y: float
     label: str = "origin"
 
-p = Point(1.0, 2.0)           # Works
-p = Point(1.0, 2.0, "A")      # Works
+p = Point(1.0, 2.0)           # Chalega
+p = Point(1.0, 2.0, "A")      # Chalega
 print(p.x, p.y, p.label)      # 1.0 2.0 A
 ```
-(Yes, this is essentially what `@dataclass` does -- but build it yourself to understand it.)
+(Haan, yeh basically wahi kaam hai jo `@dataclass` karta hai -- lekin khud banao taaki samajh aaye kaise kaam karta hai.)
 
 ### Exercise 5: Middleware-Style Decorator
-Build a `@middleware` system inspired by Express.js:
+Express.js se inspired `@middleware` system banao:
 ```python
 @middleware(before=log_request, after=log_response, on_error=handle_error)
 def handle_request(request):
     return {"status": 200, "body": "OK"}
 ```
-The before/after/on_error hooks should be optional callables that receive context about the call.
+before/after/on_error hooks optional callables hone chahiye jinko call ke baare mein context milta ho.
+
+## Key Takeaways
+- Decorator factory matlab ek extra outer function jo config leta hai aur asli decorator return karta hai — jitni `()` lagti hain, utne layers.
+- `@functools.wraps` hamesha lagao, warna function apna naam, docstring, aur metadata kho deta hai.
+- Multiple decorators bottom-up wrap hote hain, top-down execute hote hain — order matter karta hai.
+- State rakhni ho toh class-based decorator (`__call__` ke saath) use karo, function-based decorator mein state rakhna awkward hota hai.
+- `functools.cache` / `lru_cache` / `cached_property` — expensive computation ko baar baar repeat karne se bachate hain, bas arguments hashable hone chahiye.
+- Retry, rate-limit, auth-check, aur logging jaise cross-cutting concerns decorators mein daal do — business logic clean rehti hai.
+- Decorators sirf functions pe nahi, classes pe bhi lag sakte hain (singleton, registry, auto-repr jaise patterns).
+- Async functions ke liye wrapper bhi `async def` hona chahiye, warna coroutine hi return hoga, actual value nahi.

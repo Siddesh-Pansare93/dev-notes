@@ -2,7 +2,7 @@
 
 ## Coming from Node.js/TypeScript
 
-Python dictionaries are a hybrid of JS plain objects and Maps. They are ordered (insertion order preserved since Python 3.7), have rich built-in methods, and are the workhorse data structure of Python. Sets will feel familiar from JS `Set`, but with more built-in set operations.
+Python ka dictionary basically JS ke plain object aur Map ka hybrid hai. Order maintain hoti hai (insertion order, Python 3.7 se guaranteed), methods bohot rich hain, aur ye Python ka sabse zyada use hone wala data structure hai. Sets bhi JS ke `Set` jaise familiar lagenge, bas inme built-in set operations bohot zyada milte hain.
 
 ---
 
@@ -10,8 +10,10 @@ Python dictionaries are a hybrid of JS plain objects and Maps. They are ordered 
 
 ### Creating Dictionaries
 
+Kya hota hai? Dictionary matlab key-value pairs ka collection — bilkul JS object jaisa, bas banane ke kai tareeke hain.
+
 ```python
-# Literal syntax (like JS objects, but keys must be quoted unless variables)
+# Literal syntax (JS objects jaisa hi, bas keys ko quote karna padta hai unless variables ho)
 user = {
     "name": "Alice",
     "age": 30,
@@ -21,10 +23,10 @@ user = {
 # dict() constructor
 user = dict(name="Alice", age=30, email="alice@example.com")
 
-# From list of tuples
+# List of tuples se
 user = dict([("name", "Alice"), ("age", 30)])
 
-# From two lists using zip
+# Do lists se, zip use karke
 keys = ["name", "age", "email"]
 values = ["Alice", 30, "alice@example.com"]
 user = dict(zip(keys, values))
@@ -33,7 +35,7 @@ user = dict(zip(keys, values))
 empty = {}
 empty = dict()
 
-# Dict comprehension (preview -- covered in 10_comprehensions.md)
+# Dict comprehension (preview -- 10_comprehensions.md me detail me aayega)
 squares = {x: x ** 2 for x in range(6)}  # {0: 0, 1: 1, 2: 4, 3: 9, 4: 16, 5: 25}
 ```
 
@@ -46,19 +48,21 @@ let userMap = new Map([["name", "Alice"], ["age", 30]]);
 
 ### Key Types
 
-Python dict keys can be any **hashable** (immutable) type. This is more flexible than JS objects (string/symbol keys only) but less flexible than JS Maps (any key type).
+Python dict ki key koi bhi **hashable** (immutable) type ho sakti hai. Ye JS object se zyada flexible hai (jo sirf string/symbol keys deta hai), lekin JS Map se kam flexible hai (jo koi bhi type le leta hai).
+
+Socho JS Map jaisa flexible key system, par ek limit ke saath — sirf wahi cheez key ban sakti hai jo change nahi ho sakti (immutable).
 
 ```python
 d = {
     "string_key": 1,
     42: "integer key",
-    (1, 2): "tuple key",          # tuples are hashable
-    True: "bool key",             # True == 1, so this overwrites key 42!
+    (1, 2): "tuple key",          # tuples hashable hote hain
+    True: "bool key",             # True == 1, isliye ye key 42 ko overwrite kar dega!
     3.14: "float key",
-    frozenset({1, 2}): "set key", # frozenset is hashable (set is not)
+    frozenset({1, 2}): "set key", # frozenset hashable hai (set nahi hota)
 }
 
-# These CANNOT be keys (not hashable):
+# Ye keys NAHI ban sakti (not hashable):
 # {[1, 2]: "list key"}         # TypeError: unhashable type: 'list'
 # {{}: "dict key"}             # TypeError: unhashable type: 'dict'
 # {{1, 2}: "set key"}          # TypeError: unhashable type: 'set'
@@ -66,60 +70,63 @@ d = {
 
 ### Accessing Values
 
+Zomato app socho — agar tum menu me koi item search karo jo hai hi nahi, to app crash nahi hoti, bas "not available" dikha deti hai. Python ka `.get()` bhi wahi karta hai — safely value nikaal deta hai, error nahi deta.
+
 ```python
 user = {"name": "Alice", "age": 30, "email": "alice@example.com"}
 
-# Bracket notation (raises KeyError if missing)
+# Bracket notation (missing key pe KeyError deta hai)
 print(user["name"])           # "Alice"
 # print(user["phone"])        # KeyError: 'phone'
 
-# .get() -- safe access with optional default (THE PYTHON WAY)
+# .get() -- safe access with optional default (YE PYTHON KA TAREEKA HAI)
 print(user.get("name"))       # "Alice"
-print(user.get("phone"))      # None (no error)
+print(user.get("phone"))      # None (koi error nahi)
 print(user.get("phone", "N/A"))  # "N/A" (custom default)
 
 # Check if key exists
 if "name" in user:
     print(user["name"])
 
-# This pattern is NOT needed in Python (but common in JS):
+# Ye pattern Python me NAHI chahiye (JS me common hai):
 # user["name"] if "name" in user else "default"
-# Just use: user.get("name", "default")
+# Bas ye use karo: user.get("name", "default")
 ```
 
 ```javascript
 // JS access patterns
 user.name                     // "Alice" (dot notation)
 user["name"]                  // "Alice" (bracket notation)
-user.phone                    // undefined (no error)
+user.phone                    // undefined (koi error nahi)
 user?.phone                   // undefined (optional chaining)
 user.phone ?? "N/A"          // "N/A" (nullish coalescing)
 ```
 
-**Key difference:** Python dicts raise `KeyError` on missing keys with bracket access. JS objects silently return `undefined`. Use `.get()` in Python for safe access.
+> [!warning]
+> Python dict bracket access me missing key pe `KeyError` deta hai. JS object chup-chaap `undefined` de deta hai. Isliye Python me safe access ke liye `.get()` use karo.
 
 ### Adding and Modifying
 
 ```python
 user = {"name": "Alice", "age": 30}
 
-# Add or update
-user["email"] = "alice@example.com"    # adds new key
-user["age"] = 31                       # updates existing key
+# Add ya update
+user["email"] = "alice@example.com"    # naya key add hua
+user["age"] = 31                       # existing key update hua
 
-# Update multiple keys at once
+# Ek saath multiple keys update karna
 user.update({"age": 32, "city": "NYC", "role": "admin"})
 
-# Merge dicts (Python 3.9+)
+# Dicts merge karna (Python 3.9+)
 defaults = {"theme": "dark", "lang": "en", "role": "user"}
 overrides = {"lang": "fr", "role": "admin"}
 settings = defaults | overrides        # {'theme': 'dark', 'lang': 'fr', 'role': 'admin'}
 
 # In-place merge (Python 3.9+)
-defaults |= overrides                  # modifies defaults
+defaults |= overrides                  # defaults ko modify kar deta hai
 
 # Pre-3.9 merge
-settings = {**defaults, **overrides}   # spread-like syntax
+settings = {**defaults, **overrides}   # spread jaisa syntax
 ```
 
 ```javascript
@@ -134,17 +141,17 @@ let settings = { ...defaults, ...overrides };  // spread
 ```python
 user = {"name": "Alice", "age": 30, "email": "alice@example.com", "role": "admin"}
 
-# Remove and return value
-age = user.pop("age")              # 30, user no longer has "age"
-phone = user.pop("phone", None)    # None (no error if missing)
+# Remove karo aur value return karo
+age = user.pop("age")              # 30, ab user me "age" nahi hai
+phone = user.pop("phone", None)    # None (missing ho to bhi error nahi)
 
-# Remove and return last inserted item (LIFO)
-key, value = user.popitem()        # ("role", "admin") in Python 3.7+
+# Sabse last insert hui item remove karke return karo (LIFO)
+key, value = user.popitem()        # ("role", "admin"), Python 3.7+ me
 
-# Delete without returning
+# Bina return kiye delete karna
 del user["email"]
 
-# Clear all
+# Sab clear karna
 user.clear()
 ```
 
@@ -164,7 +171,7 @@ for key in user.keys():      # explicit, same result
 for value in user.values():
     print(value)             # Alice, 30, NYC
 
-# Key-value pairs (MOST COMMON)
+# Key-value pairs (SABSE ZYADA USE HOTA HAI)
 for key, value in user.items():
     print(f"{key}: {value}")
 # name: Alice
@@ -174,7 +181,7 @@ for key, value in user.items():
 
 ```javascript
 // JS iteration
-for (let key in obj) { ... }           // for...in (includes prototype, generally avoid)
+for (let key in obj) { ... }           // for...in (prototype bhi include karta hai, generally avoid karo)
 for (let key of Object.keys(obj)) { ... }
 for (let value of Object.values(obj)) { ... }
 for (let [key, value] of Object.entries(obj)) { ... }
@@ -183,20 +190,20 @@ for (let [key, value] of Object.entries(obj)) { ... }
 ### Useful Dict Patterns
 
 ```python
-# setdefault -- get value, but set it first if missing
+# setdefault -- value nikalo, par pehle missing ho to set kar do
 cache = {}
 cache.setdefault("users", []).append("Alice")
 cache.setdefault("users", []).append("Bob")
 print(cache)   # {"users": ["Alice", "Bob"]}
 
-# Counting with dicts
+# Dicts se counting
 words = ["apple", "banana", "apple", "cherry", "banana", "apple"]
 counts = {}
 for word in words:
     counts[word] = counts.get(word, 0) + 1
 print(counts)  # {'apple': 3, 'banana': 2, 'cherry': 1}
 
-# Inverting a dict
+# Dict ko invert karna
 original = {"a": 1, "b": 2, "c": 3}
 inverted = {v: k for k, v in original.items()}
 print(inverted)  # {1: 'a', 2: 'b', 3: 'c'}
@@ -216,27 +223,29 @@ print(dict(by_grade))  # {'A': ['Alice', 'Charlie'], 'B': ['Bob', 'Diana']}
 
 ### defaultdict
 
-`defaultdict` auto-creates missing keys with a default value. Eliminates the need for "check if key exists, if not initialize it" boilerplate.
+Kyun zaruri hai? `defaultdict` missing keys ko automatically ek default value ke saath bana deta hai. "Pehle check karo key hai ya nahi, phir initialize karo" wala boilerplate khatam.
+
+Socho tum Swiggy me order group kar rahe ho restaurant-wise. Har naye restaurant ke liye pehle empty list banani padti — lekin `defaultdict` ye kaam khud ba khud kar deta hai.
 
 ```python
 from collections import defaultdict
 
-# Auto-create empty lists
+# Empty lists auto-create honge
 groups = defaultdict(list)
-groups["fruits"].append("apple")      # no need to check if key exists
+groups["fruits"].append("apple")      # key exist karti hai ya nahi, check karne ki zaroorat nahi
 groups["fruits"].append("banana")
 groups["vegetables"].append("carrot")
 print(dict(groups))
 # {'fruits': ['apple', 'banana'], 'vegetables': ['carrot']}
 
-# Auto-create zeros (for counting)
+# Zeros auto-create honge (counting ke liye)
 counter = defaultdict(int)
 for char in "hello world":
-    counter[char] += 1                # starts at 0 automatically
+    counter[char] += 1                # automatically 0 se start hota hai
 print(dict(counter))
 # {'h': 1, 'e': 1, 'l': 3, 'o': 2, ' ': 1, 'w': 1, 'r': 1, 'd': 1}
 
-# Auto-create sets
+# Sets auto-create honge
 index = defaultdict(set)
 docs = [("python", "doc1"), ("python", "doc2"), ("java", "doc1")]
 for tag, doc in docs:
@@ -253,28 +262,28 @@ tree["UK"]["cities"].append("London")
 
 ### Counter
 
-`Counter` is a specialized dict for counting things. It is incredibly useful.
+`Counter` ek specialized dict hai jo cheezein count karne ke liye bana hai. Kaam ka cheez hai bohot.
 
 ```python
 from collections import Counter
 
-# Count elements
+# Elements count karo
 words = ["apple", "banana", "apple", "cherry", "banana", "apple"]
 count = Counter(words)
 print(count)               # Counter({'apple': 3, 'banana': 2, 'cherry': 1})
 
-# Count characters in a string
+# String ke characters count karo
 char_count = Counter("mississippi")
 print(char_count)          # Counter({'s': 4, 'i': 4, 'p': 2, 'm': 1})
 
-# Most common elements
+# Sabse zyada aane wale elements
 print(count.most_common(2))    # [('apple', 3), ('banana', 2)]
 
-# Arithmetic with Counters
+# Counters ke saath arithmetic
 c1 = Counter("aabbc")
 c2 = Counter("abcdd")
 print(c1 + c2)            # Counter({'a': 3, 'b': 3, 'c': 2, 'd': 2})
-print(c1 - c2)            # Counter({'a': 1, 'b': 1}) (only positive counts)
+print(c1 - c2)            # Counter({'a': 1, 'b': 1}) (sirf positive counts)
 print(c1 & c2)            # Counter({'a': 1, 'b': 1, 'c': 1}) (intersection/min)
 print(c1 | c2)            # Counter({'a': 2, 'b': 2, 'c': 1, 'd': 2}) (union/max)
 
@@ -282,10 +291,10 @@ print(c1 | c2)            # Counter({'a': 2, 'b': 2, 'c': 1, 'd': 2}) (union/max
 print(count.total())      # 6 (Python 3.10+)
 print(sum(count.values())) # 6 (pre-3.10)
 
-# Check if one is a subset of another
+# Check karo ek Counter dusre ka subset hai ya nahi
 c1 = Counter("abc")
 c2 = Counter("aabbcc")
-# All counts in c1 <= corresponding counts in c2?
+# c1 ke saare counts <= c2 ke corresponding counts?
 print(all(c1[k] <= c2[k] for k in c1))  # True
 ```
 
@@ -293,7 +302,7 @@ print(all(c1[k] <= c2[k] for k in c1))  # True
 
 ## Sets
 
-Sets are unordered collections of unique elements. They are like JS `Set`, but with much richer built-in operations.
+Kya hota hai? Sets unique elements ka unordered collection hote hain. JS ke `Set` jaise hi hain, bas Python me built-in operations kaafi zyada rich hain.
 
 ### Creating Sets
 
@@ -301,64 +310,69 @@ Sets are unordered collections of unique elements. They are like JS `Set`, but w
 # Literal syntax
 fruits = {"apple", "banana", "cherry"}
 
-# From a list (removes duplicates)
+# List se (duplicates remove ho jaate hain)
 numbers = set([1, 2, 2, 3, 3, 3])      # {1, 2, 3}
 
-# From a string
+# String se
 chars = set("hello")                     # {'h', 'e', 'l', 'o'}
 
-# Empty set (NOT {} -- that's an empty dict!)
+# Empty set (NOT {} -- wo to empty dict hai!)
 empty = set()
 
-# Frozen set (immutable, can be used as dict key or in other sets)
+# Frozen set (immutable, dict key ya doosre sets ke andar use ho sakta hai)
 immutable = frozenset([1, 2, 3])
 ```
 
+> [!warning]
+> `{}` empty dict banata hai, empty set nahi. Empty set ke liye hamesha `set()` use karo.
+
 ### Set Operations
+
+Ye same wahi maths wale Venn diagram concepts hain jo school me padhe the — bas ab Python me directly use kar sakte ho.
 
 ```python
 a = {1, 2, 3, 4, 5}
 b = {4, 5, 6, 7, 8}
 
-# Union (elements in either set)
+# Union (dono me se kisi bhi set ke elements)
 a | b                  # {1, 2, 3, 4, 5, 6, 7, 8}
 a.union(b)             # same
 
-# Intersection (elements in both sets)
+# Intersection (dono sets me common elements)
 a & b                  # {4, 5}
 a.intersection(b)      # same
 
-# Difference (elements in a but not in b)
+# Difference (a me hai par b me nahi)
 a - b                  # {1, 2, 3}
 a.difference(b)        # same
 
-# Symmetric difference (elements in either but not both)
+# Symmetric difference (kisi ek me hai, dono me nahi)
 a ^ b                  # {1, 2, 3, 6, 7, 8}
 a.symmetric_difference(b)  # same
 
-# Subset and superset
+# Subset aur superset
 {1, 2}.issubset({1, 2, 3})       # True
 {1, 2, 3}.issuperset({1, 2})     # True
 {1, 2} <= {1, 2, 3}              # True (subset operator)
 {1, 2, 3} >= {1, 2}              # True (superset operator)
 {1, 2} < {1, 2, 3}               # True (proper subset)
 
-# Disjoint (no common elements)
+# Disjoint (koi common element nahi)
 {1, 2}.isdisjoint({3, 4})        # True
 ```
 
 ```javascript
-// JS Set has much fewer built-in operations
+// JS Set me bohot kam built-in operations hain
 let a = new Set([1, 2, 3, 4, 5]);
 let b = new Set([4, 5, 6, 7, 8]);
 
-// Union (manual in JS -- new in ES2025 with Set methods proposal)
+// Union (JS me manually karna padta hai -- ES2025 ke Set methods proposal me naya)
 let union = new Set([...a, ...b]);
 
-// Intersection (manual in JS)
+// Intersection (JS me manually)
 let intersection = new Set([...a].filter(x => b.has(x)));
 
-// Difference (manual in JS)
+// Difference (JS me manually)
 let diff = new Set([...a].filter(x => !b.has(x)));
 ```
 
@@ -367,22 +381,22 @@ let diff = new Set([...a].filter(x => !b.has(x)));
 ```python
 s = {1, 2, 3}
 
-# Add single element
+# Single element add karo
 s.add(4)               # {1, 2, 3, 4}
-s.add(3)               # {1, 2, 3, 4} (no duplicate, no error)
+s.add(3)               # {1, 2, 3, 4} (duplicate nahi banega, error bhi nahi)
 
-# Add multiple elements
+# Multiple elements add karo
 s.update([5, 6, 7])    # {1, 2, 3, 4, 5, 6, 7}
 
-# Remove (raises KeyError if not found)
+# Remove (nahi mila to KeyError deta hai)
 s.remove(7)            # {1, 2, 3, 4, 5, 6}
 # s.remove(99)         # KeyError
 
-# Discard (no error if not found)
-s.discard(99)          # no error, set unchanged
+# Discard (nahi mila to bhi error nahi)
+s.discard(99)          # error nahi, set waisa hi rahega
 
-# Pop (remove and return arbitrary element)
-element = s.pop()      # removes some element
+# Pop (remove karke koi bhi ek element return karo)
+element = s.pop()      # koi ek element remove hoga
 
 # Clear
 s.clear()              # set()
@@ -390,27 +404,29 @@ s.clear()              # set()
 
 ### Set Use Cases
 
+Real duniya me sets kaam kab aate hain? Deduplication, fast membership check, aur do groups compare karne me — jaise IRCTC waitlist me common passengers dhoondna ho.
+
 ```python
 # Deduplication
 names = ["Alice", "Bob", "Alice", "Charlie", "Bob"]
-unique = list(set(names))      # ['Alice', 'Bob', 'Charlie'] (order may vary)
+unique = list(set(names))      # ['Alice', 'Bob', 'Charlie'] (order guarantee nahi)
 
-# Preserve order while deduplicating
+# Order preserve karte hue deduplicate karna
 unique_ordered = list(dict.fromkeys(names))  # ['Alice', 'Bob', 'Charlie']
 
-# Membership testing (O(1) vs O(n) for lists)
+# Membership testing (O(1), list ke O(n) se kaafi fast)
 valid_statuses = {"active", "inactive", "pending"}
 if user_status in valid_statuses:
     print("Valid status")
 
-# Finding common/different elements
+# Common/different elements dhoondna
 my_skills = {"python", "javascript", "sql", "docker"}
 job_requires = {"python", "java", "sql", "kubernetes"}
 matching = my_skills & job_requires          # {'python', 'sql'}
 need_to_learn = job_requires - my_skills     # {'java', 'kubernetes'}
 bonus_skills = my_skills - job_requires      # {'javascript', 'docker'}
 
-# Removing duplicates from two lists and finding overlap
+# Do lists se duplicates hatana aur overlap dhoondna
 list1 = [1, 2, 3, 4, 5, 5]
 list2 = [4, 5, 6, 7, 8, 8]
 common = set(list1) & set(list2)             # {4, 5}
@@ -427,27 +443,30 @@ names = ["alice", "bob", "charlie"]
 name_lengths = {name: len(name) for name in names}
 # {'alice': 5, 'bob': 3, 'charlie': 7}
 
-# With filtering
+# Filtering ke saath
 scores = {"alice": 85, "bob": 62, "charlie": 91, "diana": 78}
 passing = {name: score for name, score in scores.items() if score >= 70}
 # {'alice': 85, 'charlie': 91, 'diana': 78}
 
-# Transforming keys and values
+# Keys aur values dono transform karna
 upper_scores = {name.upper(): score / 100 for name, score in scores.items()}
 # {'ALICE': 0.85, 'BOB': 0.62, 'CHARLIE': 0.91, 'DIANA': 0.78}
 
 # Set comprehension
 sentence = "the quick brown fox jumps over the lazy dog"
 unique_lengths = {len(word) for word in sentence.split()}
-# {3, 4, 5} (the unique word lengths)
+# {3, 4, 5} (words ki unique lengths)
 ```
+
+> [!tip]
+> Inka pura detail `10_comprehensions.md` me milega — abhi bas syntax se familiar ho jao.
 
 ---
 
 ## Nested Dictionaries
 
 ```python
-# Nested dicts (like nested JS objects)
+# Nested dicts (JS ke nested objects jaise hi)
 company = {
     "engineering": {
         "backend": ["Alice", "Bob"],
@@ -459,12 +478,12 @@ company = {
     },
 }
 
-# Access nested values
+# Nested values access karna
 print(company["engineering"]["backend"])     # ["Alice", "Bob"]
 
 # Safe nested access
 def safe_get(d, *keys, default=None):
-    """Safely navigate nested dicts, like optional chaining in JS."""
+    """Nested dicts me safely navigate karo, JS ke optional chaining jaisa."""
     for key in keys:
         if isinstance(d, dict):
             d = d.get(key, default)
@@ -490,22 +509,22 @@ company?.sales?.team ?? []             // []
 
 | Feature                | Python Dict                      | JS Object / Map                  |
 |------------------------|----------------------------------|----------------------------------|
-| Key types              | Any hashable type                | Strings/Symbols (obj) or any (Map) |
-| Ordered                | Yes (3.7+)                       | Not guaranteed (obj), yes (Map)  |
-| Missing key access     | `KeyError` or `.get()`           | `undefined`                      |
+| Key types              | Koi bhi hashable type            | Strings/Symbols (obj) ya koi bhi (Map) |
+| Ordered                | Haan (3.7+)                      | Guarantee nahi (obj), haan (Map) |
+| Missing key access     | `KeyError` ya `.get()`           | `undefined`                      |
 | Safe access            | `.get(key, default)`             | `obj?.key ?? default`            |
-| Merge                  | `d1 \| d2` or `{**d1, **d2}`    | `{...o1, ...o2}`                 |
-| Delete                 | `del d[key]` or `d.pop(key)`     | `delete obj.key`                 |
+| Merge                  | `d1 \| d2` ya `{**d1, **d2}`    | `{...o1, ...o2}`                 |
+| Delete                 | `del d[key]` ya `d.pop(key)`     | `delete obj.key`                 |
 | Iterate k/v            | `for k, v in d.items()`         | `for (let [k,v] of Object.entries(o))` |
 | Size                   | `len(d)`                         | `Object.keys(o).length`         |
-| Has key                | `key in d`                       | `key in obj` or `obj.hasOwnProperty(key)` |
+| Has key                | `key in d`                       | `key in obj` ya `obj.hasOwnProperty(key)` |
 
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: Word Grouper
-Write a function that groups words by their first letter.
+Ek function likho jo words ko unke pehle letter ke hisaab se group kare.
 
 ```python
 words = ["apple", "avocado", "banana", "blueberry", "cherry", "cranberry", "apricot"]
@@ -527,7 +546,7 @@ def group_by_first_letter(words):
 words = ["apple", "avocado", "banana", "blueberry", "cherry", "cranberry", "apricot"]
 print(group_by_first_letter(words))
 
-# Without defaultdict:
+# defaultdict ke bina:
 def group_by_first_letter_v2(words):
     groups = {}
     for word in words:
@@ -537,7 +556,7 @@ def group_by_first_letter_v2(words):
 </details>
 
 ### Exercise 2: Config Merger
-Write a function that deep-merges two configuration dictionaries (nested dicts should be merged recursively, not replaced).
+Ek function likho jo do configuration dictionaries ko deep-merge kare (nested dicts recursively merge honi chahiye, replace nahi).
 
 ```python
 defaults = {
@@ -588,7 +607,7 @@ print(merged)
 </details>
 
 ### Exercise 3: Set Operations for Permissions
-Model a permission system using sets. Given users with role-based permissions, determine what a user can and cannot do.
+Sets use karke ek permission system banao. Role-based permissions wale users diye hain — pata karo ki user kya kar sakta hai aur kya nahi.
 
 ```python
 role_permissions = {
@@ -596,8 +615,8 @@ role_permissions = {
     "editor": {"read", "list", "create", "update"},
     "admin": {"read", "list", "create", "update", "delete", "manage_users"},
 }
-# User has multiple roles: find their combined permissions,
-# then check what additional permissions they'd get from a promotion.
+# User ke paas multiple roles hain: unki combined permissions nikalo,
+# phir check karo ki promotion se unhe kya extra permissions milengi.
 ```
 
 <details>
@@ -611,37 +630,37 @@ role_permissions = {
 }
 
 def get_user_permissions(roles):
-    """Combine permissions from all roles."""
+    """Saare roles ki permissions combine karo."""
     permissions = set()
     for role in roles:
         permissions |= role_permissions.get(role, set())
     return permissions
 
 def promotion_benefits(current_roles, new_role):
-    """What new permissions would adding this role grant?"""
+    """Ye naya role add karne se kaunsi nayi permissions milengi?"""
     current = get_user_permissions(current_roles)
     with_new = current | role_permissions.get(new_role, set())
     return with_new - current
 
-# User is a viewer and editor
+# User viewer aur editor dono hai
 user_roles = ["viewer", "editor"]
 user_perms = get_user_permissions(user_roles)
 print(f"Current permissions: {user_perms}")
 # {'read', 'list', 'create', 'update'}
 
-# What would admin add?
+# Admin banne se kya add hoga?
 new_perms = promotion_benefits(user_roles, "admin")
 print(f"Admin would add: {new_perms}")
 # {'delete', 'manage_users'}
 
-# Check specific permission
+# Specific permission check karo
 print(f"Can delete? {'delete' in user_perms}")   # False
 print(f"Can read? {'read' in user_perms}")        # True
 ```
 </details>
 
 ### Exercise 4: Frequency Analysis
-Given a list of log entries, use Counter to find the top 3 most common error types, the total number of errors, and error rate per endpoint.
+Log entries ki ek list di hai, `Counter` use karke top 3 sabse common error types, total errors, aur har endpoint ka error rate nikalo.
 
 ```python
 logs = [
@@ -688,7 +707,7 @@ total_requests = len(logs)
 print(f"Error rate: {total_errors}/{total_requests} ({total_errors/total_requests:.1%})")
 # Error rate: 6/10 (60.0%)
 
-# Error rate per endpoint
+# Har endpoint ka error rate
 endpoint_stats = defaultdict(lambda: {"total": 0, "errors": 0})
 for log in logs:
     ep = log["endpoint"]
@@ -706,7 +725,7 @@ for ep, stats in sorted(endpoint_stats.items()):
 </details>
 
 ### Exercise 5: Inventory System
-Build a simple inventory tracker using dicts. Support adding items, removing items, checking stock, and finding items below a reorder threshold.
+Dicts use karke ek simple inventory tracker banao. Items add/remove karna, stock check karna, aur reorder threshold se kam stock wale items dhoondna support hona chahiye.
 
 ```python
 class Inventory:
@@ -767,7 +786,7 @@ class Inventory:
 inv = Inventory()
 inv.add_stock("Widget", 100, 9.99)
 inv.add_stock("Gadget", 3, 24.99)
-inv.add_stock("Widget", 50)          # add more, keep same price
+inv.add_stock("Widget", 50)          # aur add karo, price same rehne do
 inv.remove_stock("Widget", 20)
 
 print(f"Widget stock: {inv.get_stock('Widget')}")

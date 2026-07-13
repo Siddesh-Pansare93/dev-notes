@@ -1,16 +1,18 @@
 # Functional Programming in Python
 
-## A Pragmatic Approach
+## Ek Practical Approach
 
-Python is a multi-paradigm language. Unlike JavaScript where functional programming (FP) has become the dominant style (especially in React/frontend), Python takes a more balanced approach. Python's philosophy is "there should be one -- and preferably only one -- obvious way to do it," and that way is often a mix of FP and OOP.
+Python multi-paradigm language hai. JavaScript mein jahan functional programming (FP) ka bolbala hai (especially React/frontend mein), wahan Python thoda balanced approach leta hai. Python ki philosophy hai "there should be one -- and preferably only one -- obvious way to do it," aur wo tareeka usually FP aur OOP ka mix hota hai.
 
-As a Node.js/TS developer, you'll recognize many FP concepts here, but the "Pythonic" way of using them is different from the JavaScript way.
+Node.js/TS dev hone ke naate, tumhe yahan FP ke concepts familiar lagenge, lekin unhe "Pythonic" tareeke se use karna JavaScript wale tareeke se alag hai.
 
 ---
 
 ## `map()`, `filter()` vs Array Methods
 
 ### `map()`
+
+Socho `map()` ek Zomato delivery batch jaisa hai — sabko ek jaisa operation apply karna hai (jaise sab orders pe discount lagana), bas result turant nahi milta, lazy hota hai.
 
 ```python
 # Python map() returns an iterator (lazy)
@@ -31,6 +33,8 @@ const doubled = [1, 2, 3, 4, 5].map((x) => x * 2);
 
 ### `filter()`
 
+`filter()` ka kaam simple hai — ek predicate function do, wo har item pe check karega, aur sirf jo `True` return karein wahi bache rahenge. Socho ek bouncer jo entry gate pe khada hai — sirf condition match karne walon ko andar jaane deta hai.
+
 ```python
 numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
@@ -48,6 +52,8 @@ const evens = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter((x) => x % 2 === 0);
 ```
 
 ### Chaining (Map + Filter)
+
+JS mein `.filter().map()` chaining bahut common hai, but Python mein aisa direct chaining nahi chalta — yahan list comprehension hi king hai.
 
 ```python
 # JavaScript-style chaining doesn't work in Python:
@@ -82,7 +88,7 @@ const adultNames = users
   .map((u) => u.name.toUpperCase());
 ```
 
-### When to Use `map()`/`filter()` vs Comprehensions
+### Kab `map()`/`filter()` Use Karein vs Comprehensions
 
 ```python
 # Use comprehensions for most cases (Pythonic standard)
@@ -100,11 +106,14 @@ for item in processed:
         break  # Stops computing remaining items
 ```
 
+> [!tip]
+> Rule of thumb: agar tumhare paas already ek named function hai (jaise `str`, `int`), to `map()` use karo. Baaki sab cases mein comprehension likho — zyada readable hoti hai.
+
 ---
 
 ## `functools.reduce()` vs `Array.reduce()`
 
-Python moved `reduce()` out of builtins into `functools` because Guido van Rossum (Python's creator) finds it less readable than explicit loops.
+Python ne `reduce()` ko builtins se nikaal kar `functools` mein daal diya, kyunki Guido van Rossum (Python ka creator) ko lagta hai ki explicit loops ke muqable ye kam readable hai. JS mein `reduce()` roz ka kaam hai, Python mein ye "last resort" jaisa treat hota hai.
 
 ```python
 from functools import reduce
@@ -143,7 +152,7 @@ const flat = [
 // Or: .flat()
 ```
 
-### When Reduce IS the Right Tool
+### Kab Reduce Sahi Tool Hai
 
 ```python
 from functools import reduce
@@ -178,7 +187,7 @@ for item in data:
 
 ## `lambda` vs Arrow Functions
 
-Python's `lambda` is intentionally limited compared to JavaScript arrow functions:
+Python ka `lambda` JavaScript arrow functions ke muqable jaan-boojh kar limited hai — sirf ek single expression, koi multi-line, koi statements nahi.
 
 ```python
 # Python lambda: SINGLE expression only
@@ -213,7 +222,7 @@ const transform = (x) => {
 };
 ```
 
-### Lambda Use Cases in Python
+### Python Mein Lambda Kab Use Hota Hai
 
 ```python
 # Sorting key functions
@@ -237,7 +246,7 @@ sorted_by_age = sorted(users, key=itemgetter(1))  # Cleaner than lambda
 
 ## `functools.partial` -- Partial Application
 
-`functools.partial` creates a new function with some arguments pre-filled. It's like `.bind()` in JavaScript but for any callable.
+`functools.partial` ek naya function banata hai jisme kuch arguments pehle se fill kiye hote hain. Bilkul JavaScript ke `.bind()` jaisa, bas ye kisi bhi callable ke saath kaam karta hai. Socho Swiggy ka "reorder same item" button — restaurant aur item pehle se fix hai, sirf quantity poochta hai.
 
 ```python
 from functools import partial
@@ -292,7 +301,7 @@ const triple = createMultiplier(3);
 
 ## The `operator` Module
 
-The `operator` module provides function versions of Python operators. It replaces many `lambda` calls with more readable and faster alternatives.
+`operator` module Python operators ke function-versions deta hai. Ye bahut saare `lambda` calls ko replace kar deta hai — zyada readable bhi aur zyada fast bhi.
 
 ```python
 import operator
@@ -353,7 +362,7 @@ stripped = list(map(operator.methodcaller("strip"), lines))
 
 ## Higher-Order Functions
 
-Functions that take or return functions:
+Higher-order functions matlab wo functions jo function ko argument mein lete hain ya function return karte hain:
 
 ```python
 from typing import Callable
@@ -426,7 +435,7 @@ const pipe =
 
 ## itertools as a Functional Programming Toolkit
 
-`itertools` provides lazy, composable building blocks:
+`itertools` lazy, composable building blocks deta hai — jaise LEGO blocks jinhe joड़ के tum apna pipeline bana sakte ho, bina poora data memory mein load kiye.
 
 ```python
 import itertools
@@ -467,7 +476,7 @@ diffs = [b - a for a, b in itertools.pairwise(numbers)]
 
 ## Immutability Patterns
 
-Python isn't immutable by default (unlike Haskell or even TS with `readonly`). But you can enforce immutability:
+Python by default immutable nahi hai (Haskell ki tarah nahi, ya TS ke `readonly` ki tarah bhi nahi). Lekin immutability enforce karne ke tareeke hain.
 
 ### Tuples (Immutable Lists)
 
@@ -538,6 +547,9 @@ interface Config {
 
 ### MappingProxyType (Immutable Dict View)
 
+> [!warning]
+> `MappingProxyType` sirf ek "view" hai — original dict change hone par ye bhi change ho jaata hai. Ye actual immutability nahi deta, bas read-only access deta hai.
+
 ```python
 from types import MappingProxyType
 
@@ -554,11 +566,11 @@ print(frozen_data["key"])      # "changed"
 
 ---
 
-## When to Use Functional vs OOP in Python
+## Python Mein Functional vs OOP Kab Use Karein
 
-### The Pythonic Balance
+### Pythonic Balance
 
-Python's philosophy isn't purely functional or purely OOP. Here's the community consensus:
+Python ki philosophy pure functional ya pure OOP nahi hai. Community consensus kuch aisa hai:
 
 ```python
 # FUNCTIONAL style: transforming data
@@ -595,13 +607,13 @@ class UserService:
 
 ### Guidelines
 
-| Use Functional When | Use OOP When |
+| Kab Functional Use Karein | Kab OOP Use Karein |
 |---|---|
-| Transforming data | Modeling domain entities |
-| Stateless operations | Managing state |
+| Data transform karte waqt | Domain entities model karte waqt |
+| Stateless operations | State manage karte waqt |
 | Pipelines / workflows | Complex behaviors |
 | Simple scripts | Large applications |
-| Processing collections | Dependency injection |
+| Collections process karte waqt | Dependency injection |
 
 ```python
 # AVOID: over-functional Python (not Pythonic)
@@ -632,9 +644,14 @@ def add(a, b):
     return a + b
 ```
 
+> [!info]
+> Agar tumhe lag raha hai ki tum Python ko JavaScript ki tarah likh rahe ho (chained map/filter/reduce), to ruk jao — 99% chance hai ki ek clean list comprehension available hai.
+
 ---
 
 ## Complete Example: Functional Data Pipeline
+
+Chalo ek real example dekhte hain — jaise Flipkart ke sales data ko process karna hai, functional patterns use karke.
 
 ```python
 """
@@ -711,33 +728,33 @@ print(daily_summary(sales))
 ## Practice Exercises
 
 ### Exercise 1: Comprehension vs Functional
-Rewrite each using (a) `map`/`filter`/`reduce` and (b) comprehensions:
+Har ek ko (a) `map`/`filter`/`reduce` se aur (b) comprehensions se dobara likho:
 
-1. Get the square of all odd numbers from 1 to 50
-2. From a list of strings, get the lengths of strings that start with "a" (case-insensitive)
-3. Flatten a list of lists and sum all the even numbers
-4. Given a list of dicts with "name" and "score", get the average score of people who scored above 70
+1. 1 se 50 tak ke saare odd numbers ka square nikalo
+2. Strings ki list se, un strings ki lengths nikalo jo "a" se start hoti hain (case-insensitive)
+3. List of lists ko flatten karke saare even numbers ka sum nikalo
+4. "name" aur "score" wale dicts ki list di gayi hai, jinka score 70 se zyada hai unka average score nikalo
 
 ### Exercise 2: Compose and Pipe
-Implement `compose()` and `pipe()` functions. Then build a text processing pipeline:
-1. Strip whitespace
-2. Convert to lowercase
-3. Replace spaces with hyphens
-4. Remove any non-alphanumeric characters (except hyphens)
-5. Truncate to 50 characters
+`compose()` aur `pipe()` functions implement karo. Fir ek text processing pipeline banao:
+1. Whitespace strip karo
+2. Lowercase mein convert karo
+3. Spaces ko hyphens se replace karo
+4. Koi bhi non-alphanumeric characters remove karo (hyphens ko chhod ke)
+5. 50 characters tak truncate karo
 
-Test with: `"  Hello, World!  This is a TEST... #Python  "`
+Test karo: `"  Hello, World!  This is a TEST... #Python  "`
 
 ### Exercise 3: Immutable Data Transformations
-Create an immutable `BankAccount` using a frozen dataclass:
-- Has `owner`, `balance`, `transaction_history` (tuple of floats)
-- `deposit(amount)` returns a NEW BankAccount with updated balance/history
-- `withdraw(amount)` returns a NEW BankAccount (or raises if insufficient)
-- Implement `__add__` to merge two accounts
-- All operations must be pure (no side effects, no mutation)
+Ek immutable `BankAccount` banao frozen dataclass use karke:
+- `owner`, `balance`, `transaction_history` (floats ka tuple) fields hon
+- `deposit(amount)` ek NAYA BankAccount return kare updated balance/history ke saath
+- `withdraw(amount)` ek NAYA BankAccount return kare (ya raise kare agar balance kam ho)
+- `__add__` implement karo do accounts merge karne ke liye
+- Saare operations pure hone chahiye (koi side effects nahi, koi mutation nahi)
 
 ### Exercise 4: Functional Error Handling
-Implement a `Result` type (like Rust's Result or fp-ts Either):
+Ek `Result` type implement karo (Rust ke Result ya fp-ts ke Either jaisa):
 ```python
 @dataclass(frozen=True)
 class Ok(Generic[T]):
@@ -749,17 +766,17 @@ class Err(Generic[E]):
 
 Result = Ok[T] | Err[E]
 ```
-- Implement `map`, `flat_map` (bind), and `unwrap_or` methods
-- Build a chain of operations: parse string -> validate -> transform -> format
-- Each step can fail with a different error type
+- `map`, `flat_map` (bind), aur `unwrap_or` methods implement karo
+- Ek chain of operations banao: parse string -> validate -> transform -> format
+- Har step alag error type ke saath fail ho sakta hai
 
 ### Exercise 5: Lazy Evaluation Pipeline
-Build a `LazyPipeline` class that:
-- Accepts an iterable as input
-- Has `.map(func)`, `.filter(pred)`, `.take(n)`, `.skip(n)` methods
-- All operations are lazy (using generators internally)
-- `.collect()` materializes the result as a list
-- `.reduce(func, initial)` consumes the pipeline with a fold
+Ek `LazyPipeline` class banao jo:
+- Ek iterable input mein accept kare
+- `.map(func)`, `.filter(pred)`, `.take(n)`, `.skip(n)` methods rakhe
+- Saare operations lazy hon (generators ka use karte hue internally)
+- `.collect()` result ko list ke roop mein materialize kare
+- `.reduce(func, initial)` pipeline ko ek fold ke saath consume kare
 
 ```python
 result = (
@@ -771,3 +788,14 @@ result = (
 )
 # Should be fast and memory-efficient
 ```
+
+## Key Takeaways
+
+- Python mein `map()`/`filter()` ke bajaye list comprehensions Pythonic tareeka hain — zyada readable aur idiomatic.
+- `reduce()` explicit karna pade to `functools` se import karo, lekin pehle `sum()`, `math.prod()` jaise built-ins check karo.
+- `lambda` sirf single expression ke liye hai — kuch bhi complex ho to `def` use karo.
+- `functools.partial` JS ke `.bind()` jaisa hai — arguments pre-fill karke specialized functions banata hai.
+- `operator` module lambdas ka clean, fast alternative deta hai — especially sorting/extracting ke liye.
+- `itertools` lazy, memory-efficient pipelines banane ke liye best hai — bade datasets ke liye zaruri.
+- Immutability enforce karne ke liye tuples, frozensets, aur frozen dataclasses use karo.
+- Python na purely functional hai na purely OOP — data transformation ke liye functional, domain modeling ke liye OOP use karo.

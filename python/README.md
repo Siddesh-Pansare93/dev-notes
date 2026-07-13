@@ -1,6 +1,6 @@
 # Python Learning Tutorial: Node.js/TS Developer → Python Backend & AI Agents
 
-A comprehensive, structured learning path for experienced Node.js/TypeScript developers transitioning to Python for **backend development** (FastAPI) and **AI agents** (LangChain, LangGraph).
+A comprehensive, structured learning path for experienced Node.js/TypeScript developers transitioning to Python for **backend development** (FastAPI). For **AI agents** (LangChain, LangGraph), the dedicated **Agentic AI course** now lives at [`../agentic-ai/`](../agentic-ai/README.md) — see the callout section below.
 
 ## How to Use This Tutorial
 
@@ -8,6 +8,7 @@ A comprehensive, structured learning path for experienced Node.js/TypeScript dev
 - **Skip to `05_pydantic/`** if you already know Python basics and want to jump into the web/AI stack
 - Each file has **Node.js/TypeScript comparisons** so you can map familiar concepts
 - Every file ends with **practice exercises** — do them!
+- **Going into AI agents?** Finish `05_pydantic/` and `06_fastapi/` here, then head over to [`../agentic-ai/`](../agentic-ai/README.md) for LangChain + LangGraph
 
 ---
 
@@ -96,33 +97,18 @@ A comprehensive, structured learning path for experienced Node.js/TypeScript dev
 | 11 | [Error Handling](./06_fastapi/11_error_handling.md) | HTTPException, custom handlers |
 | 12 | [Advanced Patterns](./06_fastapi/12_advanced_patterns.md) | APIRouter, sub-apps, lifespan, streaming |
 
-### [`07_langchain/`](./07_langchain/) — LangChain for LLM Apps
-| # | File | Topics |
-|---|------|--------|
-| 1 | [Introduction](./07_langchain/01_introduction.md) | LangChain overview, ecosystem, core concepts |
-| 2 | [LLM & Chat Models](./07_langchain/02_llm_and_chat_models.md) | OpenAI/Anthropic integration, messages, streaming |
-| 3 | [Prompt Templates](./07_langchain/03_prompt_templates.md) | PromptTemplate, ChatPromptTemplate, few-shot |
-| 4 | [Output Parsers](./07_langchain/04_output_parsers.md) | StrOutputParser, JsonOutputParser, Pydantic parser |
-| 5 | [Chains & LCEL](./07_langchain/05_chains_and_lcel.md) | LCEL pipe operator, RunnableSequence/Parallel |
-| 6 | [RAG](./07_langchain/06_rag.md) | Vector stores, embeddings, document loaders |
-| 7 | [Memory](./07_langchain/07_memory.md) | Conversation memory, persistence |
-| 8 | [Agents & Tools](./07_langchain/08_agents_and_tools.md) | ReAct agents, @tool decorator, custom tools |
-| 9 | [Callbacks & Tracing](./07_langchain/09_callbacks_and_tracing.md) | Callbacks, LangSmith, token tracking |
-| 10 | [LangChain + FastAPI](./07_langchain/10_langchain_with_fastapi.md) | Integration patterns, streaming to frontend |
+### 🤖 AI Agents — LangChain + LangGraph ab dedicated course mein hai!
 
-### [`08_langgraph/`](./08_langgraph/) — LangGraph for AI Agent Workflows
-| # | File | Topics |
-|---|------|--------|
-| 1 | [Introduction](./08_langgraph/01_introduction.md) | LangGraph vs LangChain, state machine architecture |
-| 2 | [State Graphs](./08_langgraph/02_state_graphs.md) | StateGraph, TypedDict state, nodes, edges |
-| 3 | [Conditional Edges](./08_langgraph/03_conditional_edges.md) | Branching, routing logic, conditional paths |
-| 4 | [State Management](./08_langgraph/04_state_management.md) | State design, reducers, checkpointing |
-| 5 | [Human in the Loop](./08_langgraph/05_human_in_the_loop.md) | Interrupts, approval workflows |
-| 6 | [Subgraphs](./08_langgraph/06_subgraphs.md) | Composing graphs, nesting, reusable components |
-| 7 | [Multi-Agent Systems](./08_langgraph/07_multi_agent_systems.md) | Supervisor pattern, agent coordination |
-| 8 | [Tools in Graphs](./08_langgraph/08_tools_in_graphs.md) | Tool nodes, conditional tool execution |
-| 9 | [Streaming](./08_langgraph/09_streaming.md) | astream(), event types, real-time UI |
-| 10 | [LangGraph + FastAPI](./08_langgraph/10_langgraph_with_fastapi.md) | API endpoints, WebSocket streaming, production |
+> [!tip]
+> Pehle yahan `07_langchain/` aur `08_langgraph/` folders hote the, lekin woh content ab purana ho chuka tha. Humne poora AI agents wala syllabus **from scratch rewrite** karke ek naya, standalone course bana diya hai:
+>
+> ### 👉 [`../agentic-ai/`](../agentic-ai/README.md) — The Agentic AI Course
+>
+> - Do tracks hain — **Python** aur **JavaScript** — dono mein **24 chapters** hain
+> - **0 se production tak** — basics se leke real-world, production-grade agent systems tak sab cover hota hai
+> - Fully complete hai — LangChain, LangGraph, RAG, multi-agent systems, tool calling, memory, streaming, deployment — sab kuch
+>
+> Agar tumhe LangChain ya LangGraph seekhna hai, is `python/` folder ke bajaye seedha `agentic-ai/README.md` se shuru karo.
 
 ### [`09_production_patterns/`](./09_production_patterns/) — Production Deployment
 | # | File | Topics |
@@ -144,7 +130,7 @@ A comprehensive, structured learning path for experienced Node.js/TypeScript dev
 `00` → `01` → `02` → `03` → `04` → `05` → `06`
 
 ### AI Agent Focus (after basics)
-`05_pydantic` → `07_langchain` → `08_langgraph` → `09_production_patterns`
+`05_pydantic` → `06_fastapi` → [`../agentic-ai/`](../agentic-ai/README.md) (Python or JavaScript track) → `09_production_patterns`
 
 ### Complete Path (6-8 weeks)
 Follow all sections in order: `00` through `09`

@@ -1,65 +1,78 @@
 # Object-Oriented Python
 
-Python's object-oriented system is powerful and expressive — but it has its own idioms that can trip up developers coming from TypeScript or JavaScript. This section walks through Python's OOP model from class basics all the way to advanced patterns like dataclasses and enums, with every concept grounded in TypeScript comparisons so you can map what you already know.
+**Kya hota hai yahaan?** Python ka OOP system kaafi powerful aur expressive hai — lekin iske apne idioms hain jo Node.js/TypeScript se aane wale developers ko thoda confuse kar sakte hain. Socho jaise tum Zomato ke backend mein classes bana rahe ho — TypeScript mein jo tareeka pata hai, Python usi kaam ko thoda alag tareeke se karta hai. Ye section Python ke OOP model ko basics se leke advanced patterns tak — jaise dataclasses aur enums — cover karta hai, aur har concept ko TypeScript comparisons ke saath samjhaya gaya hai taaki tumhe jo pata hai usi pe build kar sako.
+
+> [!info]
+> Ye ek index/README file hai — isme har chapter ka short intro hai. Actual deep-dive uss chapter ki apni file mein milega.
 
 ## Table of Contents
 
 1. [Classes & Basics](./01_classes_basics.md) — `class`, `__init__`, `self`, instance/class/static methods, access modifiers
-2. [Inheritance](./02_inheritance.md) — single and multiple inheritance, `super()`, MRO, mixins
+2. [Inheritance](./02_inheritance.md) — single aur multiple inheritance, `super()`, MRO, mixins
 3. [Magic Methods](./03_magic_methods.md) — dunder methods, operator overloading, iteration, context managers
 4. [Decorators](./04_decorators.md) — function decorators, class decorators, `@property`, `@staticmethod`, `@classmethod`
-5. [Abstract Classes](./05_abstract_classes.md) — `ABC`, `@abstractmethod`, interfaces via protocols
+5. [Abstract Classes](./05_abstract_classes.md) — `ABC`, `@abstractmethod`, protocols ke through interfaces
 6. [Dataclasses](./06_dataclasses.md) — `@dataclass`, field defaults, frozen/immutable classes, `__post_init__`
-7. [Enums & NamedTuples](./07_enums_and_namedtuples.md) — `Enum`, `IntEnum`, `NamedTuple`, when to use each
+7. [Enums & NamedTuples](./07_enums_and_namedtuples.md) — `Enum`, `IntEnum`, `NamedTuple`, kab kya use karna hai
 
 ---
 
 ## Learning Path
 
-### Beginner — Get the fundamentals solid first
-1. [Classes & Basics](./01_classes_basics.md) — understand `self`, `__init__`, and how Python properties work differently from TypeScript
-2. [Inheritance](./02_inheritance.md) — learn `super()` and how Python handles multiple inheritance with MRO
-3. [Abstract Classes](./05_abstract_classes.md) — replace TypeScript interfaces with Python's ABCs and Protocols
+**Kyun zaruri hai order follow karna?** Kyunki Python OOP ke concepts ek dusre pe stack hote hain — jaise dabbawala ka system: pehle collection point samajhna padta hai, tabhi sorting hub samajh aata hai. Isliye seedha decorators pe kood mat jao, pehle basics pakka karo.
 
-### Intermediate — Level up your Python idioms
-4. [Magic Methods](./03_magic_methods.md) — make your objects feel native to Python by implementing dunder protocols
-5. [Decorators](./04_decorators.md) — understand how `@property`, `@staticmethod`, and custom decorators work under the hood
+### Beginner — Pehle fundamentals pakka karo
+1. [Classes & Basics](./01_classes_basics.md) — samjho `self` kya hai, `__init__` kya karta hai, aur Python ke properties TypeScript se kaise alag kaam karti hain
+2. [Inheritance](./02_inheritance.md) — `super()` seekho aur Python multiple inheritance ko MRO se kaise handle karta hai
+3. [Abstract Classes](./05_abstract_classes.md) — TypeScript interfaces ki jagah Python ke ABCs aur Protocols use karo
 
-### Advanced — Write idiomatic, production-quality Python
-6. [Dataclasses](./06_dataclasses.md) — eliminate boilerplate from data-holding classes with `@dataclass`
-7. [Enums & NamedTuples](./07_enums_and_namedtuples.md) — model constants and lightweight value types cleanly
+### Intermediate — Apne Python idioms level up karo
+4. [Magic Methods](./03_magic_methods.md) — dunder protocols implement karke apne objects ko native Python jaisa feel karao
+5. [Decorators](./04_decorators.md) — samjho `@property`, `@staticmethod`, aur custom decorators andar se kaise kaam karte hain
+
+### Advanced — Idiomatic, production-quality Python likho
+6. [Dataclasses](./06_dataclasses.md) — `@dataclass` se data-holding classes ka boilerplate hatao
+7. [Enums & NamedTuples](./07_enums_and_namedtuples.md) — constants aur lightweight value types ko cleanly model karo
 
 ---
 
-## What You'll Learn
+## Kya Seekhoge
 
-- How Python's `class` model differs from TypeScript: why `self` is explicit, how attributes are declared, and what `__init__` really does
-- Single and multiple inheritance, method resolution order (MRO), and the `super()` call chain
-- The full dunder/magic method system: `__str__`, `__repr__`, `__eq__`, `__len__`, `__add__`, `__iter__`, `__enter__`/`__exit__`, and more
-- How Python decorators work as higher-order functions, and how `@property` replaces TypeScript getters/setters
-- Defining and enforcing interfaces using `ABC` and `@abstractmethod`, plus structural subtyping with `Protocol`
-- Using `@dataclass` to auto-generate `__init__`, `__repr__`, `__eq__`, and immutability with `frozen=True`
-- Modelling constant sets and lightweight records with `Enum`, `IntEnum`, and `NamedTuple`
-- TypeScript-to-Python mappings for every concept so you build on what you already know
+- Python ka `class` model TypeScript se kaise alag hai: `self` explicit kyun hota hai, attributes kaise declare hote hain, aur `__init__` asal mein karta kya hai
+- Single aur multiple inheritance, method resolution order (MRO), aur `super()` ka call chain
+- Poora dunder/magic method system: `__str__`, `__repr__`, `__eq__`, `__len__`, `__add__`, `__iter__`, `__enter__`/`__exit__`, aur bhi bahut kuch
+- Python decorators higher-order functions ki tarah kaise kaam karte hain, aur `@property` TypeScript ke getters/setters ki jagah kaise leta hai
+- `ABC` aur `@abstractmethod` se interfaces define aur enforce karna, plus `Protocol` se structural subtyping
+- `@dataclass` use karke `__init__`, `__repr__`, `__eq__` auto-generate karna, aur `frozen=True` se immutability
+- `Enum`, `IntEnum`, aur `NamedTuple` se constant sets aur lightweight records model karna
+- Har concept ke liye TypeScript-to-Python mapping, taaki jo already pata hai usi pe build ho sake
 
 ---
 
 ## Prerequisites
 
-- Comfortable with Python functions, type hints, and basic syntax (covered in the Python Basics section)
-- Familiarity with classes and interfaces in TypeScript or another OOP language — this section uses TypeScript comparisons throughout
-- No prior Python OOP experience required
+- Python functions, type hints, aur basic syntax mein comfortable ho (Python Basics section mein cover kiya gaya hai)
+- TypeScript ya kisi aur OOP language mein classes aur interfaces ki jaan-pehchaan — ye section TypeScript comparisons throughout use karta hai
+- Python OOP ka prior experience zaruri nahi hai
 
 ---
 
-## How to Use This Guide
+## Is Guide Ko Kaise Use Karein
 
-1. **Follow the beginner path first.** Chapters 1 and 2 are dense but foundational — everything else builds on them. Skim nothing.
-2. **Run the code examples.** Every file is packed with runnable snippets. Open a Python REPL alongside and type them out; muscle memory matters.
-3. **Use the TypeScript comparisons actively.** When you see a side-by-side example, ask yourself why Python made a different choice — the reasoning is usually illuminating.
-4. **Return to Magic Methods after finishing everything else.** Chapter 3 makes a lot more sense once you have seen how dataclasses and ABCs use dunders internally.
-5. **Check the "when to use each" sections.** Dataclasses, NamedTuples, and plain classes all overlap — the guides tell you exactly when to reach for which tool.
+1. **Pehle beginner path follow karo.** Chapter 1 aur 2 dense hain lekin foundational hain — baaki sab isi pe build hota hai. Kuch bhi skip mat karo.
+2. **Code examples run karo.** Har file runnable snippets se bhari hai. Ek Python REPL saath mein khol ke unhe type karo; muscle memory matter karti hai.
+3. **TypeScript comparisons actively use karo.** Jab side-by-side example dikhe, socho ki Python ne alag choice kyun banayi — reasoning aksar kaafi illuminating hoti hai.
+4. **Sab kuch khatam karne ke baad Magic Methods pe wapas aao.** Chapter 3 tab zyada sense banata hai jab tumne dekh liya ho ki dataclasses aur ABCs dunders ko andar se kaise use karte hain.
+5. **"Kab kya use karein" sections zaroor check karo.** Dataclasses, NamedTuples, aur plain classes sab overlap karte hain — guides tumhe exactly batate hain ki kab konsa tool uthana hai.
+
+> [!tip]
+> Agar kahin stuck ho jao, uss chapter ke TypeScript comparison wale example pe wapas jao — usually wahi missing link hota hai.
 
 ---
 
-Python's object model rewards curiosity — the more you poke at how things work under the hood, the more naturally Pythonic code you'll write. Keep experimenting.
+## Key Takeaways
+
+- Is section ka order matter karta hai — Classes & Basics aur Inheritance sabse pehle, kyunki baaki sab isi foundation pe khada hai
+- Har chapter mein TypeScript se side-by-side comparison milega, taaki naya syntax bhi familiar lage
+- Magic Methods (Chapter 3) ko ek baar dobara padhna — dataclasses/ABCs seekhne ke baad woh zyada click karega
+- "Kab kya use karna hai" (dataclass vs NamedTuple vs plain class) — ye decision-making skill hi asli seekh hai, sirf syntax nahi

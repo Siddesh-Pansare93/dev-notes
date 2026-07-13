@@ -1,15 +1,15 @@
 # Decorators
 
-> Python decorators for Node.js/TypeScript developers
+> Python decorators, Node.js/TypeScript developers ke liye
 
 ---
 
-## What Are Decorators?
+## Decorators Hote Kya Hain?
 
-Decorators are **higher-order functions** that modify or enhance other functions or classes. If you have used higher-order functions in JavaScript (middleware in Express, HOCs in React, or TS decorators), you already understand the core concept.
+Decorators basically **higher-order functions** hain jo doosre functions ya classes ko modify/enhance karte hain. Agar tumne JavaScript mein higher-order functions use kiye hain — Express ke middleware, React ke HOCs, ya TS decorators — toh core concept tumhe already pata hai. Bas naam alag hai.
 
 ```python
-# A decorator is just a function that takes a function and returns a function
+# Decorator ek function hi hai jo function leta hai aur function return karta hai
 def my_decorator(func):
     def wrapper(*args, **kwargs):
         print("Before the function call")
@@ -20,7 +20,7 @@ def my_decorator(func):
 ```
 
 ```typescript
-// TypeScript/JavaScript equivalent concept
+// TypeScript/JavaScript mein wahi concept
 function myDecorator(fn: Function) {
   return function (...args: any[]) {
     console.log("Before the function call");
@@ -33,31 +33,33 @@ function myDecorator(fn: Function) {
 
 ---
 
-## The `@` Syntax Sugar
+## `@` Syntax Sugar
 
-The `@` symbol is just syntactic sugar for wrapping a function with a decorator.
+`@` symbol sirf syntactic sugar hai — kisi function ko decorator se wrap karne ka shortcut.
 
 ```python
-# These two are EXACTLY the same:
+# Ye dono EXACTLY same hain:
 
-# With @ syntax
+# @ syntax ke saath
 @my_decorator
 def say_hello(name: str) -> str:
     return f"Hello, {name}!"
 
-# Without @ syntax (what it actually does)
+# @ syntax ke bina (actually ye hi hota hai peeche)
 def say_hello(name: str) -> str:
     return f"Hello, {name}!"
 say_hello = my_decorator(say_hello)
 ```
 
-TypeScript has experimental decorators (stage 3 proposal), but they work differently - they are primarily for classes, methods, and properties, not standalone functions.
+TypeScript mein experimental decorators hain (stage 3 proposal), lekin unka kaam alag tarike se hota hai — wo mainly classes, methods, aur properties ke liye hain, standalone functions ke liye nahi.
 
 ---
 
-## Function Decorators: Wrapping Functions
+## Function Decorators: Functions Ko Wrap Karna
 
 ### Timing Decorator
+
+Socho tumhe pata karna hai ki koi function kitna time le raha hai — jaise Zomato app mein "order fetch" API kitni der lagi. Decorator se ye ek hi jagah handle ho jayega, har function mein baar-baar timer code likhne ki zarurat nahi.
 
 ```python
 import time
@@ -65,8 +67,8 @@ from functools import wraps
 
 
 def timer(func):
-    """Measure execution time of a function."""
-    @wraps(func)  # preserves the original function's name and docstring
+    """Function ka execution time measure karta hai."""
+    @wraps(func)  # original function ka naam aur docstring preserve karta hai
     def wrapper(*args, **kwargs):
         start = time.perf_counter()
         result = func(*args, **kwargs)
@@ -78,20 +80,25 @@ def timer(func):
 
 @timer
 def fetch_users(count: int) -> list[str]:
-    """Fetch users from database."""
-    time.sleep(0.1)  # simulate DB call
+    """Database se users fetch karta hai."""
+    time.sleep(0.1)  # DB call simulate kar rahe hain
     return [f"user_{i}" for i in range(count)]
 
 
 users = fetch_users(100)
 # fetch_users took 0.1004s
 
-# Thanks to @wraps, metadata is preserved
-print(fetch_users.__name__)  # fetch_users (not 'wrapper')
-print(fetch_users.__doc__)   # Fetch users from database.
+# @wraps ki wajah se metadata safe rehta hai
+print(fetch_users.__name__)  # fetch_users ('wrapper' nahi)
+print(fetch_users.__doc__)   # Database se users fetch karta hai.
 ```
 
+> [!tip]
+> `@wraps` na lagao toh `fetch_users.__name__` "wrapper" print hoga, actual naam nahi. Debugging aur logging ke liye ye pain create karta hai — isliye har decorator mein `@wraps` daalna habit bana lo.
+
 ### Retry Decorator
+
+Ye wala decorator un cases ke liye hai jahan external API flaky ho — jaise koi third-party payment gateway jo kabhi-kabhi timeout kar jaata hai. Instead of manually try-catch-retry likhne ke, ek decorator bana lo aur reuse karo.
 
 ```python
 import time
@@ -99,10 +106,10 @@ from functools import wraps
 
 
 def retry(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0):
-    """Retry a function on failure with exponential backoff.
+    """Failure par exponential backoff ke saath function retry karta hai.
 
-    This is a decorator FACTORY - it returns a decorator.
-    Compare with: npm packages like 'async-retry' or 'p-retry'.
+    Ye ek decorator FACTORY hai - ye decorator return karta hai.
+    Compare karo npm packages jaise 'async-retry' ya 'p-retry' se.
     """
     def decorator(func):
         @wraps(func)
@@ -132,14 +139,14 @@ def retry(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0):
 
 @retry(max_attempts=3, delay=0.5, backoff=2.0)
 def call_external_api(url: str) -> dict:
-    """Call an unreliable external API."""
+    """Ek unreliable external API ko call karta hai."""
     import random
     if random.random() < 0.7:
         raise ConnectionError(f"Failed to connect to {url}")
     return {"status": "ok", "data": [1, 2, 3]}
 
 
-# Will retry up to 3 times with exponential backoff
+# 3 baar tak exponential backoff ke saath retry karega
 try:
     result = call_external_api("https://api.example.com/data")
     print(result)
@@ -148,7 +155,7 @@ except ConnectionError:
 ```
 
 ```typescript
-// TypeScript equivalent - you'd typically use a library
+// TypeScript equivalent - generally ek library use karoge
 import pRetry from "p-retry";
 
 async function callExternalApi(url: string) {
@@ -157,21 +164,23 @@ async function callExternalApi(url: string) {
   return response.json();
 }
 
-// No decorator syntax - wrap manually
+// Decorator syntax nahi hai - manually wrap karna padega
 const reliableApi = () =>
   pRetry(() => callExternalApi("https://api.example.com"), { retries: 3 });
 ```
 
 ### Caching Decorator
 
+Socho ek second ke liye — agar tumhare paas ek expensive calculation hai jo baar-baar same input ke saath call ho rahi hai (jaise Swiggy ka "nearby restaurants" calculation same location ke liye), toh kyun har baar re-compute karna? Cache kar do, result seedha return karo.
+
 ```python
 from functools import wraps
 
 
 def cache(max_size: int = 128):
-    """Simple LRU-like cache decorator.
+    """Simple LRU-jaisa cache decorator.
 
-    Python also has @functools.lru_cache built-in!
+    Python mein already built-in @functools.lru_cache bhi hai!
     """
     def decorator(func):
         _cache: dict = {}
@@ -179,7 +188,7 @@ def cache(max_size: int = 128):
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Create a hashable key from the arguments
+            # Arguments se ek hashable key banao
             key = (args, tuple(sorted(kwargs.items())))
 
             if key in _cache:
@@ -207,7 +216,7 @@ def cache(max_size: int = 128):
 
 @cache(max_size=50)
 def expensive_computation(n: int) -> int:
-    """Simulate expensive work."""
+    """Expensive kaam simulate karta hai."""
     print(f"Computing for {n}...")
     return sum(i * i for i in range(n))
 
@@ -217,7 +226,8 @@ print(expensive_computation(1000))  # Cache hit -> 332833500
 print(expensive_computation.cache_info())  # {'size': 1, 'max_size': 50}
 ```
 
-**Pro tip**: Python has a built-in caching decorator:
+> [!tip]
+> Ye sab manually likhne ki zarurat nahi — Python ka built-in caching decorator use karo:
 
 ```python
 from functools import lru_cache
@@ -228,16 +238,16 @@ def fibonacci(n: int) -> int:
         return n
     return fibonacci(n - 1) + fibonacci(n - 2)
 
-print(fibonacci(100))  # instant - thanks to caching
+print(fibonacci(100))  # instant - caching ki wajah se
 print(fibonacci.cache_info())
 # CacheInfo(hits=98, misses=101, maxsize=128, currsize=101)
 ```
 
 ---
 
-## `@property` - Getter/Setter like JS `get`/`set`
+## `@property` — JS ke `get`/`set` Jaisa
 
-`@property` is Python's equivalent of JavaScript's `get` and `set` accessors. It lets you access computed values like attributes.
+`@property` Python mein JavaScript ke `get` aur `set` accessors ka hi version hai. Isse tum computed values ko attribute jaise access kar paate ho — bina function call `()` likhe.
 
 ```python
 class Circle:
@@ -246,7 +256,7 @@ class Circle:
 
     @property
     def radius(self) -> float:
-        """The radius of the circle."""
+        """Circle ka radius."""
         return self._radius
 
     @radius.setter
@@ -257,7 +267,7 @@ class Circle:
 
     @property
     def diameter(self) -> float:
-        """Computed property - no setter means read-only."""
+        """Computed property - setter nahi hai matlab read-only hai."""
         return self._radius * 2
 
     @property
@@ -273,16 +283,16 @@ class Circle:
 
 
 c = Circle(5)
-print(c.radius)          # 5 (looks like attribute access, calls getter)
-print(c.diameter)        # 10 (computed on the fly)
-print(c.area)            # 78.54... (computed)
+print(c.radius)          # 5 (attribute jaisa dikhta hai, actually getter call hota hai)
+print(c.diameter)        # 10 (on the fly compute hota hai)
+print(c.area)            # 78.54... (compute)
 
-c.radius = 10            # calls setter with validation
+c.radius = 10            # setter call hota hai validation ke saath
 print(c.area)            # 314.15...
 
 c.radius = -1            # ValueError: Radius cannot be negative
 
-c.diameter = 20          # AttributeError: can't set attribute (no setter defined)
+c.diameter = 20          # AttributeError: can't set attribute (setter defined nahi hai)
 ```
 
 ```typescript
@@ -313,7 +323,7 @@ class Circle {
 }
 ```
 
-### Real-World Example: User Model with Properties
+### Real-World Example: Properties Wala User Model
 
 ```python
 class User:
@@ -351,29 +361,32 @@ class User:
 
 
 user = User("Alice", "Smith", "Alice@Example.COM")
-print(user.email)        # alice@example.com (setter normalized it? No - __init__ assigned directly)
+print(user.email)        # alice@example.com (setter ne normalize kiya? Nahi - __init__ ne directly assign kiya)
 user.email = "  ALICE@GMAIL.COM  "
-print(user.email)        # alice@gmail.com (setter normalized)
+print(user.email)        # alice@gmail.com (is baar setter ne normalize kiya)
 print(user.full_name)    # Alice Smith
 print(user.display_name) # Alice Smith <alice@gmail.com> [active]
 ```
 
+> [!warning]
+> Upar `__init__` mein `self._email = email` seedha assign hua hai — setter (`self.email = email`) ke through nahi gaya, isliye pehla print bina lowercase-strip ke aa sakta hai. Real code mein aksar `__init__` mein bhi setter use karna better hota hai (`self.email = email`) taaki validation hamesha lage.
+
 ---
 
-## `@staticmethod` vs Static Methods in JS
+## `@staticmethod` vs JS Ke Static Methods
 
-Static methods belong to the class, not instances. They do not receive `self` or `cls`.
+Static methods class ke hote hain, instance ke nahi. Inhe `self` ya `cls` kuch bhi automatically nahi milta.
 
 ```python
 class MathUtils:
     @staticmethod
     def clamp(value: float, min_val: float, max_val: float) -> float:
-        """Clamp a value between min and max."""
+        """Value ko min aur max ke beech clamp karta hai."""
         return max(min_val, min(value, max_val))
 
     @staticmethod
     def lerp(a: float, b: float, t: float) -> float:
-        """Linear interpolation between a and b."""
+        """a aur b ke beech linear interpolation."""
         return a + (b - a) * t
 
     @staticmethod
@@ -381,11 +394,11 @@ class MathUtils:
         return abs(a - b) < tolerance
 
 
-# Call on the class directly (no instance needed)
+# Class par directly call karo (instance ki zarurat nahi)
 print(MathUtils.clamp(150, 0, 100))  # 100
 print(MathUtils.lerp(0, 100, 0.5))   # 50.0
 
-# Also works on instances (but unusual)
+# Instance par bhi kaam karta hai (par unusual hai)
 utils = MathUtils()
 print(utils.clamp(150, 0, 100))  # 100
 ```
@@ -405,9 +418,9 @@ class MathUtils {
 
 ---
 
-## `@classmethod` - No Direct JS Equivalent
+## `@classmethod` — Direct JS Equivalent Nahi Hai
 
-Class methods receive the **class itself** as the first argument (`cls`), not an instance. This is commonly used for **factory methods** and **alternative constructors**.
+Class methods ko first argument mein **class khud** milti hai (`cls`), instance nahi. Ye commonly **factory methods** aur **alternative constructors** ke liye use hota hai.
 
 ```python
 import json
@@ -422,7 +435,7 @@ class Event:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Event":
-        """Factory: create Event from a dictionary."""
+        """Factory: dictionary se Event banao."""
         return cls(
             name=data["name"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
@@ -431,20 +444,20 @@ class Event:
 
     @classmethod
     def from_json(cls, json_string: str) -> "Event":
-        """Factory: create Event from JSON string."""
+        """Factory: JSON string se Event banao."""
         data = json.loads(json_string)
         return cls.from_dict(data)
 
     @classmethod
     def now(cls, name: str, **metadata) -> "Event":
-        """Factory: create Event with current timestamp."""
+        """Factory: current timestamp ke saath Event banao."""
         return cls(name=name, timestamp=datetime.now(), metadata=metadata)
 
     def __repr__(self) -> str:
         return f"Event('{self.name}', {self.timestamp.isoformat()})"
 
 
-# Multiple ways to create an Event
+# Event banane ke multiple tarike
 e1 = Event("click", datetime.now())
 e2 = Event.from_dict({"name": "pageview", "timestamp": "2024-01-15T10:30:00"})
 e3 = Event.from_json('{"name": "signup", "timestamp": "2024-01-15T11:00:00"}')
@@ -455,9 +468,9 @@ print(e2)  # Event('pageview', 2024-01-15T10:30:00)
 print(e3)  # Event('signup', 2024-01-15T11:00:00)
 ```
 
-### Why `cls` instead of the class name?
+### Class Name Ki Jagah `cls` Kyun?
 
-Because `@classmethod` works correctly with inheritance - `cls` refers to the actual class being called:
+Kyunki `@classmethod` inheritance ke saath sahi kaam karta hai — `cls` hamesha us actual class ko point karta hai jispe call hua hai, na ki hardcoded parent class ko.
 
 ```python
 class BaseModel:
@@ -478,7 +491,7 @@ class ProductModel(BaseModel):
     pass
 
 
-# cls is UserModel, not BaseModel!
+# cls yahan UserModel hai, BaseModel nahi!
 user = UserModel.create(name="Alice", role="admin")
 print(type(user))  # <class 'UserModel'>
 
@@ -487,12 +500,12 @@ print(type(product))  # <class 'ProductModel'>
 ```
 
 ```typescript
-// TypeScript doesn't have classmethod, but you can use static methods
-// However, they don't automatically know the subclass:
+// TypeScript mein classmethod nahi hota, static methods use kar sakte ho
+// Lekin wo automatically subclass nahi jaante:
 class BaseModel {
   static create(data: Record<string, unknown>): BaseModel {
-    // Always returns BaseModel, not the subclass
-    // You'd need generics and factory patterns to work around this
+    // Hamesha BaseModel return karega, subclass nahi
+    // Iske liye generics aur factory patterns lagane padenge
     return Object.assign(new this(), data);
   }
 }
@@ -502,9 +515,9 @@ class BaseModel {
 
 | Feature | `@staticmethod` | `@classmethod` |
 |---------|----------------|----------------|
-| First argument | None | `cls` (the class) |
-| Can access class | Only by name | Via `cls` parameter |
-| Works with inheritance | Hardcoded to one class | Automatically uses subclass |
+| First argument | Kuch nahi | `cls` (class) |
+| Class access | Sirf naam se | `cls` parameter se |
+| Inheritance ke saath | Ek hi class ke liye hardcoded | Automatically subclass use karta hai |
 | Use case | Utility functions | Factory methods, alternate constructors |
 
 ```python
@@ -516,12 +529,12 @@ class Config:
 
     @staticmethod
     def validate_log_level(level: str) -> bool:
-        """Static: doesn't need class or instance."""
+        """Static: class ya instance dono ki zarurat nahi."""
         return level in ("DEBUG", "INFO", "WARNING", "ERROR")
 
     @classmethod
     def for_development(cls) -> "Config":
-        """Classmethod: factory that creates a pre-configured instance."""
+        """Classmethod: pre-configured instance banane wali factory."""
         return cls(debug=True, log_level="DEBUG")
 
     @classmethod
@@ -537,18 +550,18 @@ print(prod_config.settings)  # {'debug': False, 'log_level': 'WARNING'}
 
 ---
 
-## Writing Custom Decorators with `functools.wraps`
+## `functools.wraps` Ke Saath Custom Decorators Likhna
 
-Always use `@functools.wraps` in your decorators. Without it, the decorated function loses its name, docstring, and other metadata.
+Apne decorators mein hamesha `@functools.wraps` use karo. Iske bina decorated function apna naam, docstring, aur baaki metadata kho deta hai.
 
-### Decorator without arguments
+### Bina Arguments Wala Decorator
 
 ```python
 from functools import wraps
 
 
 def log_calls(func):
-    """Log every call to the decorated function."""
+    """Decorated function ki har call ko log karta hai."""
     @wraps(func)
     def wrapper(*args, **kwargs):
         args_str = ", ".join([repr(a) for a in args])
@@ -573,18 +586,20 @@ add(3, 5)
 # <- add returned 8
 ```
 
-### Decorator with arguments (decorator factory)
+### Arguments Wala Decorator (Decorator Factory)
+
+Ye pattern Express-style middleware jaisa hai — jahan tum middleware ko config (jaise allowed roles) ke saath pass karte ho.
 
 ```python
 from functools import wraps
 
 
 def require_role(*allowed_roles: str):
-    """Decorator factory that checks user role before executing."""
+    """Decorator factory jo function chalane se pehle user role check karta hai."""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Simulate getting current user (in real code, from request context)
+            # Current user simulate kar rahe hain (real code mein request context se aata hai)
             current_user = kwargs.get("current_user", {})
             user_role = current_user.get("role", "anonymous")
 
@@ -608,27 +623,27 @@ def reset_database(current_user: dict) -> str:
     return "Database reset"
 
 
-# Works for admin
+# Admin ke liye kaam karega
 print(delete_user("u123", current_user={"role": "admin"}))
 # "Deleted user u123"
 
-# Fails for regular user
+# Regular user ke liye fail hoga
 try:
     delete_user("u123", current_user={"role": "user"})
 except PermissionError as e:
     print(e)  # Role 'user' not allowed. Required: ('admin', 'moderator')
 ```
 
-### Stacking Decorators
+### Decorators Ko Stack Karna
 
-Decorators can be stacked. They apply bottom-up (the one closest to the function runs first).
+Decorators ko stack kiya ja sakta hai — jaise UPI transaction mein multiple layers of checks lagti hain (fraud check, balance check, OTP). Ye bottom-up apply hote hain — jo function ke sabse paas hai, wo pehle chalta hai.
 
 ```python
 @timer
 @log_calls
 @retry(max_attempts=3, delay=0.1)
 def fetch_data(url: str) -> dict:
-    """Fetch data from URL."""
+    """URL se data fetch karta hai."""
     import random
     if random.random() < 0.5:
         raise ConnectionError("timeout")
@@ -636,19 +651,19 @@ def fetch_data(url: str) -> dict:
 
 
 # Execution order:
-# 1. timer starts timing
-# 2. log_calls logs the call
-# 3. retry handles failures
-# 4. fetch_data actually runs
+# 1. timer timing start karta hai
+# 2. log_calls call log karta hai
+# 3. retry failures handle karta hai
+# 4. fetch_data actually chalta hai
 ```
 
 ### Class-Based Decorator
 
-You can also implement decorators as classes using `__call__`:
+Decorators ko class ke roop mein bhi bana sakte ho — `__call__` method use karke.
 
 ```python
 class Throttle:
-    """Class-based decorator - throttle function calls."""
+    """Class-based decorator - function calls ko throttle karta hai."""
 
     def __init__(self, min_interval: float):
         self.min_interval = min_interval
@@ -680,20 +695,20 @@ send_notification("World")    # Throttled: waiting 1.98s -> Sent: World
 
 ---
 
-## Built-in Decorators Overview
+## Built-in Decorators Ka Overview
 
-| Decorator | Purpose | JS Equivalent |
+| Decorator | Kaam | JS Equivalent |
 |-----------|---------|---------------|
 | `@property` | Getter/setter | `get`/`set` |
 | `@staticmethod` | Static method | `static` |
-| `@classmethod` | Class-level factory method | No direct equivalent |
-| `@abstractmethod` | Require implementation in subclass | `abstract` in TS |
-| `@functools.wraps` | Preserve function metadata | N/A |
-| `@functools.lru_cache` | Memoize function results | Manual or lodash `_.memoize` |
+| `@classmethod` | Class-level factory method | Direct equivalent nahi |
+| `@abstractmethod` | Subclass mein implementation zaruri karna | `abstract` in TS |
+| `@functools.wraps` | Function metadata preserve karna | N/A |
+| `@functools.lru_cache` | Function results memoize karna | Manual ya lodash `_.memoize` |
 | `@functools.cached_property` | Lazy computed property | Getter with manual cache |
-| `@functools.total_ordering` | Auto-generate comparison methods | N/A |
-| `@dataclasses.dataclass` | Auto-generate class boilerplate | N/A |
-| `@typing.override` | Mark method as override | `override` keyword in TS |
+| `@functools.total_ordering` | Comparison methods auto-generate karna | N/A |
+| `@dataclasses.dataclass` | Class boilerplate auto-generate karna | N/A |
+| `@typing.override` | Method ko override mark karna | `override` keyword in TS |
 
 ---
 
@@ -701,30 +716,30 @@ send_notification("World")    # Throttled: waiting 1.98s -> Sent: World
 
 ### Exercise 1: Validation Decorator
 
-Create a `@validate_types` decorator that checks function argument types at runtime:
+Ek `@validate_types` decorator banao jo runtime pe function arguments ke types check kare:
 
 ```python
 @validate_types
 def create_user(name: str, age: int, email: str) -> dict:
     return {"name": name, "age": age, "email": email}
 
-create_user("Alice", 30, "alice@example.com")  # Works
+create_user("Alice", 30, "alice@example.com")  # Chalega
 create_user("Alice", "thirty", "alice@example.com")  # TypeError!
 ```
 
-Hint: Use `func.__annotations__` to get type hints.
+Hint: `func.__annotations__` use karo type hints get karne ke liye.
 
-### Exercise 2: Caching with TTL
+### Exercise 2: TTL Wala Caching
 
-Create a `@cache_with_ttl(seconds=60)` decorator that:
-- Caches function results
-- Expires cache entries after the TTL
-- Has `.cache_clear()` and `.cache_info()` methods
-- Works with keyword arguments
+Ek `@cache_with_ttl(seconds=60)` decorator banao jo:
+- Function results cache kare
+- TTL ke baad cache entries expire kare
+- `.cache_clear()` aur `.cache_info()` methods provide kare
+- Keyword arguments ke saath bhi kaam kare
 
 ### Exercise 3: Express-Style Middleware
 
-Create a decorator system that mimics Express.js middleware:
+Ek decorator system banao jo Express.js ke middleware jaisa behave kare:
 
 ```python
 @middleware(auth_required=True, roles=["admin"])
@@ -734,9 +749,9 @@ def handle_request(request: dict) -> dict:
     return {"status": 200, "data": request.get("body")}
 ```
 
-### Exercise 4: Property with Validation
+### Exercise 4: Validation Wali Property
 
-Create a reusable `validated_property` descriptor/decorator that adds type checking and custom validation:
+Ek reusable `validated_property` descriptor/decorator banao jo type checking aur custom validation add kare:
 
 ```python
 class User:
@@ -747,13 +762,13 @@ class User:
 
 ---
 
-## Key Takeaways for Node.js Developers
+## Key Takeaways
 
-1. **Decorators are just higher-order functions** - if you understand middleware or HOCs, you understand decorators
-2. **`@` is syntactic sugar** for `func = decorator(func)`
-3. **Always use `@functools.wraps`** to preserve function metadata
-4. **`@property`** = JavaScript `get`/`set` but with decorator syntax
-5. **`@classmethod`** is unique to Python - factory methods that know which class they are on
-6. **`@staticmethod`** = TypeScript `static` but without access to `cls`
-7. **Decorators compose** - stack them for cross-cutting concerns like logging, caching, auth
-8. **Python decorators are runtime** - TypeScript decorators are compile-time metadata (different purpose)
+1. **Decorators sirf higher-order functions hain** - agar middleware ya HOCs samajh aate hain, toh decorators bhi samajh aa jayenge
+2. **`@` sirf syntactic sugar hai** `func = decorator(func)` ke liye
+3. **Hamesha `@functools.wraps` use karo** taaki function metadata preserve rahe
+4. **`@property`** = JavaScript `get`/`set` but decorator syntax ke saath
+5. **`@classmethod`** Python mein unique hai - factory methods jo jaante hain kis class par hain
+6. **`@staticmethod`** = TypeScript `static` but `cls` access ke bina
+7. **Decorators compose hote hain** - inhe stack karo logging, caching, auth jaise cross-cutting concerns ke liye
+8. **Python decorators runtime pe chalte hain** - TypeScript decorators compile-time metadata hain (alag purpose)

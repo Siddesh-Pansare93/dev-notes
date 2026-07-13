@@ -1,20 +1,20 @@
 # Dataclasses
 
-> Python dataclasses for Node.js/TypeScript developers
+> Python dataclasses — Node.js/TypeScript developers ke liye
 
 ---
 
-## What Are Dataclasses?
+## Dataclass Hai Kya?
 
-The `@dataclass` decorator auto-generates `__init__`, `__repr__`, `__eq__`, and more from class field annotations. It eliminates massive amounts of boilerplate for data-holding classes.
+`@dataclass` decorator ek magic wand hai — ye class ke field annotations dekh ke `__init__`, `__repr__`, `__eq__`, wagera khud-ba-khud bana deta hai. Matlab data-holding classes ke liye jo boilerplate tum baar-baar likhte ho, wo poora gayab.
 
-Think of it as: **what if TypeScript interfaces could auto-generate a constructor, toString(), and equality checks?**
+Socho aisa: **agar TypeScript interfaces khud apna constructor, `toString()` aur equality check generate kar de tou?** Bas wahi cheez `@dataclass` karta hai.
 
 ```python
 from dataclasses import dataclass
 
 
-# WITHOUT dataclass - lots of boilerplate
+# WITHOUT dataclass - bohot saara boilerplate
 class UserManual:
     def __init__(self, name: str, email: str, age: int):
         self.name = name
@@ -30,7 +30,7 @@ class UserManual:
         return (self.name, self.email, self.age) == (other.name, other.email, other.age)
 
 
-# WITH dataclass - all that boilerplate is generated for you
+# WITH dataclass - saara boilerplate auto-generate ho gaya
 @dataclass
 class User:
     name: str
@@ -46,11 +46,11 @@ print(user)  # User(name='Alice', email='alice@example.com', age=30)
 
 # Auto-generated __eq__
 user2 = User(name="Alice", email="alice@example.com", age=30)
-print(user == user2)  # True (compares all fields)
+print(user == user2)  # True (saare fields compare hote hain)
 ```
 
 ```typescript
-// TypeScript - you ALWAYS write this boilerplate
+// TypeScript - ye boilerplate HAMESHA khud likhna padta hai
 class User {
   constructor(
     public name: string,
@@ -58,11 +58,11 @@ class User {
     public age: number
   ) {}
 
-  // No auto toString() or equals()
-  // You'd need to write them manually
+  // Auto toString() ya equals() nahi milega
+  // Ye manually likhne padenge
 }
 
-// Or with an interface (no constructor at all):
+// Ya interface ke saath (constructor hi nahi hota):
 interface User {
   name: string;
   email: string;
@@ -70,9 +70,12 @@ interface User {
 }
 ```
 
+> [!tip]
+> Jaise Zomato app mein order confirm hone par khud-ba-khud invoice, tracking ID aur receipt ban jaati hai — waise hi `@dataclass` tumhare fields dekh ke `__init__` aur `__repr__` khud bana deta hai. Tumhe haath se kuch likhna nahi padta.
+
 ---
 
-## Field Types and Defaults
+## Field Types Aur Defaults
 
 ```python
 from dataclasses import dataclass, field
@@ -81,26 +84,26 @@ from datetime import datetime
 
 @dataclass
 class BlogPost:
-    # Required fields (no default) - must come first
+    # Required fields (koi default nahi) - inhe sabse pehle rakhna hota hai
     title: str
     author: str
     content: str
 
-    # Fields with simple defaults
+    # Simple default wale fields
     published: bool = False
     views: int = 0
     category: str = "general"
 
-    # Fields with mutable defaults MUST use field(default_factory=...)
-    # This is the same gotcha as class variables - shared mutable state
+    # Mutable default wale fields MUST use field(default_factory=...)
+    # Ye wahi gotcha hai jo class variables mein tha - shared mutable state
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, str] = field(default_factory=dict)
 
-    # Factory for computed defaults
+    # Computed default ke liye factory
     created_at: datetime = field(default_factory=datetime.now)
 
 
-# Use it
+# Use karo
 post = BlogPost(
     title="Python Dataclasses Guide",
     author="Alice",
@@ -111,16 +114,19 @@ post = BlogPost(
 print(post)
 # BlogPost(title='Python Dataclasses Guide', author='Alice', ...)
 
-# Each instance gets its own list (thanks to default_factory)
+# default_factory ki wajah se har instance ki apni alag list milti hai
 post2 = BlogPost(title="Another Post", author="Bob", content="...")
 post2.tags.append("draft")
-print(post.tags)   # ['python', 'tutorial'] - not affected
+print(post.tags)   # ['python', 'tutorial'] - affect nahi hua
 print(post2.tags)  # ['draft']
 ```
 
-### The `field()` Function
+> [!warning]
+> Agar tum `tags: list[str] = []` likhoge (bina `field()` ke), toh Python error de dega. Ye wahi purana mutable-default gotcha hai jo function arguments mein bhi hota hai — sab instances ek hi list share kar lete, jaise ek hi Swiggy cart sab customers ke beech baant di jaaye. Isliye `default_factory` use karo.
 
-`field()` gives you fine-grained control over individual fields:
+### `field()` Function
+
+`field()` tumhe har individual field par fine-grained control deta hai:
 
 ```python
 from dataclasses import dataclass, field
@@ -133,16 +139,16 @@ class APIRequest:
     url: str
     body: dict = field(default_factory=dict)
 
-    # Exclude from __repr__ (sensitive data)
+    # __repr__ se exclude karo (sensitive data)
     auth_token: str = field(default="", repr=False)
 
-    # Exclude from __init__ (computed later)
+    # __init__ se exclude karo (baad mein compute hoga)
     request_id: str = field(init=False, default="")
 
-    # Exclude from comparison
+    # comparison se exclude karo
     timestamp: float = field(default=0.0, compare=False)
 
-    # Store arbitrary metadata
+    # Arbitrary metadata store karo
     headers: dict = field(
         default_factory=lambda: {"Content-Type": "application/json"},
         metadata={"description": "HTTP headers"},
@@ -159,24 +165,26 @@ req = APIRequest(
 print(req)
 # APIRequest(method='POST', url='/api/users', body={'name': 'Alice'},
 #            request_id='', timestamp=0.0, headers={'Content-Type': 'application/json'})
-# Note: auth_token is NOT shown (repr=False)
+# Note: auth_token print mein NAHI dikhega (repr=False)
 ```
 
-| `field()` parameter | Purpose | Default |
+Bilkul waise jaise UPI transaction receipt mein tumhara card number ya CVV kabhi print nahi hota, lekin baaki details dikhti hain — `repr=False` bhi wahi role nibhata hai.
+
+| `field()` parameter | Kaam | Default |
 |---------------------|---------|---------|
-| `default` | Default value (immutable only) | MISSING |
-| `default_factory` | Callable that returns default (for mutable) | MISSING |
-| `init` | Include in `__init__`? | `True` |
-| `repr` | Include in `__repr__`? | `True` |
-| `compare` | Include in `__eq__` and ordering? | `True` |
-| `hash` | Include in `__hash__`? | `None` (follows `compare`) |
+| `default` | Default value (sirf immutable) | MISSING |
+| `default_factory` | Default return karne wala callable (mutable ke liye) | MISSING |
+| `init` | `__init__` mein include karein? | `True` |
+| `repr` | `__repr__` mein include karein? | `True` |
+| `compare` | `__eq__` aur ordering mein include karein? | `True` |
+| `hash` | `__hash__` mein include karein? | `None` (`compare` follow karta hai) |
 | `metadata` | Arbitrary metadata dict | `None` |
 
 ---
 
 ## `frozen=True` - Immutable Instances
 
-Like TypeScript's `Readonly<T>` or adding `readonly` to every field, `frozen=True` makes the dataclass immutable after creation.
+TypeScript ke `Readonly<T>` jaisa, ya har field pe `readonly` laga dena — `frozen=True` dataclass ko creation ke baad immutable bana deta hai.
 
 ```python
 from dataclasses import dataclass
@@ -199,12 +207,12 @@ class Color:
 p = Point(3.0, 4.0)
 print(p)  # Point(x=3.0, y=4.0)
 
-# Cannot modify!
+# Modify nahi kar sakte!
 # p.x = 5.0  # FrozenInstanceError!
 
-# Frozen dataclasses are automatically hashable (can be used in sets/dicts)
+# Frozen dataclasses automatically hashable hote hain (sets/dicts mein use ho sakte)
 points = {Point(0, 0), Point(1, 1), Point(0, 0)}
-print(len(points))  # 2 (deduplicated)
+print(len(points))  # 2 (duplicate hata diya)
 
 colors = {
     Color(255, 0, 0): "red",
@@ -221,19 +229,22 @@ interface Point {
   readonly y: number;
 }
 
-// Or using Readonly utility type
+// Ya Readonly utility type se
 type Point = Readonly<{
   x: number;
   y: number;
 }>;
 
-// But TypeScript readonly is compile-time only!
-// At runtime you can still mutate in JavaScript
+// Par TypeScript ka readonly sirf compile-time hai!
+// Runtime pe JavaScript mein aaram se mutate kar sakte ho
 ```
 
-### Creating Modified Copies of Frozen Dataclasses
+> [!info]
+> Ye farak important hai — TypeScript ka `readonly` sirf compiler ki warning hai, runtime pe koi rok-tok nahi. Python ka `frozen=True` asal mein runtime pe enforce hota hai, jaise IRCTC ka confirmed ticket — booking ke baad naam change nahi kar sakte, chahe kitni bhi koshish karo.
 
-Since you cannot mutate frozen instances, use `dataclasses.replace()` to create a new copy with some fields changed:
+### Frozen Dataclass Ki Modified Copy Banana
+
+Frozen instance ko mutate nahi kar sakte, isliye `dataclasses.replace()` use karo — kuch fields change karke ek naya copy bana lo:
 
 ```python
 from dataclasses import dataclass, replace
@@ -254,7 +265,7 @@ print(prod_config)  # Config(host='api.example.com', port=443, debug=False, log_
 print(dev_config)   # Config(host='api.example.com', port=8080, debug=True, log_level='DEBUG')
 ```
 
-This is similar to the spread operator pattern in TypeScript:
+Ye bilkul TypeScript ke spread operator pattern jaisa hai:
 
 ```typescript
 const prodConfig = { host: "api.example.com", port: 443, debug: false };
@@ -263,9 +274,9 @@ const devConfig = { ...prodConfig, debug: true, port: 8080 };
 
 ---
 
-## `__post_init__` - Computed Fields and Validation
+## `__post_init__` - Computed Fields Aur Validation
 
-`__post_init__` runs after the auto-generated `__init__`. Use it for validation, computed fields, or any initialization logic.
+`__post_init__` auto-generated `__init__` ke baad chalta hai. Isse validation, computed fields, ya koi bhi extra initialization logic ke liye use karo.
 
 ```python
 from dataclasses import dataclass, field
@@ -278,28 +289,28 @@ class Invoice:
     items: list[dict]  # [{"name": "Widget", "price": 9.99, "qty": 2}]
     tax_rate: float = 0.08
 
-    # Computed fields - excluded from __init__
+    # Computed fields - __init__ se exclude
     subtotal: float = field(init=False)
     tax: float = field(init=False)
     total: float = field(init=False)
     invoice_number: str = field(init=False)
 
     def __post_init__(self):
-        """Runs after __init__ - compute derived values."""
-        # Validate
+        """__init__ ke baad chalta hai - derived values compute karo."""
+        # Validate karo
         if not self.items:
             raise ValueError("Invoice must have at least one item")
         if self.tax_rate < 0 or self.tax_rate > 1:
             raise ValueError(f"Invalid tax rate: {self.tax_rate}")
 
-        # Compute derived fields
+        # Derived fields compute karo
         self.subtotal = sum(
             item["price"] * item["qty"] for item in self.items
         )
         self.tax = round(self.subtotal * self.tax_rate, 2)
         self.total = round(self.subtotal + self.tax, 2)
 
-        # Generate invoice number
+        # Invoice number generate karo
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         self.invoice_number = f"INV-{timestamp}"
 
@@ -318,9 +329,11 @@ print(invoice.total)          # 188.86
 print(invoice.invoice_number) # INV-20240115103045
 ```
 
-### Using `InitVar` for Init-Only Fields
+Socho isko Zomato ke order-total calculation jaisa — item price, GST, discount sab `__post_init__` mein compute ho jaate hain, aur customer ko final bill dikhta hai.
 
-Sometimes you need a parameter in `__init__` that should NOT become a field:
+### Init-Only Fields Ke Liye `InitVar`
+
+Kabhi-kabhi `__init__` mein ek parameter chahiye hota hai jo field na bane:
 
 ```python
 from dataclasses import dataclass, field, InitVar
@@ -332,14 +345,14 @@ class DatabaseConnection:
     port: int
     database: str
 
-    # InitVar: passed to __init__ and __post_init__, but NOT stored as a field
+    # InitVar: __init__ aur __post_init__ mein milta hai, par field ban ke store NAHI hota
     password: InitVar[str] = ""
 
     connection_string: str = field(init=False)
     is_connected: bool = field(init=False, default=False)
 
     def __post_init__(self, password: str):
-        """password is received here but NOT stored as self.password."""
+        """password yahan milta hai lekin self.password ban ke store nahi hota."""
         if password:
             self.connection_string = (
                 f"postgresql://{self.host}:{self.port}/{self.database}?password=***"
@@ -353,15 +366,17 @@ class DatabaseConnection:
 db = DatabaseConnection("localhost", 5432, "myapp", password="secret123")
 print(db.connection_string)  # postgresql://localhost:5432/myapp?password=***
 print(db)  # DatabaseConnection(host='localhost', port=5432, database='myapp', ...)
-# Note: password is NOT in the output - it's not a field
+# Note: password output mein NAHI hai - wo field hi nahi hai
 # hasattr(db, 'password')  # False
 ```
 
+Bilkul jaise UPI PIN — payment karte waqt use hota hai, par kahin store nahi hota.
+
 ---
 
-## Inheritance with Dataclasses
+## Dataclasses Mein Inheritance
 
-Dataclasses support inheritance. Child classes extend parent fields.
+Dataclasses inheritance support karte hain. Child classes parent ke fields extend kar sakti hain.
 
 ```python
 from dataclasses import dataclass, field
@@ -370,7 +385,7 @@ from datetime import datetime
 
 @dataclass
 class BaseModel:
-    """Base for all models - provides common fields."""
+    """Sabhi models ka base - common fields deta hai."""
     id: str = ""
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
@@ -381,7 +396,7 @@ class BaseModel:
 
 @dataclass
 class User(BaseModel):
-    """User model inherits id, created_at, updated_at."""
+    """User model id, created_at, updated_at inherit karta hai."""
     name: str = ""
     email: str = ""
     role: str = "user"
@@ -405,37 +420,36 @@ print(product)
 # Product(id='p1', created_at=..., updated_at=..., name='Widget', price=9.99, ...)
 ```
 
-**Important ordering rule**: In dataclass inheritance, parent fields come first in `__init__`. If the parent has fields with defaults, the child cannot have required fields (no default), because you cannot have a required parameter after an optional one.
+**Important ordering rule**: dataclass inheritance mein parent ke fields `__init__` mein pehle aate hain. Agar parent ke fields ke defaults hain, toh child ke paas required (no-default) field nahi ho sakta — kyunki optional parameter ke baad required parameter nahi rakh sakte.
 
 ```python
-# This WORKS - parent has defaults, child has defaults too
+# Ye WORKS karega - parent ke defaults hain, child ke bhi defaults hain
 @dataclass
 class Base:
     id: str = ""
 
 @dataclass
 class Child(Base):
-    name: str = ""  # has default - OK
+    name: str = ""  # default hai - OK
 
-
-# This FAILS - parent has default, child has no default
+# Ye FAILS hoga - parent ke pass default hai, child ke pass nahi
 @dataclass
 class Base:
     id: str = ""
 
 # @dataclass
 # class Child(Base):
-#     name: str  # NO default - TypeError! (comes after id which has a default)
+#     name: str  # NO default - TypeError! (id ke baad aata hai jiska default hai)
 ```
 
 ---
 
 ## Dataclass vs Pydantic BaseModel
 
-Pydantic is a third-party library that provides runtime validation. Here is a quick comparison:
+Pydantic ek third-party library hai jo runtime validation deti hai. Quick comparison dekho:
 
 ```python
-# Standard dataclass - no runtime validation
+# Standard dataclass - koi runtime validation nahi
 from dataclasses import dataclass
 
 @dataclass
@@ -444,18 +458,18 @@ class UserDC:
     age: int
     email: str
 
-# This "works" - no validation!
+# Ye "chalega" - koi validation nahi!
 bad_user = UserDC(name=123, age="not a number", email=None)
-print(bad_user.name)  # 123 (should be str but Python doesn't care)
+print(bad_user.name)  # 123 (str hona chahiye tha par Python ko fark nahi padta)
 
 
-# Pydantic BaseModel - runtime validation and coercion
+# Pydantic BaseModel - runtime validation aur coercion
 from pydantic import BaseModel, EmailStr, field_validator
 
 class UserPydantic(BaseModel):
     name: str
     age: int
-    email: str  # use EmailStr for actual email validation
+    email: str  # asal email validation ke liye EmailStr use karo
 
     @field_validator("age")
     @classmethod
@@ -465,33 +479,33 @@ class UserPydantic(BaseModel):
         return v
 
 
-# Pydantic validates and coerces types
+# Pydantic validate aur coerce karta hai
 user = UserPydantic(name="Alice", age="30", email="alice@example.com")
-print(user.age)   # 30 (int - coerced from string!)
+print(user.age)   # 30 (int - string se coerce hua!)
 print(type(user.age))  # <class 'int'>
 
-# Pydantic rejects invalid data
+# Pydantic invalid data reject karta hai
 # UserPydantic(name="Alice", age="not a number", email="alice@example.com")
 # ValidationError: value is not a valid integer
 ```
 
 | Feature | `@dataclass` | Pydantic `BaseModel` |
 |---------|-------------|---------------------|
-| Runtime validation | No | **Yes** |
-| Type coercion | No | **Yes** (`"30"` -> `30`) |
+| Runtime validation | Nahi | **Haan** |
+| Type coercion | Nahi | **Haan** (`"30"` -> `30`) |
 | JSON serialization | Manual | **Built-in** (`.model_dump_json()`) |
 | JSON deserialization | Manual | **Built-in** (`Model.model_validate_json()`) |
-| Performance | Faster (no validation) | Slower (validates everything) |
+| Performance | Fast (validation nahi hoti) | Slow (sab kuch validate hota hai) |
 | Dependencies | Standard library | Third-party (`pip install pydantic`) |
 | Use case | Internal data structures | API input/output, config, serialization |
 
-**Rule of thumb**: Use `@dataclass` for internal data. Use Pydantic for anything that crosses a boundary (API requests, config files, external data).
+**Rule of thumb**: Internal data ke liye `@dataclass` use karo. Kisi bhi cheez ke liye jo boundary cross karti hai (API requests, config files, external data), Pydantic use karo — jaise ek security guard jo gate pe har cheez check karta hai, jabki ghar ke andar sab par bharosa hota hai.
 
 ---
 
-## `slots=True` for Memory Optimization
+## Memory Optimization Ke Liye `slots=True`
 
-Python 3.10+ supports `slots=True`, which uses `__slots__` instead of `__dict__` for attribute storage. This saves memory and is slightly faster for attribute access.
+Python 3.10+ mein `slots=True` support hai, jo attribute storage ke liye `__dict__` ki jagah `__slots__` use karta hai. Isse memory bachti hai aur attribute access thoda fast ho jaata hai.
 
 ```python
 from dataclasses import dataclass
@@ -500,7 +514,7 @@ import sys
 
 @dataclass
 class UserWithDict:
-    """Normal dataclass - uses __dict__ for storage."""
+    """Normal dataclass - storage ke liye __dict__ use karta hai."""
     name: str
     email: str
     age: int
@@ -508,7 +522,7 @@ class UserWithDict:
 
 @dataclass(slots=True)
 class UserWithSlots:
-    """Optimized dataclass - uses __slots__ for storage."""
+    """Optimized dataclass - storage ke liye __slots__ use karta hai."""
     name: str
     email: str
     age: int
@@ -518,21 +532,21 @@ u1 = UserWithDict("Alice", "alice@example.com", 30)
 u2 = UserWithSlots("Alice", "alice@example.com", 30)
 
 print(sys.getsizeof(u1.__dict__))  # ~232 bytes (dict overhead)
-# u2 has no __dict__ - attributes stored more efficiently
+# u2 ke paas __dict__ hi nahi hai - attributes zyada efficiently store hote hain
 
-# Cannot add arbitrary attributes to slotted dataclass
-u1.nickname = "Ali"   # Works fine (dynamic attributes)
+# Slotted dataclass mein arbitrary attributes add nahi kar sakte
+u1.nickname = "Ali"   # Bilkul chalega (dynamic attributes)
 # u2.nickname = "Ali" # AttributeError: 'UserWithSlots' has no attribute 'nickname'
 ```
 
-Use `slots=True` when:
-- Creating many instances (thousands+) and memory matters
-- You do not need to add dynamic attributes after creation
-- You want slightly faster attribute access
+`slots=True` use karo jab:
+- Bohot saare instances (hazaaron+) bana rahe ho aur memory matter karti hai
+- Creation ke baad dynamic attributes add karne ki zarurat nahi
+- Thoda fast attribute access chahiye
 
 ---
 
-## Complete Example: Building an Event System
+## Complete Example: Event System Banana
 
 ```python
 from dataclasses import dataclass, field
@@ -550,7 +564,7 @@ class EventPriority(Enum):
 
 @dataclass(frozen=True)
 class Event:
-    """Immutable event - once created, cannot be modified."""
+    """Immutable event - ek baar ban gaya toh modify nahi ho sakta."""
     type: str
     source: str
     data: dict = field(default_factory=dict)
@@ -560,14 +574,14 @@ class Event:
 
     def __post_init__(self):
         if not self.event_id:
-            # For frozen dataclasses, use object.__setattr__
+            # Frozen dataclasses ke liye object.__setattr__ use karo
             import uuid
             object.__setattr__(self, "event_id", str(uuid.uuid4())[:8])
 
 
 @dataclass
 class EventLog:
-    """Mutable event log - accumulates events."""
+    """Mutable event log - events accumulate karta hai."""
     name: str
     max_size: int = 1000
     events: list[Event] = field(default_factory=list, repr=False)
@@ -582,7 +596,7 @@ class EventLog:
 
     def add(self, event: Event) -> None:
         if self.is_full:
-            self.events.pop(0)  # remove oldest
+            self.events.pop(0)  # sabse purana hata do
         self.events.append(event)
 
     def filter_by_type(self, event_type: str) -> list[Event]:
@@ -621,21 +635,23 @@ for event in log.filter_by_priority(EventPriority.HIGH):
 # [CRITICAL] system.error: {'error': 'timeout'}
 ```
 
+Ye bilkul Swiggy ke order-tracking system jaisa hai — har event (order placed, picked up, delivered) immutable record hai, aur log unhe priority ke hisaab se filter kar sakta hai.
+
 ---
 
 ## Dataclass Options Summary
 
 ```python
 @dataclass(
-    init=True,         # Generate __init__? (default: True)
-    repr=True,         # Generate __repr__? (default: True)
-    eq=True,           # Generate __eq__? (default: True)
-    order=False,       # Generate __lt__, __le__, __gt__, __ge__? (default: False)
-    unsafe_hash=False, # Force __hash__ generation? (default: False)
-    frozen=False,      # Make immutable? (default: False)
-    match_args=True,   # Generate __match_args__ for pattern matching? (3.10+)
-    kw_only=False,     # All fields keyword-only? (3.10+)
-    slots=False,       # Use __slots__? (3.10+)
+    init=True,         # __init__ generate karein? (default: True)
+    repr=True,         # __repr__ generate karein? (default: True)
+    eq=True,           # __eq__ generate karein? (default: True)
+    order=False,       # __lt__, __le__, __gt__, __ge__ generate karein? (default: False)
+    unsafe_hash=False, # __hash__ generation force karein? (default: False)
+    frozen=False,      # Immutable banayein? (default: False)
+    match_args=True,   # Pattern matching ke liye __match_args__ generate karein? (3.10+)
+    kw_only=False,     # Saare fields keyword-only? (3.10+)
+    slots=False,       # __slots__ use karein? (3.10+)
 )
 class MyClass:
     ...
@@ -647,7 +663,7 @@ class MyClass:
 
 ### Exercise 1: REST API Models
 
-Create dataclasses for a REST API:
+REST API ke liye dataclasses banao:
 
 ```python
 @dataclass
@@ -655,7 +671,7 @@ class PaginationParams:
     page: int = 1
     per_page: int = 25
     sort_by: str = "created_at"
-    sort_order: str = "desc"  # validate in __post_init__
+    sort_order: str = "desc"  # __post_init__ mein validate karo
 
 @dataclass
 class APIResponse:
@@ -663,14 +679,14 @@ class APIResponse:
     data: Any
     pagination: PaginationParams | None = None
     errors: list[str] = field(default_factory=list)
-    # Add a computed 'success' property
+    # Ek computed 'success' property add karo
 ```
 
-Add validation in `__post_init__`, `@property` for computed fields, and a `to_dict()` method.
+`__post_init__` mein validation, computed fields ke liye `@property`, aur ek `to_dict()` method add karo.
 
 ### Exercise 2: Configuration System
 
-Build a layered configuration system using frozen dataclasses:
+Frozen dataclasses use karke ek layered configuration system banao:
 
 ```python
 @dataclass(frozen=True)
@@ -678,27 +694,27 @@ class DatabaseConfig:
     host: str
     port: int
     name: str
-    # ... more fields
+    # ... aur fields
 
 @dataclass(frozen=True)
 class ServerConfig:
     host: str
     port: int
     debug: bool
-    # ... more fields
+    # ... aur fields
 
 @dataclass(frozen=True)
 class AppConfig:
     database: DatabaseConfig
     server: ServerConfig
-    # Add classmethod factories: from_env(), from_dict(), for_testing()
+    # classmethod factories add karo: from_env(), from_dict(), for_testing()
 ```
 
-Use `dataclasses.replace()` to create modified copies.
+Modified copies banane ke liye `dataclasses.replace()` use karo.
 
 ### Exercise 3: Shopping Cart (Dataclass Version)
 
-Rewrite the `ShoppingCart` from the classes basics exercise using dataclasses:
+Classes basics exercise wale `ShoppingCart` ko dataclasses se rewrite karo:
 
 ```python
 @dataclass(frozen=True)
@@ -707,33 +723,33 @@ class CartItem:
     name: str
     price: float
     quantity: int = 1
-    # computed total in __post_init__
+    # __post_init__ mein computed total
 
 @dataclass
 class ShoppingCart:
     items: list[CartItem] = field(default_factory=list)
-    # Add methods: add_item, remove_item, total, item_count
-    # Add __len__, __contains__, __iter__
+    # Methods add karo: add_item, remove_item, total, item_count
+    # __len__, __contains__, __iter__ add karo
 ```
 
-### Exercise 4: Compare Boilerplate
+### Exercise 4: Boilerplate Compare Karo
 
-Write the SAME data model in three ways and count the lines:
+Ek hi data model teen tareeke se likho aur lines count karo:
 1. Plain Python class (manual `__init__`, `__repr__`, `__eq__`)
 2. Python `@dataclass`
 3. TypeScript `class`
 
-The model: `Employee` with fields `id`, `name`, `department`, `salary`, `hire_date`, `is_active`, `skills` (list), `manager_id` (optional).
+Model: `Employee` jismein fields hain `id`, `name`, `department`, `salary`, `hire_date`, `is_active`, `skills` (list), `manager_id` (optional).
 
 ---
 
-## Key Takeaways for Node.js Developers
+## Key Takeaways
 
-1. **`@dataclass` eliminates boilerplate** - auto-generates `__init__`, `__repr__`, `__eq__` (Python's biggest quality-of-life win)
-2. **Use `field(default_factory=list)`** for mutable defaults - never `field = []`
-3. **`frozen=True`** = `Readonly<T>` in TypeScript, but enforced at runtime
-4. **`__post_init__`** for validation and computed fields - runs after `__init__`
+1. **`@dataclass` boilerplate khatam kar deta hai** - `__init__`, `__repr__`, `__eq__` khud generate karta hai (Python ka sabse bada quality-of-life win)
+2. **Mutable defaults ke liye `field(default_factory=list)` use karo** - kabhi `field = []` mat likho
+3. **`frozen=True`** = TypeScript ka `Readonly<T>`, par runtime pe enforce hota hai
+4. **`__post_init__`** validation aur computed fields ke liye - `__init__` ke baad chalta hai
 5. **`dataclasses.replace()`** = spread operator `{...obj, field: newValue}`
-6. **`slots=True`** (Python 3.10+) for memory optimization with many instances
-7. **Use dataclass for internal data**, Pydantic for external data (APIs, config files)
-8. **Inheritance works** but watch the field ordering rule (defaults must come after non-defaults)
+6. **`slots=True`** (Python 3.10+) memory optimization ke liye jab bohot saare instances banane ho
+7. **Internal data ke liye dataclass use karo**, external data (APIs, config files) ke liye Pydantic
+8. **Inheritance chalta hai** par field ordering rule dhyaan mein rakho (defaults, non-defaults ke baad aane chahiye)

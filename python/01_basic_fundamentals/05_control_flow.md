@@ -1,8 +1,8 @@
 # 05 - Control Flow
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aa rahe ho?
 
-The logic is the same, but the syntax is radically different. No braces, no parentheses around conditions, and indentation is not optional -- it IS the block structure. Python also has some unique features like `elif`, `else` on loops, the walrus operator, and `match-case`.
+Logic wahi hai jo tumne hamesha likha hai, bas syntax bilkul alag hai. Na koi curly braces, na condition ke around parentheses, aur indentation koi "optional formatting" nahi hai -- yeh khud block structure HAI. Python ke paas kuch apne unique features bhi hain jaise `elif`, loops pe `else`, walrus operator, aur `match-case`. Chalo ek-ek karke dekhte hain.
 
 ---
 
@@ -32,13 +32,15 @@ if (age >= 18) {
 }
 ```
 
-Key differences:
-- **No parentheses** around the condition (they are allowed but not idiomatic)
-- **Colon** `:` after the condition
-- **Indentation** defines the block (4 spaces is standard, not tabs)
-- `elif` not `else if`
+Kya-kya alag hai:
+- Condition ke around **parentheses nahi chahiye** (likh sakte ho, lekin idiomatic nahi hai)
+- Condition ke baad **colon** `:` lagana zaruri hai
+- **Indentation** hi block define karti hai (4 spaces standard hai, tabs nahi)
+- `else if` nahi, seedha `elif`
 
-### Truthy and Falsy Values
+### Truthy aur Falsy Values
+
+Zomato app mein agar cart khali hai to "Cart is empty" dikhta hai na? Wahi concept -- Python mein bhi khaali cheezein automatically "falsy" treat hoti hain.
 
 ```python
 # Falsy values in Python:
@@ -65,7 +67,7 @@ if value == None:     # works but is wrong style
     pass
 ```
 
-### Combining Conditions
+### Conditions Combine Karna
 
 ```python
 age = 25
@@ -82,7 +84,7 @@ if is_member or age >= 21:
 if not is_member:
     print("Consider joining")
 
-# Chained comparisons (unique to Python!)
+# Chained comparisons (sirf Python mein!)
 x = 15
 if 10 <= x <= 20:           # equivalent to: 10 <= x and x <= 20
     print("In range")
@@ -92,7 +94,7 @@ if 0 < x < 100:
 
 # Multiple comparisons
 a, b, c = 5, 5, 5
-if a == b == c:              # all three are equal
+if a == b == c:              # teeno equal hain
     print("All equal")
 ```
 
@@ -102,6 +104,8 @@ if (10 <= x && x <= 20) { ... }
 // No shorthand in JS
 ```
 
+Yeh chained comparison wala trick Python ka favourite party trick hai -- JS mein tumhe `&&` laga ke condition duplicate karni padti thi, yahan seedha ek line mein range check ho jata hai.
+
 ### Ternary Expression
 
 ```python
@@ -110,14 +114,14 @@ age = 20
 status = "adult" if age >= 18 else "minor"
 print(status)    # "adult"
 
-# Can be nested (but avoid for readability)
+# Nested bhi kar sakte ho (lekin readability ke liye avoid karo)
 score = 85
 grade = "A" if score >= 90 else "B" if score >= 80 else "C" if score >= 70 else "F"
 
-# Use in f-strings
+# f-strings ke andar use karo
 print(f"You are {'eligible' if age >= 18 else 'not eligible'}")
 
-# Use in function arguments
+# Function arguments mein bhi
 print(max(0, value) if value is not None else 0)
 ```
 
@@ -126,35 +130,36 @@ print(max(0, value) if value is not None else 0)
 let status = age >= 18 ? "adult" : "minor";
 ```
 
-**Note:** The Python ternary reads like English: "adult IF age >= 18 ELSE minor". The JS ternary puts the condition first.
+> [!tip]
+> Python ka ternary English sentence jaisa padhta hai: "adult IF age >= 18 ELSE minor". JS wala pehle condition rakhta hai -- order ulta hai, isliye shuru mein thoda confuse ho sakta hai.
 
 ---
 
 ## for Loops
 
-### Iterating Over Sequences
+### Sequences Pe Iterate Karna
 
-Python's `for` loop is like JS's `for...of`. There is NO traditional C-style `for(i=0; i<n; i++)` in Python.
+Python ka `for` loop JS ke `for...of` jaisa hai. Traditional C-style `for(i=0; i<n; i++)` Python mein hota hi nahi.
 
 ```python
-# Iterate over a list
+# List ke upar iterate karo
 fruits = ["apple", "banana", "cherry"]
 for fruit in fruits:
     print(fruit)
 
-# Iterate over a string
+# String ke upar bhi
 for char in "hello":
     print(char)
 
-# Iterate over a dict
+# Dict ke upar
 user = {"name": "Alice", "age": 30}
-for key in user:                    # iterates over keys
+for key in user:                    # keys pe iterate hota hai
     print(f"{key}: {user[key]}")
 
-for key, value in user.items():     # iterates over key-value pairs
+for key, value in user.items():     # key-value pairs milte hain
     print(f"{key}: {value}")
 
-# Iterate over a set
+# Set ke upar
 for item in {1, 2, 3}:
     print(item)
 ```
@@ -166,16 +171,16 @@ for (let char of "hello") { ... }
 for (let [key, value] of Object.entries(user)) { ... }
 ```
 
-### range() -- Generating Number Sequences
+### range() -- Number Sequences Generate Karna
 
-`range()` replaces C-style for loops. It generates numbers lazily (does not create a list in memory).
+`range()` C-style for loops ka replacement hai. Yeh numbers lazily generate karta hai (memory mein poori list nahi banti).
 
 ```python
-# range(stop) -- 0 to stop-1
+# range(stop) -- 0 se stop-1 tak
 for i in range(5):
     print(i)          # 0, 1, 2, 3, 4
 
-# range(start, stop) -- start to stop-1
+# range(start, stop) -- start se stop-1 tak
 for i in range(2, 7):
     print(i)          # 2, 3, 4, 5, 6
 
@@ -183,16 +188,16 @@ for i in range(2, 7):
 for i in range(0, 20, 3):
     print(i)          # 0, 3, 6, 9, 12, 15, 18
 
-# Counting down
+# Ulta ginte hue
 for i in range(10, 0, -1):
     print(i)          # 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
 
-# Common pattern: iterate with index
+# Common pattern: index ke saath iterate karna
 fruits = ["apple", "banana", "cherry"]
 for i in range(len(fruits)):
     print(f"{i}: {fruits[i]}")
 
-# Better: use enumerate!
+# Behtar tareeka: enumerate use karo!
 for i, fruit in enumerate(fruits):
     print(f"{i}: {fruit}")
 
@@ -209,35 +214,38 @@ for (let i = 10; i > 0; i--) { ... }
 fruits.forEach((fruit, i) => console.log(`${i}: ${fruit}`));
 ```
 
+> [!tip]
+> `enumerate()` seedha `index` aur `value` dono de deta hai ek saath -- `range(len(fruits))` likhna Python mein "code smell" mana jata hai. Jab bhi index chahiye ho, `enumerate` yaad rakho.
+
 ### Useful Iteration Tools
 
 ```python
-# zip -- iterate over multiple sequences in parallel
+# zip -- multiple sequences ko parallel mein iterate karo
 names = ["Alice", "Bob", "Charlie"]
 scores = [95, 87, 92]
 
 for name, score in zip(names, scores):
     print(f"{name}: {score}")
 
-# zip with different lengths (stops at shortest)
+# zip with different lengths (jo chhota hai wahan tak hi chalega)
 for a, b in zip([1, 2, 3], ["a", "b"]):
-    print(a, b)    # prints 1 a and 2 b only
+    print(a, b)    # sirf 1 a aur 2 b print hoga
 
-# zip_longest to pad with a fill value
+# zip_longest -- fill value se padding karo
 from itertools import zip_longest
 for a, b in zip_longest([1, 2, 3], ["a", "b"], fillvalue="?"):
     print(a, b)    # 1 a, 2 b, 3 ?
 
-# reversed -- iterate backwards
+# reversed -- ulta iterate karo
 for fruit in reversed(fruits):
     print(fruit)
 
-# sorted -- iterate in sorted order
+# sorted -- sorted order mein iterate karo
 for fruit in sorted(fruits):
     print(fruit)
 
 for fruit in sorted(fruits, key=len, reverse=True):
-    print(fruit)    # longest first
+    print(fruit)    # sabse lamba pehle
 ```
 
 ---
@@ -264,26 +272,26 @@ countdown = 5
 while countdown > 0:
     print(countdown)
     countdown -= 1
-    # time.sleep(1)   # uncomment for real countdown
+    # time.sleep(1)   # real countdown ke liye uncomment karo
 print("Go!")
 ```
 
-### break and continue
+### break aur continue
 
 ```python
-# break -- exit the loop immediately
+# break -- loop se turant bahar niklo
 for num in range(100):
     if num > 10:
         break
-    print(num)         # 0 through 10
+    print(num)         # 0 se 10 tak
 
-# continue -- skip to next iteration
+# continue -- agli iteration pe jump karo
 for num in range(10):
     if num % 2 == 0:
         continue
     print(num)         # 1, 3, 5, 7, 9
 
-# Real-world example: processing lines
+# Real-world example: lines process karna
 lines = ["# comment", "data1", "", "data2", "# another comment", "data3"]
 for line in lines:
     if not line or line.startswith("#"):
@@ -291,19 +299,21 @@ for line in lines:
     print(f"Processing: {line}")
 ```
 
-### else on Loops (Unique to Python!)
+### Loop pe else (Sirf Python ka Unique Feature!)
 
-The `else` clause on a loop runs when the loop completes **without** hitting a `break`. This is one of Python's most misunderstood features.
+`else` clause loop pe tab chalta hai jab loop **bina** `break` ke complete ho jaye. Yeh Python ka sabse zyada misunderstood feature hai, isliye dhyan se samjho.
+
+Socho tum Swiggy pe koi specific restaurant dhoondh rahe ho list mein -- agar mil gaya to `break` kar diya, aur agar poori list scan kar li aur nahi mila, tabhi `else` wala message chalega.
 
 ```python
-# else runs when the loop finishes normally (no break)
+# else tab chalta hai jab loop normally khatam ho (koi break nahi)
 for n in range(2, 10):
     for x in range(2, n):
         if n % x == 0:
             print(f"{n} = {x} * {n // x}")
             break
     else:
-        # This runs if the inner for loop did NOT break
+        # Yeh tab chalega jab inner for loop break NAHI hua
         print(f"{n} is prime")
 
 # Output:
@@ -316,7 +326,7 @@ for n in range(2, 10):
 # 8 = 2 * 4
 # 9 = 3 * 3
 
-# Search pattern: find an item or take a default action
+# Search pattern: item dhoondho ya default action lo
 items = ["apple", "banana", "cherry"]
 target = "mango"
 
@@ -325,13 +335,13 @@ for item in items:
         print(f"Found {target}!")
         break
 else:
-    print(f"{target} not found.")   # prints "mango not found."
+    print(f"{target} not found.")   # "mango not found." print hoga
 
-# Think of it as "for...else" = "for...no-break"
+# Isko yaad rakhne ka tarika: "for...else" = "for...no-break"
 ```
 
 ```javascript
-// JS has no equivalent. You'd use a flag variable:
+// JS mein iska koi equivalent nahi hai. Ek flag variable use karna padta hai:
 let found = false;
 for (let item of items) {
     if (item === target) {
@@ -349,7 +359,7 @@ if (!found) {
 
 ## match-case (Python 3.10+)
 
-Structural pattern matching. More powerful than JS `switch` -- it can match patterns, destructure, and bind variables.
+Structural pattern matching. JS ke `switch` se kaafi zyada powerful hai -- yeh patterns match kar sakta hai, destructure kar sakta hai, aur variables bind kar sakta hai.
 
 ### Basic Usage
 
@@ -365,7 +375,7 @@ match status_code:
         print("Not Found")
     case 500:
         print("Server Error")
-    case _:                             # default (like JS default:)
+    case _:                             # default (JS ke default: jaisa)
         print(f"Unknown status: {status_code}")
 ```
 
@@ -374,7 +384,7 @@ match status_code:
 switch (statusCode) {
     case 200:
         console.log("OK");
-        break;                          // must remember break!
+        break;                          // break yaad rakhna padega!
     case 301:
     case 302:
         console.log("Redirect");
@@ -387,17 +397,17 @@ switch (statusCode) {
 }
 ```
 
-**Key differences from JS switch:**
-- No `break` needed (no fall-through)
-- `_` is the wildcard/default (like `default:`)
-- `|` for multiple values (instead of stacking `case` statements)
+**JS switch se kya alag hai:**
+- `break` ki zarurat nahi (fall-through hota hi nahi)
+- `_` wildcard/default hai (`default:` jaisa)
+- Multiple values ke liye `|` use hota hai (case stack karne ki jagah)
 
-### Pattern Matching with Destructuring
+### Destructuring ke Saath Pattern Matching
 
-This is where `match-case` truly shines compared to JS switch.
+Yahan `match-case` asli mein chamakta hai JS switch ke muqable.
 
 ```python
-# Match on structure
+# Structure pe match karo
 def process_command(command):
     match command.split():
         case ["quit"]:
@@ -416,7 +426,7 @@ process_command("go north")         # Going north
 process_command("pick up sword")    # Picking up sword
 process_command("attack dragon goblin")  # Attacking: dragon, goblin
 
-# Match on type and structure
+# Type aur structure dono pe match karo
 def describe(value):
     match value:
         case int(n) if n > 0:
@@ -445,7 +455,7 @@ describe({"name": "Alice", "age": 30, "extra": "ignored"})  # Person: Alice, age
 ### Guards
 
 ```python
-# Add conditions to patterns with 'if'
+# 'if' se patterns pe conditions lagao
 def classify_age(age):
     match age:
         case n if n < 0:
@@ -462,30 +472,30 @@ def classify_age(age):
 
 ---
 
-## The Walrus Operator `:=` (Python 3.8+)
+## Walrus Operator `:=` (Python 3.8+)
 
-The walrus operator assigns a value to a variable as part of an expression. It is like assignment within a condition.
+Walrus operator ek expression ke andar hi variable ko value assign kar deta hai. Matlab, condition ke andar hi assignment ho jaana.
 
 ```python
-# Without walrus operator
+# Walrus operator ke bina
 line = input("Enter something: ")
 while line != "quit":
     print(f"You said: {line}")
     line = input("Enter something: ")
 
-# With walrus operator -- avoids code duplication
+# Walrus operator ke saath -- code duplication bachta hai
 while (line := input("Enter something: ")) != "quit":
     print(f"You said: {line}")
 
-# In if statements
+# if statements mein
 import re
 text = "My phone is 555-1234"
 if match := re.search(r"\d{3}-\d{4}", text):
     print(f"Found phone: {match.group()}")
 
-# In list comprehensions (filter and use computed value)
+# List comprehensions mein (filter karo aur computed value bhi use karo)
 data = [1, 5, 12, 3, 8, 15, 2]
-# Get values where the square root is > 3
+# Un values ko lo jinka square root > 3 hai
 import math
 results = [
     (x, sqrt)
@@ -494,34 +504,37 @@ results = [
 ]
 print(results)  # [(12, 3.464...), (15, 3.872...)]
 
-# Reading a file in chunks
+# File ko chunks mein padhna
 # with open("large_file.txt") as f:
 #     while chunk := f.read(8192):
 #         process(chunk)
 ```
 
 ```javascript
-// JS doesn't have a walrus operator, but you can assign in conditions:
+// JS mein walrus operator nahi hai, lekin condition ke andar assign kar sakte ho:
 let match;
 if (match = text.match(/\d{3}-\d{4}/)) {
     console.log(`Found: ${match[0]}`);
 }
-// But this is generally discouraged in JS
+// Lekin JS mein yeh generally discouraged hai
 ```
+
+> [!warning]
+> Walrus operator bahut handy hai lekin overuse mat karo -- agar readability ghat rahi hai to normal do-line assignment hi better hai.
 
 ---
 
-## Comprehensions as Control Flow (Brief)
+## Comprehensions bhi Control Flow Hain (Chhoti Jhalak)
 
-List comprehensions combine loops and conditions into expressions. Full coverage in `10_comprehensions.md`.
+List comprehensions loops aur conditions ko ek expression mein combine kar deti hain. Poora coverage `10_comprehensions.md` mein milega.
 
 ```python
-# Filter + transform in one line
+# Ek line mein filter + transform
 numbers = range(20)
 even_squares = [x ** 2 for x in numbers if x % 2 == 0]
 # [0, 4, 16, 36, 64, 100, 144, 196, 256, 324]
 
-# Conditional expression in comprehension
+# Comprehension ke andar conditional expression
 labels = ["even" if x % 2 == 0 else "odd" for x in range(5)]
 # ['even', 'odd', 'even', 'odd', 'even']
 ```
@@ -530,7 +543,7 @@ labels = ["even" if x % 2 == 0 else "odd" for x in range(5)]
 
 ## Common Patterns
 
-### Early Return Instead of Deep Nesting
+### Deep Nesting ki Jagah Early Return
 
 ```python
 # Bad: deep nesting
@@ -555,10 +568,13 @@ def process_order(order):
     return "Processing order"
 ```
 
-### Dictionary Dispatch (Alternative to Long if/elif)
+> [!tip]
+> Guard clauses ka concept IRCTC ke tatkal booking form jaisa hai -- pehle hi check kar lo ki saari details sahi hain, warna form ke bilkul end tak nested `if` mein ghusne ki zarurat nahi.
+
+### Dictionary Dispatch (Lambe if/elif ka Alternative)
 
 ```python
-# Instead of long if/elif chains:
+# Lambe if/elif chains ki jagah:
 def handle_action_if(action, data):
     if action == "create":
         return create_item(data)
@@ -571,7 +587,7 @@ def handle_action_if(action, data):
     else:
         raise ValueError(f"Unknown action: {action}")
 
-# Use a dict dispatch:
+# Dict dispatch use karo:
 def handle_action(action, data):
     handlers = {
         "create": create_item,
@@ -598,10 +614,10 @@ if (!handler) throw new Error(`Unknown action: ${action}`);
 return handler(data);
 ```
 
-### Loop with Index Tracking
+### Index ke Saath Loop
 
 ```python
-# Find all indices of a value
+# Kisi value ke saare indices dhoondho
 def find_all_indices(lst, target):
     return [i for i, val in enumerate(lst) if val == target]
 
@@ -633,7 +649,7 @@ print(find_all_indices(nums, 3))  # [1, 3, 5]
 ## Practice Exercises
 
 ### Exercise 1: FizzBuzz
-Classic FizzBuzz: print numbers 1-30. For multiples of 3, print "Fizz". For multiples of 5, print "Buzz". For both, print "FizzBuzz". Do it three ways: (a) if/elif, (b) match-case, (c) one-liner list comprehension.
+Classic FizzBuzz: 1 se 30 tak numbers print karo. 3 ke multiples ke liye "Fizz", 5 ke multiples ke liye "Buzz", aur dono ke liye "FizzBuzz" print karo. Teen tareeko se karo: (a) if/elif, (b) match-case, (c) ek-line list comprehension.
 
 <details>
 <summary>Solution</summary>
@@ -668,7 +684,7 @@ print('\n'.join("FizzBuzz" if i%15==0 else "Fizz" if i%3==0 else "Buzz" if i%5==
 </details>
 
 ### Exercise 2: Number Guesser
-Simulate a number guessing game. Pick a random number 1-100. Give the user 7 guesses with "too high"/"too low" hints. Use a while loop with break and the loop's else clause.
+Ek number guessing game simulate karo. 1-100 ke beech ek random number pick karo. User ko 7 guesses do "too high"/"too low" hints ke saath. `while` loop ke saath `break` aur loop ke `else` clause ka use karo.
 
 ```python
 import random
@@ -695,19 +711,19 @@ for attempt in range(1, max_guesses + 1):
     else:
         print("Too high!")
 else:
-    # Only runs if the loop completed without break (no correct guess)
+    # Sirf tab chalega jab loop bina break ke complete hua (koi correct guess nahi)
     print(f"Out of guesses! The number was {target}.")
 ```
 </details>
 
 ### Exercise 3: Pattern Matching Router
-Use match-case to implement a simple URL router. Parse paths like `/users/123/posts` into handler calls.
+`match-case` use karke ek simple URL router banao. `/users/123/posts` jaise paths ko parse karke handler calls mein badlo.
 
 ```python
 def route(path):
     """Route a URL path to the appropriate handler."""
     parts = path.strip("/").split("/")
-    # Use match-case to handle:
+    # match-case use karo yeh handle karne ke liye:
     # /                  -> home page
     # /users             -> list users
     # /users/<id>        -> get specific user
@@ -750,27 +766,27 @@ print(route("/unknown/path"))            # 404 Not Found: /unknown/path
 </details>
 
 ### Exercise 4: Walrus Operator Practice
-Refactor the following code to use the walrus operator where it improves readability.
+Neeche diya gaya code refactor karo, jahan bhi walrus operator readability improve kare wahan use karo.
 
 ```python
-# Refactor these:
+# Inhe refactor karo:
 import re
 
-# 1. Check length and use it
+# 1. Length check karo aur use karo
 data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 n = len(data)
 if n > 5:
     print(f"Large dataset: {n} items")
 
-# 2. Check regex match and use groups
+# 2. Regex match check karo aur groups use karo
 text = "Contact: alice@example.com"
 match = re.search(r"(\w+)@(\w+\.\w+)", text)
 if match:
     print(f"User: {match.group(1)}, Domain: {match.group(2)}")
 
-# 3. Filter with computed values
+# 3. Computed values ke saath filter karo
 numbers = [10, 20, 35, 40, 55, 60, 75]
-# Get numbers where their hex representation starts with '0x3'
+# Un numbers ko lo jinka hex representation '0x3' se start hota hai
 ```
 
 <details>
@@ -779,17 +795,17 @@ numbers = [10, 20, 35, 40, 55, 60, 75]
 ```python
 import re
 
-# 1. Walrus in if
+# 1. if mein walrus
 data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 if (n := len(data)) > 5:
     print(f"Large dataset: {n} items")
 
-# 2. Walrus with regex
+# 2. regex ke saath walrus
 text = "Contact: alice@example.com"
 if match := re.search(r"(\w+)@(\w+\.\w+)", text):
     print(f"User: {match.group(1)}, Domain: {match.group(2)}")
 
-# 3. Walrus in comprehension
+# 3. comprehension mein walrus
 numbers = [10, 20, 35, 40, 55, 60, 75]
 hex_filtered = [
     (n, h)
@@ -797,16 +813,16 @@ hex_filtered = [
     if (h := hex(n)).startswith("0x3")
 ]
 print(hex_filtered)  # [(53, '0x35'), (55, '0x37')]
-# Wait, 53 and 55 aren't in our list. Let's check:
+# Ruko, 53 aur 55 to hamari list mein hain hi nahi. Check karte hain:
 # hex(10)='0xa', hex(20)='0x14', hex(35)='0x23', hex(40)='0x28',
 # hex(55)='0x37', hex(60)='0x3c', hex(75)='0x4b'
-# So: [(55, '0x37'), (60, '0x3c')]
+# To actual answer: [(55, '0x37'), (60, '0x3c')]
 print(hex_filtered)
 ```
 </details>
 
 ### Exercise 5: State Machine
-Implement a simple traffic light state machine using a while loop and match-case. The light cycles: green (3 ticks) -> yellow (1 tick) -> red (3 ticks) -> green. Run for 15 ticks.
+`while` loop aur `match-case` use karke ek simple traffic light state machine banao. Light cycle: green (3 ticks) -> yellow (1 tick) -> red (3 ticks) -> green. 15 ticks ke liye run karo.
 
 <details>
 <summary>Solution</summary>

@@ -1,14 +1,16 @@
 # Concurrency in Python
 
-## The GIL, Threads, Processes, and How They Compare to Node.js
+## GIL, Threads, Processes — aur Node.js se comparison
 
-This chapter explains Python's concurrency model -- the biggest architectural difference from Node.js. Understanding this is critical for writing performant Python code.
+Ye chapter Python ke concurrency model ko explain karta hai — jo Node.js se sabse bada architectural difference hai. Agar tumhe Python mein performant code likhna hai, to ye samajhna zaruri hai.
 
 ---
 
-## The Global Interpreter Lock (GIL)
+## Global Interpreter Lock (GIL)
 
-The GIL is a mutex that protects access to Python objects, preventing multiple threads from executing Python bytecode simultaneously. This is **THE** key difference from Node.js.
+Kya hota hai? GIL ek mutex hai jo Python objects ko access karne ke liye lock laga deta hai — matlab ek time pe sirf **ek** thread hi Python bytecode execute kar sakta hai. Yahi wo cheez hai jo Python ko Node.js se sabse zyada alag banati hai.
+
+Socho GIL ek akela cashier hai jo Zomato ke ek hi kitchen counter pe baitha hai — kitne bhi order aa jaayein, ek time pe wo sirf ek order hi process karega. Baaki sab line mein khade rahenge.
 
 ```
 Node.js Model:
@@ -21,7 +23,7 @@ Python Model:
   Multiprocessing bypasses the GIL entirely
 ```
 
-### What the GIL Means in Practice
+### GIL practically ka matlab kya hai?
 
 ```python
 import threading
@@ -47,21 +49,26 @@ print(f"Counter: {counter}")   # NOT 2,000,000! Race condition.
 print(f"Time: {elapsed:.2f}s") # Might be SLOWER than single-threaded
 ```
 
+Do threads mila ke bhi 2 million ka answer nahi aayega — kyunki `counter += 1` ek atomic operation nahi hai, aur GIL ke hote hue bhi threads beech-beech mein switch hoti rehti hain. Result: classic race condition. Aur ulta, do threads lagane ke baad time **kam nahi**, kabhi-kabhi **zyada** ho sakta hai — kyunki thread switching ka bhi overhead hota hai.
+
 ### GIL Summary
 
 | Scenario | GIL Impact | Solution |
 |---|---|---|
-| I/O-bound (HTTP, files, DB) | GIL released during I/O waits | Use threads or asyncio |
-| CPU-bound (math, parsing) | GIL blocks parallelism | Use multiprocessing |
-| Mixed (I/O + CPU) | Depends on ratio | Combine approaches |
+| I/O-bound (HTTP, files, DB) | I/O wait ke time GIL release ho jaata hai | Threads ya asyncio use karo |
+| CPU-bound (math, parsing) | GIL parallelism ko block karta hai | Multiprocessing use karo |
+| Mixed (I/O + CPU) | Ratio pe depend karta hai | Dono approach combine karo |
 
-> **Python 3.13+ note**: PEP 703 introduces an experimental free-threaded mode (`python -X nogil`) that removes the GIL. This is still experimental but represents the future direction.
+> [!info]
+> **Python 3.13+ note**: PEP 703 ek experimental free-threaded mode laata hai (`python -X nogil`) jo GIL hata deta hai. Abhi ye experimental hai, lekin future direction yahi hai.
 
 ---
 
-## Threading: Concurrent (Not Parallel)
+## Threading: Concurrent (Parallel Nahi)
 
-Python threads are real OS threads, but the GIL means only one executes Python code at a time. However, the GIL is released during I/O operations, making threads excellent for I/O-bound tasks.
+Python ke threads real OS threads hote hain, lekin GIL ki wajah se ek time pe sirf ek hi Python code execute karta hai. Lekin achi baat ye hai — I/O operations ke time GIL release ho jaata hai, isliye I/O-bound kaam ke liye threads bahut kaam ke hain.
+
+Isko aise socho: jab Swiggy ka delivery partner restaurant mein order ka wait kar raha hai (I/O wait), tab wo apna phone check kar sakta hai ya doosra kaam nikal sakta hai. Lekin jab wo actually bike chala raha hai (CPU-bound kaam), tab wo sirf ek hi cheez kar sakta hai.
 
 ### Basic Threading
 
@@ -102,7 +109,11 @@ const promises = Array.from({ length: 5 }, (_, i) =>
 await Promise.all(promises);
 ```
 
+Dekho Node.js mein ye kitna natural lagta hai — kyunki async waisa hi built-in hai. Python mein thread manually banana padta hai, `start()` karna padta hai, aur `join()` se wait karna padta hai. Thoda zyada boilerplate hai, lekin kaam wahi hota hai.
+
 ### Thread Synchronization
+
+Jab multiple threads ek hi shared data ko touch karte hain (jaise wahi `counter` wala example upar), to race condition se bachne ke liye lock lagana padta hai — bilkul waise jaise IRCTC ka Tatkal booking system ek seat ko ek time pe sirf ek user ko allot karta hai.
 
 ```python
 import threading
@@ -153,11 +164,16 @@ for t in threads:
     t.join()
 ```
 
+> [!tip]
+> `queue.Queue` already thread-safe hai — khud se lock lagane ki zarurat nahi. Producer-consumer pattern ke liye ye Python ka go-to tool hai.
+
 ---
 
 ## Multiprocessing: True Parallelism
 
-Multiprocessing spawns separate Python processes, each with its own GIL. This is Python's answer for CPU-bound work.
+Kya hota hai? Multiprocessing alag-alag Python **processes** spawn karta hai, aur har process ka apna alag GIL hota hai. Isliye CPU-bound kaam ke liye Python ka jawaab yahi hai.
+
+Ye aise samjho jaise Zomato ne ek hi cashier rakhne ke bajaye har kitchen station pe alag chef laga diya — ab sab chefs ek saath, parallel mein kaam kar sakte hain, ek doosre ka wait kiye bina.
 
 ```python
 import multiprocessing
@@ -204,7 +220,9 @@ if (isMainThread) {
 }
 ```
 
-### Sharing Data Between Processes
+### Processes ke beech data share karna
+
+Alag-alag processes ka apna-apna memory space hota hai (thread jaisa shared nahi), isliye data share karne ke liye special mechanism chahiye — jaise do alag branches ke bank employees ko baat karne ke liye phone call (IPC) chahiye hota hai, seedha table se paper pass nahi kar sakte.
 
 ```python
 import multiprocessing
@@ -243,9 +261,9 @@ shared_list = manager.list()
 
 ---
 
-## `concurrent.futures`: The High-Level API
+## `concurrent.futures`: High-Level API
 
-`concurrent.futures` provides a unified interface for both threads and processes. This is the **recommended** approach for most use cases.
+`concurrent.futures` threads aur processes dono ke liye ek unified interface deta hai. Zyada tar cases mein yahi **recommended** approach hai — kyunki low-level `threading`/`multiprocessing` khud handle karne se ye zyada clean hai.
 
 ### ThreadPoolExecutor
 
@@ -309,6 +327,8 @@ for num, is_p in zip(numbers, results):
 
 ### `executor.map()` vs `executor.submit()`
 
+`map()` seedha-saada hai — order maintain hoti hai, bas list pakdao aur result list wapas mil jaayegi. `submit()` zyada control deta hai — jo pehle complete ho jaaye, wo pehle process kar sakte ho, order ki chinta nahi.
+
 ```python
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -328,9 +348,11 @@ with ThreadPoolExecutor(max_workers=5) as ex:
 
 ---
 
-## Combining Asyncio with Threads/Processes
+## Asyncio ko Threads/Processes ke saath combine karna
 
-### Running Blocking Code in Async Context
+### Async context mein blocking code chalana
+
+Jab tumhare paas koi purani sync library ho (jo `await` support nahi karti), to usse async code ke andar chalane ke liye thread pool mein daalna padta hai — jaise ek naya intern jo abhi tak company ka nayi Slack-based workflow nahi seekha, use ek alag chhoti team mein daal ke kaam le lo, baaki team ka flow disturb nahi hota.
 
 ```python
 import asyncio
@@ -357,7 +379,7 @@ async def fetch_one(url: str) -> str:
     return response.text
 ```
 
-### Running CPU-Bound Work in Async Context
+### Async context mein CPU-bound kaam chalana
 
 ```python
 import asyncio
@@ -387,7 +409,7 @@ asyncio.run(main())
 
 ---
 
-## Decision Matrix: When to Use What
+## Decision Matrix: Kab Kya Use Karein
 
 ```mermaid
 flowchart TD
@@ -424,18 +446,18 @@ flowchart TD
 
 | Approach | Best For | Parallelism | Overhead | Communication |
 |---|---|---|---|---|
-| `asyncio` | I/O-bound, many connections | Concurrent, not parallel | Low | Easy (shared memory) |
-| `threading` | I/O-bound, blocking libs | Concurrent (GIL limited) | Medium | Shared memory (use locks) |
-| `multiprocessing` | CPU-bound | True parallel | High | IPC (pickle, queues) |
-| `ThreadPoolExecutor` | I/O-bound with simple API | Concurrent | Medium | Futures |
-| `ProcessPoolExecutor` | CPU-bound with simple API | True parallel | High | Futures (pickle) |
+| `asyncio` | I/O-bound, bahut saari connections | Concurrent, parallel nahi | Kam | Easy (shared memory) |
+| `threading` | I/O-bound, blocking libs | Concurrent (GIL limited) | Medium | Shared memory (locks use karo) |
+| `multiprocessing` | CPU-bound | True parallel | Zyada | IPC (pickle, queues) |
+| `ThreadPoolExecutor` | I/O-bound, simple API chahiye | Concurrent | Medium | Futures |
+| `ProcessPoolExecutor` | CPU-bound, simple API chahiye | True parallel | Zyada | Futures (pickle) |
 
-### Compared to Node.js
+### Node.js se Comparison
 
 | Python | Node.js Equivalent |
 |---|---|
 | `asyncio` | Built-in event loop (default) |
-| `threading.Thread` | No direct equivalent (everything is async) |
+| `threading.Thread` | Koi direct equivalent nahi (sab kuch async hi hai) |
 | `multiprocessing.Process` | `worker_threads.Worker` |
 | `ThreadPoolExecutor` | `node:worker_threads` pool |
 | `ProcessPoolExecutor` | `child_process.fork()` |
@@ -444,6 +466,8 @@ flowchart TD
 ---
 
 ## Real-World Example: Web Scraper
+
+Ye ek achha example hai jahan I/O-bound (page fetch karna) aur CPU-bound (HTML parse karna) dono kaam ek saath ho rahe hain — bilkul Swiggy jaisa: order fetch karna (I/O) alag kaam hai, aur bill calculate + invoice generate karna (CPU) alag kaam hai.
 
 ```python
 import asyncio
@@ -507,6 +531,8 @@ async def main():
 
 ### Thread-Local Storage
 
+Kya hota hai? Har thread ko apna alag "personal locker" mil jaata hai — ek thread jo data usme rakhega, doosri thread usse dekh nahi payegi. Database connection jaisi cheezon ke liye perfect hai, jinhe thread ke beech share nahi karna chahiye.
+
 ```python
 import threading
 
@@ -524,6 +550,8 @@ def worker():
 ```
 
 ### Condition Variables
+
+Producer-consumer pattern ka classic solution — jaise dabbawala system: agar dabba bhar chuka hai to naya producer wait karega (`not_full`), aur agar dabba khaali hai to consumer wait karega (`not_empty`), jab tak signal na mile.
 
 ```python
 import threading
@@ -553,45 +581,58 @@ class BoundedBuffer:
             return item
 ```
 
+> [!warning]
+> Locks, threads aur processes ke saath kaam karte waqt hamesha `with` statement use karo (context manager) — warna deadlock ya resource leak hone ka risk rehta hai.
+
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: Thread Pool Downloader
-Build a file downloader that:
-- Takes a list of URLs
-- Downloads files concurrently using `ThreadPoolExecutor`
-- Limits concurrent downloads to N
-- Shows progress (files completed / total)
-- Retries failed downloads up to 3 times
+Ek file downloader banao jo:
+- URLs ki list le
+- `ThreadPoolExecutor` use karke files concurrently download kare
+- Concurrent downloads ko N tak limit kare
+- Progress dikhaye (kitni files complete hui / total)
+- Failed downloads ko 3 baar tak retry kare
 
 ### Exercise 2: Parallel Data Processing
-Given a large CSV file (simulate with generated data):
-1. Read the file (I/O-bound -- use threads)
-2. Parse/transform each chunk (CPU-bound -- use processes)
-3. Write results to output file (I/O-bound -- use threads)
-Combine `ThreadPoolExecutor` and `ProcessPoolExecutor`.
+Ek badi CSV file di gayi hai (generated data se simulate karo):
+1. File read karo (I/O-bound — threads use karo)
+2. Har chunk ko parse/transform karo (CPU-bound — processes use karo)
+3. Result output file mein likho (I/O-bound — threads use karo)
+`ThreadPoolExecutor` aur `ProcessPoolExecutor` dono combine karo.
 
 ### Exercise 3: Producer-Consumer with Threads
-Implement a multi-threaded image processing pipeline:
-- Producer: reads image file paths from a directory
-- Stage 1 workers (3 threads): load images from disk (I/O-bound)
-- Stage 2 workers (CPU count processes): resize/transform (CPU-bound)
-- Consumer: saves processed images (I/O-bound)
-Use `queue.Queue` between stages.
+Ek multi-threaded image processing pipeline banao:
+- Producer: ek directory se image file paths padhta hai
+- Stage 1 workers (3 threads): disk se images load karte hain (I/O-bound)
+- Stage 2 workers (CPU count jitne processes): resize/transform karte hain (CPU-bound)
+- Consumer: processed images ko save karta hai (I/O-bound)
+Stages ke beech `queue.Queue` use karo.
 
 ### Exercise 4: Async + Threads Integration
-Build an async web server endpoint that:
-- Receives a request with a list of URLs and a computation type
-- Fetches all URLs concurrently (asyncio)
-- Processes the response data in a process pool (CPU-bound)
-- Returns aggregated results
+Ek async web server endpoint banao jo:
+- URLs ki list aur computation type wala request receive kare
+- Saare URLs concurrently fetch kare (asyncio)
+- Response data ko process pool mein process kare (CPU-bound)
+- Aggregated results return kare
 
 ### Exercise 5: Benchmark
-Write a benchmark that compares execution time for:
+Ek benchmark likho jo execution time compare kare:
 1. Sequential execution
 2. Threading (2, 4, 8 threads)
 3. Multiprocessing (2, 4, 8 processes)
 4. Asyncio
 
-For both I/O-bound (simulated with `time.sleep` / `asyncio.sleep`) and CPU-bound (fibonacci calculation) workloads. Display results in a formatted table.
+I/O-bound (`time.sleep` / `asyncio.sleep` se simulate karo) aur CPU-bound (fibonacci calculation) — dono workloads ke liye. Results ko formatted table mein dikhao.
+
+## Key Takeaways
+
+- GIL ek time pe sirf ek thread ko Python bytecode chalane deta hai — isliye threads CPU-bound kaam mein parallel nahi hoti.
+- I/O operations (network, file, DB) ke time GIL release ho jaata hai — isliye I/O-bound kaam ke liye threading/asyncio bahut effective hai.
+- CPU-bound kaam (heavy math, parsing) ke liye `multiprocessing` use karo — har process ka apna GIL hota hai, to true parallelism milta hai.
+- `concurrent.futures` (`ThreadPoolExecutor`, `ProcessPoolExecutor`) high-level, recommended API hai — low-level `threading`/`multiprocessing` se zyada clean.
+- Async code ke andar blocking/sync calls daalne ke liye `loop.run_in_executor()` ya `asyncio.to_thread()` use karo.
+- Shared mutable state (jaise counter) ko hamesha `Lock` se protect karo, warna race conditions guaranteed hain.
+- Node.js mein "sab kuch async" hota hai by default; Python mein tumhe explicitly decide karna padta hai — I/O-bound ke liye asyncio/threads, CPU-bound ke liye multiprocessing.

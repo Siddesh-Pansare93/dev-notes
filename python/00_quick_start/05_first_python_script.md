@@ -1,19 +1,19 @@
-# 05 - Your First Python Script
+# 05 - Tumhara Pehla Python Script
 
-> **For Node.js developers:** Running `python script.py` is like `node script.js`. The Python REPL works like the Node REPL. The big new concept is `if __name__ == "__main__":` -- Python's way of distinguishing "run as script" from "imported as module."
+> **Node.js developers ke liye:** `python script.py` chalana bilkul `node script.js` jaisa hi hai. Python ka REPL bhi Node REPL jaisa kaam karta hai. Ek naya concept jo yahan seekhna hai wo hai `if __name__ == "__main__":` — Python ka tarika ye batane ka ki file "script ki tarah run ho rahi hai" ya "module ki tarah import ki gayi hai."
 
 ---
 
 ## Table of Contents
 
 1. [Hello World: Python vs Node.js](#hello-world-python-vs-nodejs)
-2. [Running Python Scripts](#running-python-scripts)
-3. [The Python REPL](#the-python-repl)
-4. [Understanding __name__ and "__main__"](#understanding-__name__-and-__main__)
+2. [Python Scripts Kaise Run Karte Hain](#running-python-scripts)
+3. [Python REPL](#the-python-repl)
+4. [__name__ aur "__main__" Samajhna](#understanding-__name__-and-__main__)
 5. [Script vs Module Pattern](#script-vs-module-pattern)
 6. [Shebang Lines](#shebang-lines)
 7. [Command-Line Arguments](#command-line-arguments)
-8. [Putting It All Together](#putting-it-all-together)
+8. [Sab Kuch Ek Saath](#putting-it-all-together)
 9. [Practice Exercises](#practice-exercises)
 
 ---
@@ -44,15 +44,15 @@ python hello.py
 # Hello, World!
 ```
 
-That's it. No semicolons, no parentheses-optional confusion, just `print()`.
+Bas itna hi. Na semicolons ka jhanjhat, na parentheses optional wali confusion — seedha `print()`.
 
-### A More Realistic Comparison
+### Ek Zyada Real Comparison
 
 **Node.js:**
 
 ```javascript
 // app.js
-const http = require('http');  // or: import http from 'http';
+const http = require('http');  // ya: import http from 'http';
 
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -82,7 +82,8 @@ print("Server running on http://localhost:3000")
 server.serve_forever()
 ```
 
-> In practice, you'd use **Flask** or **FastAPI** instead of the raw `http.server`, just like you'd use **Express** instead of raw `http` in Node.js.
+> [!info]
+> Real projects mein tum raw `http.server` use nahi karoge — **Flask** ya **FastAPI** use karoge. Bilkul waise hi jaise Node.js mein raw `http` ki jagah **Express** use karte ho.
 
 ---
 
@@ -94,31 +95,31 @@ server.serve_forever()
 # Node.js
 node script.js
 node src/app.js
-node .                     # Runs main from package.json
+node .                     # package.json ka main run karta hai
 
 # Python
 python script.py
 python src/app.py
-python -m my_package       # Runs __main__.py in the package
+python -m my_package       # package ka __main__.py run karta hai
 ```
 
-### Running Modules with -m
+### `-m` Flag Se Modules Run Karna
 
-The `-m` flag runs a module by name instead of by file path. This is a Python-specific concept:
+`-m` flag file path ke bajaye module ka naam lekar use run karta hai. Ye purely Python wala concept hai:
 
 ```bash
-# Run a module (Python finds it in the path)
-python -m http.server 8000        # Start a quick HTTP server
-python -m json.tool data.json     # Pretty-print JSON
-python -m venv venv               # Create virtual environment
-python -m pytest                  # Run pytest
-python -m pip install flask       # Explicit pip run
+# Ek module run karo (Python usko path mein dhoondh leta hai)
+python -m http.server 8000        # Quick HTTP server start karo
+python -m json.tool data.json     # JSON ko pretty-print karo
+python -m venv venv               # Virtual environment banao
+python -m pytest                  # pytest chalao
+python -m pip install flask       # pip ko explicitly run karo
 
-# Node.js closest equivalent
-npx http-server                   # Run a tool by name
+# Node.js ka sabse kareeb equivalent
+npx http-server                   # Naam se tool run karo
 ```
 
-### Running One-Liners
+### One-Liners Chalana
 
 ```bash
 # Node.js
@@ -131,23 +132,23 @@ python -c "print(2 + 2)"
 python -c "import sys; print(sys.version)"
 ```
 
-### Running Scripts from Different Directories
+### Alag-Alag Directories Se Scripts Run Karna
 
 ```bash
-# Both work the same way
+# Dono same tarike se kaam karte hain
 node /path/to/script.js
 python /path/to/script.py
 
-# Python: run module from a package
+# Python: package se module run karo
 cd my_project/
-python -m my_package.main        # Runs my_package/main.py as a module
+python -m my_package.main        # my_package/main.py ko module ki tarah run karta hai
 ```
 
 ---
 
 ## The Python REPL
 
-### Starting the REPL
+### REPL Start Karna
 
 ```bash
 # Node.js REPL
@@ -174,44 +175,46 @@ python
 | Start | `node` | `python` |
 | Prompt | `>` | `>>>` |
 | Continuation | `...` | `...` |
-| Exit | `.exit` or Ctrl+D | `exit()` or Ctrl+D |
+| Exit | `.exit` ya Ctrl+D | `exit()` ya Ctrl+D |
 | Last result | `_` | `_` |
-| Clear screen | Ctrl+L or `.clear` | Ctrl+L or `import os; os.system('clear')` |
-| Multi-line | Auto-detected | Use `\` or enter a block (`if`, `def`, etc.) |
-| Help | `.help` | `help()` or `help(object)` |
+| Clear screen | Ctrl+L ya `.clear` | Ctrl+L ya `import os; os.system('clear')` |
+| Multi-line | Auto-detect hota hai | `\` use karo ya block enter karo (`if`, `def`, etc.) |
+| Help | `.help` | `help()` ya `help(object)` |
 
-### Using the Python REPL
+### Python REPL Use Karna
+
+Socho ek second ke liye — jaise tum Node REPL mein quick test karte ho, waise hi Python REPL bhi tumhara scratchpad hai:
 
 ```python
 # Start with: python
 
 >>> name = "Alice"
 >>> f"Hello, {name}!"
-'Hello, Alice!'                  # REPL auto-prints expression results
+'Hello, Alice!'                  # REPL expression ka result khud print kar deta hai
 
 >>> 2 ** 10
 1024
 
->>> _                             # _ holds the last result (same as Node)
+>>> _                             # _ mein last result hota hai (Node jaisa hi)
 1024
 
 >>> import math
 >>> math.sqrt(144)
 12.0
 
-# Multi-line blocks (REPL detects them automatically)
+# Multi-line blocks (REPL inko khud detect kar leta hai)
 >>> def greet(name):
-...     return f"Hello, {name}!"  # Note the ... continuation prompt
-...                                # Empty line to finish the block
+...     return f"Hello, {name}!"  # ... continuation prompt notice karo
+...                                # Block khatam karne ke liye empty line
 >>> greet("World")
 'Hello, World!'
 
 # Quick help
 >>> help(str.upper)
-# Shows documentation for str.upper
+# str.upper ki documentation dikhata hai
 
 >>> dir(str)
-# Lists all attributes/methods of str (like Object.getOwnPropertyNames())
+# str ke saare attributes/methods list karta hai (jaise Object.getOwnPropertyNames())
 
 # Exit
 >>> exit()
@@ -219,7 +222,7 @@ python
 
 ### Enhanced REPL: IPython
 
-The default Python REPL is basic. **IPython** is like the Node REPL on steroids:
+Default Python REPL basic hai. **IPython** Node REPL ka steroids wala version samjho:
 
 ```bash
 # Install
@@ -241,26 +244,26 @@ Out[3]: {'slideshow': {'author': 'Yours Truly', ...}}
 In [4]: response.status_code
 Out[4]: 200
 
-# Tab completion (way better than default REPL)
-In [5]: response.<TAB>  # Shows all available methods
+# Tab completion (default REPL se kaafi behtar)
+In [5]: response.<TAB>  # Saare available methods dikhata hai
 
 # Magic commands
 In [6]: %timeit sum(range(1000))
 # 11.5 us per loop
 
-In [7]: %history  # Show command history
+In [7]: %history  # Command history dikhao
 
-# Syntax highlighting, better error messages, auto-indent, and more
+# Syntax highlighting, better error messages, auto-indent, aur bhi bahut kuch
 ```
 
 ### Async REPL
 
 ```bash
-# Node.js: top-level await works in REPL
+# Node.js: REPL mein top-level await kaam karta hai
 node
 > const response = await fetch('https://api.github.com')
 
-# Python: use asyncio REPL
+# Python: asyncio REPL use karo
 python -m asyncio
 # >>> import httpx
 # >>> async with httpx.AsyncClient() as client:
@@ -273,31 +276,31 @@ python -m asyncio
 
 ## Understanding __name__ and "__main__"
 
-This is the most Python-specific concept in this chapter. There's no direct equivalent in Node.js.
+Ye chapter ka sabse zyada Python-specific concept hai. Node.js mein iska koi direct equivalent nahi hai.
 
-### The Problem
+### Problem Kya Hai?
 
-In Node.js, there's no built-in way to know if a file is being run directly or imported:
+Node.js mein, ye pata karne ka koi built-in tarika nahi hai ki file directly run ho rahi hai ya import ki gayi hai:
 
 ```javascript
 // utils.js
 function add(a, b) { return a + b; }
-console.log(add(2, 3));  // Always runs! Even when imported
+console.log(add(2, 3));  // Hamesha chalta hai! Import karne par bhi
 
 // app.js
 const { add } = require('./utils');
-// "5" gets printed just from importing! Not ideal.
+// Sirf import karne se "5" print ho jaata hai! Ideal nahi hai.
 ```
 
-Node.js workaround:
+Node.js ka workaround:
 
 ```javascript
 // utils.js
 function add(a, b) { return a + b; }
 
-// Only run if this is the main module
+// Sirf tab chalao jab ye main module ho
 if (require.main === module) {
-  console.log(add(2, 3));  // Only when run directly
+  console.log(add(2, 3));  // Sirf directly run karne par
 }
 
 // ES modules alternative:
@@ -306,11 +309,13 @@ if (require.main === module) {
 module.exports = { add };
 ```
 
-### Python's Solution: `__name__`
+### Python Ka Solution: `__name__`
 
-Every Python module has a special variable called `__name__`:
-- When run directly: `__name__` equals `"__main__"`
-- When imported: `__name__` equals the module name
+Har Python module mein ek special variable hota hai `__name__`:
+- Jab directly run karo: `__name__` ban jaata hai `"__main__"`
+- Jab import karo: `__name__` module ka naam ban jaata hai
+
+Socho isko ek Zomato order ki tarah — jab tum khud restaurant jaake order karte ho (directly run), aur jab dabbawala tumhara khana kisi aur ke liye deliver kar raha hota hai (import). Same "khana" (code), lekin context alag.
 
 ```python
 # utils.py
@@ -320,52 +325,52 @@ def add(a, b):
 print(f"__name__ is: {__name__}")
 
 if __name__ == "__main__":
-    # This block ONLY runs when the file is executed directly
+    # Ye block SIRF tab chalega jab file directly execute ho
     print(add(2, 3))
 ```
 
 ```bash
-# Run directly
+# Directly run karo
 python utils.py
 # __name__ is: __main__
 # 5
 
-# Import from another file
+# Kisi aur file se import karo
 python -c "import utils"
 # __name__ is: utils
-# (no "5" printed!)
+# (koi "5" print nahi hua!)
 ```
 
-### The Standard Pattern
+### Standard Pattern
 
 ```python
 # my_module.py
 
 def main():
-    """Main function that runs the program logic."""
+    """Main function jo program logic chalata hai."""
     print("Running the main program!")
-    # ... your code here ...
+    # ... tumhara code yahan ...
 
 if __name__ == "__main__":
     main()
 ```
 
-This pattern is so common it's essentially a Python idiom. It:
-1. Makes your file importable as a module (functions are available)
-2. Makes your file runnable as a script (the main logic executes)
-3. Keeps the global scope clean (everything is inside functions)
+Ye pattern itna common hai ki basically Python ka idiom ban chuka hai. Ye:
+1. Tumhari file ko module ki tarah importable banata hai (functions available rehte hain)
+2. Tumhari file ko script ki tarah runnable banata hai (main logic execute hota hai)
+3. Global scope ko clean rakhta hai (sab kuch functions ke andar hota hai)
 
-### How It Works Visually
+### Visually Kaise Kaam Karta Hai
 
 ```mermaid
 flowchart TD
     A["python utils.py"] --> B["__name__ = '__main__'"]
     B --> C["def add(a, b):<br/>    return a + b<br/><br/>if __name__ == '__main__':<br/>    print(add())"]
-    C --> D["✓ TRUE - block runs"]
+    C --> D["✓ TRUE - block chalta hai"]
     
     E["import utils"] --> F["__name__ = 'utils'"]
     F --> G["def add(a, b):<br/>    return a + b<br/><br/>if __name__ == '__main__':<br/>    print(add())"]
-    G --> H["✗ FALSE - block skipped"]
+    G --> H["✗ FALSE - block skip hota hai"]
     
     style D fill:#059669,color:#fff
     style H fill:#dc2626,color:#fff
@@ -375,9 +380,11 @@ flowchart TD
 
 ## Script vs Module Pattern
 
-### Script Pattern (Quick & Dirty)
+**Kyun zaruri hai?** Kabhi tumhe sirf ek quick kaam karna hota hai (jaise ek CSV padhna), aur kabhi tum kuch aisa likhte ho jo baad mein doosri files bhi reuse karengi. Python mein dono ke liye alag pattern hai — bilkul waise hi jaise tum kabhi ek quick `script.js` likhte ho aur kabhi ek proper `utils.js` module `require()` karne ke liye banate ho.
 
-Good for one-off scripts, similar to a simple Node.js script:
+### Script Pattern (Jaldi Aur Simple)
+
+One-off scripts ke liye achha — kisi simple Node.js script jaisa hi:
 
 ```python
 # fetch_data.py
@@ -397,7 +404,7 @@ python fetch_data.py
 
 ### Module Pattern (Proper Structure)
 
-Good for reusable code and larger projects:
+Reusable code aur bade projects ke liye achha:
 
 ```python
 # github.py
@@ -408,14 +415,14 @@ import requests
 BASE_URL = "https://api.github.com"
 
 def get_repo_info(owner: str, repo: str) -> dict:
-    """Fetch repository information from GitHub."""
+    """GitHub se repository ki info fetch karo."""
     url = f"{BASE_URL}/repos/{owner}/{repo}"
     response = requests.get(url)
     response.raise_for_status()
     return response.json()
 
 def format_repo_summary(info: dict) -> str:
-    """Format repo info as a readable summary."""
+    """Repo info ko readable summary mein format karo."""
     return (
         f"Repository: {info['full_name']}\n"
         f"Stars: {info['stargazers_count']:,}\n"
@@ -432,13 +439,13 @@ if __name__ == "__main__":
     main()
 ```
 
-Now it can be used BOTH ways:
+Ab isko DONO tarike se use kar sakte ho:
 
 ```bash
-# As a script
+# Script ki tarah
 python github.py
 
-# As a module (from another file or the REPL)
+# Module ki tarah (kisi aur file se ya REPL se)
 python -c "from github import get_repo_info; print(get_repo_info('python', 'cpython')['stargazers_count'])"
 ```
 
@@ -459,7 +466,7 @@ Stars: ${info.stargazers_count.toLocaleString()}
 Language: ${info.language}`;
 }
 
-// Only run if this is the main module
+// Sirf tab chalao jab ye main module ho
 if (require.main === module) {
   (async () => {
     const info = await getRepoInfo("nodejs", "node");
@@ -495,12 +502,12 @@ if __name__ == "__main__":
 
 ### Package Pattern (__main__.py)
 
-For packages (directories with `__init__.py`), you can add a `__main__.py` to make the package runnable:
+Packages ke liye (directories jinme `__init__.py` ho), tum `__main__.py` add karke pura package hi runnable bana sakte ho:
 
 ```
 my_package/
-    __init__.py      # Makes it a package
-    __main__.py      # Makes it runnable with: python -m my_package
+    __init__.py      # Isko package banata hai
+    __main__.py      # Isse runnable banata hai: python -m my_package
     core.py
     utils.py
 ```
@@ -514,10 +521,10 @@ if __name__ == "__main__":
 ```
 
 ```bash
-# Run the package
+# Package run karo
 python -m my_package
 
-# This is like having "main" in package.json:
+# Ye bilkul waisa hi hai jaise package.json mein "main" hota hai:
 # "main": "index.js"  ->  __main__.py
 ```
 
@@ -525,7 +532,7 @@ python -m my_package
 
 ## Shebang Lines
 
-Shebang lines let you run scripts directly (without typing `python` first) on macOS/Linux. Not relevant on Windows, but good to know.
+Shebang lines tumhe scripts ko directly run karne dete hain (pehle `python` type kiye bina) macOS/Linux par. Windows par relevant nahi, lekin jaan lena achha hai.
 
 ### Node.js
 
@@ -537,7 +544,7 @@ console.log("Hello from Node!");
 
 ```bash
 chmod +x cli.js
-./cli.js           # Runs with node
+./cli.js           # node se run hota hai
 ```
 
 ### Python
@@ -556,30 +563,32 @@ if __name__ == "__main__":
 
 ```bash
 chmod +x cli.py
-./cli.py           # Runs with python3
+./cli.py           # python3 se run hota hai
 ```
 
-### Why `#!/usr/bin/env python3`?
+### `#!/usr/bin/env python3` Kyun?
 
-- `#!/usr/bin/env python3` -- Finds `python3` in `PATH` (works with pyenv, venv, etc.)
-- `#!/usr/bin/python3` -- Hardcoded path (might not match your pyenv/venv Python)
+- `#!/usr/bin/env python3` -- `PATH` mein `python3` dhoondh leta hai (pyenv, venv sabke saath kaam karta hai)
+- `#!/usr/bin/python3` -- Hardcoded path (tumhare pyenv/venv Python se match na kare, ho sakta hai)
 
-Always use the `env` variant. It respects your virtual environment and pyenv setup.
+Hamesha `env` wala variant use karo. Ye tumhare virtual environment aur pyenv setup ko respect karta hai.
 
 ### Encoding Declaration (Optional)
 
-You might see this in older Python files:
+Purani Python files mein ye dikh sakta hai:
 
 ```python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 ```
 
-This is unnecessary in Python 3 (UTF-8 is the default), but you'll encounter it in legacy code.
+Python 3 mein ye zaruri nahi hai (UTF-8 already default hai), lekin legacy code mein ye milega.
 
 ---
 
 ## Command-Line Arguments
+
+**Kya hota hai?** Jab tum terminal se script chalate ho, tum usko extra info bhi pass kar sakte ho — bilkul jaise `npm run build -- --prod` mein `--prod` flag pass karte ho, ya IRCTC ki website pe form fields fill karte ho. Python mein ye "arguments" `sys.argv` ya `argparse` ke through milte hain.
 
 ### Node.js
 
@@ -598,16 +607,16 @@ console.log("Arguments:", args);
 # cli.py
 import sys
 
-args = sys.argv[1:]  # sys.argv[0] is the script name
+args = sys.argv[1:]  # sys.argv[0] script ka naam hota hai
 print("Arguments:", args)
 
 # python cli.py hello world
 # Arguments: ['hello', 'world']
 ```
 
-### Python (With argparse -- Built-in)
+### Python (argparse Ke Saath -- Built-in)
 
-Python has a powerful built-in argument parser (Node.js needs `commander` or `yargs`):
+Python mein ek powerful built-in argument parser hota hai (Node.js mein iske liye `commander` ya `yargs` chahiye hota hai):
 
 ```python
 # cli.py
@@ -656,7 +665,7 @@ python cli.py --help
 #   -v, --verbose         Verbose output
 ```
 
-Compare to the equivalent in Node.js with `commander`:
+Compare karo `commander` wale Node.js equivalent se:
 
 ```javascript
 // cli.js (Node.js with commander)
@@ -679,25 +688,25 @@ program
 program.parse();
 ```
 
-Python's `argparse` is built-in -- no extra dependency needed.
+Python ka `argparse` built-in hai — koi extra dependency nahi chahiye.
 
 ---
 
 ## Putting It All Together
 
-Here's a complete, well-structured Python script that demonstrates all the concepts from this chapter:
+Ye raha ek complete, well-structured Python script jo is chapter ke saare concepts dikhata hai:
 
 ```python
 #!/usr/bin/env python3
 """
 Todo List Manager - A simple CLI tool.
 
-This demonstrates:
+Ye demonstrate karta hai:
 - Shebang line
 - Module docstring
 - __name__ guard
-- argparse for CLI args
-- Functions with type hints
+- CLI args ke liye argparse
+- Type hints wale functions
 - f-strings
 - File I/O
 """
@@ -710,17 +719,17 @@ from pathlib import Path
 TODO_FILE = Path("todos.json")
 
 def load_todos() -> list[dict]:
-    """Load todos from the JSON file."""
+    """JSON file se todos load karo."""
     if TODO_FILE.exists():
         return json.loads(TODO_FILE.read_text())
     return []
 
 def save_todos(todos: list[dict]) -> None:
-    """Save todos to the JSON file."""
+    """Todos ko JSON file mein save karo."""
     TODO_FILE.write_text(json.dumps(todos, indent=2))
 
 def add_todo(title: str, priority: str = "medium") -> dict:
-    """Add a new todo item."""
+    """Ek naya todo item add karo."""
     todos = load_todos()
     todo = {
         "id": len(todos) + 1,
@@ -733,14 +742,14 @@ def add_todo(title: str, priority: str = "medium") -> dict:
     return todo
 
 def list_todos(show_done: bool = False) -> list[dict]:
-    """List all todos, optionally including completed ones."""
+    """Saare todos list karo, optionally completed wale bhi."""
     todos = load_todos()
     if not show_done:
         todos = [t for t in todos if not t["done"]]
     return todos
 
 def complete_todo(todo_id: int) -> dict | None:
-    """Mark a todo as complete."""
+    """Ek todo ko complete mark karo."""
     todos = load_todos()
     for todo in todos:
         if todo["id"] == todo_id:
@@ -750,7 +759,7 @@ def complete_todo(todo_id: int) -> dict | None:
     return None
 
 def display_todos(todos: list[dict]) -> None:
-    """Pretty-print the todo list."""
+    """Todo list ko pretty-print karo."""
     if not todos:
         print("No todos found!")
         return
@@ -801,7 +810,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Usage:
+Use kaise karein:
 
 ```bash
 python todo.py add "Learn Python" -p high
@@ -828,55 +837,55 @@ python todo.py list --all
 
 ### Exercise 1: Hello World Variations
 
-Create a file called `hello.py`:
+Ek file banao `hello.py`:
 
 ```python
-# 1. Print "Hello, World!"
-# 2. Print your name using an f-string
-# 3. Print the Python version (hint: import sys; sys.version)
-# 4. Print the current working directory (hint: import os; os.getcwd())
+# 1. "Hello, World!" print karo
+# 2. F-string use karke apna naam print karo
+# 3. Python version print karo (hint: import sys; sys.version)
+# 4. Current working directory print karo (hint: import os; os.getcwd())
 ```
 
-Run it with:
+Isse run karo:
 ```bash
 python hello.py
 ```
 
-Then try the same commands in the REPL:
+Phir REPL mein bhi wahi commands try karo:
 ```bash
 python
->>> # type each command interactively
+>>> # har command ko interactively type karo
 ```
 
-### Exercise 2: Explore the REPL
+### Exercise 2: REPL Explore Karo
 
-Start the Python REPL and try these:
+Python REPL start karo aur ye try karo:
 
 ```python
 # 1. Basic math
->>> 2 ** 100                   # Python handles big numbers natively!
+>>> 2 ** 100                   # Python bade numbers natively handle karta hai!
 
 # 2. String operations
 >>> "Python" * 5
 >>> "hello world".title()
 >>> "hello world".split()
 
-# 3. Import and explore
+# 3. Import aur explore
 >>> import os
->>> dir(os)                     # List everything in the os module
->>> help(os.path.join)          # Read the docs
+>>> dir(os)                     # os module mein sab kuch list karo
+>>> help(os.path.join)          # Docs padho
 
 # 4. Quick data processing
 >>> numbers = list(range(1, 11))
 >>> [n ** 2 for n in numbers if n % 2 == 0]
 
-# 5. The Zen of Python (Easter egg!)
+# 5. Zen of Python (Easter egg!)
 >>> import this
 ```
 
 ### Exercise 3: __name__ Guard
 
-Create two files:
+Do files banao:
 
 **math_utils.py:**
 ```python
@@ -886,13 +895,13 @@ def add(a, b):
 def multiply(a, b):
     return a * b
 
-# Add a __name__ guard that:
-# 1. Prints "Running math_utils directly"
-# 2. Tests add(2, 3) and multiply(4, 5)
-# 3. Prints the results
+# Ek __name__ guard add karo jo:
+# 1. "Running math_utils directly" print kare
+# 2. add(2, 3) aur multiply(4, 5) test kare
+# 3. Results print kare
 
 if __name__ == "__main__":
-    # Your code here
+    # Yahan apna code likho
     pass
 ```
 
@@ -900,30 +909,30 @@ if __name__ == "__main__":
 ```python
 from math_utils import add, multiply
 
-# Use the imported functions
-# Verify that "Running math_utils directly" is NOT printed
+# Imported functions use karo
+# Verify karo ki "Running math_utils directly" print NAHI hota
 print(f"2 + 3 = {add(2, 3)}")
 print(f"4 * 5 = {multiply(4, 5)}")
 ```
 
-Test both:
+Dono test karo:
 ```bash
-python math_utils.py    # Should show "Running math_utils directly" + results
-python app.py           # Should only show app.py output, no message from math_utils
+python math_utils.py    # "Running math_utils directly" + results dikhna chahiye
+python app.py           # Sirf app.py ka output dikhna chahiye, math_utils se koi message nahi
 ```
 
-### Exercise 4: Build a CLI Tool
+### Exercise 4: CLI Tool Banao
 
-Create `converter.py` -- a temperature converter CLI tool:
+`converter.py` banao — ek temperature converter CLI tool:
 
-Requirements:
-1. Use `argparse` for CLI arguments
-2. Accept a temperature value and a unit (C or F)
-3. Convert and display the result
-4. Include a `--round` flag to specify decimal places
-5. Use the `__name__` guard
+Requirements (kya chahiye):
+1. CLI arguments ke liye `argparse` use karo
+2. Ek temperature value aur unit (C ya F) accept karo
+3. Convert karke result dikhao
+4. Decimal places specify karne ke liye ek `--round` flag include karo
+5. `__name__` guard use karo
 
-Expected usage:
+Expected output:
 ```bash
 python converter.py 100 C
 # 100.0C = 212.0F
@@ -932,7 +941,7 @@ python converter.py 72 F --round 1
 # 72.0F = 22.2C
 
 python converter.py --help
-# (shows help text)
+# (help text dikhata hai)
 ```
 
 <details>
@@ -974,28 +983,28 @@ if __name__ == "__main__":
 
 ### Exercise 5: Module + Script Combo
 
-Create a mini-project with this structure:
+Is structure ka ek mini-project banao:
 
 ```
 my_first_project/
-    greetings.py       # Module with greeting functions
-    main.py            # Script that uses greetings module
+    greetings.py       # Greeting functions wala module
+    main.py            # greetings module use karne wala script
 ```
 
-**greetings.py** should:
-- Define `hello(name)` that returns `"Hello, {name}!"`
-- Define `goodbye(name)` that returns `"Goodbye, {name}!"`
-- Define `formal_greeting(name, title="Mr.")` that returns `"Good day, {title} {name}."`
-- Have a `__name__` guard that demonstrates all three functions
+**greetings.py** mein ye hona chahiye:
+- `hello(name)` define karo jo `"Hello, {name}!"` return kare
+- `goodbye(name)` define karo jo `"Goodbye, {name}!"` return kare
+- `formal_greeting(name, title="Mr.")` define karo jo `"Good day, {title} {name}."` return kare
+- Ek `__name__` guard ho jo teeno functions demonstrate kare
 
-**main.py** should:
-- Import from `greetings`
-- Use `argparse` to accept a name and an optional `--formal` flag
-- Print the appropriate greeting
+**main.py** mein ye hona chahiye:
+- `greetings` se import karo
+- Naam aur optional `--formal` flag accept karne ke liye `argparse` use karo
+- Appropriate greeting print karo
 
 ```bash
 python greetings.py
-# (demonstrates all three functions)
+# (teeno functions demonstrate karta hai)
 
 python main.py Alice
 # Hello, Alice!
@@ -1009,15 +1018,15 @@ python main.py Alice --formal --title Dr.
 
 ---
 
-**Congratulations!** You've completed the Quick Start guide. You now know how to:
+**Badhai ho!** Tumne Quick Start guide complete kar li. Ab tumhe pata hai:
 
-- Install and manage Python versions (like nvm)
-- Create virtual environments (like node_modules)
-- Manage packages with pip and Poetry (like npm)
-- Read Python syntax as a JavaScript/TypeScript developer
-- Write, run, and structure Python scripts and modules
+- Python versions install aur manage karna (jaise nvm)
+- Virtual environments banana (jaise node_modules)
+- pip aur Poetry se packages manage karna (jaise npm)
+- JavaScript/TypeScript developer ki tarah Python syntax padhna
+- Python scripts aur modules likhna, run karna, aur structure karna
 
-**Suggested next steps:**
-- Build a small project (REST API with Flask or FastAPI)
-- Read through the [Python Tutorial](https://docs.python.org/3/tutorial/) for deeper coverage
-- Explore Python-specific features: generators, decorators, context managers, dataclasses
+**Aage kya karein:**
+- Ek chhota project banao (Flask ya FastAPI ke saath REST API)
+- Zyada depth ke liye [Python Tutorial](https://docs.python.org/3/tutorial/) padho
+- Python-specific features explore karo: generators, decorators, context managers, dataclasses

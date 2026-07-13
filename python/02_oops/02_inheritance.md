@@ -1,12 +1,12 @@
 # Inheritance
 
-> Python inheritance for Node.js/TypeScript developers
+> Python inheritance, Node.js/TypeScript devs ke liye
 
 ---
 
 ## Single Inheritance
 
-Python uses parentheses instead of `extends`. The concept is the same.
+Python mein `extends` nahi hota, parentheses `()` se kaam chal jaata hai. Concept bilkul same hai jo tum TS mein already jaante ho.
 
 ```python
 # Python
@@ -49,6 +49,8 @@ class Dog extends Animal {
 ```
 
 ### Real-World Example: HTTP Errors
+
+Har backend dev ne yeh pattern kabhi na kabhi likha hai — ek base `AppError`, aur usse extend karke specific errors. Zomato ke backend mein bhi kuch aisa hi hoga: `OrderNotFoundError`, `PaymentFailedError`, waghera — sab ek common `AppError` se banate hain.
 
 ```python
 class AppError(Exception):
@@ -142,7 +144,7 @@ class NotFoundError extends AppError {
 
 ## `super().__init__()` vs `super()`
 
-In Python 3, `super()` works without arguments (in Python 2 you needed `super(ClassName, self)`). You must explicitly call `super().__init__()` -- it is NOT called automatically.
+Python 3 mein `super()` bina kisi argument ke chalta hai (Python 2 mein `super(ClassName, self)` likhna padta tha). Lekin yaad rakho — `super().__init__()` ko explicitly call karna padta hai, yeh automatically nahi hota.
 
 ```python
 class Base:
@@ -167,7 +169,7 @@ print(c.base_value)   # 42
 print(c.child_value)  # 100
 ```
 
-This is the same as TypeScript where you must call `super()` before using `this` in a subclass constructor. The difference: TypeScript enforces this at compile time; Python only fails at runtime if you try to use an attribute that was never set.
+Yeh bilkul TypeScript jaisa hi hai, jahan subclass ke constructor mein `this` use karne se pehle `super()` call karna zaruri hota hai. Fark sirf itna hai: TypeScript yeh compile time pe hi enforce kar deta hai, jabki Python sirf runtime pe fail hota hai — jab tum kisi aise attribute ko access karo jo kabhi set hi nahi hua.
 
 ```python
 # Forgetting super().__init__() - silent bug
@@ -181,11 +183,14 @@ print(c.child_value)  # 100 - works fine
 print(c.base_value)   # AttributeError: 'BrokenChild' has no attribute 'base_value'
 ```
 
+> [!warning]
+> Yeh ek classic silent bug hai. `super().__init__()` bhool jaoge to code chalta rahega bina kisi error ke — jab tak tum us missing attribute ko touch nahi karte. TypeScript compiler tumhe yeh chance hi nahi deta, Python deta hai. Isliye habit banao: har subclass ke `__init__` mein sabse pehli line `super().__init__()` rakho.
+
 ---
 
 ## Method Overriding
 
-Override a parent method by defining a method with the same name. No `override` keyword needed (though Python 3.12+ has `typing.override` decorator for static type checkers).
+Parent ke method ko override karna hai to bas same naam se method define kar do child class mein. Koi `override` keyword ki zarurat nahi hai (haan, Python 3.12+ mein `typing.override` decorator hai jo static type checkers ke liye hint deta hai).
 
 ```python
 from typing import override  # Python 3.12+
@@ -245,11 +250,15 @@ repo.find_by_id("u1")  # fetches from _data
 repo.find_by_id("u1")  # Cache hit for u1
 ```
 
+Dekho, `super().find_by_id(id)` bilkul waisa hi hai jaise tum TS mein `super.findById(id)` likh kar parent ka implementation call karte ho aur usko extend karte ho — Redis cache ke aage DB ko fallback ki tarah rakhne wala classic pattern.
+
 ---
 
 ## Multiple Inheritance
 
-**This is a major difference from JavaScript/TypeScript.** Python supports multiple inheritance natively. JS does not.
+**Yeh JavaScript/TypeScript se sabse bada fark hai.** Python natively multiple inheritance support karta hai — matlab ek class ek saath do ya usse zyada parent classes se inherit kar sakti hai. JS mein aisa kuch nahi hota.
+
+Socho ek delivery app ka `Order` class — usko JSON mein convert bhi hona hai, log bhi karna hai, aur validate bhi. Python mein tum seedha teeno cheezein alag-alag class mein likh kar ek saath "mix" kar sakte ho.
 
 ```python
 class JSONSerializable:
@@ -315,7 +324,7 @@ bad_order = Order("", "", -10)
 print(bad_order.validate())  # ['order_id is required', 'amount must be positive', 'customer is required']
 ```
 
-In TypeScript, you would need to use mixins, composition, or interfaces to achieve this:
+TypeScript mein yeh karna hota to interfaces, mixins ya composition ka sahara lena padta:
 
 ```typescript
 // TypeScript - no multiple inheritance, use interfaces + mixins
@@ -336,7 +345,7 @@ interface Loggable {
 
 ## Method Resolution Order (MRO) - C3 Linearization
 
-When a class inherits from multiple parents, Python needs to decide which method to call when there is a conflict. It uses the **C3 linearization algorithm** to create a deterministic order.
+Jab ek class multiple parents se inherit karti hai, aur do parents ke paas same naam ka method ho, to Python kaise decide karega kaunsa method call hoga? Iske liye Python **C3 linearization algorithm** use karta hai jo ek deterministic order banata hai — isi order ko **MRO** kehte hain.
 
 ```python
 class A:
@@ -367,14 +376,16 @@ print(D.mro())
 # [<class 'D'>, <class 'B'>, <class 'C'>, <class 'A'>, <class 'object'>]
 ```
 
-The MRO follows this logic:
-1. The class itself comes first
-2. Then parents in the order listed: `class D(B, C)` means B before C
-3. Each class appears only once
-4. A class always appears before its parents
-5. The base `object` class is always last
+MRO ka logic simple hai:
+1. Class khud sabse pehle aati hai
+2. Fir parents wahi order mein jis order mein likhe gaye: `class D(B, C)` matlab B pehle, C baad mein
+3. Har class sirf ek baar appear karti hai
+4. Ek class hamesha apne parent se pehle aati hai
+5. Base `object` class hamesha sabse last mein hoti hai
 
 ### The Diamond Problem
+
+Yeh wo classic "diamond" scenario hai — jaise ek delivery partner do teams (Left aur Right) se instructions leta hai, lekin dono teams ka source ek hi HQ (Base) hai. Sawaal yeh hai: HQ ka instruction kitni baar chalega?
 
 ```python
 class Base:
@@ -408,7 +419,7 @@ print(Diamond.__mro__)
 # (Diamond, Left, Right, Base, object)
 ```
 
-`super()` in Python follows the MRO, not just the immediate parent. This is why `Base.__init__` is called only once even though both `Left` and `Right` inherit from it. This is called **cooperative multiple inheritance**.
+`super()` Python mein immediate parent ko nahi, balki poori MRO chain ko follow karta hai. Isi wajah se `Base.__init__` sirf ek hi baar call hota hai, chahe `Left` aur `Right` dono `Base` se inherit karte hon. Isko hi **cooperative multiple inheritance** kehte hain.
 
 ---
 
@@ -454,6 +465,9 @@ console.log(dog instanceof Cat);    // false
 // You'd need: dog instanceof Dog || dog instanceof Cat
 ```
 
+> [!tip]
+> `isinstance(dog, (Dog, Cat))` wala trick bahut kaam ka hai — JS mein iske liye tumhe do baar `instanceof` likh kar `||` se jodna padta, Python mein ek tuple pass kar do, kaam khatam.
+
 ### Practical example: Error handling
 
 ```python
@@ -473,7 +487,9 @@ except AppError as e:
 
 ## Mixins Pattern
 
-Mixins are classes designed to be "mixed in" to other classes via multiple inheritance. They add functionality without being standalone. This is a common Python pattern that replaces interface + implementation in TypeScript.
+Mixins wo classes hoti hain jo khud standalone use nahi hoti, balki multiple inheritance ke zariye doosri classes mein "mix" ki jaati hain taaki unhe extra functionality mil jaaye. Yeh Python ka bahut common pattern hai jo TypeScript ke interface + implementation combo ki jagah leta hai.
+
+Socho tumhe UPI transaction model banana hai jisme timestamp tracking bhi chahiye, soft-delete bhi, aur audit trail bhi — teeno alag-alag mixins bana lo aur ek model mein mix kar do.
 
 ```python
 import time
@@ -556,11 +572,11 @@ print(user)              # User(u1, Alice, ACTIVE)
 
 ### Mixin Best Practices
 
-1. Mixins should be **small and focused** - one responsibility each
-2. Name them with a `Mixin` suffix for clarity
-3. Mixins should NOT have their own `__init__` that requires arguments (use init methods instead, or use `**kwargs` with cooperative `super()` calls)
-4. They should not depend on each other
-5. List mixins before the base class: `class Foo(MixinA, MixinB, BaseClass)`
+1. Mixins **chhote aur focused** hone chahiye — ek mixin, ek hi responsibility
+2. Naam ke aage `Mixin` suffix lagao, taaki clarity rahe
+3. Mixins ke apne `__init__` mein arguments nahi hone chahiye (uske bajaye init methods use karo, ya `**kwargs` ke saath cooperative `super()` calls)
+4. Mixins ek doosre pe depend nahi karne chahiye
+5. Mixins ko base class se pehle list karo: `class Foo(MixinA, MixinB, BaseClass)`
 
 ---
 
@@ -568,7 +584,7 @@ print(user)              # User(u1, Alice, ACTIVE)
 
 ### Exercise 1: Plugin System
 
-Create a plugin system with inheritance:
+Inheritance ke saath ek plugin system banao:
 
 ```python
 class BasePlugin:
@@ -581,31 +597,31 @@ class BasePlugin:
     def cleanup(self) -> None: ...
 ```
 
-Create three plugins: `TransformPlugin`, `ValidationPlugin`, `LoggingPlugin`. Each should override the methods. Create a `PluginManager` class that can register, execute, and manage plugins.
+Teen plugins banao: `TransformPlugin`, `ValidationPlugin`, `LoggingPlugin`. Har ek apne methods override kare. Ek `PluginManager` class banao jo plugins ko register, execute aur manage kar sake.
 
 ### Exercise 2: Multiple Inheritance - Middleware Chain
 
-Build a middleware system using mixins:
-- `CORSMixin` - adds CORS headers to response
-- `AuthMixin` - validates auth tokens
-- `RateLimitMixin` - tracks request counts
-- `RequestHandler(CORSMixin, AuthMixin, RateLimitMixin)` - combines all
+Mixins use karke ek middleware system banao:
+- `CORSMixin` — response mein CORS headers add kare
+- `AuthMixin` — auth tokens validate kare
+- `RateLimitMixin` — request counts track kare
+- `RequestHandler(CORSMixin, AuthMixin, RateLimitMixin)` — teeno ko combine kare
 
-Test the MRO and verify each mixin's methods are accessible.
+MRO test karo aur verify karo ki har mixin ke methods accessible hain.
 
 ### Exercise 3: Error Hierarchy
 
-Build a comprehensive error hierarchy for an API:
-- `AppError(Exception)` - base with `status_code`, `message`, `to_dict()`
-- `ClientError(AppError)` - 4xx errors
-- `ServerError(AppError)` - 5xx errors
+Ek API ke liye ek comprehensive error hierarchy banao:
+- `AppError(Exception)` — base with `status_code`, `message`, `to_dict()`
+- `ClientError(AppError)` — 4xx errors
+- `ServerError(AppError)` — 5xx errors
 - Specific errors: `NotFoundError`, `ConflictError`, `BadRequestError`, `InternalError`, `ServiceUnavailableError`
 
-Each should have sensible defaults and be usable in try/except blocks with `isinstance` checks. Write the equivalent TypeScript error hierarchy and compare the number of lines.
+Har ek ke sensible defaults hone chahiye aur try/except blocks mein `isinstance` checks ke saath use ho sake. Isi ka TypeScript equivalent error hierarchy bhi likho aur lines of code compare karo.
 
 ### Exercise 4: Inspect MRO
 
-Given this class hierarchy, predict the MRO before running it:
+Neeche di gayi class hierarchy dekho, run karne se pehle MRO predict karo:
 
 ```python
 class A:
@@ -632,12 +648,12 @@ class F(D, E):
 
 ---
 
-## Key Takeaways for Node.js Developers
+## Key Takeaways
 
-1. **`class Child(Parent)`** instead of `class Child extends Parent`
-2. **`super().__init__()`** must be called explicitly (like `super()` in TS constructors)
-3. **Multiple inheritance is real** - Python supports it natively with MRO
-4. **MRO determines method lookup order** - left to right in the parent list
-5. **Mixins replace interfaces + implementation** - more powerful than TS interfaces
-6. **`isinstance()` and `issubclass()`** replace `instanceof` with more flexibility
-7. **No `override` keyword enforced at runtime** - use `typing.override` for static checking
+- **`class Child(Parent)`** — `class Child extends Parent` ki jagah yeh syntax use hota hai
+- **`super().__init__()`** explicitly call karna padta hai (TS constructors ke `super()` jaisa hi)
+- **Multiple inheritance real hai** — Python natively support karta hai, MRO ke saath
+- **MRO method lookup order decide karta hai** — parent list mein left se right
+- **Mixins interfaces + implementation ki jagah lete hain** — TS interfaces se zyada powerful
+- **`isinstance()` aur `issubclass()`** — `instanceof` se zyada flexible replacement
+- **`override` keyword runtime pe enforce nahi hota** — static checking ke liye `typing.override` use karo

@@ -1,6 +1,6 @@
 # Advanced Python
 
-This section takes you beyond Python basics into the patterns and features that professional Python developers use daily — type safety, async programming, concurrency, iterators, decorators, and functional style. It is written for developers who already know JavaScript/TypeScript and want to understand how these concepts translate (and where they diverge) in Python.
+Chalo ab Python basics se aage badhte hain — is section mein wahi patterns aur features cover honge jo professional Python developers roz use karte hain: type safety, async programming, concurrency, iterators, decorators, aur functional style. Ye tumhare liye likha gaya hai — ek developer jo already JavaScript/TypeScript jaanta hai aur ye samajhna chahta hai ki ye concepts Python mein kaise translate hote hain (aur kahan alag hote hain).
 
 ## Table of Contents
 
@@ -25,60 +25,62 @@ This section takes you beyond Python basics into the patterns and features that 
 
 ## Learning Path
 
-### Beginner Track
-Start here if you are comfortable with Python basics but new to its type system or generators.
+Sabse pehla sawaal — kahan se shuru karein? Neeche teen tracks hain, apne comfort level ke hisaab se pick karo.
 
-1. Type Hints (ch. 1) — make your code self-documenting and tooling-friendly
-2. Advanced Types (ch. 2) — Protocols and dataclasses for structured data
-3. Iterators and Generators (ch. 3) — understand Python's iteration model
+### Beginner Track
+Agar Python basics mein comfortable ho, lekin type system ya generators naye lagte hain, to yahan se start karo.
+
+1. Type Hints (ch. 1) — apna code self-documenting aur tooling-friendly banao
+2. Advanced Types (ch. 2) — structured data ke liye Protocols aur dataclasses
+3. Iterators and Generators (ch. 3) — Python ka iteration model samjho
 
 ### Intermediate Track
-Suitable if you have written some Python but want to understand async and resource management properly.
+Agar thoda Python likh chuke ho, lekin async aur resource management theek se samajhna hai, to ye track tumhare liye hai.
 
-4. Context Managers (ch. 4) — safe resource handling patterns
-5. Async/Await (ch. 5) — the critical conceptual shift from Node.js
-6. Async Patterns (ch. 6) — real-world async idioms and pitfalls
-7. Advanced Decorators (ch. 8) — metaprogramming without the magic
+4. Context Managers (ch. 4) — resources ko safely handle karne ke patterns
+5. Async/Await (ch. 5) — Node.js se sabse bada conceptual shift yahin hai
+6. Async Patterns (ch. 6) — real-world async idioms aur unme padne wale pitfalls
+7. Advanced Decorators (ch. 8) — metaprogramming, magic ke bina
 
 ### Advanced Track
-For developers building production systems or wanting to understand Python's concurrency model deeply.
+Agar production systems banate ho ya Python ka concurrency model deeply samajhna chahte ho, to ye tumhara track hai.
 
-8. Concurrency (ch. 7) — threads vs processes, the GIL, when to use each
+8. Concurrency (ch. 7) — threads vs processes, GIL, kab kya use karna hai
 9. Functional Programming (ch. 9) — Pythonic functional style, lazy evaluation, immutable data
 
 ---
 
 ## What You'll Learn
 
-- How Python's type hint system compares to TypeScript, and how to use `mypy` effectively
-- The difference between `Protocol`, `TypedDict`, dataclasses, and when to reach for each
-- How iterators and generators work under the hood, and how to write memory-efficient pipelines
-- The `with` statement and how to write your own context managers using both classes and `contextlib`
-- Why Python's async model is fundamentally different from Node.js, and how to avoid the "two worlds" trap
-- Production async patterns: semaphores, bounded concurrency, timeout handling
-- The GIL, when threading actually helps, and when to use multiprocessing instead
-- How to write decorators with parameters, stack multiple decorators, and preserve metadata with `functools.wraps`
-- Functional programming the Pythonic way: comprehensions over `map`/`filter`, lazy `itertools` pipelines, immutable frozen dataclasses
+- Python ka type hint system TypeScript se kaise compare hota hai, aur `mypy` ko effectively kaise use karein
+- `Protocol`, `TypedDict`, dataclasses mein kya farak hai, aur kab kaunsa use karna chahiye
+- Iterators aur generators internally kaise kaam karte hain, aur memory-efficient pipelines kaise likhein
+- `with` statement kya hai aur apne khud ke context managers — classes se ya `contextlib` se — kaise banayein
+- Python ka async model Node.js se fundamentally alag kyun hai, aur "two worlds" trap se kaise bachein
+- Production mein use hone wale async patterns: semaphores, bounded concurrency, timeout handling
+- GIL kya hai, threading kab actually kaam aati hai, aur kab multiprocessing use karna chahiye
+- Parameters wale decorators kaise likhein, multiple decorators ko stack kaise karein, aur `functools.wraps` se metadata preserve kaise karein
+- Functional programming ka Pythonic tareeka: `map`/`filter` ke bajaye comprehensions, lazy `itertools` pipelines, immutable frozen dataclasses
 
 ---
 
 ## Prerequisites
 
-- Comfortable with Python syntax, functions, classes, and basic OOP
-- Familiarity with JavaScript or TypeScript is assumed throughout — examples include side-by-side comparisons
-- Python 3.10+ recommended (several chapters use `X | Y` union syntax and `match` statements)
-- `pip install mypy aiohttp` for hands-on work with the type checking and async chapters
+- Python syntax, functions, classes, aur basic OOP mein comfortable ho
+- JavaScript ya TypeScript ki jaan-pehchaan already maan li gayi hai — examples mein side-by-side comparisons diye gaye hain
+- Python 3.10+ recommended hai (kai chapters `X | Y` union syntax aur `match` statements use karte hain)
+- Type checking aur async chapters ke hands-on practice ke liye `pip install mypy aiohttp` chala lena
 
 ---
 
 ## How to Use This Guide
 
-1. **Follow the tracks, not just the order.** If you already know generators, skip to chapter 4. The tracks on the learning path above tell you what each chapter depends on.
-2. **Run the examples yourself.** Every code block is copy-pasteable. Async and concurrency concepts only click once you see the timings with your own eyes.
-3. **Do the exercises.** Each chapter ends with five graded exercises — they are the most efficient way to expose gaps in your mental model.
-4. **Use the TypeScript comparisons as anchors.** The side-by-side comparisons are there because the concepts exist in both languages even when the syntax differs wildly. Lean on them.
-5. **Check types with mypy as you go.** After chapter 1, run `mypy --strict` on your exercise solutions. Seeing real type errors is the fastest way to internalize the system.
+1. **Tracks follow karo, sirf order nahi.** Agar generators pehle se aate hain, to seedha chapter 4 pe jump karo. Upar diye learning path ke tracks batate hain ki kaunsa chapter kis pe depend karta hai.
+2. **Examples khud run karo.** Har code block copy-paste karne layak hai. Async aur concurrency concepts tabhi click karte hain jab apni aankhon se timings dekho.
+3. **Exercises zaroor karo.** Har chapter ke end mein paanch graded exercises hain — apne mental model ke gaps dhundhne ka sabse efficient tareeka yahi hai.
+4. **TypeScript comparisons ko anchor bana lo.** Side-by-side comparisons isliye diye gaye hain kyunki concepts dono languages mein exist karte hain, chahe syntax kitna bhi alag kyun na ho. Inpe bharosa karo.
+5. **Aage badhte hue mypy se types check karte raho.** Chapter 1 ke baad, apne exercise solutions pe `mypy --strict` chalao. Real type errors dekhna hi system ko internalize karne ka sabse tez tareeka hai.
 
 ---
 
-Master these nine chapters and you will write Python that is correct, readable, and production-ready — not just Python that runs.
+Ye naun chapters master kar lo, tumhara Python code correct, readable, aur production-ready hoga — sirf "chalne wala" Python nahi.

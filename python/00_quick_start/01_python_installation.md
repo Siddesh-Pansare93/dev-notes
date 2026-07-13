@@ -1,83 +1,85 @@
 # 01 - Python Installation & Version Management
 
-> **For Node.js developers:** Think of `pyenv` as Python's `nvm`. If you've used `nvm` to manage Node.js versions, you already understand the concept.
+> **Node.js developers ke liye:** `pyenv` ko Python ka `nvm` samjho. Agar tumne kabhi Node.js versions manage karne ke liye `nvm` use kiya hai, toh yeh concept tumhe turant samajh aa jayega.
 
 ---
 
 ## Table of Contents
 
-1. [Why Version Management Matters](#why-version-management-matters)
-2. [Installing Python Directly](#installing-python-directly)
-3. [pyenv: The nvm of Python](#pyenv-the-nvm-of-python)
+1. [Version Management Kyun Zaruri Hai](#why-version-management-matters)
+2. [Python Directly Install Karna](#installing-python-directly)
+3. [pyenv: Python ka nvm](#pyenv-the-nvm-of-python)
 4. [pyenv Commands vs nvm Commands](#pyenv-commands-vs-nvm-commands)
-5. [Setting Global and Local Versions](#setting-global-and-local-versions)
-6. [Verifying Your Setup](#verifying-your-setup)
+5. [Global aur Local Versions Set Karna](#setting-global-and-local-versions)
+6. [Apna Setup Verify Karna](#verifying-your-setup)
 7. [Practice Exercises](#practice-exercises)
 
 ---
 
 ## Why Version Management Matters
 
-As a Node.js developer, you know the pain of different projects requiring different Node versions. Python has the same challenge. Some projects need Python 3.9, others need 3.12, and legacy code might even need 3.8.
+Node.js developer hone ke naate tumhe pata hi hoga — alag-alag projects ko alag-alag Node versions chahiye hote hain. Python mein bhi bilkul yahi dard hai. Kuch projects ko Python 3.9 chahiye, kuch ko 3.12, aur koi purana legacy code toh 3.8 tak maang sakta hai.
+
+Socho ek company mein 5 saal purana ek microservice chal raha hai jo Python 3.8 pe bana tha, aur naya wala jo tumne abhi likha hai woh 3.12 ki fancy features use karta hai. Dono ek hi machine pe chalane hain — isliye version management zaruri hai.
 
 | Concept | Node.js | Python |
 |---|---|---|
 | Version manager | `nvm` | `pyenv` |
 | Runtime | `node` | `python` / `python3` |
-| REPL | `node` (no args) | `python` (no args) |
-| Run a script | `node script.js` | `python script.py` |
+| REPL | `node` (bina args ke) | `python` (bina args ke) |
+| Script run karna | `node script.js` | `python script.py` |
 
 ---
 
 ## Installing Python Directly
 
-Before we get to pyenv, here's how to install Python directly on each platform. This is useful if you just need one version quickly.
+pyenv pe jaane se pehle, dekhte hain ki har platform pe Python directly kaise install karte hain. Agar tumhe bas jaldi ek version chahiye, toh yeh kaafi hai.
 
 ### Windows
 
-**Option A: Python.org Installer (Recommended for beginners)**
+**Option A: Python.org Installer (beginners ke liye best)**
 
-1. Go to [python.org/downloads](https://www.python.org/downloads/)
-2. Download the latest Python 3.x installer
-3. **IMPORTANT:** Check the box "Add Python to PATH" during installation
-4. Click "Install Now"
+1. [python.org/downloads](https://www.python.org/downloads/) pe jao
+2. Latest Python 3.x installer download karo
+3. **ZARURI:** Installation ke dauraan "Add Python to PATH" checkbox zaroor check karo
+4. "Install Now" click karo
 
 **Option B: winget (Windows Package Manager)**
 
 ```powershell
-# Install the latest Python
+# Latest Python install karo
 winget install Python.Python.3.12
 
-# Verify
+# Verify karo
 python --version
 ```
 
 **Option C: Chocolatey**
 
 ```powershell
-# Install Chocolatey first if you haven't: https://chocolatey.org/install
+# Pehle Chocolatey install karo agar nahi kiya: https://chocolatey.org/install
 choco install python --version=3.12.0
 
-# Verify
+# Verify karo
 python --version
 ```
 
 ### macOS
 
-**Using Homebrew (recommended):**
+**Homebrew use karke (recommended):**
 
 ```bash
-# Install Homebrew if you haven't
+# Agar Homebrew nahi hai toh pehle install karo
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Install Python
+# Python install karo
 brew install python@3.12
 
-# Verify
+# Verify karo
 python3 --version
 ```
 
-> **Note:** macOS comes with a system Python, but it's often outdated. Always install your own.
+> **Note:** macOS mein pehle se ek system Python aata hai, lekin woh aksar purana hota hai. Hamesha apna khud ka install karo — system wale ko chhedo mat.
 
 ### Linux (Ubuntu/Debian)
 
@@ -85,7 +87,7 @@ python3 --version
 sudo apt update
 sudo apt install python3 python3-pip python3-venv
 
-# Verify
+# Verify karo
 python3 --version
 ```
 
@@ -94,7 +96,7 @@ python3 --version
 ```bash
 sudo dnf install python3 python3-pip
 
-# Verify
+# Verify karo
 python3 --version
 ```
 
@@ -102,38 +104,38 @@ python3 --version
 
 ## pyenv: The nvm of Python
 
-Direct installation works, but managing multiple versions is painful. Enter **pyenv** -- it's exactly what `nvm` is for Node.js.
+Direct installation kaam toh karta hai, lekin jab multiple versions manage karne ho toh dard shuru ho jaata hai. Yahaan aata hai **pyenv** — yeh bilkul waisa hi hai jaisa `nvm` Node.js ke liye hai.
 
-### Why pyenv?
+### pyenv Kyun Use Karein?
 
-- Install multiple Python versions side by side
-- Switch between versions per-project (like `.nvmrc`)
-- No need for `sudo` or system-wide changes
-- Uses a `.python-version` file (equivalent to `.nvmrc` or `.node-version`)
+- Multiple Python versions ek saath side-by-side install kar sakte ho
+- Har project ke liye alag version switch kar sakte ho (jaise `.nvmrc`)
+- `sudo` ya system-wide changes ki zarurat nahi
+- `.python-version` file use hoti hai (jo `.nvmrc` ya `.node-version` jaisi hi hai)
 
 ### Installing pyenv
 
 #### Windows: pyenv-win
 
 ```powershell
-# Option A: Using pip
+# Option A: pip use karke
 pip install pyenv-win --target %USERPROFILE%\\.pyenv
 
-# Option B: Using PowerShell (recommended)
+# Option B: PowerShell use karke (recommended)
 Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
 
-# Option C: Using Chocolatey
+# Option C: Chocolatey use karke
 choco install pyenv-win
 
-# Option D: Using winget
+# Option D: winget use karke
 winget install pyenv-win
 ```
 
-After installing, add these to your system PATH (the installer usually does this):
+Install hone ke baad, in cheezon ko system PATH mein add karo (installer aksar khud kar deta hai):
 - `%USERPROFILE%\.pyenv\pyenv-win\bin`
 - `%USERPROFILE%\.pyenv\pyenv-win\shims`
 
-Restart your terminal, then verify:
+Terminal restart karo, phir verify karo:
 
 ```powershell
 pyenv --version
@@ -142,44 +144,44 @@ pyenv --version
 #### macOS
 
 ```bash
-# Using Homebrew
+# Homebrew use karke
 brew update
 brew install pyenv
 
-# Add to your shell config (~/.zshrc or ~/.bashrc)
+# Apne shell config mein add karo (~/.zshrc ya ~/.bashrc)
 echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
 echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
 echo 'eval "$(pyenv init -)"' >> ~/.zshrc
 
-# Reload shell
+# Shell reload karo
 source ~/.zshrc
 
-# Verify
+# Verify karo
 pyenv --version
 ```
 
 #### Linux
 
 ```bash
-# Install dependencies first (Ubuntu/Debian)
+# Pehle dependencies install karo (Ubuntu/Debian)
 sudo apt update
 sudo apt install -y make build-essential libssl-dev zlib1g-dev \
   libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
   libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
   libffi-dev liblzma-dev
 
-# Install pyenv
+# pyenv install karo
 curl https://pyenv.run | bash
 
-# Add to your shell config (~/.bashrc)
+# Apne shell config mein add karo (~/.bashrc)
 echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
 echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
 echo 'eval "$(pyenv init -)"' >> ~/.bashrc
 
-# Reload shell
+# Shell reload karo
 source ~/.bashrc
 
-# Verify
+# Verify karo
 pyenv --version
 ```
 
@@ -187,32 +189,32 @@ pyenv --version
 
 ## pyenv Commands vs nvm Commands
 
-Here's your translation cheatsheet:
+Yeh raha tumhara translation cheatsheet — jo bhi nvm command tumhe yaad hai, uska pyenv version yahin mil jayega:
 
 | Task | nvm (Node.js) | pyenv (Python) |
 |---|---|---|
-| List installable versions | `nvm ls-remote` | `pyenv install --list` |
-| Install a version | `nvm install 20.11.0` | `pyenv install 3.12.0` |
-| List installed versions | `nvm ls` | `pyenv versions` |
-| Use a version globally | `nvm alias default 20` | `pyenv global 3.12.0` |
-| Use a version in current dir | `nvm use 20` | `pyenv local 3.12.0` |
-| Show current version | `nvm current` or `node -v` | `pyenv version` or `python --version` |
-| Uninstall a version | `nvm uninstall 18` | `pyenv uninstall 3.11.0` |
+| Installable versions list karna | `nvm ls-remote` | `pyenv install --list` |
+| Version install karna | `nvm install 20.11.0` | `pyenv install 3.12.0` |
+| Installed versions list karna | `nvm ls` | `pyenv versions` |
+| Version globally use karna | `nvm alias default 20` | `pyenv global 3.12.0` |
+| Current dir mein version use karna | `nvm use 20` | `pyenv local 3.12.0` |
+| Current version dikhana | `nvm current` ya `node -v` | `pyenv version` ya `python --version` |
+| Version uninstall karna | `nvm uninstall 18` | `pyenv uninstall 3.11.0` |
 | Version file | `.nvmrc` / `.node-version` | `.python-version` |
-| Run with specific version | `nvm exec 18 node app.js` | `pyenv shell 3.11.0 && python app.py` |
+| Specific version se run karna | `nvm exec 18 node app.js` | `pyenv shell 3.11.0 && python app.py` |
 
 ### Example Workflow
 
 ```bash
-# ---- nvm workflow you already know ----
+# ---- nvm workflow jo tumhe pehle se pata hai ----
 # nvm install 20.11.0
 # nvm use 20.11.0
 # echo "20.11.0" > .nvmrc
 # node --version  # v20.11.0
 
-# ---- pyenv equivalent ----
+# ---- pyenv ka equivalent ----
 pyenv install 3.12.0
-pyenv local 3.12.0       # creates .python-version file automatically
+pyenv local 3.12.0       # .python-version file automatically bana deta hai
 python --version          # Python 3.12.0
 ```
 
@@ -222,93 +224,93 @@ python --version          # Python 3.12.0
 
 ### Global Version (System-wide Default)
 
-This sets the default Python version for your entire system, just like `nvm alias default`.
+Yeh tumhare pure system ke liye default Python version set kar deta hai, bilkul `nvm alias default` ki tarah.
 
 ```bash
-# Set global default
+# Global default set karo
 pyenv global 3.12.0
 
-# Verify
+# Verify karo
 python --version
 # Python 3.12.0
 ```
 
 ### Local Version (Per-Project)
 
-This creates a `.python-version` file in the current directory, just like `.nvmrc`.
+Yeh current directory mein ek `.python-version` file bana deta hai, bilkul `.nvmrc` ki tarah.
 
 ```bash
-# Navigate to your project
+# Apne project mein jao
 cd my-project/
 
-# Set local version
+# Local version set karo
 pyenv local 3.11.0
 
-# This creates a .python-version file
+# Isse .python-version file ban jaati hai
 cat .python-version
 # 3.11.0
 
-# Now python points to 3.11.0 in this directory
+# Ab is directory ke andar python 3.11.0 pe point karega
 python --version
 # Python 3.11.0
 
-# But outside this directory, the global version is used
+# Lekin is directory ke bahar, global version hi use hoga
 cd ..
 python --version
 # Python 3.12.0
 ```
 
-### Shell Version (Current Terminal Session Only)
+### Shell Version (Sirf Current Terminal Session Ke Liye)
 
-Temporary override for the current terminal session:
+Sirf current terminal session ke liye temporary override:
 
 ```bash
-# Only affects this terminal session
+# Sirf isi terminal session pe asar hoga
 pyenv shell 3.10.0
 
 python --version
 # Python 3.10.0
 
-# Unset when done
+# Kaam hone ke baad unset kar do
 pyenv shell --unset
 ```
 
 ### Version Priority Order
 
-pyenv resolves which Python version to use in this order (highest priority first):
+pyenv yeh decide karta hai ki kaunsa Python version use karna hai, is order mein (sabse high priority pehle):
 
-1. `PYENV_VERSION` environment variable (set by `pyenv shell`)
-2. `.python-version` file in current directory (set by `pyenv local`)
-3. `.python-version` file in parent directories (walks up the tree)
-4. Global version (set by `pyenv global`)
+1. `PYENV_VERSION` environment variable (`pyenv shell` se set hota hai)
+2. Current directory ki `.python-version` file (`pyenv local` se set hoti hai)
+3. Parent directories ki `.python-version` file (tree mein upar tak dhundta hai)
+4. Global version (`pyenv global` se set hota hai)
 
-This is very similar to how nvm resolves `.nvmrc` files.
+Yeh bilkul waisa hi hai jaise nvm `.nvmrc` files ko resolve karta hai.
 
 ---
 
 ## Verifying Your Setup
 
-Run these commands to make sure everything is working:
+Yeh commands run karo yeh check karne ke liye ki sab kuch sahi chal raha hai:
 
 ```bash
-# Check Python version
+# Python version check karo
 python --version
 # Python 3.12.x
 
-# Check pip (Python's package manager, like npm)
+# pip check karo (Python ka package manager, npm jaisa)
 pip --version
 # pip 24.x.x from ...
 
-# Check pyenv
+# pyenv check karo
 pyenv --version
 # pyenv 2.x.x
 
-# List installed Python versions
+# Installed Python versions list karo
 pyenv versions
 #   system
 # * 3.12.0 (set by /home/user/.pyenv/version)
 
-# Start the Python REPL (like running `node` with no args)
+# Python REPL start karo (jaise `node` bina args ke chalate ho)
 python
 # Python 3.12.0 ...
 # >>> print("Hello from Python!")
@@ -316,66 +318,69 @@ python
 # >>> exit()
 ```
 
-### Common Gotchas for Windows Users
+### Windows Users Ke Common Gotchas
 
-On Windows, you might need to use `python` instead of `python3`, or vice versa. If `python` opens the Microsoft Store, you need to:
+Windows pe, kabhi-kabhi `python` ki jagah `python3` use karna padega, ya ulta. Agar `python` type karne pe Microsoft Store khul jaaye, toh yeh karo:
 
-1. Open Settings > Apps > Advanced app settings > App execution aliases
-2. Turn off the "App Installer" entries for `python.exe` and `python3.exe`
+1. Settings > Apps > Advanced app settings > App execution aliases kholo
+2. `python.exe` aur `python3.exe` ke "App Installer" entries ko off kar do
 
-### Common Gotchas for macOS/Linux Users
+### macOS/Linux Users Ke Common Gotchas
 
-On macOS and Linux, the system Python is often `python3`, not `python`. With pyenv, both `python` and `python3` will point to your pyenv-managed version.
+macOS aur Linux pe, system Python aksar `python3` hota hai, `python` nahi. pyenv ke saath, `python` aur `python3` dono tumhare pyenv-managed version pe hi point karenge.
 
 ```bash
-# Without pyenv - confusing
-python --version   # might be Python 2.7 or "command not found"
-python3 --version  # Python 3.x (system)
+# pyenv ke bina - confusing
+python --version   # Python 2.7 ho sakta hai ya "command not found"
+python3 --version  # Python 3.x (system wala)
 
-# With pyenv - clean
+# pyenv ke saath - clean
 python --version   # Python 3.12.0 (pyenv-managed)
 python3 --version  # Python 3.12.0 (pyenv-managed)
 ```
+
+> [!tip]
+> Agar confusion ho rahi hai ki kaunsa Python chal raha hai, `which python` (macOS/Linux) ya `where python` (Windows) chala ke dekh lo — path se pata chal jayega ki system wala use ho raha hai ya pyenv wala.
 
 ---
 
 ## Practice Exercises
 
-### Exercise 1: Install Python
+### Exercise 1: Python Install Karo
 
-Install Python 3.12 (or the latest stable version) on your system using any method described above. Verify the installation:
+Upar diye gaye kisi bhi method se Python 3.12 (ya latest stable version) apne system pe install karo. Installation verify karo:
 
 ```bash
 python --version
 pip --version
 ```
 
-### Exercise 2: Install and Configure pyenv
+### Exercise 2: pyenv Install aur Configure Karo
 
-1. Install pyenv for your platform
-2. Install two different Python versions:
+1. Apne platform ke liye pyenv install karo
+2. Do alag-alag Python versions install karo:
    ```bash
    pyenv install 3.11.0
    pyenv install 3.12.0
    ```
-3. Set 3.12.0 as your global default:
+3. 3.12.0 ko global default set karo:
    ```bash
    pyenv global 3.12.0
    ```
-4. Verify with `pyenv versions` and `python --version`
+4. `pyenv versions` aur `python --version` se verify karo
 
 ### Exercise 3: Per-Project Version
 
-1. Create a new directory called `python-test`
-2. Set the local Python version to 3.11.0
-3. Verify that `.python-version` was created
-4. Check `python --version` inside and outside the directory
-5. Compare: how does this feel compared to your `.nvmrc` workflow?
+1. `python-test` naam ki ek nayi directory banao
+2. Local Python version 3.11.0 set karo
+3. Verify karo ki `.python-version` ban gayi hai
+4. Directory ke andar aur bahar `python --version` check karo
+5. Compare karo: yeh tumhare `.nvmrc` workflow se kaisa lag raha hai?
 
-### Exercise 4: Explore the REPL
+### Exercise 4: REPL Explore Karo
 
-1. Start the Python REPL by typing `python` with no arguments
-2. Try these commands:
+1. Bina kisi argument ke `python` type karke REPL start karo
+2. Yeh commands try karo:
    ```python
    print("Hello, World!")
    2 + 2
@@ -383,8 +388,18 @@ pip --version
    import this  # Easter egg!
    exit()
    ```
-3. Compare: how does this feel compared to running `node` to get the Node.js REPL?
+3. Compare karo: yeh `node` chala ke Node.js REPL milne se kaisa alag lagta hai?
 
 ---
 
-**Next:** [02 - Virtual Environments](./02_virtual_environments.md) -- Learn about `venv`, Python's answer to `node_modules` isolation.
+**Key Takeaways:**
+
+- `pyenv` = Python ka `nvm`. Concept bilkul same hai — multiple versions rakho, per-project switch karo, koi sudo drama nahi.
+- `.python-version` file `.nvmrc` ka Python cousin hai.
+- Version resolve karne ka order: `PYENV_VERSION` env var > local `.python-version` > parent `.python-version` > global version.
+- Windows pe `python` aur macOS/Linux pe `python3` — dhyan rakho konsa use karna hai, ya phir pyenv install kar lo taaki dono ek hi version pe point karein.
+- Direct installer se kaam chal jayega single-version setups ke liye, lekin real projects mein pyenv hi better hai.
+
+---
+
+**Next:** [02 - Virtual Environments](./02_virtual_environments.md) -- `venv` ke baare mein jaano, jo Python ka jawab hai `node_modules` isolation ka.

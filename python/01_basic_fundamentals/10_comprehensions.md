@@ -1,8 +1,8 @@
 # 10 - Comprehensions
 
-## Coming from Node.js/TypeScript
+## Node.js/TypeScript se aa rahe ho toh
 
-Comprehensions are one of Python's most distinctive features. They are concise, readable (once you learn them), and often faster than equivalent loops. JavaScript has NO direct equivalent -- the closest is chaining `.map()`, `.filter()`, and `.reduce()`, but comprehensions are more powerful and more efficient.
+Comprehensions Python ki sabse khaas cheezon mein se ek hain. Concise, readable (ek baar seekh lo toh), aur usually equivalent loops se fast bhi. JavaScript mein iska koi direct equivalent nahi hai -- sabse paas wali cheez `.map()`, `.filter()`, aur `.reduce()` ko chain karna hai, lekin comprehensions usse zyada powerful aur efficient hain.
 
 ---
 
@@ -10,51 +10,53 @@ Comprehensions are one of Python's most distinctive features. They are concise, 
 
 ### Basic Syntax
 
+Socho ek second ke liye -- agar koi tumse keh de "mujhe har number ka square chahiye, ek list ke andar" -- normally tum for loop likhoge, `.append()` karoge. Python mein ye sab ek line mein ho jata hai.
+
 ```
 [expression for item in iterable]
 [expression for item in iterable if condition]
 ```
 
 ```python
-# Create a list of squares
+# Squares ki ek list banao
 squares = [x ** 2 for x in range(10)]
 # [0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
 
-# With a condition (filter)
+# Condition ke saath (filter jaisa)
 even_squares = [x ** 2 for x in range(10) if x % 2 == 0]
 # [0, 4, 16, 36, 64]
 
-# Transform strings
+# Strings transform karna
 names = ["alice", "bob", "charlie"]
 upper_names = [name.upper() for name in names]
 # ['ALICE', 'BOB', 'CHARLIE']
 
-# With conditional expression (ternary) in the expression part
+# Expression part mein ternary jaisa conditional
 labels = ["even" if x % 2 == 0 else "odd" for x in range(5)]
 # ['even', 'odd', 'even', 'odd', 'even']
 ```
 
 ```javascript
-// JS equivalents (more verbose)
+// JS equivalents (zyada verbose)
 const squares = [...Array(10)].map((_, x) => x ** 2);
 const evenSquares = [...Array(10)].map((_, x) => x).filter(x => x % 2 === 0).map(x => x ** 2);
 const upperNames = names.map(name => name.toUpperCase());
 const labels = [...Array(5)].map((_, x) => x % 2 === 0 ? "even" : "odd");
 ```
 
-### Why Comprehensions Beat map/filter
+### Comprehensions map/filter se better kyun hain?
 
 ```python
-# 1. Single pass (no intermediate arrays)
-# Python comprehension: ONE iteration
+# 1. Single pass (koi intermediate array nahi banta)
+# Python comprehension: EK hi iteration
 result = [x ** 2 for x in range(1000) if x % 2 == 0]
 
-# JS map+filter: TWO iterations + TWO intermediate arrays
+# JS map+filter: DO iterations + DO intermediate arrays
 # result = Array.from({length: 1000}, (_, i) => i)
-#     .filter(x => x % 2 === 0)    // first pass
-#     .map(x => x ** 2);           // second pass
+#     .filter(x => x % 2 === 0)    // pehla pass
+#     .map(x => x ** 2);           // dusra pass
 
-# 2. More readable for complex transformations
+# 2. Complex transformations ke liye zyada readable
 users = [
     {"name": "Alice", "age": 30, "active": True},
     {"name": "Bob", "age": 17, "active": True},
@@ -62,7 +64,7 @@ users = [
     {"name": "Diana", "age": 22, "active": True},
 ]
 
-# Python: one clear expression
+# Python: ek clean expression
 adult_active_names = [
     user["name"].upper()
     for user in users
@@ -70,30 +72,33 @@ adult_active_names = [
 ]
 # ['ALICE', 'DIANA']
 
-# JS: chain of operations
+# JS: operations ki chain
 # const result = users
 #     .filter(u => u.active && u.age >= 18)
 #     .map(u => u.name.toUpperCase());
 ```
 
-### Comprehension with Function Calls
+> [!tip]
+> Zomato ka use case socho -- "sirf wahi restaurants dikhao jo open hain aur jinka rating 4+ hai, aur unke naam capital mein chahiye." Yehi filter + map ka combo comprehension mein ek line mein ho jata hai, do alag passes ki zaroorat nahi.
+
+### Function Calls ke saath Comprehension
 
 ```python
-# Call functions in comprehensions
+# Comprehensions ke andar functions call karna
 import os
 
-# Get sizes of all .py files
+# Sabhi .py files ki sizes nikalo
 file_sizes = {
     f.name: f.stat().st_size
     for f in Path(".").glob("*.py")
 }
 
-# Parse and validate data
+# Data parse aur validate karna
 raw_data = ["42", "hello", "73", "", "99", "abc"]
 valid_numbers = [int(s) for s in raw_data if s.isdigit()]
 # [42, 73, 99]
 
-# Process with error handling (using a helper)
+# Error handling ke saath process karna (helper function use karke)
 def safe_int(s):
     try:
         return int(s)
@@ -110,28 +115,30 @@ numbers = [n for s in raw_data if (n := safe_int(s)) is not None]
 
 ### Basic Syntax
 
+Ye bilkul list comprehension jaisa hi hai, bas ab tumhe key aur value dono chahiye -- socho UPI transaction history ko naam se amount ka lookup table banana.
+
 ```
 {key_expr: value_expr for item in iterable}
 {key_expr: value_expr for item in iterable if condition}
 ```
 
 ```python
-# Create a dict from a list
+# Ek list se dict banao
 names = ["alice", "bob", "charlie"]
 name_lengths = {name: len(name) for name in names}
 # {'alice': 5, 'bob': 3, 'charlie': 7}
 
-# Invert a dict
+# Dict ko invert karna (key <-> value swap)
 original = {"a": 1, "b": 2, "c": 3}
 inverted = {v: k for k, v in original.items()}
 # {1: 'a', 2: 'b', 3: 'c'}
 
-# Filter a dict
+# Dict filter karna
 scores = {"alice": 85, "bob": 62, "charlie": 91, "diana": 78}
 passing = {name: score for name, score in scores.items() if score >= 70}
 # {'alice': 85, 'charlie': 91, 'diana': 78}
 
-# Transform keys and values
+# Keys aur values dono transform karna
 config = {"MAX_RETRIES": "3", "TIMEOUT": "30", "DEBUG": "true"}
 typed_config = {
     k.lower(): int(v) if v.isdigit() else v == "true"
@@ -139,15 +146,15 @@ typed_config = {
 }
 # {'max_retries': 3, 'timeout': 30, 'debug': True}
 
-# Create a lookup table
+# Ek lookup table banana
 words = ["hello", "world", "python", "code"]
 first_letter_lookup = {word[0]: word for word in words}
 # {'h': 'hello', 'w': 'world', 'p': 'python', 'c': 'code'}
-# Note: if multiple words share a first letter, last one wins
+# Note: agar multiple words ka pehla letter same ho, toh last wala jeet jayega
 ```
 
 ```javascript
-// JS equivalent (using Object.fromEntries or reduce)
+// JS equivalent (Object.fromEntries ya reduce use karke)
 const nameLengths = Object.fromEntries(names.map(n => [n, n.length]));
 const inverted = Object.fromEntries(Object.entries(original).map(([k,v]) => [v,k]));
 const passing = Object.fromEntries(
@@ -161,6 +168,8 @@ const passing = Object.fromEntries(
 
 ### Basic Syntax
 
+Jab tumhe sirf unique values chahiye (duplicates ka koi matlab nahi), curly braces use karo -- bas key:value nahi, sirf expression.
+
 ```
 {expression for item in iterable}
 {expression for item in iterable if condition}
@@ -172,7 +181,7 @@ sentence = "the quick brown fox jumps over the lazy dog"
 word_lengths = {len(word) for word in sentence.split()}
 # {3, 4, 5}
 
-# Unique first characters
+# Unique pehle characters
 first_chars = {word[0] for word in sentence.split()}
 # {'t', 'q', 'b', 'f', 'j', 'o', 'l', 'd'}
 
@@ -180,7 +189,7 @@ first_chars = {word[0] for word in sentence.split()}
 even_squares = {x ** 2 for x in range(-10, 11) if x % 2 == 0}
 # {0, 4, 16, 36, 64, 100}
 
-# Find common letters between two strings
+# Do strings mein common letters dhundo
 common = {c for c in "hello" if c in "world"}
 # {'l', 'o'}
 ```
@@ -194,20 +203,20 @@ const wordLengths = new Set(sentence.split(' ').map(w => w.length));
 
 ## Nested Comprehensions
 
-### Flat Output from Nested Loops
+### Nested Loops se Flat Output
 
 ```python
-# Flatten a 2D list
+# 2D list ko flatten karna
 matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 flat = [num for row in matrix for num in row]
 # [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-# Reading order: same as nested for loops
+# Reading order: bilkul nested for loops jaisi
 # for row in matrix:
 #     for num in row:
 #         flat.append(num)
 
-# All combinations
+# Sabhi combinations
 colors = ["red", "green", "blue"]
 sizes = ["S", "M", "L"]
 combinations = [(color, size) for color in colors for size in sizes]
@@ -215,13 +224,16 @@ combinations = [(color, size) for color in colors for size in sizes]
 
 # Cartesian product with condition
 pairs = [(x, y) for x in range(5) for y in range(5) if x != y]
-# all (x, y) pairs where x != y
+# saare (x, y) pairs jahan x != y
 ```
 
-### Nested Output (Creating 2D Structures)
+> [!info]
+> Reading order thoda confusing lag sakta hai shuru mein -- yaad rakho, `for` clauses left se right, upar se neeche wale nested loop jaise hi chalte hain. Pehla `for` sabse bahar wala loop hai.
+
+### Nested Output (2D Structures banana)
 
 ```python
-# Create a 2D matrix
+# 2D matrix banana
 matrix = [[0 for col in range(4)] for row in range(3)]
 # [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
 
@@ -229,7 +241,7 @@ matrix = [[0 for col in range(4)] for row in range(3)]
 identity = [[1 if i == j else 0 for j in range(4)] for i in range(4)]
 # [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
 
-# Transpose a matrix
+# Matrix transpose karna
 matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 transposed = [[row[i] for row in matrix] for i in range(len(matrix[0]))]
 # [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
@@ -243,50 +255,53 @@ mult_table = [[i * j for j in range(1, 6)] for i in range(1, 6)]
 #  [5, 10, 15, 20, 25]]
 ```
 
-### Common Gotcha: Nested List Creation
+### Common Gotcha: Nested List banana
 
 ```python
-# WRONG: all rows share the same inner list!
+# GALAT: saari rows ek hi inner list share kar rahi hain!
 bad_matrix = [[0] * 4] * 3
 bad_matrix[0][0] = 1
 print(bad_matrix)
-# [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]]  -- all rows changed!
+# [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]]  -- saari rows badal gayi!
 
-# RIGHT: use a comprehension
+# SAHI: comprehension use karo
 good_matrix = [[0] * 4 for _ in range(3)]
 good_matrix[0][0] = 1
 print(good_matrix)
-# [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]  -- only first row changed
+# [[1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]  -- sirf pehli row badli
 ```
+
+> [!warning]
+> `[[0] * 4] * 3` ek hi list ko 3 baar reference karta hai -- ye Python ka classic gotcha hai. JS mein bhi agar tum `Array(3).fill(Array(4).fill(0))` karte, wahi problem aati -- same reference sab jagah copy ho jata hai.
 
 ---
 
 ## Generator Expressions
 
-Generator expressions look like list comprehensions but use parentheses `()` instead of brackets `[]`. They produce values lazily -- one at a time, without building the entire list in memory.
+Generator expressions dikhte toh list comprehensions jaise hain, lekin square brackets `[]` ki jagah round parentheses `()` use karte hain. Ye values lazily produce karte hain -- ek-ek karke, poori list memory mein banaye bina.
 
 ### Basic Syntax
 
 ```python
-# List comprehension (creates entire list in memory)
-squares_list = [x ** 2 for x in range(1_000_000)]   # ~8MB of memory
+# List comprehension (poori list memory mein banti hai)
+squares_list = [x ** 2 for x in range(1_000_000)]   # ~8MB memory
 
-# Generator expression (creates values on demand)
+# Generator expression (values on demand banti hain)
 squares_gen = (x ** 2 for x in range(1_000_000))     # almost no memory
 print(type(squares_gen))   # <class 'generator'>
 
-# Consume the generator
+# Generator ko consume karna
 print(next(squares_gen))   # 0
 print(next(squares_gen))   # 1
 print(next(squares_gen))   # 4
 
-# Use in a for loop
-for square in squares_gen:     # continues from where we left off
+# For loop mein use karna
+for square in squares_gen:     # jahan chhoda tha wahin se continue karta hai
     if square > 100:
         break
     print(square)
 
-# Use directly in function calls (no extra parentheses needed)
+# Directly function calls mein use karna (extra parentheses ki zarurat nahi)
 total = sum(x ** 2 for x in range(1_000_000))         # efficient!
 any_negative = any(x < 0 for x in numbers)
 all_positive = all(x > 0 for x in numbers)
@@ -294,28 +309,31 @@ max_length = max(len(word) for word in words)
 csv_line = ",".join(str(x) for x in [1, 2, 3])
 ```
 
-### When to Use Generators vs Lists
+> [!tip]
+> Generator ko dabbawala ki tarah socho -- wo har tiffin ek baar mein deliver karta hai, sabko ek saath collect karke godown mein store nahi karta. List comprehension pura godown bana deti hai; generator sirf agla tiffin deta hai jab maanga jaye.
+
+### Kab Generator use karo, Kab List
 
 ```python
-# Use a LIST comprehension when:
-# - You need to iterate multiple times
-# - You need random access (indexing)
-# - You need to know the length
-# - The data fits comfortably in memory
+# LIST comprehension use karo jab:
+# - Tumhe multiple baar iterate karna hai
+# - Random access (indexing) chahiye
+# - Length pata karni hai
+# - Data comfortably memory mein fit ho jata hai
 
 results = [process(item) for item in data]
 print(len(results))
 print(results[5])
 for r in results:
     pass
-for r in results:    # can iterate again
+for r in results:    # dobara iterate kar sakte ho
     pass
 
-# Use a GENERATOR expression when:
-# - You only need to iterate once
-# - The data is very large
-# - You are feeding into another function (sum, max, any, etc.)
-# - You want to be memory efficient
+# GENERATOR expression use karo jab:
+# - Tumhe sirf ek baar iterate karna hai
+# - Data bahut bada hai
+# - Kisi doosre function mein feed kar rahe ho (sum, max, any, etc.)
+# - Memory efficient rehna chahte ho
 
 total = sum(process(item) for item in huge_dataset)   # O(1) memory
 ```
@@ -325,15 +343,15 @@ total = sum(process(item) for item in huge_dataset)   # O(1) memory
 ```python
 import sys
 
-# List: stores all values
+# List: saari values store karti hai
 list_comp = [x ** 2 for x in range(1000)]
 print(sys.getsizeof(list_comp))   # ~8856 bytes
 
-# Generator: stores only the recipe
+# Generator: sirf "recipe" store karta hai
 gen_expr = (x ** 2 for x in range(1000))
-print(sys.getsizeof(gen_expr))    # ~200 bytes (constant regardless of size!)
+print(sys.getsizeof(gen_expr))    # ~200 bytes (size chahe kuch bhi ho, constant!)
 
-# For 10 million items:
+# 10 million items ke liye:
 # List: ~80MB
 # Generator: ~200 bytes
 ```
@@ -342,7 +360,7 @@ print(sys.getsizeof(gen_expr))    # ~200 bytes (constant regardless of size!)
 
 ## Performance: Comprehensions vs Loops
 
-Comprehensions are typically 10-30% faster than equivalent for loops because they are optimized at the bytecode level.
+Comprehensions usually regular for loops se 10-30% fast hoti hain kyunki ye bytecode level pe optimize hoti hain.
 
 ```python
 import time
@@ -365,33 +383,33 @@ comp_time = time.perf_counter() - start
 print(f"Loop: {loop_time:.4f}s")
 print(f"Comprehension: {comp_time:.4f}s")
 print(f"Speedup: {loop_time / comp_time:.2f}x")
-# Typical result: Comprehension is 1.2-1.5x faster
+# Typical result: Comprehension 1.2-1.5x fast hoti hai
 
-# Why? Comprehensions:
-# 1. Avoid repeated .append() method lookups
-# 2. Are optimized at the C level in CPython
-# 3. Don't create a new function scope for each iteration
+# Kyun? Comprehensions:
+# 1. Baar-baar .append() method lookup avoid karti hain
+# 2. CPython mein C level pe optimized hain
+# 3. Har iteration ke liye naya function scope nahi banati
 ```
 
 ### map/filter vs Comprehensions
 
 ```python
-# map + filter with lambdas (slower due to function call overhead)
+# map + filter with lambdas (function call overhead ki wajah se slower)
 result_map = list(map(lambda x: x ** 2, filter(lambda x: x % 2 == 0, data)))
 
-# Comprehension (faster and more readable)
+# Comprehension (faster aur zyada readable)
 result_comp = [x ** 2 for x in data if x % 2 == 0]
 
-# map with a built-in function (can be faster than comprehension)
-result_map = list(map(str, data))          # slightly faster
-result_comp = [str(x) for x in data]       # slightly slower but more readable
+# map with built-in function (comprehension se fast ho sakta hai)
+result_map = list(map(str, data))          # thoda faster
+result_comp = [str(x) for x in data]       # thoda slower lekin zyada readable
 ```
 
 ---
 
 ## Readability Guidelines
 
-### Good: Clear and Concise
+### Good: Clear aur Concise
 
 ```python
 # Simple transformation
@@ -403,14 +421,14 @@ adults = [user for user in users if user.age >= 18]
 # Simple filter + transform
 adult_names = [user.name for user in users if user.age >= 18]
 
-# Dict from pairs
+# Pairs se dict
 word_counts = {word: text.count(word) for word in set(text.split())}
 ```
 
-### Bad: Too Complex
+### Bad: Zyada Complex
 
 ```python
-# TOO COMPLEX -- use a regular loop instead
+# BAHUT COMPLEX -- iski jagah regular loop use karo
 result = [
     (user.name, sum(t.amount for t in user.transactions if t.date > cutoff))
     for user in users
@@ -419,7 +437,7 @@ result = [
     and any(t.amount > 100 for t in user.transactions)
 ]
 
-# BETTER: break it down
+# BEHTAR: isko todo
 def get_recent_total(user, cutoff):
     return sum(t.amount for t in user.transactions if t.date > cutoff)
 
@@ -434,7 +452,7 @@ result = [
     if any(t.amount > 100 for t in user.transactions)
 ]
 
-# OR use a loop
+# YA loop use karo
 result = []
 for user in users:
     if not user.active or user.region not in allowed_regions:
@@ -447,11 +465,11 @@ for user in users:
 
 ### Rule of Thumb
 
-- **One `for` and zero/one `if`:** Comprehension is great
-- **Two `for` clauses:** Acceptable if the logic is simple (like flattening)
-- **Three or more clauses, or complex conditions:** Use a regular loop
-- **If you need `try/except`:** Use a regular loop (or a helper function)
-- **If a colleague would need to read it twice:** It is too complex
+- **Ek `for` aur zero/ek `if`:** Comprehension perfect hai
+- **Do `for` clauses:** Chalega agar logic simple hai (jaise flattening)
+- **Teen ya zyada clauses, ya complex conditions:** Regular loop use karo
+- **Agar `try/except` chahiye:** Regular loop (ya helper function) use karo
+- **Agar colleague ko dobara padhna pade samajhne ke liye:** Ye zyada complex hai
 
 ---
 
@@ -481,7 +499,7 @@ def parse_row(row):
         age = None
     return {"name": name, "age": age, "dept": dept}
 
-# Parse, filter invalid, group by department
+# Parse karo, invalid filter karo, department se group karo
 parsed = [r for row in raw_rows if row and (r := parse_row(row)) is not None]
 # [{'name': 'Alice', 'age': 30, 'dept': 'Engineering'}, ...]
 
@@ -501,6 +519,8 @@ print(avg_ages)
 
 ### API Response Transformation
 
+Socho Flipkart ka product API response aaya hai, aur tumhe usme se sirf popular items nikaalne hain -- exactly wahi kaam yaha ho raha hai.
+
 ```python
 # Simulated API response
 api_response = {
@@ -513,7 +533,7 @@ api_response = {
     ]
 }
 
-# Extract popular Python articles
+# Popular Python articles nikalo
 popular_python = [
     {
         "title": article["title"],
@@ -527,14 +547,14 @@ popular_python = [
 #  {'title': 'Python OOP', 'views': 2200, 'tag_count': 2},
 #  {'title': 'Python Web', 'views': 3100, 'tag_count': 3}]
 
-# Create a tag index
+# Ek tag index banao
 tag_index = {}
 for article in api_response["results"]:
     for tag in article["tags"]:
         tag_index.setdefault(tag, []).append(article["title"])
 # {'python': ['Python Basics', 'Python OOP', 'Python Web'], ...}
 
-# Or with comprehension + defaultdict
+# Ya comprehension + defaultdict ke saath
 from collections import defaultdict
 tag_index = defaultdict(list)
 {
@@ -542,36 +562,39 @@ tag_index = defaultdict(list)
     for article in api_response["results"]
     for tag in article["tags"]
 }
-# Actually this doesn't work because dict comp needs key:value syntax.
-# Stick with the loop for side-effect operations!
+# Actually ye kaam nahi karega kyunki dict comp ko key:value syntax chahiye.
+# Side-effect operations ke liye loop hi use karo!
 
-# Unique tags sorted by frequency
+# Unique tags, frequency ke hisaab se sorted
 from collections import Counter
 all_tags = [tag for article in api_response["results"] for tag in article["tags"]]
 tag_freq = Counter(all_tags).most_common()
 # [('python', 3), ('tutorial', 1), ('javascript', 1), ...]
 ```
 
+> [!warning]
+> Upar wala dict comprehension jo `tag_index[tag].append(...)` kar raha hai -- ye galat pattern hai. Dict/set comprehensions sirf naya collection banane ke liye hain, side-effects (jaise `.append()`) ke liye nahi. Aisa lage toh seedha regular loop likho.
+
 ### File System Operations
 
 ```python
 from pathlib import Path
 
-# Find all Python files and their sizes
+# Sabhi Python files aur unki sizes dhundo
 py_files = {
     f.name: f.stat().st_size
     for f in Path(".").rglob("*.py")
     if f.is_file()
 }
 
-# Group files by extension
+# Files ko extension se group karo
 from collections import defaultdict
 files_by_ext = defaultdict(list)
 for f in Path(".").rglob("*"):
     if f.is_file():
         files_by_ext[f.suffix].append(f.name)
 
-# Find large files (>1MB)
+# Bade files dhundo (>1MB)
 large_files = [
     (f, f.stat().st_size)
     for f in Path(".").rglob("*")
@@ -611,7 +634,7 @@ large_files = [
 ## Practice Exercises
 
 ### Exercise 1: Comprehension Converter
-Rewrite each of these JS snippets as Python comprehensions.
+Ye JS snippets ko Python comprehensions mein rewrite karo.
 
 ```javascript
 // 1. const doubled = numbers.map(x => x * 2);
@@ -646,13 +669,13 @@ pairs = [(a, b) for a in arr1 for b in arr2]
 lookup = {u["id"]: u for u in users}
 
 # 5. unique values from mapped property
-unique_names = {u["name"] for u in users}   # returns a set
-unique_names_list = list({u["name"] for u in users})  # as list
+unique_names = {u["name"] for u in users}   # set return karta hai
+unique_names_list = list({u["name"] for u in users})  # list ke roop mein
 ```
 </details>
 
 ### Exercise 2: Data Wrangling
-Given this raw data, use comprehensions to: (a) extract valid emails, (b) create a lookup by domain, (c) find domains with multiple users.
+Ye raw data diya hai, comprehensions use karke: (a) valid emails nikaalo, (b) domain se lookup banao, (c) multiple users wale domains dhundo.
 
 ```python
 raw_users = [
@@ -682,7 +705,7 @@ raw_users = [
     {"name": "Grace", "email": None},
 ]
 
-# (a) Extract valid emails
+# (a) Valid emails nikaalo
 valid_users = [
     user for user in raw_users
     if user["email"] and "@" in user["email"]
@@ -690,7 +713,7 @@ valid_users = [
 print(f"Valid users: {[u['name'] for u in valid_users]}")
 # ['Alice', 'Charlie', 'Eve', 'Frank']
 
-# (b) Lookup by domain
+# (b) Domain se lookup
 by_domain = defaultdict(list)
 for user in valid_users:
     domain = user["email"].split("@")[1]
@@ -699,7 +722,7 @@ by_domain = dict(by_domain)
 print(f"By domain: {by_domain}")
 # {'gmail.com': ['Alice', 'Eve'], 'company.com': ['Charlie', 'Frank']}
 
-# (c) Domains with multiple users
+# (c) Multiple users wale domains
 multi_user_domains = {
     domain: users
     for domain, users in by_domain.items()
@@ -711,13 +734,13 @@ print(f"Multi-user domains: {multi_user_domains}")
 </details>
 
 ### Exercise 3: Matrix Operations with Comprehensions
-Implement these matrix operations using only comprehensions (no numpy).
+Ye matrix operations sirf comprehensions se implement karo (numpy nahi).
 
 ```python
 def matrix_add(a, b): pass          # element-wise addition
 def matrix_multiply(a, b): pass     # matrix multiplication
-def matrix_scalar(m, scalar): pass  # multiply by scalar
-def matrix_map(m, func): pass       # apply function to each element
+def matrix_scalar(m, scalar): pass  # scalar se multiply
+def matrix_map(m, func): pass       # har element pe function apply karo
 ```
 
 <details>
@@ -764,20 +787,20 @@ print("Map (square):", matrix_map(A, lambda x: x ** 2))
 </details>
 
 ### Exercise 4: Generator Pipeline
-Create a data processing pipeline using generators that reads a large sequence of numbers, filters them, transforms them, and aggregates -- all without loading everything into memory.
+Generators use karke ek data processing pipeline banao jo numbers ki ek badi sequence padhe, filter kare, transform kare, aur aggregate kare -- sab kuch bina sabkuch memory mein load kiye.
 
 ```python
 def generate_data(n):
-    """Simulate a large data source."""
+    """Ek bada data source simulate karo."""
     import random
     for _ in range(n):
         yield random.randint(1, 1000)
 
-# Create a pipeline that:
-# 1. Takes only even numbers
-# 2. Squares them
-# 3. Keeps only those > 10000
-# 4. Returns the sum and count without storing all intermediate values
+# Ek pipeline banao jo:
+# 1. Sirf even numbers le
+# 2. Unko square kare
+# 3. Sirf wahi rakhe jo > 10000 hain
+# 4. Sum aur count return kare bina saari intermediate values store kiye
 ```
 
 <details>
@@ -787,11 +810,11 @@ def generate_data(n):
 import random
 
 def generate_data(n):
-    """Simulate a large data source."""
+    """Ek bada data source simulate karo."""
     for _ in range(n):
         yield random.randint(1, 1000)
 
-# Generator pipeline -- each step is lazy
+# Generator pipeline -- har step lazy hai
 data = generate_data(1_000_000)                    # 1M random numbers
 evens = (x for x in data if x % 2 == 0)           # lazy filter
 squared = (x ** 2 for x in evens)                  # lazy transform
@@ -808,10 +831,10 @@ print(f"Count: {count}")
 print(f"Sum: {total}")
 print(f"Average: {total / count:.2f}" if count else "No values")
 
-# Memory usage: O(1) regardless of input size!
-# Only one number exists in memory at a time.
+# Memory usage: input size chahe kuch bhi ho, O(1)!
+# Ek time pe sirf ek number memory mein hota hai.
 
-# Alternative: use reduce for single-pass aggregation
+# Alternative: single-pass aggregation ke liye reduce use karo
 from functools import reduce
 
 data = generate_data(1_000_000)
@@ -821,7 +844,7 @@ pipeline = (
     if x % 2 == 0 and (x ** 2) > 10000
 )
 
-# But this computes x**2 twice. Use walrus operator:
+# Lekin ye x**2 do baar compute karta hai. Walrus operator use karo:
 data = generate_data(1_000_000)
 pipeline = (
     sq
@@ -839,50 +862,50 @@ print(f"Count: {count}, Sum: {total}")
 </details>
 
 ### Exercise 5: Comprehension Golf
-Solve each problem in a single comprehension (no multi-line, no intermediate variables). These are for practice -- in production code, readability wins.
+Har problem ek single comprehension mein solve karo (multi-line nahi, intermediate variables nahi). Ye practice ke liye hain -- production code mein readability hi jeetegi.
 
 ```python
-# 1. Flatten a list of lists of lists: [[[1,2],[3]],[[4],[5,6]]] -> [1,2,3,4,5,6]
-# 2. Find all prime numbers up to 100
-# 3. Create a dict mapping each char in a string to its count (without Counter)
-# 4. Transpose a dictionary of lists:
+# 1. List of lists of lists ko flatten karo: [[[1,2],[3]],[[4],[5,6]]] -> [1,2,3,4,5,6]
+# 2. 100 tak sabhi prime numbers dhundo
+# 3. Ek dict banao jo string ke har char ko uske count se map kare (Counter use kiye bina)
+# 4. Ek dictionary of lists ko transpose karo:
 #    {"a": [1, 2, 3], "b": [4, 5, 6]} -> [{a:1, b:4}, {a:2, b:5}, {a:3, b:6}]
-# 5. Generate Pascal's triangle (first n rows)
+# 5. Pascal's triangle generate karo (pehli n rows)
 ```
 
 <details>
 <summary>Solution</summary>
 
 ```python
-# 1. Flatten nested list of lists
+# 1. Nested list of lists ko flatten karo
 data = [[[1, 2], [3]], [[4], [5, 6]]]
 flat = [x for outer in data for inner in outer for x in inner]
 print(flat)  # [1, 2, 3, 4, 5, 6]
 
-# 2. Primes up to 100 (Sieve-ish via comprehension)
+# 2. 100 tak primes (Sieve jaisa comprehension se)
 primes = [n for n in range(2, 101) if all(n % d != 0 for d in range(2, int(n**0.5) + 1))]
 print(primes)  # [2, 3, 5, 7, 11, 13, ...]
 
-# 3. Character count without Counter
+# 3. Character count Counter ke bina
 text = "mississippi"
 char_count = {c: text.count(c) for c in set(text)}
 print(char_count)  # {'m': 1, 'i': 4, 's': 4, 'p': 2}
 
-# 4. Transpose dict of lists
+# 4. Dict of lists ko transpose karo
 d = {"a": [1, 2, 3], "b": [4, 5, 6]}
 transposed = [{k: v[i] for k, v in d.items()} for i in range(len(next(iter(d.values()))))]
 print(transposed)  # [{'a': 1, 'b': 4}, {'a': 2, 'b': 5}, {'a': 3, 'b': 6}]
 
-# 5. Pascal's triangle (n rows) -- this one is a stretch for "single comprehension"
+# 5. Pascal's triangle (n rows) -- ye "single comprehension" ke liye thoda stretch hai
 n = 6
 pascal = [[1] if i == 0 else [1] + [prev[j-1] + prev[j] for j in range(1, i)] + [1] for i, prev in [(0, [])] + [(i, None) for i in range(1, n)]]
-# That's too ugly. Better approach with reduce:
+# Ye bahut ugly hai. reduce ke saath behtar approach:
 from functools import reduce
 pascal = reduce(lambda tri, _: tri + [[1] + [tri[-1][j] + tri[-1][j+1] for j in range(len(tri[-1])-1)] + [1]], range(n-1), [[1]])
 print(pascal)
 # [[1], [1, 1], [1, 2, 1], [1, 3, 3, 1], [1, 4, 6, 4, 1], [1, 5, 10, 10, 5, 1]]
 
-# The honest best approach for Pascal's triangle:
+# Pascal's triangle ke liye honest best approach:
 def pascal_triangle(n):
     triangle = [[1]]
     for i in range(1, n):
@@ -893,3 +916,11 @@ def pascal_triangle(n):
 print(pascal_triangle(6))
 ```
 </details>
+
+## Key Takeaways
+
+- List/dict/set comprehensions ek line mein loop + filter + transform kar dete hain -- JS ke `.map().filter()` chains se zyada efficient (single pass) aur readable.
+- Generator expressions `()` use karte hain, lazy hote hain, aur bade datasets ke liye memory bachate hain -- `sum()`, `any()`, `all()` jaise functions ke saath directly use karo.
+- `[[0]*4]*3` wala trap yaad rakho -- shared reference ka gotcha, comprehension se hi 2D structures banao.
+- Rule of thumb: ek `for` + ek `if` tak comprehension theek hai; usse zyada complex ho toh regular loop ya helper function likho.
+- Dict/set comprehensions sirf naya collection banane ke liye hain -- side-effects (jaise `.append()`) ke liye loop hi use karo.

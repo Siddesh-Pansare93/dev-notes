@@ -1,17 +1,17 @@
 # Magic Methods (Dunder Methods)
 
-> Python's operator overloading and protocols for Node.js/TypeScript developers
+> Python ka operator overloading aur protocols — Node.js/TypeScript developers ke liye
 
 ---
 
-## What Are Magic Methods?
+## Magic Methods hote kya hain?
 
-Magic methods (also called **dunder methods** - "double underscore") are special methods surrounded by double underscores like `__init__`, `__str__`, `__add__`. They let you define how your objects behave with built-in Python operations.
+Socho tumhare paas ek object hai aur tum use `+` se add karna chahte ho, ya `print()` karke usko sundar dikhana chahte ho, ya `for` loop mein daal ke iterate karna chahte ho. Python isko possible banata hai **magic methods** (jinhe **dunder methods** bhi bolte hain — "double underscore") ke through. Ye special methods hote hain jo double underscore se ghire hote hain, jaise `__init__`, `__str__`, `__add__`. Ye define karte hain ki tumhara object Python ke built-in operations ke saath kaise behave karega.
 
-JavaScript has a few similar concepts (`Symbol.iterator`, `Symbol.toPrimitive`, `toString()`), but Python takes this MUCH further. You can customize almost every operator and built-in function.
+JavaScript mein bhi kuch aise concepts hain (`Symbol.iterator`, `Symbol.toPrimitive`, `toString()`), lekin Python isko bahut aage le jaata hai. Tum lagbhag har operator aur built-in function ko customize kar sakte ho.
 
 ```python
-# When you write this...          Python actually calls this...
+# Jab tum ye likhte ho...          Python actually ye call karta hai...
 len(obj)                        # obj.__len__()
 str(obj)                        # obj.__str__()
 repr(obj)                       # obj.__repr__()
@@ -23,11 +23,14 @@ obj()                           # obj.__call__()
 for x in obj:                   # obj.__iter__() and __next__()
 ```
 
+> [!info]
+> Ye saare methods Python khud call karta hai, tum inhe seedha kabhi nahi bulaate. Tum bas inhe **define** karte ho apni class ke andar, aur Python operator dekh ke sahi method dhoond leta hai — bilkul waise jaise Zomato app "Order" button dabane pe backend mein sahi API khud call kar deta hai, tumhe manually endpoint hit nahi karna padta.
+
 ---
 
-## `__str__` and `__repr__` - Display Representations
+## `__str__` aur `__repr__` - Display Representations
 
-You saw these in the classes basics file. Here is the deeper picture.
+Ye classes wali basics file mein bhi dekhe the. Yahan thoda deeper samjhte hain.
 
 ```python
 class Money:
@@ -36,37 +39,37 @@ class Money:
         self.currency = currency
 
     def __str__(self) -> str:
-        """Human-readable. Used by print() and str()."""
+        """Human-readable. print() aur str() ke liye use hota hai."""
         symbols = {"USD": "$", "EUR": "€", "GBP": "£"}
         symbol = symbols.get(self.currency, self.currency)
         return f"{symbol}{self.amount:,.2f}"
 
     def __repr__(self) -> str:
-        """Developer-readable. Used in REPL and inside containers."""
+        """Developer-readable. REPL aur containers ke andar use hota hai."""
         return f"Money(amount={self.amount}, currency='{self.currency}')"
 
 
 price = Money(1299.99, "USD")
-print(price)        # $1,299.99       (calls __str__)
-print(repr(price))  # Money(amount=1299.99, currency='USD')  (calls __repr__)
-print([price])      # [Money(amount=1299.99, currency='USD')] (lists use __repr__)
-print(f"Price: {price}")  # Price: $1,299.99  (f-strings use __str__)
+print(price)        # $1,299.99       (__str__ call hua)
+print(repr(price))  # Money(amount=1299.99, currency='USD')  (__repr__ call hua)
+print([price])      # [Money(amount=1299.99, currency='USD')] (lists __repr__ use karti hain)
+print(f"Price: {price}")  # Price: $1,299.99  (f-strings __str__ use karti hain)
 ```
 
-**Rule of thumb:**
-- `__str__` = for end users / display
-- `__repr__` = for developers / debugging. Ideally should be valid Python that could recreate the object
-- If you only define one, define `__repr__`. Python falls back to `__repr__` when `__str__` is missing.
+**Yaad rakhne wali baat:**
+- `__str__` = end users / display ke liye — jaise Swiggy app pe order summary dikhta hai
+- `__repr__` = developers / debugging ke liye. Ideally aisi valid Python honi chahiye jisse object wapas banaya ja sake
+- Agar ek hi define karna hai to `__repr__` define karo. `__str__` missing ho to Python `__repr__` pe fallback kar leta hai
 
 ---
 
-## Comparison Operators: `__eq__`, `__lt__`, `__gt__`, etc.
+## Comparison Operators: `__eq__`, `__lt__`, `__gt__`, waghera
 
-In JavaScript, you cannot customize `==` or `<` behavior for objects. In Python, you can.
+JavaScript mein tum `==` ya `<` ka behavior objects ke liye customize nahi kar sakte. Python mein kar sakte ho — bilkul apne rules ke hisaab se.
 
 ```python
 class Version:
-    """Semantic version comparison - like the 'semver' npm package."""
+    """Semantic version comparison - npm ke 'semver' package jaisa."""
 
     def __init__(self, version_string: str):
         parts = version_string.split(".")
@@ -116,15 +119,18 @@ v3 = Version("1.2.3")
 print(v1 == v3)  # True
 print(v1 < v2)   # True
 print(v2 > v1)   # True
-print(v1 != v2)  # True (auto-derived from __eq__)
+print(v1 != v2)  # True (yeh __eq__ se auto-derive hota hai)
 
-# Now you can sort versions!
+# Ab versions sort bhi kar sakte ho!
 versions = [Version("2.0.0"), Version("1.0.0"), Version("1.5.0"), Version("0.9.0")]
 versions.sort()
 print(versions)  # [Version('0.9.0'), Version('1.0.0'), Version('1.5.0'), Version('2.0.0')]
 ```
 
-**Shortcut**: Use `functools.total_ordering` to only define `__eq__` and one comparison method, and Python fills in the rest:
+> [!warning]
+> Jab operand ka type unsupported ho, to `NotImplementedError` raise mat karo — `NotImplemented` **return** karo. Isse Python doosre operand pe reverse operation try karne ka mauka deta hai (jaise `a < b` fail ho to `b > a` try karega). Ye ek chhota sa difference hai jo bahut confusion bacha deta hai.
+
+**Shortcut**: `functools.total_ordering` use karo — sirf `__eq__` aur ek comparison method define karo, baaki Python khud fill kar dega:
 
 ```python
 from functools import total_ordering
@@ -143,12 +149,12 @@ class Version:
             return NotImplemented
         return self._as_tuple() < other._as_tuple()
 
-    # __le__, __gt__, __ge__ are auto-generated!
+    # __le__, __gt__, __ge__ auto-generate ho jaate hain!
 ```
 
 ```typescript
-// TypeScript - you can't override == or <
-// You'd need explicit compare methods:
+// TypeScript - tum == ya < ko override nahi kar sakte
+// Explicit compare methods hi banane padenge:
 class Version {
   constructor(
     public major: number,
@@ -165,14 +171,14 @@ class Version {
   }
 
   compareTo(other: Version): number {
-    // return -1, 0, or 1
+    // -1, 0, ya 1 return karo
     if (this.major !== other.major) return this.major - other.major;
     if (this.minor !== other.minor) return this.minor - other.minor;
     return this.patch - other.patch;
   }
 }
 
-// And sorting requires a callback:
+// Aur sorting ke liye callback dena padega:
 versions.sort((a, b) => a.compareTo(b));
 ```
 
@@ -180,11 +186,11 @@ versions.sort((a, b) => a.compareTo(b));
 
 ## Container Protocols: `__len__`, `__getitem__`, `__setitem__`
 
-These let your objects behave like lists, dicts, or other containers.
+Ye tumhare objects ko list, dict ya doosre containers ki tarah behave karvate hain.
 
 ```python
 class TimeSeries:
-    """A time series data structure - like a simplified pandas Series."""
+    """Ek time series data structure - simplified pandas Series jaisa."""
 
     def __init__(self, name: str):
         self.name = name
@@ -196,19 +202,19 @@ class TimeSeries:
         self._values.append(value)
 
     def __len__(self) -> int:
-        """len(series) returns the number of data points."""
+        """len(series) data points ki count deta hai."""
         return len(self._values)
 
     def __getitem__(self, index: int | str) -> float | "TimeSeries":
-        """series[0] or series["2024-01-01"] returns the value."""
+        """series[0] ya series["2024-01-01"] value return karta hai."""
         if isinstance(index, int):
             return self._values[index]
         elif isinstance(index, str):
-            # Lookup by timestamp
+            # Timestamp se lookup
             idx = self._timestamps.index(index)
             return self._values[idx]
         elif isinstance(index, slice):
-            # Support slicing: series[1:3]
+            # Slicing support: series[1:3]
             result = TimeSeries(f"{self.name}[slice]")
             for ts, val in zip(
                 self._timestamps[index], self._values[index]
@@ -218,7 +224,7 @@ class TimeSeries:
         raise TypeError(f"Invalid index type: {type(index)}")
 
     def __setitem__(self, index: int | str, value: float) -> None:
-        """series[0] = 42 or series["2024-01-01"] = 42."""
+        """series[0] = 42 ya series["2024-01-01"] = 42."""
         if isinstance(index, int):
             self._values[index] = value
         elif isinstance(index, str):
@@ -226,18 +232,18 @@ class TimeSeries:
                 idx = self._timestamps.index(index)
                 self._values[idx] = value
             except ValueError:
-                # New timestamp - add it
+                # Naya timestamp - add kar do
                 self.add(index, value)
 
     def __contains__(self, timestamp: str) -> bool:
-        """Support 'in' operator: '2024-01-01' in series."""
+        """'in' operator support: '2024-01-01' in series."""
         return timestamp in self._timestamps
 
     def __repr__(self) -> str:
         return f"TimeSeries('{self.name}', points={len(self)})"
 
 
-# Usage - feels just like a built-in collection!
+# Usage - bilkul built-in collection jaisa feel hota hai!
 metrics = TimeSeries("cpu_usage")
 metrics.add("2024-01-01", 45.2)
 metrics.add("2024-01-02", 62.8)
@@ -249,17 +255,17 @@ print(metrics[0])                # 45.2
 print(metrics["2024-01-02"])     # 62.8
 print("2024-01-03" in metrics)   # True
 
-metrics["2024-01-01"] = 50.0     # update via timestamp
+metrics["2024-01-01"] = 50.0     # timestamp se update
 print(metrics[0])                # 50.0
 
-# Slicing works too
+# Slicing bhi chalti hai
 subset = metrics[1:3]
 print(subset)                    # TimeSeries('cpu_usage[slice]', points=2)
 ```
 
 ```typescript
-// TypeScript - no way to make obj[key] work with custom classes
-// You'd need explicit methods:
+// TypeScript - custom classes ke saath obj[key] kaam karvana possible nahi
+// Explicit methods hi banane padenge:
 class TimeSeries {
   private timestamps: string[] = [];
   private values: number[] = [];
@@ -276,15 +282,17 @@ class TimeSeries {
   get length(): number {
     return this.values.length;
   }
-  // No way to use ts[0] or ts["2024-01-01"] syntax
+  // ts[0] ya ts["2024-01-01"] syntax use karne ka koi tareeka nahi
 }
 ```
 
 ---
 
-## Operator Overloading: `__add__`, `__mul__`, etc.
+## Operator Overloading: `__add__`, `__mul__`, waghera
 
-**This is completely impossible in JavaScript/TypeScript.** Python lets you define what `+`, `-`, `*`, `/`, etc. mean for your objects.
+**Ye JavaScript/TypeScript mein bilkul possible nahi hai.** Python mein tum define kar sakte ho ki `+`, `-`, `*`, `/` waghera tumhare objects ke liye kya matlab rakhte hain.
+
+Socho — jaise UPI app mein do wallets ko `+` se add karna ho, ya cart mein price `*` se multiply karna ho — Python mein ye seedha operator se ho sakta hai, JS mein tumhe har baar method call karna padega.
 
 ```python
 class Vector:
@@ -313,7 +321,7 @@ class Vector:
         return Vector(self.x * scalar, self.y * scalar)
 
     def __rmul__(self, scalar: float) -> "Vector":
-        """3 * v (reverse multiplication - when scalar is on the left)"""
+        """3 * v (reverse multiplication - jab scalar left side pe ho)"""
         return self.__mul__(scalar)
 
     def __neg__(self) -> "Vector":
@@ -321,7 +329,7 @@ class Vector:
         return Vector(-self.x, -self.y)
 
     def __abs__(self) -> float:
-        """abs(v) returns magnitude"""
+        """abs(v) magnitude return karta hai"""
         return (self.x ** 2 + self.y ** 2) ** 0.5
 
     def __eq__(self, other: object) -> bool:
@@ -336,20 +344,22 @@ class Vector:
         return f"({self.x}, {self.y})"
 
 
-# This reads like math!
+# Ye seedha maths jaisa padhta hai!
 v1 = Vector(3, 4)
 v2 = Vector(1, 2)
 
 print(v1 + v2)      # (4, 6)
 print(v1 - v2)      # (2, 2)
 print(v1 * 3)       # (9, 12)
-print(3 * v1)       # (9, 12)  -- thanks to __rmul__
+print(3 * v1)       # (9, 12)  -- __rmul__ ki wajah se
 print(-v1)          # (-3, -4)
 print(abs(v1))      # 5.0
 print(v1 == Vector(3, 4))  # True
 ```
 
-Another practical example - a Money class with safe arithmetic:
+`__rmul__` ka kaam samjho: jab tum `v1 * 3` likhte ho, Python `v1.__mul__(3)` call karta hai — kaam ho jaata hai. Lekin jab tum `3 * v1` likhte ho, Python pehle `int.__mul__(v1)` try karta hai, jo fail hota hai (int ko Vector ka pata nahi), phir Python fallback karta hai `v1.__rmul__(3)` pe. Isiliye `__rmul__` bina iska "reverse" define kiye `3 * v1` kabhi kaam nahi karega.
+
+Ek aur practical example - safe arithmetic wali Money class:
 
 ```python
 class Money:
@@ -405,7 +415,7 @@ class Money:
         return f"${self.amount:,.2f}" if self.currency == "USD" else f"{self.amount:,.2f} {self.currency}"
 
 
-# Clean, readable financial calculations
+# Clean, readable financial calculations - jaise Swiggy ka bill breakdown
 subtotal = Money(29.99) + Money(49.99) + Money(12.50)
 tax = subtotal * 0.08
 total = subtotal + tax
@@ -421,13 +431,13 @@ print(f"Final:    {final}")     # Final:    $89.89
 
 ---
 
-## `__call__` - Making Instances Callable
+## `__call__` - Instance ko Callable banana
 
-`__call__` lets you use an object like a function. This is useful for stateful functions, middleware patterns, and strategy patterns.
+`__call__` ki wajah se tum object ko function ki tarah use kar sakte ho. Ye stateful functions, middleware patterns aur strategy patterns ke liye kaafi useful hai.
 
 ```python
 class RateLimiter:
-    """A callable rate limiter - use it like a function."""
+    """Ek callable rate limiter - function ki tarah use karo."""
 
     def __init__(self, max_calls: int, period_seconds: float):
         self.max_calls = max_calls
@@ -435,10 +445,10 @@ class RateLimiter:
         self._calls: list[float] = []
 
     def __call__(self, func_name: str = "unknown") -> bool:
-        """Check if a call is allowed. Use: limiter('endpoint_name')"""
+        """Check karta hai ki call allowed hai ya nahi. Use: limiter('endpoint_name')"""
         import time
         now = time.time()
-        # Remove expired entries
+        # Expired entries hata do
         self._calls = [t for t in self._calls if now - t < self.period]
 
         if len(self._calls) >= self.max_calls:
@@ -449,7 +459,7 @@ class RateLimiter:
         return True
 
 
-# Use it like a function!
+# Function jaisa use karo!
 limiter = RateLimiter(max_calls=3, period_seconds=10)
 
 print(limiter("api/users"))    # True
@@ -458,11 +468,11 @@ print(limiter("api/users"))    # True
 print(limiter("api/users"))    # Rate limit exceeded for 'api/users' -> False
 ```
 
-Another example - a validator factory:
+Ek aur example - validator factory (socho jaise Flipkart pe checkout se pehle form validate hota hai):
 
 ```python
 class Validator:
-    """A composable validator that can be called like a function."""
+    """Ek composable validator jo function ki tarah call ho sakta hai."""
 
     def __init__(self, name: str):
         self.name = name
@@ -470,10 +480,10 @@ class Validator:
 
     def add_rule(self, check: callable, message: str) -> "Validator":
         self._rules.append((check, message))
-        return self  # allow chaining
+        return self  # chaining allow karne ke liye
 
     def __call__(self, value) -> tuple[bool, list[str]]:
-        """Validate a value. Returns (is_valid, errors)."""
+        """Value validate karo. Returns (is_valid, errors)."""
         errors = []
         for check, message in self._rules:
             if not check(value):
@@ -481,7 +491,7 @@ class Validator:
         return (len(errors) == 0, errors)
 
 
-# Build validators
+# Validators banao
 email_validator = Validator("email")
 email_validator.add_rule(
     lambda v: isinstance(v, str), "Must be a string"
@@ -493,7 +503,7 @@ email_validator.add_rule(
     lambda v: len(v) <= 254, "Too long"
 )
 
-# Use it like a function!
+# Function jaisa use karo!
 valid, errors = email_validator("alice@example.com")
 print(valid, errors)  # True []
 
@@ -502,25 +512,25 @@ print(valid, errors)  # False ['Must contain @']
 ```
 
 ```typescript
-// TypeScript - no __call__ equivalent
-// You'd use a regular function or a class with an explicit method
+// TypeScript - __call__ ka koi equivalent nahi
+// Regular function ya explicit method wali class use karni padegi
 class RateLimiter {
   check(funcName: string): boolean {
     // ...
   }
 }
-// limiter.check("api/users") instead of limiter("api/users")
+// limiter("api/users") ki jagah limiter.check("api/users") likhna padega
 ```
 
 ---
 
-## `__iter__` and `__next__` - Iterator Protocol
+## `__iter__` aur `__next__` - Iterator Protocol
 
-This maps to JavaScript's `Symbol.iterator` and the iterator protocol, but Python's syntax is much cleaner.
+Ye JavaScript ke `Symbol.iterator` aur iterator protocol jaisa hi hai, bas Python ka syntax kaafi clean hai.
 
 ```python
 class DateRange:
-    """Iterate over dates - like a date range generator."""
+    """Dates pe iterate karo - ek date range generator jaisa."""
 
     def __init__(self, start: str, end: str):
         from datetime import datetime
@@ -528,13 +538,13 @@ class DateRange:
         self.end = datetime.strptime(end, "%Y-%m-%d")
 
     def __iter__(self):
-        """Called when iteration starts. Return the iterator (self)."""
+        """Jab iteration start hota hai tab call hota hai. Iterator (self) return karo."""
         from datetime import datetime
         self._current = self.start
         return self
 
     def __next__(self) -> str:
-        """Called for each iteration. Return next value or raise StopIteration."""
+        """Har iteration ke liye call hota hai. Next value return karo ya StopIteration raise karo."""
         from datetime import timedelta
         if self._current > self.end:
             raise StopIteration
@@ -551,7 +561,7 @@ class DateRange:
         return self.start <= date <= self.end
 
 
-# Use in for loops
+# for loops mein use karo
 for date in DateRange("2024-01-01", "2024-01-05"):
     print(date)
 # 2024-01-01
@@ -560,18 +570,18 @@ for date in DateRange("2024-01-01", "2024-01-05"):
 # 2024-01-04
 # 2024-01-05
 
-# Use with list comprehension
+# List comprehension ke saath bhi
 dates = [d for d in DateRange("2024-06-01", "2024-06-07")]
 
-# Use 'in' operator
+# 'in' operator use karo
 print("2024-01-03" in DateRange("2024-01-01", "2024-01-05"))  # True
 
-# Use len()
+# len() use karo
 print(len(DateRange("2024-01-01", "2024-01-31")))  # 31
 ```
 
 ```typescript
-// TypeScript equivalent using Symbol.iterator
+// TypeScript equivalent, Symbol.iterator use karke
 class DateRange {
   constructor(private start: string, private end: string) {}
 
@@ -585,17 +595,17 @@ class DateRange {
   }
 }
 
-// Usage is similar
+// Usage similar hai
 for (const date of new DateRange("2024-01-01", "2024-01-05")) {
   console.log(date);
 }
 ```
 
-A more practical example - paginated API results:
+Ek aur practical example - paginated API results (jaise IRCTC pe train list page-by-page load hoti hai):
 
 ```python
 class PaginatedResults:
-    """Iterate over paginated API results transparently."""
+    """Paginated API results pe transparently iterate karo."""
 
     def __init__(self, fetch_page: callable, page_size: int = 25):
         self._fetch_page = fetch_page
@@ -608,7 +618,7 @@ class PaginatedResults:
         return self
 
     def __next__(self):
-        # Refill buffer if empty
+        # Buffer khaali ho to refill karo
         if not self._buffer:
             if self._exhausted:
                 raise StopIteration
@@ -623,24 +633,27 @@ class PaginatedResults:
         return self._buffer.pop(0)
 
 
-# Simulate paginated API
+# Paginated API simulate karo
 def fake_api(page: int, size: int) -> list[dict]:
     all_users = [{"id": i, "name": f"User {i}"} for i in range(73)]
     start = page * size
     return all_users[start : start + size]
 
 
-# Iterate over ALL pages seamlessly
+# SAARE pages pe seamlessly iterate karo
 for user in PaginatedResults(fake_api, page_size=25):
     if user["id"] % 20 == 0:
-        print(user)  # prints every 20th user
+        print(user)  # har 20th user print karega
 ```
 
 ---
 
 ## `__hash__` - Hashable Objects
 
-For objects to be used in sets or as dict keys, they need to be hashable. By default, if you define `__eq__`, Python sets `__hash__` to `None` (making the object unhashable).
+Objects ko sets ya dict keys mein use karne ke liye unka hashable hona zaruri hai.
+
+> [!warning]
+> By default, agar tum `__eq__` define karte ho, Python `__hash__` ko `None` set kar deta hai (matlab object unhashable ho jaata hai). Isliye jab bhi `__eq__` likho, sath mein `__hash__` bhi likhne ke baare mein socho — warna set/dict mein daalte hi `TypeError: unhashable type` mil jayega.
 
 ```python
 class Coordinate:
@@ -654,23 +667,23 @@ class Coordinate:
         return self.lat == other.lat and self.lng == other.lng
 
     def __hash__(self) -> int:
-        """Must be consistent with __eq__:
-        if a == b, then hash(a) == hash(b)"""
+        """__eq__ ke saath consistent hona chahiye:
+        agar a == b, to hash(a) == hash(b) hona chahiye"""
         return hash((self.lat, self.lng))
 
     def __repr__(self) -> str:
         return f"Coordinate({self.lat}, {self.lng})"
 
 
-# Now you can use them in sets and as dict keys
+# Ab inhe sets aur dict keys mein use kar sakte ho
 visited = {
     Coordinate(40.7128, -74.0060),  # NYC
     Coordinate(51.5074, -0.1278),   # London
-    Coordinate(40.7128, -74.0060),  # NYC again - deduped!
+    Coordinate(40.7128, -74.0060),  # NYC dubara - deduped!
 }
-print(len(visited))  # 2 (NYC only appears once)
+print(len(visited))  # 2 (NYC sirf ek baar aayega)
 
-# Use as dict keys
+# Dict keys ki tarah use karo
 distances: dict[Coordinate, float] = {
     Coordinate(40.7128, -74.0060): 0.0,
     Coordinate(51.5074, -0.1278): 5570.0,
@@ -682,7 +695,7 @@ print(distances[Coordinate(40.7128, -74.0060)])  # 0.0
 
 ## Complete Reference Table
 
-| Magic Method | Triggered By | JS Equivalent |
+| Magic Method | Kis se trigger hota hai | JS Equivalent |
 |-------------|-------------|---------------|
 | `__init__` | `MyClass()` | `constructor()` |
 | `__str__` | `str(obj)`, `print(obj)` | `toString()` |
@@ -694,15 +707,15 @@ print(distances[Coordinate(40.7128, -74.0060)])  # 0.0
 | `__contains__` | `x in obj` | `.includes()` / `.has()` |
 | `__iter__` | `for x in obj` | `[Symbol.iterator]()` |
 | `__next__` | `next(obj)` | `.next()` on iterator |
-| `__call__` | `obj()` | No equivalent |
-| `__eq__` | `obj == other` | No equivalent (can't override `==`) |
-| `__lt__` | `obj < other` | No equivalent |
-| `__add__` | `obj + other` | No equivalent |
-| `__mul__` | `obj * other` | No equivalent |
-| `__hash__` | `hash(obj)`, sets, dict keys | No direct equivalent |
-| `__bool__` | `bool(obj)`, `if obj:` | Truthy/falsy (not customizable) |
-| `__enter__`/`__exit__` | `with obj:` | No equivalent (try/finally) |
-| `__del__` | Object garbage collected | `FinalizationRegistry` |
+| `__call__` | `obj()` | Koi equivalent nahi |
+| `__eq__` | `obj == other` | Koi equivalent nahi (`==` override nahi ho sakta) |
+| `__lt__` | `obj < other` | Koi equivalent nahi |
+| `__add__` | `obj + other` | Koi equivalent nahi |
+| `__mul__` | `obj * other` | Koi equivalent nahi |
+| `__hash__` | `hash(obj)`, sets, dict keys | Koi direct equivalent nahi |
+| `__bool__` | `bool(obj)`, `if obj:` | Truthy/falsy (customize nahi ho sakta) |
+| `__enter__`/`__exit__` | `with obj:` | Koi equivalent nahi (try/finally) |
+| `__del__` | Object garbage collect hone par | `FinalizationRegistry` |
 
 ---
 
@@ -710,7 +723,7 @@ print(distances[Coordinate(40.7128, -74.0060)])  # 0.0
 
 ### Exercise 1: Matrix Class
 
-Create a `Matrix` class with these magic methods:
+`Matrix` class banao in magic methods ke saath:
 
 ```python
 m1 = Matrix([[1, 2], [3, 4]])
@@ -719,16 +732,16 @@ m2 = Matrix([[5, 6], [7, 8]])
 print(m1 + m2)        # Matrix addition
 print(m1 * 3)         # Scalar multiplication
 print(m1[0][1])       # Element access -> 2
-print(len(m1))        # Number of rows -> 2
+print(len(m1))        # Rows ki count -> 2
 print(m1 == Matrix([[1, 2], [3, 4]]))  # True
 print(repr(m1))       # Matrix([[1, 2], [3, 4]])
-for row in m1:        # Iterate over rows
+for row in m1:        # Rows pe iterate karo
     print(row)
 ```
 
 ### Exercise 2: JSONPath Query Object
 
-Create a `Config` class that supports nested access via `__getitem__`:
+Ek `Config` class banao jo `__getitem__` se nested access support kare:
 
 ```python
 config = Config({
@@ -742,14 +755,14 @@ config = Config({
 
 print(config["database.host"])           # localhost
 print(config["database.credentials.user"])  # admin
-print(len(config))                        # number of top-level keys
+print(len(config))                        # top-level keys ki count
 print("database" in config)              # True
-config["server.debug"] = True            # set nested values
+config["server.debug"] = True            # nested values set karo
 ```
 
 ### Exercise 3: Chainable Query Builder
 
-Create a `Query` class that uses `__call__`, `__str__`, and method chaining:
+Ek `Query` class banao jo `__call__`, `__str__` aur method chaining use kare:
 
 ```python
 q = Query("users")
@@ -757,13 +770,13 @@ result = q.where(age__gt=18).where(active=True).select("name", "email").limit(10
 print(result)
 # SELECT name, email FROM users WHERE age > 18 AND active = true LIMIT 10
 
-# Make it callable to "execute"
-rows = result()  # returns a string describing the query being executed
+# Callable banao "execute" karne ke liye
+rows = result()  # ek string return karega jo bata rahi hai kaunsi query execute ho rahi hai
 ```
 
 ### Exercise 4: Unit Converter
 
-Create measurement classes that support arithmetic and comparison:
+Measurement classes banao jo arithmetic aur comparison support karein:
 
 ```python
 d1 = Distance(100, "m")
@@ -777,12 +790,12 @@ print(d1 * 3)       # 300.0 m
 
 ---
 
-## Key Takeaways for Node.js Developers
+## Key Takeaways
 
-1. **Magic methods are Python's superpower** - they let you make custom objects behave exactly like built-in types
-2. **Operator overloading is impossible in JS** - `+`, `-`, `*`, `==`, `<` can all be customized in Python
-3. **`__iter__`/`__next__`** is Python's version of `Symbol.iterator` but more straightforward
-4. **`__call__`** has no JS equivalent - it lets instances act as functions (great for middleware, validators)
-5. **`__getitem__`/`__setitem__`** replaces Proxy-like behavior with a clean API
-6. **Always return `NotImplemented`** (not `raise NotImplementedError`) from magic methods when the other operand type is unsupported - this lets Python try the reverse operation
-7. **If you define `__eq__`, consider `__hash__`** - objects with custom equality need custom hashing to work in sets/dicts
+1. **Magic methods Python ka superpower hain** - inse tum custom objects ko bilkul built-in types jaisa behave karva sakte ho
+2. **Operator overloading JS mein impossible hai** - `+`, `-`, `*`, `==`, `<` sab Python mein customize ho sakte hain
+3. **`__iter__`/`__next__`** Python ka `Symbol.iterator` wala version hai, bas zyada straightforward
+4. **`__call__`** ka JS mein koi equivalent nahi - isse instances function ki tarah act kar sakte hain (middleware, validators ke liye zabardast)
+5. **`__getitem__`/`__setitem__`** Proxy jaisa behavior clean API ke saath de deta hai
+6. **Magic methods se hamesha `NotImplemented` return karo** (`raise NotImplementedError` nahi) jab other operand ka type unsupported ho - isse Python reverse operation try kar leta hai
+7. **Agar `__eq__` define kiya hai to `__hash__` bhi socho** - custom equality wale objects ko sets/dicts mein kaam karne ke liye custom hashing chahiye hoti hai
