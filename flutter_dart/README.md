@@ -1,90 +1,101 @@
-# Flutter & Dart
+# Flutter & Dart — 0 se 100 tak
 
-A hands-on guide to building cross-platform mobile, web, and desktop apps with Flutter and Dart — covering the language from scratch, core Flutter patterns, state management, networking, local storage, and production deployment.
+Mobile development seekhna hai? Dart se shuru karo, phir Flutter mein transition karo, aur phir production-grade patterns (state management, clean architecture, native integrations) master karo. Yeh section bilkul zero se lekar senior mobile developer ke level tak le jaata hai.
 
-## Table of Contents
+Pura course **Hinglish mein hai** — conversational, Indian analogies, real code, diagrams, aur practical examples. Node.js/TypeScript se mobile development side karte ho ya bilkul naya ho — dono ke liye written.
 
-### Part 1: Dart Language Foundations
-1. [Dart Basics — Variables, Types, and Functions](./01-dart-basics.md)
-2. [Dart OOP — Classes, Mixins, and Interfaces](./02-dart-oop.md)
-3. [Dart Async — Future, async/await, and Streams](./03-dart-async.md)
+## 15-Chapter Learning Path
 
-### Part 2: Flutter Fundamentals
-4. [Flutter Setup and Your First App](./04-flutter-setup.md)
-5. [Widgets and Layout](./05-widgets-and-layout.md)
-6. [Styling, Themes, and Material Design](./06-styling-and-themes.md)
+### Part 1: Dart Fundamentals (Chapters 1-2)
+1. [Dart Basics — Variables, Types, Functions](./01-dart-fundamentals/README.md)
+2. [Dart Advanced — Async, Streams, Extensions](./02-dart-advanced/README.md)
 
-### Part 3: State Management
-7. [State Management Basics — setState and InheritedWidget](./07-state-management-basics.md)
-8. [Provider — Scalable State for Mid-Sized Apps](./08-provider.md)
-9. [Riverpod — The Modern Provider](./09-riverpod.md)
-10. [BLoC Pattern — Cubit and Full BLoC](./10-bloc-pattern.md)
+### Part 2: Flutter Essentials (Chapters 3-4)
+3. [Flutter Basics — Setup, Your First App, Widget Tree](./03-flutter-basics/README.md)
+4. [Layouts and Widgets — BuildContext, Scaffold, Lists, Navigation](./04-flutter-layouts-and-widgets/README.md)
 
-### Part 4: Navigation and Routing
-11. [Navigation — Navigator 2.0 and go_router](./11-navigation.md)
+### Part 3: State Management (Chapters 5-7)
+5. [State Management Foundations — setState, InheritedWidget, Provider Intro](./05-state-management-foundations/README.md)
+6. [Riverpod — Modern Reactive State, Family, AsyncNotifier, Integration Testing](./06-riverpod-state-management/README.md)
+7. [BLoC Pattern — Cubit, Full BLoC, Event-State Cycle, Team-Scale Apps](./07-bloc-pattern/README.md)
 
-### Part 5: Data and Persistence
-12. [Networking — HTTP, Dio, and REST APIs](./12-networking.md)
-13. [Local Storage — SharedPreferences, sqflite, and Hive](./13-local-storage.md)
-14. [Firebase Integration — Firestore, Auth, and Cloud Functions](./14-firebase.md)
+### Part 4: Architecture & Design (Chapters 8-9)
+8. [Clean Architecture — Layers, Entities, Use Cases, Repositories, Presentation](./08-clean-architecture/README.md)
+9. [SOLID Principles — Applied to Flutter with Real Examples](./09-solid-principles/README.md)
 
-### Part 6: Quality and Shipping
-15. [Testing Flutter Apps — Unit, Widget, and Integration](./15-testing.md)
-16. [Deployment — Android, iOS, and the Web](./16-deployment.md)
+### Part 5: Advanced Flutter (Chapters 10-12)
+10. [Monorepo Structure — Organizing Multi-Package Projects, Shared Code](./10-monorepo-structure/README.md)
+11. [Native Platform Channels — iOS/Android Communication, Kotlin/Swift Integration](./11-native-platform-channels/README.md)
+12. [Advanced Native Integration — Custom Plugins, Gradle/CocoaPods, Performance Tuning](./12-advanced-native-integration/README.md)
 
-## Learning Path
-
-### Beginner Track
-Start here if you are new to Flutter or Dart:
-1. Dart Basics (01) — learn the language before the framework
-2. Dart OOP (02) — classes and type system
-3. Flutter Setup and Your First App (04)
-4. Widgets and Layout (05)
-5. Styling and Themes (06)
-6. State Management Basics (07)
-
-### Intermediate Track
-Build on the fundamentals and tackle real-world patterns:
-1. Dart Async (03) — essential for any API work
-2. Provider (08) — scalable state without boilerplate
-3. Navigation (11) — multi-screen apps and deep linking
-4. Networking (12) — connect to REST APIs
-5. Local Storage (13) — offline-first data handling
-6. Testing (15) — write widget tests with confidence
-
-### Advanced Track
-Production-ready skills and architectural patterns:
-1. Riverpod (09) — reactive, testable state management
-2. BLoC Pattern (10) — strict separation of business logic
-3. Firebase Integration (14) — real-time database and auth
-4. Deployment (16) — release builds, signing, and app store submission
+### Part 6: Production & Beyond (Chapters 13-15)
+13. [Performance Optimization — Profiling, Reducing Jank, Memory Management](./13-performance-optimization/README.md)
+14. [Testing Flutter — Unit, Widget, Integration Tests, Golden Tests](./14-testing-flutter/README.md)
+15. [Deployment and CI/CD — Play Store, App Store, GitHub Actions, FastLane](./15-deployment-and-ci-cd/README.md)
 
 ## What You'll Learn
 
-- The Dart language: type system, null safety, generics, and async programming with `Future` and `Stream`
-- Flutter's widget tree model: the difference between `StatelessWidget` and `StatefulWidget`, and when to use each
-- Layout fundamentals: `Column`, `Row`, `Stack`, `Expanded`, `Flexible`, and responsive design
-- State management approaches from `setState` to Provider, Riverpod, and BLoC — and how to choose between them
-- Navigating between screens using named routes and `go_router` with deep linking support
-- Fetching data from REST APIs with the `http` package and Dio, handling errors and loading states
-- Persisting data locally with `SharedPreferences`, `sqflite`, and Hive
-- Integrating Firebase for real-time data, user authentication, and cloud storage
-- Writing unit tests, widget tests, and integration tests using the Flutter testing toolkit
-- Building and releasing apps to the Google Play Store, Apple App Store, and as a web app
+- **Dart**: Variables, functions, null safety, async/await, streams, extension methods
+- **Flutter widgets**: Stateless, Stateful, BuildContext, lifecycle, hot reload
+- **State management**: From setState to Riverpod to BLoC — pick the right tool
+- **Clean Architecture**: Layers, dependency injection, repositories, testability
+- **SOLID principles**: Applied to mobile with examples (Single Responsibility, Open/Closed, Liskov, Interface Segregation, Dependency Inversion)
+- **Monorepo mastery**: Multi-package projects, code sharing, organization patterns
+- **Native integrations**: Platform channels, writing Kotlin/Swift modules, Firebase native APIs
+- **Performance**: Profiling with DevTools, jank debugging, memory leaks
+- **Testing**: Unit + widget + integration + golden tests with real CI/CD
+- **Deployment**: Play Store submission, TestFlight, AppStore, automated releases
+
+## Learning Path by Role
+
+### Mobile Dev (new to Flutter)
+1. Dart Basics (01)
+2. Flutter Basics (03)
+3. Layouts & Widgets (04)
+4. State Management Foundations (05)
+5. Pick Riverpod (06) or BLoC (07)
+6. Clean Architecture (08)
+7. Monorepo (10) for team projects
+8. Native Integration (11-12) when needed
+9. Testing (14), Deployment (15)
+
+### Senior Developer (familiar with mobile, new to Flutter)
+1. Dart Advanced (02)
+2. Flutter Basics (03) + Layouts (04) quickly
+3. Skip to Riverpod (06) or BLoC (07)
+4. Deep dive: Clean Architecture (08) + SOLID (09)
+5. Monorepo (10), Native (11-12)
+6. Production concerns (13-15)
+
+### Backend Developer (Node.js/Express → Flutter)
+1. Start with Dart Basics (01) — type system will feel familiar
+2. Flutter Basics (03-04)
+3. State Management (05-07) — think of Riverpod as dependency injection + reactivity
+4. Clean Architecture (08-09) — same layering you know from backend
+5. Rest follows naturally
+
+## Key Principles
+
+- **Hinglish all the way**: Conversational, Indian context, relatable analogies
+- **Real code, not toy examples**: Every code snippet is production-adjacent
+- **Diagrams & illustrations**: Architecture diagrams, widget trees, state flows
+- **Senior-level depth**: Covers what a tech lead needs to know
+- **Progressive complexity**: 0→100, each chapter builds on the last
+- **Practical structure**: After learning patterns, learn how to organize real projects (monorepo, native)
 
 ## Prerequisites
 
-- Basic programming experience in any language (JavaScript, Python, Java, or similar)
-- Familiarity with object-oriented concepts (classes, methods, inheritance) is helpful but not required — Dart OOP is covered from scratch
-- A machine with Flutter SDK installed, or willingness to follow the setup guide in chapter 04
-- No prior mobile development experience needed
+- Basic programming knowledge (JavaScript, Python, Java, or similar)
+- Curiosity about mobile development
+- A machine with Flutter SDK installed (setup guide in Chapter 03)
+- No prior Dart or Flutter experience needed
 
 ## How to Use This Guide
 
-1. **Start with Dart, not Flutter**: Chapters 01–03 are pure Dart. Skipping them is the most common beginner mistake — widgets and state make much more sense once you understand the language.
-2. **Run every code example**: Flutter is a visual framework. Copy snippets into DartPad (dartpad.dev) for Dart chapters, and into a real Flutter project for widget chapters — seeing it render in a simulator accelerates learning dramatically.
-3. **Pick one state management solution and go deep**: Chapters 07–10 cover four approaches. Read 07 first, then choose Provider, Riverpod, or BLoC based on your project size and stick with it. Do not try to learn all four simultaneously.
-4. **Build a real project alongside the guide**: A simple app — a notes manager, a movie search app, a habit tracker — is the best way to connect each concept to something meaningful.
-5. **Use the learning path, not just the table of contents**: Chapters build on each other. If a concept feels unclear, check whether an earlier chapter covers a prerequisite you might have skipped.
+1. **Follow the order**: Chapters build on each other; skipping fundamentals will hurt
+2. **Write code**: Copy every example, run it, modify it. Hot reload is your friend
+3. **Architecture comes later**: Chapters 1-7 teach Flutter idioms; Chapters 8-10 teach how to scale
+4. **Native integration is optional**: If you're just building Flutter apps, Chapters 11-12 can wait
+5. **Build a project alongside**: A personal expense tracker, a todo app, or a social app — pick one and implement features as you learn
 
-Good luck — Flutter's "hot reload" alone makes mobile development more enjoyable than you might expect, and Dart is one of the quickest languages to get productive in.
+Chalo, shuru karte hain — Dart se!
