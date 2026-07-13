@@ -1,8 +1,8 @@
 # 05 - Nested Models
 
-## Models Containing Other Models
+## Kya hota hai jab ek Model ke andar doosra Model hota hai?
 
-Just like TypeScript interfaces can reference other interfaces, Pydantic models can contain other Pydantic models as fields. When you do this, Pydantic validates the entire nested structure recursively.
+Socho TypeScript interfaces ki tarah — ek interface doosre ko use kar sakta hai, bilkul vaise hi Pydantic models bhi karte hain. Jab ek Pydantic model ke andar doosra Pydantic model field hota hai, toh Pydantic poore nested structure ko validate kar deta hai recursively. Matlab agar kuch galat hai nested data mein, tu error aa jayegi straight away.
 
 ```python
 from pydantic import BaseModel
@@ -18,6 +18,8 @@ class User(BaseModel):
     email: str
     address: Address  # nested model
 ```
+
+Socho Zomato app ki tarah — ek `Order` model hota hai jo `Delivery Address` model contain karta hai. Pydantic ensure karta hai ke dono proper tarah se validate ho jayein.
 
 ### TypeScript Equivalent
 
@@ -36,14 +38,14 @@ interface User {
 }
 ```
 
-### Creating Nested Models
+### Nested Models ko Create Kaise Karein?
 
 ```python
-# From keyword arguments with a nested model instance
+# Pehla tarika — Address ka instance pehle banao, phir User mein daalo
 addr = Address(street="123 Main St", city="Springfield", state="IL", zip_code="62704")
 user = User(name="Alice", email="alice@example.com", address=addr)
 
-# From a nested dictionary (the common case for API data)
+# Doosra tarika — (zyada common) API se aya data directly dict mein hota hai
 data = {
     "name": "Bob",
     "email": "bob@example.com",
@@ -56,14 +58,16 @@ data = {
 }
 user = User.model_validate(data)
 
-# Access nested fields
+# Nested fields ko access kaise karein?
 print(user.address.city)      # "Portland"
 print(user.address.zip_code)  # "97201"
 ```
 
 ---
 
-## Lists of Models
+## Lists of Models — Kyun ek ke bajaaye Multiple Objects Chahiye
+
+Imagine Swiggy order mein multiple items hote hain. Toh ek `Order` model hota hai jo multiple `OrderItem` objects contain karta hai — ek list mein.
 
 ```python
 from pydantic import BaseModel
@@ -94,6 +98,8 @@ for item in order.items:
 # Mouse: $59.98
 ```
 
+Pydantic har item ko validate karta hai list mein. Agar kisi item ka `quantity` invalid ho, ya `unit_price` negative ho, toh error aa jayegi immediately.
+
 ### TypeScript/Zod Equivalent
 
 ```typescript
@@ -112,7 +118,9 @@ const OrderSchema = z.object({
 });
 ```
 
-### Dict of Models
+### Dict of Models — Jab Key-Value Mapping Chahiye
+
+Kabhi kabhi tujhe models ko dictionary format mein store karna hota hai — jaise inventory mein product SKU ho key, aur product model ho value.
 
 ```python
 class Inventory(BaseModel):
@@ -130,7 +138,9 @@ print(inv.products["SKU-001"].product_name)  # "Laptop"
 
 ---
 
-## Optional Nested Models
+## Optional Nested Models — Jab Poori Nested Model Hi Optional Ho
+
+Kya toh hota hai jab user ne apna social media profile nahi diya? Toh poore `SocialLinks` model ko optional banao.
 
 ```python
 from pydantic import BaseModel
@@ -145,18 +155,21 @@ class UserProfile(BaseModel):
     bio: str = ""
     social: SocialLinks | None = None  # entire nested model is optional
 
-# Without social links
+# Agar social links nahi diye
 user1 = UserProfile(name="Alice")
 print(user1.social)  # None
 
-# With social links
+# Agar social links diye
 user2 = UserProfile(
     name="Bob",
     social={"twitter": "@bob", "github": "bob"}
 )
 print(user2.social.twitter)  # "@bob"
-print(user2.social.linkedin)  # None
+print(user2.social.linkedin)  # None (default ho gaya)
 ```
+
+> [!tip]
+> Optional nested model `None` bhi ho sakta hai, ya valid model instance. Pydantic dono cases handle karta hai.
 
 ### TypeScript Equivalent
 
@@ -170,9 +183,9 @@ interface UserProfile {
 
 ---
 
-## Recursive / Self-Referencing Models
+## Recursive / Self-Referencing Models — Tree Structures
 
-Models can reference themselves for tree-like structures. This is like recursive TypeScript types.
+Kabhi model apne aap ko reference karta hai — jaise file system tree mein ek directory ke andar directories hote hain, jinka phir andar aur directories hote hain. Hinglish mein kehte hain — "apne aap se hi related hona".
 
 ### TypeScript Recursive Type
 
@@ -198,7 +211,7 @@ class TreeNode(BaseModel):
     value: str
     children: list["TreeNode"] = []
 
-# Pydantic v2 handles forward references automatically
+# Pydantic v2 automatically handles forward references
 tree = TreeNode.model_validate({
     "value": "root",
     "children": [
@@ -229,7 +242,11 @@ print_tree(tree)
 #   child2
 ```
 
-### Comment Thread Example
+Notice: `list["TreeNode"]` — string mein quote kiya kyunki model abhi complete nahi hua jab define kar rahe ho. Pydantic v2 automatically samajh leta hai.
+
+### Comment Thread Example — Real-World Use Case
+
+YouTube ya Twitter pe comments mein replies hote hain, replies ke replies hote hain... toh recursive model bilkul perfect hai aise cases ke liye.
 
 ```python
 from datetime import datetime
@@ -269,9 +286,9 @@ thread = Comment.model_validate({
 
 ---
 
-## model_rebuild() for Forward References
+## model_rebuild() for Forward References — Jab Circular References Hote Hain
 
-In some cases (circular references between models in separate definitions), you need to call `model_rebuild()` to resolve forward references:
+Kyun zaruri hota hai `model_rebuild()`? Socho — ek `Department` model mein `Employee` list chahiye, aur `Employee` model mein `Department` chahiye. Toh dono models ek doosre ko reference karte hain. Pydantic ko samajhna padta hai ke dono models ke beech kya relationship hai.
 
 ```python
 from pydantic import BaseModel
@@ -285,7 +302,7 @@ class Employee(BaseModel):
     name: str
     department: Department | None = None
 
-# Rebuild both models to resolve forward references
+# Rebuild dono models taki forward references resolve ho jayein
 Department.model_rebuild()
 Employee.model_rebuild()
 
@@ -299,13 +316,14 @@ dept = Department.model_validate({
 })
 ```
 
-In practice, you rarely need `model_rebuild()` in Pydantic v2 because it resolves forward references lazily. But if you hit a `PydanticUndefinedAnnotation` error, `model_rebuild()` is the fix.
+> [!info]
+> Pydantic v2 mein lazy forward references handle karta hai, toh zyada cases mein `model_rebuild()` nahi chahiye. Lekin agar `PydanticUndefinedAnnotation` error aaye, tab call kar do.
 
 ---
 
-## Deep Validation and Error Paths
+## Deep Validation and Error Paths — Errors ko Precisely Track Karna
 
-When nested validation fails, Pydantic provides the full path to the error -- just like Zod's error paths.
+Jab nested validation fail hota hai, Pydantic full path batata hai ke error kahan tha — bilkul Zod ki tarah. Imagine IRCTC booking mein passenger ka address galat ho toh error mein exact path milta hai: `passengers[2].address.zip_code`.
 
 ```python
 from pydantic import BaseModel, Field, ValidationError
@@ -354,29 +372,29 @@ except ValidationError as e:
 Output:
 ```
   Path: ('company', 'address', 'zip_code')
-  Message: String should match pattern '^\\d{5}$'
+  Message: String should match pattern '^\d{5}$'
 
   Path: ('emergency_contacts', 1, 'phone')
   Message: String should have at least 10 characters
 ```
 
-Notice:
-- `('company', 'address', 'zip_code')` -- full nested path
-- `('emergency_contacts', 1, 'phone')` -- includes the list index (1)
+Dekho kaise error path exact batate hain:
+- `('company', 'address', 'zip_code')` — poora nested path
+- `('emergency_contacts', 1, 'phone')` — list index (1) bhi include ho raha hai
 
 ### Zod Equivalent Error Path
 
 ```typescript
-// Zod gives similar paths:
+// Zod bhi similar paths deta hai:
 // error.issues[0].path = ["company", "address", "zipCode"]
 // error.issues[1].path = ["emergencyContacts", 1, "phone"]
 ```
 
 ---
 
-## Complex Real-World Example: GitHub-like API Response
+## Complex Real-World Example: GitHub-Like API Response
 
-Let us model a realistic API response -- like what you would get from the GitHub API:
+Real API responses ka structure kaafi nested hota hai. Socho GitHub issue ka API response — isme user info, labels, milestone, pull request references sab nested hain.
 
 ```python
 from datetime import datetime
@@ -485,7 +503,7 @@ response_data = {
     ]
 }
 
-# One call validates the entire nested structure
+# Ek hi call mein poora nested structure validate ho gaya!
 result = IssueSearchResponse.model_validate(response_data)
 
 issue = result.items[0]
@@ -508,44 +526,46 @@ Issue #42: Fix login bug
   Is PR: False
 ```
 
-### The Express/Node.js Way (for Comparison)
+### Express/Node.js Se Kya Difference Hai?
 
-In a Node.js project, you would typically:
+Express/Node.js mein kaafi duplication hota hai:
 
 ```typescript
-// 1. Define interfaces (no runtime validation)
+// 1. Interfaces define karo (runtime validation nahi hota)
 interface Issue { ... }
 interface IssueSearchResponse { ... }
 
-// 2. Add Zod schemas (duplicates the interface definitions)
+// 2. Zod schemas define karo (interfaces ko duplicate karna padta hai!)
 const IssueSchema = z.object({ ... });
 const IssueSearchResponseSchema = z.object({ ... });
 
-// 3. Fetch and validate
+// 3. Fetch aur validate karo
 const response = await fetch("https://api.github.com/...");
 const json = await response.json();
 const result = IssueSearchResponseSchema.parse(json);
 ```
 
-In Python with Pydantic, steps 1 and 2 are the same thing. Less code, less duplication, fewer bugs from types and schemas getting out of sync.
+Python + Pydantic mein? Bas ek step — models define karo aur validation automatic. Kum code, kam bugs, zyada productivity!
 
 ---
 
-## Nested Model Serialization
+## Nested Model Serialization — Serialization Ko Control Karna
+
+Jab model ko back to dict ya JSON mein convert karna hota hai, toh Pydantic tujhe fine-grained control deta hai.
 
 ### Controlling Depth
 
 ```python
-# Serialize the entire nested structure to a dict
+# Poora nested structure ko dict mein convert karo
 data = result.model_dump()
 
-# Exclude nested fields
+# Kuch nested fields exclude karo
 data = issue.model_dump(exclude={
     "user": {"avatar_url", "html_url"},
     "labels": {"__all__": {"id"}},  # exclude "id" from ALL labels
 })
 
-# Include only specific nested fields
+# Sirf specific nested fields include karo
 data = issue.model_dump(include={
     "number": True,
     "title": True,
@@ -557,22 +577,22 @@ data = issue.model_dump(include={
 
 ---
 
-## Practice Exercises
+## Practice Exercises — Hath Karke Seekhenge!
 
 ### Exercise 1: E-Commerce Order
-Create models for an e-commerce system: `Product` (name, price, category), `OrderItem` (product: Product, quantity: int), `ShippingAddress` (street, city, state, zip, country), `Order` (id, items: list of OrderItem, shipping: ShippingAddress, total: float). Add a model validator on `Order` that verifies `total` matches the sum of `item.product.price * item.quantity`. Parse an order from a JSON-like dict.
+Models banao e-commerce system ke liye: `Product` (name, price, category), `OrderItem` (product: Product, quantity: int), `ShippingAddress` (street, city, state, zip, country), `Order` (id, items: list of OrderItem, shipping: ShippingAddress, total: float). `Order` pe model validator lagao taki `total` match kare sum of `item.product.price * item.quantity` ke. JSON-like dict se order parse karo.
 
 ### Exercise 2: File System Tree
-Create a recursive `FileNode` model with `name: str`, `type: Literal["file", "directory"]`, `size_bytes: int | None` (None for directories), `children: list[FileNode]` (empty for files). Write a function that takes a `FileNode` and prints it as an indented tree. Parse this structure from a dict.
+Recursive `FileNode` model banao: `name: str`, `type: Literal["file", "directory"]`, `size_bytes: int | None` (directories ke liye None), `children: list[FileNode]` (files ke liye empty). Function likho jo `FileNode` ko indented tree format mein print kare. Dict se structure parse karo.
 
 ### Exercise 3: API Error Response
-Create models for a standard API error response: `FieldError` (field: str, message: str, code: str), `ApiError` (status_code: int, message: str, errors: list of FieldError, request_id: UUID). Create a helper function that converts a Pydantic `ValidationError` into your `ApiError` format.
+Standard API error response ke liye models banao: `FieldError` (field: str, message: str, code: str), `ApiError` (status_code: int, message: str, errors: list of FieldError, request_id: UUID). Helper function likho jo Pydantic `ValidationError` ko apke `ApiError` format mein convert kare.
 
 ### Exercise 4: Blog System
-Model a blog system: `Author` (name, email, bio), `Tag` (name, slug), `Comment` (author: str, text: str, created_at: datetime, replies: list of Comment -- recursive!), `BlogPost` (title, slug, author: Author, tags: list of Tag, content: str, comments: list of Comment, published_at: datetime or None). Create a blog post with nested comments that have replies.
+Blog system model karo: `Author` (name, email, bio), `Tag` (name, slug), `Comment` (author: str, text: str, created_at: datetime, replies: list of Comment — recursive!), `BlogPost` (title, slug, author: Author, tags: list of Tag, content: str, comments: list of Comment, published_at: datetime or None). Nested comments wale blog post banao jo replies have kare.
 
 ### Exercise 5: Deep Error Paths
-Create a model structure at least 3 levels deep. Intentionally pass invalid data at different nesting depths. Catch the `ValidationError` and write a function that formats errors as `"path.to.field: message"` (joining the `loc` tuple with dots).
+Model banao 3+ levels deep nesting ke saath. Intentionally invalid data pass karo different nesting levels mein. `ValidationError` catch karo aur function likho jo errors ko `"path.to.field: message"` format mein print kare (loc tuple ko dots se join karke).
 
 ### Exercise 6: Selective Serialization
-Using the blog system from Exercise 4, write three serialization functions: (1) `to_list_view()` -- just title, slug, author name, tag names, published date (for a blog listing page). (2) `to_full_view()` -- everything except comment replies deeper than 1 level. (3) `to_admin_view()` -- everything. Use `model_dump(include=...)` and `model_dump(exclude=...)`.
+Exercise 4 ke blog system ko use karte hue, teen serialization functions likho: (1) `to_list_view()` — sirf title, slug, author name, tag names, published date (blog listing page ke liye). (2) `to_full_view()` — sab kuch except comment replies deeper than 1 level ke. (3) `to_admin_view()` — everything. `model_dump(include=...)` aur `model_dump(exclude=...)` use karo.

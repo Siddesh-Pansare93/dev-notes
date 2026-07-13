@@ -1,4 +1,4 @@
-# pytest Basics: Testing in Python
+# pytest Basics: Python Mein Testing Kaise Karte Hain
 
 > **Node.js/TypeScript se aa rahe ho?** pytest Python ka sabse popular testing framework hai,
 > aur iska philosophy Jest se kaafi milta-julta hai. Actually pytest thoda *simpler* lagega
@@ -41,7 +41,7 @@ Socho tumne Jest use kiya hai — ab bas naam badal rahe hain, concept wahi hai.
 | Coverage | `jest --coverage` | `pytest-cov` plugin |
 | Snapshot testing | Built-in | `pytest-snapshot` plugin |
 
-**Key insight:** Jest ek all-in-one solution banne ki koshish karta hai — Zomato Gold jaisa, sab kuch ek subscription mein. pytest ka core lean rakha gaya hai, aur uske upar rich plugin ecosystem hai. Jo chahiye wahi install karo, extra bloat nahi.
+**Kya samajhte ho isne?** Jest ek all-in-one solution banne ki koshish karta hai — Zomato Gold jaisa, sab kuch ek subscription mein. pytest ka core lean rakha gaya hai, aur uske upar rich plugin ecosystem hai. Jo chahiye wahi install karo, extra bloat nahi rehta.
 
 ---
 
@@ -217,10 +217,9 @@ def test_calculator_subtract_returns_difference():
 
 ## The Power of assert
 
-Yahan pytest sach mein chamakta hai. Dozens matcher methods yaad karne ki bajaye
-(`toBe`, `toEqual`, `toContain`, `toHaveLength`, waghera), bas Python ka `assert` use karo.
+Yahan pytest sach mein chamakta hai. Dozens matcher methods yaad karne ki bajaye (`toBe`, `toEqual`, `toContain`, `toHaveLength`, waghera), bas Python ka `assert` use karo.
 
-### Kya hota hai? Basic Assertions
+### Kya Hota Hai? Basic Assertions
 
 ```python
 # pytest - koi bhi Python expression ke saath assert use karo
@@ -344,8 +343,7 @@ def test_floating_point():
 
 ## Parametrize: Data-Driven Tests
 
-Kyun zaruri hai? Socho tumhe same test, alag-alag inputs ke saath baar-baar likhna pad raha hai —
-Zomato pe ek hi order 10 different addresses pe deliver karna ho toh tum function call baar baar copy-paste nahi karoge, loop chalaoge na? Parametrize wahi karta hai. Jest ke `test.each()` jaisa, bas cleaner decorator syntax ke saath.
+**Kyun zaruri hai?** Socho tumhe same test, alag-alag inputs ke saath baar-baar likhna pad raha hai — Zomato pe ek hi order 10 different addresses pe deliver karna ho toh tum function call baar baar copy-paste nahi karoge, loop chalaoge na? Parametrize wahi karta hai. Jest ke `test.each()` jaisa, bas cleaner decorator syntax ke saath.
 
 ### Basic Parametrize
 
@@ -422,7 +420,7 @@ def test_square_with_xfail(input_val, expected):
     assert input_val ** 2 == expected
 ```
 
-### Real-World Example: API Validator Test Karna
+### Real-World Example: Email Validator
 
 ```python
 import pytest
@@ -548,7 +546,7 @@ pytest -m "unit and not integration"
 
 ## Testing Exceptions
 
-### pytest.raises()
+### pytest.raises() - Errors Ko Handle Karna
 
 Socho tumhara IRCTC app agar tatkal booking mein balance kam ho toh error throw karta hai — tumhe test karna hai ki wo error sahi se throw ho raha hai ya nahi. Yahi kaam `pytest.raises()` karta hai.
 
@@ -689,7 +687,7 @@ pytest --durations=0
 
 ## Configuration
 
-### pyproject.toml (Recommended)
+### pyproject.toml (Recommended Tarika)
 
 ```toml
 # pyproject.toml
@@ -771,7 +769,7 @@ addopts = -ra -q
 ```
 
 > [!tip]
-> **Recommendation:** Hamesha `pyproject.toml` use karo. Yeh modern standard hai aur tumhari saari project configuration ek hi file mein rakhta hai.
+> **Sab Kuch Socho:** Hamesha `pyproject.toml` use karo. Yeh modern standard hai aur tumhari saari project configuration ek hi file mein rakhta hai.
 
 ---
 
@@ -912,13 +910,11 @@ Fir har custom marker use karke kam se kam ek test likho aur verify karo ki tum 
 
 ## Key Takeaways
 
-1. **assert hi kaafi hai.** Jest ke dozens matchers bhool jao -- `assert` + Python operators
-   sab kuch cover kar deta hai.
+1. **assert hi kaafi hai.** Jest ke dozens matchers bhool jao -- `assert` + Python operators sab kuch cover kar deta hai.
 2. **pytest assert ko rewrite karta hai.** Detailed failure messages free mein milte hain.
 3. **Parametrize > copy-paste.** Data-driven tests ke liye `@pytest.mark.parametrize` use karo.
 4. **Markers tests ko organize karte hain.** Built-in markers (`skip`, `xfail`) aur custom markers dono use karo.
 5. **Configuration simple hai.** `pyproject.toml` ka ek section `jest.config.js` ki jagah le leta hai.
 6. **Jo chahiye wahi run karo.** Specific tests jaldi chalane ke liye `-k`, `-m`, aur node IDs use karo.
 
-Next up: [Fixtures and Mocking](./02_fixtures_and_mocking.md) -- pytest ka killer feature
-jo `beforeEach`/`afterEach` ko primitive bana dega.
+Next up: [Fixtures and Mocking](./02_fixtures_and_mocking.md) -- pytest ka killer feature jo `beforeEach`/`afterEach` ko primitive bana dega.

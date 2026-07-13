@@ -1,6 +1,6 @@
 # FastAPI Testing: E2E with TestClient
 
-> **Coming from Express/NestJS?** FastAPI's `TestClient` is like supertest on steroids - it provides a synchronous interface for testing async endpoints, automatic dependency overrides, and zero server startup time. You'll love how simple E2E testing becomes.
+> **Express/NestJS se aa raho ho?** FastAPI ka `TestClient` isse supertest se bhi zyada powerful hai - ek synchronous interface deta hai async endpoints ke liye, automatic dependency overrides, aur zero server startup time. Socho ek second: order place karte ho Zomato pe, seedha test kar skte ho without actual server chalaye!
 
 ---
 
@@ -23,18 +23,20 @@
 
 ## TestClient vs Supertest: Quick Comparison
 
+Dekho, agar Express/NestJS use kiya hai toh Supertest ke saath kya karte the, aur FastAPI ke TestClient ke saath kya hota hai:
+
 | Feature | Supertest (Express/NestJS) | TestClient (FastAPI) |
 |---|---|---|
-| Server startup | Requires app.listen() or createTestingModule() | No server needed |
-| Async/await | Required for all tests | Optional (sync interface to async app) |
-| Dependency override | Manual mocking | Built-in `app.dependency_overrides` |
-| Authentication testing | Manual header setup | Automatic via dependencies |
-| Request validation | Manual (need validators) | Automatic via Pydantic |
-| Response checking | `.expect()` chains | Standard assertions |
-| WebSocket testing | Additional libraries needed | Built-in support |
-| Database cleanup | Manual in beforeEach/afterEach | Fixtures handle it |
+| Server startup | Requires app.listen() or createTestingModule() | Server hi nahi chalana padta |
+| Async/await | Har test mein zaruri hota hai | Sync interface - async automatically handle |
+| Dependency override | Manual mocking ka jhagda | Built-in `app.dependency_overrides` |
+| Authentication testing | Header manually set karna padta | Dependencies se automatic |
+| Request validation | Manual validators likho | Pydantic ka magic |
+| Response checking | `.expect()` chains | Direct assertions |
+| WebSocket testing | Additional libraries chahiye | Native support |
+| Database cleanup | beforeEach/afterEach mein jhagda | Fixtures ka kaam |
 
-**Key insight:** TestClient doesn't start an actual HTTP server. It calls your FastAPI app directly, making tests instant and deterministic.
+**Samajh lo:** TestClient ek actual HTTP server nahi chalata. Seedha FastAPI app ko call karta hai, isliye tests ek dum fast aur predictable hote hain.
 
 ---
 
@@ -82,7 +84,7 @@ class Item(BaseModel):
     price: float
     description: str | None = None
 
-# In-memory storage (we'll replace with database later)
+# In-memory storage (hum database baad mein add karenge)
 items_db: dict[int, Item] = {}
 item_counter = 0
 
@@ -110,17 +112,17 @@ async def read_item(item_id: int):
 from fastapi.testclient import TestClient
 from app.main import app
 
-# Create test client - this happens once per module
+# Ek test client bana do - module ke liye ek baar hi banenge
 client = TestClient(app)
 
 def test_read_root():
-    """Test the root endpoint returns hello world"""
+    """Root endpoint par request karo"""
     response = client.get("/")
     assert response.status_code == 200
     assert response.json() == {"message": "Hello World"}
 
 def test_create_item():
-    """Test creating a new item"""
+    """Ek naya item create karo"""
     item_data = {
         "name": "Laptop",
         "price": 999.99,
@@ -135,27 +137,27 @@ def test_create_item():
     assert "id" in data
 
 def test_read_item_success():
-    """Test reading an existing item"""
-    # First create an item
+    """Existing item ko read karo"""
+    # Pehle item create karo
     create_response = client.post("/items/", json={
         "name": "Mouse",
         "price": 29.99
     })
     item_id = create_response.json()["id"]
     
-    # Then read it
+    # Phir usse read karo
     response = client.get(f"/items/{item_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "Mouse"
 
 def test_read_item_not_found():
-    """Test reading a non-existent item returns 404"""
+    """Non-existent item par 404 aana chahiye"""
     response = client.get("/items/99999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Item not found"
 ```
 
-**Compare with Supertest (Express):**
+**Supertest (Express) ke saath kya farak hota:**
 
 ```typescript
 // Express + Supertest
@@ -176,7 +178,7 @@ test('POST /items', async () => {
 });
 ```
 
-Notice: No `await` needed in TestClient! It automatically handles async endpoints.
+Dekho: TestClient mein `await` nahi chahiye! Async endpoints ko automatically handle karta hai.
 
 ---
 
@@ -247,7 +249,7 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def reset_database():
-    """Reset the database before each test"""
+    """Har test se pehle database clear karo - Swiggy ke restaurant list ki tarah"""
     global user_counter
     users_db.clear()
     user_counter = 0
@@ -255,7 +257,7 @@ def reset_database():
     users_db.clear()
 
 def test_create_user_success():
-    """Test creating a user with valid data"""
+    """Valid data ke saath user create karo"""
     user_data = {
         "username": "john_doe",
         "email": "john@example.com",
@@ -271,10 +273,10 @@ def test_create_user_success():
     assert data["is_active"] is True
 
 def test_create_user_invalid_email():
-    """Test creating a user with invalid email fails validation"""
+    """Invalid email ke saath user create maat karo"""
     user_data = {
         "username": "john_doe",
-        "email": "not-an-email",  # Invalid email
+        "email": "not-an-email",  # Yeh invalid hai
         "full_name": "John Doe"
     }
     response = client.post("/users/", json=user_data)
@@ -283,8 +285,8 @@ def test_create_user_invalid_email():
     assert "email" in response.json()["detail"][0]["loc"]
 
 def test_get_user_success():
-    """Test retrieving a user by ID"""
-    # Create a user first
+    """Existing user ko ID se retrieve karo"""
+    # Pehle user create karo
     create_response = client.post("/users/", json={
         "username": "jane_doe",
         "email": "jane@example.com"
@@ -297,21 +299,21 @@ def test_get_user_success():
     assert response.json()["username"] == "jane_doe"
 
 def test_get_user_not_found():
-    """Test getting a non-existent user returns 404"""
+    """Non-existent user par 404 aana chahiye"""
     response = client.get("/users/999")
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
 
 def test_update_user_success():
-    """Test updating a user"""
-    # Create a user
+    """User ka data update karo - profile change karte hain Swiggy pe"""
+    # Pehle user banao
     create_response = client.post("/users/", json={
         "username": "old_name",
         "email": "old@example.com"
     })
     user_id = create_response.json()["id"]
     
-    # Update the user
+    # User ko update karo
     update_data = {
         "username": "new_name",
         "email": "new@example.com",
@@ -326,39 +328,39 @@ def test_update_user_success():
     assert data["full_name"] == "New Full Name"
 
 def test_delete_user_success():
-    """Test deleting a user"""
-    # Create a user
+    """User ko delete karo"""
+    # Pehle user banao
     create_response = client.post("/users/", json={
         "username": "to_delete",
         "email": "delete@example.com"
     })
     user_id = create_response.json()["id"]
     
-    # Delete the user
+    # User ko delete karo
     response = client.delete(f"/users/{user_id}")
     assert response.status_code == 204
     assert response.content == b""
     
-    # Verify user is deleted
+    # Verify user delete ho gaya
     get_response = client.get(f"/users/{user_id}")
     assert get_response.status_code == 404
 
 def test_list_users():
-    """Test listing users with pagination"""
-    # Create multiple users
+    """Users ko pagination ke saath list karo"""
+    # Multiple users banao
     for i in range(5):
         client.post("/users/", json={
             "username": f"user_{i}",
             "email": f"user{i}@example.com"
         })
     
-    # Get all users
+    # Sabhi users get karo
     response = client.get("/users/")
     assert response.status_code == 200
     users = response.json()
     assert len(users) == 5
     
-    # Test pagination
+    # Pagination test
     response = client.get("/users/?skip=2&limit=2")
     users = response.json()
     assert len(users) == 2
@@ -388,7 +390,7 @@ class ProductCreate(BaseModel):
     @classmethod
     def name_must_not_contain_special_chars(cls, v: str) -> str:
         if not v.replace(' ', '').replace('-', '').isalnum():
-            raise ValueError('name must contain only letters, numbers, spaces, and hyphens')
+            raise ValueError('name mein sirf letters, numbers, spaces aur hyphens chalte hain')
         return v
     
     @field_validator('tags')
@@ -410,10 +412,10 @@ import pytest
 client = TestClient(app)
 
 class TestProductValidation:
-    """Test suite for product validation"""
+    """Product validation ka poora test suite"""
     
     def test_valid_product_creation(self):
-        """Test creating a product with all valid fields"""
+        """Valid data ke saath product banao"""
         product_data = {
             "name": "iPhone 15 Pro",
             "price": 999.99,
@@ -427,13 +429,13 @@ class TestProductValidation:
         data = response.json()
         assert data["name"] == "iPhone 15 Pro"
         assert data["price"] == 999.99
-        # Tags should be lowercased
+        # Tags automatically lowercase ho jayenge
         assert data["tags"] == ["smartphone", "apple", "5g"]
     
     def test_name_too_short(self):
-        """Test that names shorter than 3 characters are rejected"""
+        """3 characters se kam name maat karo"""
         product_data = {
-            "name": "AB",  # Too short
+            "name": "AB",  # Bahut chhota
             "price": 10.0,
             "category": "other",
             "stock": 10
@@ -445,8 +447,8 @@ class TestProductValidation:
         assert any("name" in str(error["loc"]) for error in errors)
     
     def test_price_validation(self):
-        """Test price must be positive and within range"""
-        # Test negative price
+        """Price zero se zyada hona chahiye, aur limit se zyada nahi"""
+        # Negative price test
         response = client.post("/products/", json={
             "name": "Test Product",
             "price": -10.0,  # Invalid
@@ -455,7 +457,7 @@ class TestProductValidation:
         })
         assert response.status_code == 422
         
-        # Test zero price
+        # Zero price test
         response = client.post("/products/", json={
             "name": "Test Product",
             "price": 0.0,  # Invalid
@@ -464,21 +466,21 @@ class TestProductValidation:
         })
         assert response.status_code == 422
         
-        # Test price too high
+        # Price too high test
         response = client.post("/products/", json={
             "name": "Test Product",
-            "price": 2_000_000,  # Too high
+            "price": 2_000_000,  # Bahut zyada
             "category": "other",
             "stock": 10
         })
         assert response.status_code == 422
     
     def test_invalid_category(self):
-        """Test that invalid categories are rejected"""
+        """Category allowed values se bahar ho toh reject karo"""
         product_data = {
             "name": "Test Product",
             "price": 10.0,
-            "category": "invalid_category",  # Not in allowed values
+            "category": "invalid_category",  # Yeh nahi chalega
             "stock": 10
         }
         response = client.post("/products/", json=product_data)
@@ -488,7 +490,7 @@ class TestProductValidation:
         assert any("category" in str(error["loc"]) for error in errors)
     
     def test_name_special_characters(self):
-        """Test that names with special characters are rejected"""
+        """Special characters naam mein nahi ho sakte"""
         product_data = {
             "name": "Test@Product!",  # Invalid characters
             "price": 10.0,
@@ -503,7 +505,7 @@ class TestProductValidation:
         assert "letters, numbers, spaces, and hyphens" in error_msg.lower()
     
     def test_tags_normalization(self):
-        """Test that tags are automatically lowercased"""
+        """Tags automatically lowercase ho jayenge"""
         product_data = {
             "name": "Test Product",
             "price": 10.0,
@@ -518,7 +520,7 @@ class TestProductValidation:
         assert data["tags"] == ["uppercase", "mixedcase", "lowercase"]
     
     def test_negative_stock(self):
-        """Test that negative stock is rejected"""
+        """Negative stock nahi ho sakti"""
         product_data = {
             "name": "Test Product",
             "price": 10.0,
@@ -539,7 +541,7 @@ class TestProductValidation:
         ("stock", -1, True),
     ])
     def test_field_validation(self, field, value, should_fail):
-        """Parametrized test for various field validations"""
+        """Different fields ka validation test karo - parametrized way"""
         product_data = {
             "name": "Default Product",
             "price": 10.0,
@@ -562,6 +564,8 @@ class TestProductValidation:
 
 ### Example 3: Testing Response Serialization
 
+Dekho, database mein toh ek field hota hai (password hash), lekin API response mein nahi dena chahiye. Yeh security ka matter hai, jaise Swiggy tumhare credit card number show nahi karta profile pe.
+
 ```python
 # app/main.py
 from fastapi import FastAPI
@@ -575,12 +579,12 @@ class UserInDB(BaseModel):
     id: int
     username: str
     email: str
-    password_hash: str  # Should NOT be in response
+    password_hash: str  # Yeh response mein nahi aana chahiye
     created_at: datetime
     is_active: bool
 
 class UserResponse(BaseModel):
-    """Public user response - no password"""
+    """Public response - password nahi"""
     id: int
     username: str
     email: str
@@ -601,12 +605,12 @@ users = {
 
 @app.get("/users/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int):
-    """Returns user without password field"""
+    """Public endpoint - password nahi deta"""
     return users[user_id]
 
 @app.get("/users/{user_id}/admin", response_model=UserInDB)
 async def get_user_admin(user_id: int):
-    """Admin endpoint - returns everything including password hash"""
+    """Admin endpoint - sab kuch deta hai"""
     return users[user_id]
 ```
 
@@ -618,54 +622,54 @@ from app.main import app
 client = TestClient(app)
 
 def test_user_response_excludes_password():
-    """Test that public endpoint does NOT return password"""
+    """Public endpoint password return nahi karta"""
     response = client.get("/users/1")
     
     assert response.status_code == 200
     data = response.json()
     
-    # These should be present
+    # Yeh sab hona chahiye
     assert "id" in data
     assert "username" in data
     assert "email" in data
     assert "created_at" in data
     assert "is_active" in data
     
-    # Password should NOT be present
+    # Password nahi hona chahiye
     assert "password_hash" not in data
     assert "password" not in data
     
-    # Verify actual values
+    # Actual values verify karo
     assert data["username"] == "john"
     assert data["email"] == "john@example.com"
 
 def test_admin_endpoint_includes_password():
-    """Test that admin endpoint DOES return password hash"""
+    """Admin endpoint password hash return karta hai"""
     response = client.get("/users/1/admin")
     
     assert response.status_code == 200
     data = response.json()
     
-    # Password hash should be present for admin
+    # Admin ke liye password hash hona chahiye
     assert "password_hash" in data
     assert data["password_hash"].startswith("$2b$12$")
 
 def test_datetime_serialization():
-    """Test that datetimes are properly serialized to ISO format"""
+    """Datetimes ko ISO format mein serialize ho jana chahiye"""
     response = client.get("/users/1")
     
     assert response.status_code == 200
     data = response.json()
     
-    # created_at should be an ISO format string
+    # created_at ISO format string hona chahiye
     assert "created_at" in data
     created_at = data["created_at"]
     
-    # Should be a string in ISO format
+    # String hona chahiye
     assert isinstance(created_at, str)
     assert "2024-01-01" in created_at
     
-    # Should be parseable back to datetime
+    # Wapas datetime mein convert ho sakta hona chahiye
     from datetime import datetime
     parsed = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
     assert parsed.year == 2024
@@ -674,6 +678,8 @@ def test_datetime_serialization():
 ---
 
 ## Testing Authentication and Authorization
+
+Dekho, authentication test karna asal mein straightforward hota hai TestClient ke saath. Token test karte ho, dependency ko override karte ho - aur bas!
 
 ### Example 4: Testing JWT Authentication
 
@@ -801,10 +807,10 @@ from app.auth import create_access_token
 client = TestClient(app)
 
 class TestAuthentication:
-    """Test suite for authentication"""
+    """Authentication ka poora test suite"""
     
     def test_login_success(self):
-        """Test successful login returns access token"""
+        """Successful login se token milna chahiye"""
         response = client.post(
             "/token",
             data={
@@ -817,10 +823,10 @@ class TestAuthentication:
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
-        assert len(data["access_token"]) > 50  # JWT tokens are long
-    
+        assert len(data["access_token"]) > 50  # JWT tokens bade hote hain
+
     def test_login_wrong_password(self):
-        """Test login with wrong password fails"""
+        """Wrong password ke saath login fail hona chahiye"""
         response = client.post(
             "/token",
             data={
@@ -833,7 +839,7 @@ class TestAuthentication:
         assert "Incorrect username or password" in response.json()["detail"]
     
     def test_login_nonexistent_user(self):
-        """Test login with non-existent user fails"""
+        """Joh user exist nahi karta, login fail hona chahiye"""
         response = client.post(
             "/token",
             data={
@@ -845,22 +851,22 @@ class TestAuthentication:
         assert response.status_code == 401
     
     def test_protected_route_without_token(self):
-        """Test accessing protected route without token fails"""
+        """Token ke bina protected route access nahi ho sakta"""
         response = client.get("/protected")
         
         assert response.status_code == 401
         assert "Not authenticated" in response.json()["detail"]
     
     def test_protected_route_with_valid_token(self):
-        """Test accessing protected route with valid token"""
-        # First login to get token
+        """Valid token ke saath protected route access ho sakta hai"""
+        # Pehle login karo token lene ke liye
         login_response = client.post(
             "/token",
             data={"username": "john", "password": "secret123"}
         )
         token = login_response.json()["access_token"]
         
-        # Access protected route
+        # Protected route access karo
         response = client.get(
             "/protected",
             headers={"Authorization": f"Bearer {token}"}
@@ -870,7 +876,7 @@ class TestAuthentication:
         assert "Hello john" in response.json()["message"]
     
     def test_protected_route_with_invalid_token(self):
-        """Test accessing protected route with invalid token"""
+        """Invalid token ke saath access fail ho na chahiye"""
         response = client.get(
             "/protected",
             headers={"Authorization": "Bearer invalid_token_here"}
@@ -880,15 +886,15 @@ class TestAuthentication:
         assert "Could not validate credentials" in response.json()["detail"]
     
     def test_get_current_user(self):
-        """Test the /users/me endpoint"""
-        # Login
+        """/users/me endpoint test karo"""
+        # Login karo
         login_response = client.post(
             "/token",
             data={"username": "john", "password": "secret123"}
         )
         token = login_response.json()["access_token"]
         
-        # Get current user
+        # Current user get karo
         response = client.get(
             "/users/me",
             headers={"Authorization": f"Bearer {token}"}
@@ -898,13 +904,13 @@ class TestAuthentication:
         user = response.json()
         assert user["username"] == "john"
         assert user["email"] == "john@example.com"
-        assert "hashed_password" not in user  # Should not expose password
+        assert "hashed_password" not in user  # Password nahi hona chahiye
     
     def test_expired_token(self):
-        """Test that expired tokens are rejected"""
+        """Expired tokens reject ho na chahiye"""
         from datetime import timedelta
         
-        # Create a token that expired 1 hour ago
+        # Ek token banao jo ek hour pehle expire ho gaya
         expired_token = create_access_token(
             data={"sub": "john"},
             expires_delta=timedelta(hours=-1)
@@ -921,6 +927,8 @@ class TestAuthentication:
 ---
 
 ## Testing File Uploads
+
+File upload test karna sirf ek file banakar test client ko dena hota hai. Swiggy mein menu image upload karte ho - same concept hai, bas automated way mein.
 
 ### Example 5: Testing File Upload Endpoints
 
@@ -941,24 +949,24 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
-    """Upload a single file"""
-    # Validate file extension
+    """Single file upload"""
+    # File extension validate karo
     file_ext = Path(file.filename).suffix.lower()
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"File type not allowed. Allowed types: {ALLOWED_EXTENSIONS}"
+            detail=f"File type allowed nahi hai. Allowed: {ALLOWED_EXTENSIONS}"
         )
     
-    # Read file and check size
+    # File padho aur size check karo
     contents = await file.read()
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large. Max size: {MAX_FILE_SIZE} bytes"
+            detail=f"File bahut bada hai. Max: {MAX_FILE_SIZE} bytes"
         )
     
-    # Save file
+    # File save karo
     file_path = UPLOAD_DIR / file.filename
     with open(file_path, "wb") as f:
         f.write(contents)
@@ -971,9 +979,9 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.post("/upload-multiple/")
 async def upload_multiple_files(files: List[UploadFile] = File(...)):
-    """Upload multiple files"""
+    """Multiple files upload"""
     if len(files) > 10:
-        raise HTTPException(status_code=400, detail="Too many files. Max 10")
+        raise HTTPException(status_code=400, detail="Bahut sare files. Max 10 only")
     
     uploaded_files = []
     for file in files:
@@ -1003,16 +1011,16 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def cleanup_uploads():
-    """Clean up uploaded files after each test"""
+    """Test ke baad upload dir ko clean karo"""
     yield
-    # Remove all files in upload directory
+    # Upload directory ke sab files remove karo
     for file in UPLOAD_DIR.glob("*"):
         if file.is_file():
             file.unlink()
 
 def test_upload_valid_file():
-    """Test uploading a valid file"""
-    # Create a fake file
+    """Valid file upload karo"""
+    # Ek fake file banao
     file_content = b"Hello, this is a test file!"
     files = {"file": ("test.txt", file_content, "text/plain")}
     
@@ -1024,14 +1032,14 @@ def test_upload_valid_file():
     assert data["size"] == len(file_content)
     assert data["content_type"] == "text/plain"
     
-    # Verify file was actually saved
+    # Verify file actually saved hua
     uploaded_file = UPLOAD_DIR / "test.txt"
     assert uploaded_file.exists()
     assert uploaded_file.read_bytes() == file_content
 
 def test_upload_image_file():
-    """Test uploading an image file"""
-    # Create a minimal valid PNG file (1x1 transparent pixel)
+    """Image file upload karo"""
+    # Minimal valid PNG file (1x1 transparent pixel)
     png_data = (
         b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
         b'\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
@@ -1046,7 +1054,7 @@ def test_upload_image_file():
     assert response.json()["filename"] == "image.png"
 
 def test_upload_disallowed_extension():
-    """Test uploading file with disallowed extension"""
+    """Disallowed file type upload maat karo"""
     files = {"file": ("script.exe", b"fake exe", "application/x-msdownload")}
     
     response = client.post("/upload/", files=files)
@@ -1055,9 +1063,9 @@ def test_upload_disallowed_extension():
     assert "not allowed" in response.json()["detail"].lower()
 
 def test_upload_file_too_large():
-    """Test uploading file that exceeds size limit"""
-    # Create a file larger than 5MB
-    large_content = b"x" * (6 * 1024 * 1024)  # 6MB
+    """Size limit se bada file upload maat karo"""
+    # 6MB file banao (limit 5MB hai)
+    large_content = b"x" * (6 * 1024 * 1024)
     files = {"file": ("large.txt", large_content, "text/plain")}
     
     response = client.post("/upload/", files=files)
@@ -1066,7 +1074,7 @@ def test_upload_file_too_large():
     assert "too large" in response.json()["detail"].lower()
 
 def test_upload_multiple_files():
-    """Test uploading multiple files at once"""
+    """Multiple files ek saath upload karo"""
     files = [
         ("files", ("file1.txt", b"Content 1", "text/plain")),
         ("files", ("file2.txt", b"Content 2", "text/plain")),
@@ -1080,14 +1088,13 @@ def test_upload_multiple_files():
     assert data["count"] == 3
     assert len(data["files"]) == 3
     
-    # Verify all files were saved
+    # Verify sab files save hue
     assert (UPLOAD_DIR / "file1.txt").exists()
     assert (UPLOAD_DIR / "file2.txt").exists()
     assert (UPLOAD_DIR / "file3.pdf").exists()
 
 def test_upload_too_many_files():
-    """Test uploading more than the allowed number of files"""
-    # Try to upload 11 files (max is 10)
+    """11 files try karo jab max 10 hai"""
     files = [
         ("files", (f"file{i}.txt", b"content", "text/plain"))
         for i in range(11)
@@ -1099,12 +1106,12 @@ def test_upload_too_many_files():
     assert "too many" in response.json()["detail"].lower()
 
 def test_upload_empty_file():
-    """Test uploading an empty file"""
+    """Empty file upload karo"""
     files = {"file": ("empty.txt", b"", "text/plain")}
     
     response = client.post("/upload/", files=files)
     
-    # Empty files should be allowed
+    # Empty files allowed hone chahiye
     assert response.status_code == 200
     assert response.json()["size"] == 0
 ```
@@ -1112,6 +1119,8 @@ def test_upload_empty_file():
 ---
 
 ## Testing WebSockets
+
+WebSocket testing bhi TestClient ke saath easy hota hai. Context manager use karte ho aur message send-receive karte ho. Real-time notifications ka concept - jaise Swiggy delivery status aapko real-time update karta hai.
 
 ### Example 6: Testing WebSocket Connections
 
@@ -1143,24 +1152,24 @@ manager = ConnectionManager()
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
     await manager.connect(websocket)
     try:
-        # Send welcome message
+        # Welcome message bhejo
         await websocket.send_json({
             "type": "connection",
             "message": f"Client {client_id} connected"
         })
         
         while True:
-            # Receive message from client
+            # Client se message receive karo
             data = await websocket.receive_text()
             
-            # Echo back to client
+            # Client ko wapas echo karo
             await websocket.send_json({
                 "type": "echo",
                 "client_id": client_id,
                 "message": data
             })
             
-            # Broadcast to all clients
+            # Sabhi clients ko broadcast karo
             await manager.broadcast(f"Client {client_id} says: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -1175,67 +1184,68 @@ from app.main import app
 client = TestClient(app)
 
 def test_websocket_connection():
-    """Test basic WebSocket connection"""
+    """Basic WebSocket connection test"""
     with client.websocket_connect("/ws/123") as websocket:
-        # Should receive welcome message
+        # Welcome message milna chahiye
         data = websocket.receive_json()
         assert data["type"] == "connection"
         assert "123" in data["message"]
 
 def test_websocket_echo():
-    """Test WebSocket echo functionality"""
+    """WebSocket echo functionality"""
     with client.websocket_connect("/ws/456") as websocket:
-        # Skip welcome message
+        # Welcome message skip karo
         websocket.receive_json()
         
-        # Send a message
+        # Ek message bhejo
         websocket.send_text("Hello, WebSocket!")
         
-        # Should receive echo
+        # Echo wapas milna chahiye
         response = websocket.receive_json()
         assert response["type"] == "echo"
         assert response["client_id"] == 456
         assert response["message"] == "Hello, WebSocket!"
 
 def test_websocket_broadcast():
-    """Test broadcasting to multiple clients"""
+    """Multiple clients ko broadcast karo"""
     with client.websocket_connect("/ws/1") as ws1, \
          client.websocket_connect("/ws/2") as ws2:
         
-        # Skip welcome messages
+        # Welcome messages skip karo
         ws1.receive_json()
         ws2.receive_json()
         
-        # Client 1 sends a message
+        # Client 1 se message bhejo
         ws1.send_text("Hello from client 1")
         
-        # Both clients should receive the broadcast
-        # Client 1 gets echo first
+        # Donon clients ko broadcast milna chahiye
+        # Client 1 ko pehle echo
         echo = ws1.receive_json()
         assert echo["type"] == "echo"
         
-        # Then broadcast
+        # Phir broadcast
         broadcast1 = ws1.receive_text()
         assert "Client 1 says: Hello from client 1" in broadcast1
         
-        # Client 2 gets only broadcast
+        # Client 2 ko broadcast
         broadcast2 = ws2.receive_text()
         assert "Client 1 says: Hello from client 1" in broadcast2
 
 def test_websocket_disconnect():
-    """Test WebSocket disconnection handling"""
+    """Disconnection properly handle ho na chahiye"""
     with client.websocket_connect("/ws/999") as websocket:
         websocket.receive_json()  # Welcome message
         websocket.send_text("Test message")
         websocket.receive_json()  # Echo
     
-    # Connection is automatically closed when exiting context
-    # In a real test, you'd verify the disconnect was handled properly
+    # Context exit karte hi connection close ho jayega
 ```
 
 ---
 
 ## Testing Background Tasks
+
+Background tasks automatically wait hote hain TestClient ke saath. Jaise Swiggy invoice email background mein bhejta hai - tum order confirm dekho, but email later process hote hain.
 
 ### Example 7: Testing Background Tasks
 
@@ -1252,8 +1262,8 @@ app = FastAPI()
 email_log: List[dict] = []
 
 def send_email(email: str, message: str):
-    """Simulate sending an email (this would be async in production)"""
-    time.sleep(0.1)  # Simulate network delay
+    """Email send karne simulate karo"""
+    time.sleep(0.1)  # Network delay simulate
     email_log.append({
         "email": email,
         "message": message,
@@ -1269,31 +1279,31 @@ async def send_notification(
     notification: NotificationRequest,
     background_tasks: BackgroundTasks
 ):
-    """Send notification in the background"""
+    """Background mein notification bhejo"""
     background_tasks.add_task(
         send_email,
         notification.email,
         notification.message
     )
-    return {"message": "Notification will be sent in the background"}
+    return {"message": "Notification background mein jayega"}
 
 @app.post("/send-multiple-notifications/")
 async def send_multiple_notifications(
     notifications: List[NotificationRequest],
     background_tasks: BackgroundTasks
 ):
-    """Send multiple notifications"""
+    """Multiple notifications background mein bhejo"""
     for notification in notifications:
         background_tasks.add_task(
             send_email,
             notification.email,
             notification.message
         )
-    return {"message": f"{len(notifications)} notifications will be sent"}
+    return {"message": f"{len(notifications)} notifications background mein jayengi"}
 
 @app.get("/email-log/")
 async def get_email_log():
-    """Get the email log (for testing purposes)"""
+    """Email log get karo (testing ke liye)"""
     return {"emails": email_log, "count": len(email_log)}
 ```
 
@@ -1308,13 +1318,13 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clear_email_log():
-    """Clear email log before each test"""
+    """Har test se pehle log clear karo"""
     email_log.clear()
     yield
     email_log.clear()
 
 def test_background_task_executes():
-    """Test that background task actually executes"""
+    """Background task actually execute ho na chahiye"""
     response = client.post("/send-notification/", json={
         "email": "test@example.com",
         "message": "Test notification"
@@ -1323,8 +1333,8 @@ def test_background_task_executes():
     assert response.status_code == 200
     assert "background" in response.json()["message"].lower()
     
-    # TestClient automatically waits for background tasks to complete
-    # Check that email was "sent"
+    # TestClient automatically waits karta hai background tasks ke liye
+    # Check karo ke email "send" hua
     log_response = client.get("/email-log/")
     emails = log_response.json()["emails"]
     
@@ -1333,7 +1343,7 @@ def test_background_task_executes():
     assert emails[0]["message"] == "Test notification"
 
 def test_multiple_background_tasks():
-    """Test sending multiple notifications"""
+    """Multiple notifications send karo"""
     response = client.post("/send-multiple-notifications/", json=[
         {"email": "user1@example.com", "message": "Message 1"},
         {"email": "user2@example.com", "message": "Message 2"},
@@ -1342,7 +1352,7 @@ def test_multiple_background_tasks():
     
     assert response.status_code == 200
     
-    # Verify all emails were sent
+    # Verify sab emails send hue
     log_response = client.get("/email-log/")
     emails = log_response.json()["emails"]
     
@@ -1353,25 +1363,28 @@ def test_multiple_background_tasks():
     assert "user3@example.com" in email_addresses
 
 def test_background_task_with_invalid_email():
-    """Test that validation happens before background task"""
+    """Validation pehle se ho, background task baad mein"""
     response = client.post("/send-notification/", json={
         "email": "not-an-email",  # Invalid
         "message": "Test"
     })
     
-    # Should fail validation before background task even runs
+    # Validation fail hogi pehle se, background task run nahi hoga
     assert response.status_code == 422
     
-    # No email should be in the log
+    # Email log empty hona chahiye
     log_response = client.get("/email-log/")
     assert log_response.json()["count"] == 0
 ```
 
-**Key Point:** TestClient automatically waits for background tasks to complete, making them easy to test synchronously!
+> [!warning]
+> TestClient automatically waits karta hai background tasks ke liye! Real production mein background tasks immediate return hote hain, lekin tests mein synchronously wait karte hain.
 
 ---
 
 ## Dependency Injection in Tests
+
+Yeh sabse powerful feature hai! Database, auth system, external APIs - sab mock kar sakte ho without touching actual code. Jaise Swiggy mein staging environment hota hai testing ke liye.
 
 ### Example 8: Overriding Dependencies
 
@@ -1380,13 +1393,13 @@ def test_background_task_with_invalid_email():
 from fastapi import Header, HTTPException
 
 async def get_api_key(x_api_key: str = Header(...)):
-    """Validate API key"""
+    """API key validate karo"""
     if x_api_key != "secret-api-key":
         raise HTTPException(status_code=403, detail="Invalid API key")
     return x_api_key
 
 async def get_current_user_id(x_user_id: str = Header(...)):
-    """Get current user ID from header"""
+    """Header se user ID get karo"""
     try:
         return int(x_user_id)
     except ValueError:
@@ -1416,7 +1429,7 @@ from app.dependencies import get_api_key, get_current_user_id
 client = TestClient(app)
 
 def test_protected_endpoint_with_valid_key():
-    """Test accessing protected endpoint with valid API key"""
+    """Valid API key ke saath access"""
     response = client.get(
         "/protected/",
         headers={"X-API-Key": "secret-api-key"}
@@ -1424,12 +1437,12 @@ def test_protected_endpoint_with_valid_key():
     assert response.status_code == 200
 
 def test_protected_endpoint_without_key():
-    """Test accessing protected endpoint without API key"""
+    """API key ke bina access"""
     response = client.get("/protected/")
     assert response.status_code == 422  # Missing required header
 
 def test_protected_endpoint_with_invalid_key():
-    """Test accessing protected endpoint with invalid API key"""
+    """Invalid API key ke saath access"""
     response = client.get(
         "/protected/",
         headers={"X-API-Key": "wrong-key"}
@@ -1439,48 +1452,48 @@ def test_protected_endpoint_with_invalid_key():
 # ========== DEPENDENCY OVERRIDE PATTERN ==========
 
 def test_with_dependency_override():
-    """Test using dependency override to bypass authentication"""
+    """Dependency override karte hue test karo"""
     
-    # Create a mock dependency that always returns a fake API key
+    # Mock dependency jo fake API key return kare
     async def mock_get_api_key():
         return "mocked-key"
     
-    # Override the dependency
+    # Dependency ko override karo
     app.dependency_overrides[get_api_key] = mock_get_api_key
     
     try:
-        # Now we can access without providing the real API key
+        # Ab real API key diye bina access ho jayega
         response = client.get("/protected/")
         assert response.status_code == 200
         assert response.json()["api_key"] == "mocked-key"
     finally:
-        # Always clean up overrides!
+        # Hamesha cleanup karo!
         app.dependency_overrides.clear()
 
 def test_user_profile_with_override():
-    """Test overriding user ID dependency"""
+    """User ID dependency override karo"""
     
-    # Mock user ID dependency to always return user 42
+    # Mock dependency jo user 42 return kare
     async def mock_get_user_id():
         return 42
     
     app.dependency_overrides[get_current_user_id] = mock_get_user_id
     
     try:
-        # No need to provide X-User-ID header
+        # X-User-ID header diye bina access
         response = client.get("/user/profile/")
         assert response.status_code == 200
         assert response.json()["user_id"] == 42
     finally:
         app.dependency_overrides.clear()
 
-# Better: Use pytest fixture for dependency overrides
+# Better: pytest fixture use karo
 
 import pytest
 
 @pytest.fixture
 def override_auth():
-    """Fixture to override authentication for all tests"""
+    """Fixture jo authentication override kar de"""
     async def mock_api_key():
         return "test-key"
     
@@ -1489,14 +1502,14 @@ def override_auth():
     app.dependency_overrides.clear()
 
 def test_with_auth_fixture(override_auth):
-    """Test that automatically has auth overridden"""
+    """Auth automatically override hoga"""
     response = client.get("/protected/")
     assert response.status_code == 200
 
 @pytest.fixture
 def mock_user(request):
-    """Fixture to mock user ID (parametrizable)"""
-    user_id = getattr(request, 'param', 1)  # Default to user 1
+    """User ID mock karo (parametrizable)"""
+    user_id = getattr(request, 'param', 1)  # Default: user 1
     
     async def mock_get_user_id():
         return user_id
@@ -1507,13 +1520,14 @@ def mock_user(request):
 
 @pytest.mark.parametrize('mock_user', [1, 42, 999], indirect=True)
 def test_different_users(mock_user):
-    """Test with different user IDs"""
+    """Different user IDs ke saath test"""
     response = client.get("/user/profile/")
     assert response.status_code == 200
     assert response.json()["user_id"] == mock_user
 ```
 
-**This is HUGE:** Dependency overrides let you mock databases, auth systems, external APIs, and more without touching your application code!
+> [!tip]
+> Dependency overrides ka use karte hue, tum database, auth, external APIs - sab mock kar sakte ho! Application code touch kiye bina! Yeh FastAPI testing ki sabse powerful cheeez hai.
 
 ---
 
@@ -1522,12 +1536,12 @@ def test_different_users(mock_user):
 ### ❌ Pitfall 1: Shared State Between Tests
 
 ```python
-# BAD: Global state leaks between tests
+# GHALAT: Global state tests ke beech leak ho raha hai
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 app = FastAPI()
-items = []  # Shared state!
+items = []  # Shared state - yeh problem hai!
 
 @app.post("/items/")
 async def add_item(item: str):
@@ -1542,10 +1556,10 @@ def test_first():
 
 def test_second():
     response = client.post("/items/", json="item2")
-    # This might fail! Count could be 2 if test_first ran first
+    # Yeh fail ho sakta hai! Count 2 ho sakta hai agar test_first pehle chala
     assert response.json()["count"] == 1  # ❌ FLAKY TEST
 
-# GOOD: Reset state between tests
+# SAHI: State ko har test se pehle reset karo
 @pytest.fixture(autouse=True)
 def reset_state():
     items.clear()
@@ -1585,12 +1599,12 @@ def test_create_user(sample_user):
 ### ✅ Best Practice: Test Status Codes AND Response Bodies
 
 ```python
-# BAD: Only checking status code
+# GHALAT: Sirf status code check karna
 def test_get_user():
     response = client.get("/users/1")
-    assert response.status_code == 200  # ❌ Not enough!
+    assert response.status_code == 200  # ❌ Enough nahi!
 
-# GOOD: Verify the actual data
+# SAHI: Data bhi verify karo
 def test_get_user():
     response = client.get("/users/1")
     assert response.status_code == 200
@@ -1620,16 +1634,16 @@ def test_endpoints(endpoint, expected_status):
 
 ```python
 class TestErrorHandling:
-    """Always test the unhappy path!"""
+    """Unhappy path ko bhi test karo!"""
     
     def test_create_user_missing_required_field(self):
-        """Test that missing required fields are rejected"""
+        """Required fields missing ho toh reject karo"""
         response = client.post("/users/", json={"username": "john"})
-        # Missing email
+        # Email missing hai
         assert response.status_code == 422
     
     def test_create_user_invalid_email_format(self):
-        """Test that invalid emails are rejected"""
+        """Invalid email format reject ho"""
         response = client.post("/users/", json={
             "username": "john",
             "email": "not-an-email"
@@ -1637,13 +1651,13 @@ class TestErrorHandling:
         assert response.status_code == 422
     
     def test_get_nonexistent_user(self):
-        """Test that 404 is returned for missing resources"""
+        """Missing resources ke liye 404 aana chahiye"""
         response = client.get("/users/99999")
         assert response.status_code == 404
     
     def test_delete_already_deleted_user(self):
-        """Test deleting a user twice"""
-        # Create and delete user
+        """User ko do baar delete karne ki koshish"""
+        # User create aur delete karo
         create_resp = client.post("/users/", json={
             "username": "john",
             "email": "john@example.com"
@@ -1651,7 +1665,7 @@ class TestErrorHandling:
         user_id = create_resp.json()["id"]
         client.delete(f"/users/{user_id}")
         
-        # Try to delete again
+        # Dobaara delete karne ki koshish
         response = client.delete(f"/users/{user_id}")
         assert response.status_code == 404
 ```
@@ -1662,63 +1676,63 @@ class TestErrorHandling:
 
 ### Exercise 1: E2E Blog API Testing
 
-Create a simple blog API with posts and comments, then write comprehensive E2E tests:
+Ek simple blog API banaao posts aur comments ke saath, phir comprehensive E2E tests likho:
 
 ```python
-# TODO: Implement these endpoints
-# POST /posts/ - Create a post
-# GET /posts/{post_id} - Get a post
-# GET /posts/ - List posts (with pagination)
-# POST /posts/{post_id}/comments/ - Add comment to post
-# GET /posts/{post_id}/comments/ - Get comments for post
+# TODO: Yeh endpoints implement karo
+# POST /posts/ - Ek post create karo
+# GET /posts/{post_id} - Ek post get karo
+# GET /posts/ - Posts list karo (pagination ke saath)
+# POST /posts/{post_id}/comments/ - Comment add karo
+# GET /posts/{post_id}/comments/ - Comments get karo
 
-# TODO: Write tests for:
-# - Creating posts with valid/invalid data
-# - Pagination
-# - Adding comments to posts
-# - Getting comments for a post
+# TODO: Yeh tests likho:
+# - Valid/invalid data ke saath posts create karo
+# - Pagination test karo
+# - Comments posts mein add karo
+# - Comments posts se get karo
 # - Error handling (post not found, etc.)
 ```
 
 ### Exercise 2: File Upload with Validation
 
-Create an endpoint that accepts image uploads and validates them:
+Ek endpoint banao jo images upload kare with validation:
 
 ```python
-# TODO: Implement endpoint that:
-# - Accepts only image files (jpg, png, gif)
-# - Validates image dimensions (max 2000x2000)
-# - Validates file size (max 2MB)
-# - Returns image metadata
+# TODO: Endpoint banao jo:
+# - Sirf images accept kare (jpg, png, gif)
+# - Image dimensions validate kare (max 2000x2000)
+# - File size validate kare (max 2MB)
+# - Image metadata return kare
 
-# TODO: Write tests for:
+# TODO: Yeh tests likho:
 # - Valid image upload
 # - Invalid file type
-# - Image too large (dimensions)
-# - File too large (size)
+# - Image bahut bada ho (dimensions)
+# - File bahut bada ho (size)
 # - Empty file
 ```
 
 ### Exercise 3: Rate Limiting
 
-Implement and test a rate-limited endpoint:
+Rate limiting implement aur test karo:
 
 ```python
-# TODO: Implement rate limiting (e.g., 5 requests per minute per user)
-# TODO: Write tests that:
-# - Make multiple requests and verify rate limit works
-# - Test that rate limit resets after time period
-# - Test different users have separate rate limits
+# TODO: Rate limiting implement karo (e.g., 5 requests per minute per user)
+# TODO: Tests likho jo:
+# - Multiple requests karo aur rate limit verify karo
+# - Time period baad rate limit reset hota hai check karo
+# - Different users ke separate rate limits hain check karo
 ```
 
 ### Exercise 4: Database Integration Testing
 
-Set up a test database and write tests for database operations:
+Test database setup karo:
 
 ```python
-# TODO: Create test database fixture
-# TODO: Implement user CRUD with real database
-# TODO: Write tests that verify:
+# TODO: Test database fixture create karo
+# TODO: User CRUD implement karo real database ke saath
+# TODO: Tests likho jo verify kare:
 # - Data persistence
 # - Transactions
 # - Constraints (unique email, etc.)
@@ -1727,23 +1741,19 @@ Set up a test database and write tests for database operations:
 
 ---
 
-## Summary
+## Key Takeaways
 
-You've learned how to:
+✅ TestClient se FastAPI testing incredibly simple hota hai  
+✅ Dependency overrides se external services mock kar sakte ho  
+✅ Background tasks automatically wait hote hain tests mein  
+✅ WebSockets, file uploads, auth - sab seedha test kar sakte ho  
+✅ Har test se pehle state reset karo - flaky tests se bachne ke liye  
+✅ Happy aur unhappy paths dono test karo
 
-✅ Set up FastAPI testing with TestClient  
-✅ Write E2E tests for CRUD operations  
-✅ Test request validation and response models  
-✅ Test authentication and authorization  
-✅ Test file uploads and WebSockets  
-✅ Test background tasks  
-✅ Use dependency overrides for mocking  
-✅ Avoid common testing pitfalls
-
-**Next Steps:**
-- Learn about mocking external APIs (next tutorial)
+**Agle topics:**
+- External APIs ko mock karna
 - Database testing strategies
-- Testing async code
-- Coverage and reporting
+- Async code testing
+- Coverage aur reporting
 
-**Key Takeaway:** TestClient makes E2E testing incredibly simple. Use dependency overrides to mock external services, and always test both happy and unhappy paths!
+**Big Picture:** TestClient se E2E testing ek dum straightforward hota hai. Dependency overrides use karo, fixtures properly likho, aur both happy aur unhappy paths test karo. Bas itna hi sufficient hai zyada bada testing setup ke bina!

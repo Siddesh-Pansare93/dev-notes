@@ -1,10 +1,8 @@
-# Deployment: Docker, CI/CD, and Kubernetes for Python AI Backends
+# Deployment: Docker, CI/CD, aur Kubernetes Python AI Backends ke Liye
 
-## The Python Deployment Story
+## Python Deployment ki Kahani
 
-Coming from Node.js, you are used to `npm run build && docker build .` and you are done.
-Python deployment has a few more sharp edges (virtual environments, C extensions, large ML
-dependencies), but the patterns are similar once you know them.
+Node.js se aarah ho, toh tume pata hoga `npm run build && docker build .` aur khatam. Python mein kuch extra sharp edges hain (virtual environments, C extensions, bade ML dependencies), lekin pattern similar hain ek baar samajh lo.
 
 ---
 
@@ -68,7 +66,7 @@ CMD ["gunicorn", "src.main:app", \
      "--access-logfile", "-"]
 ```
 
-### Node.js Dockerfile for Comparison
+### Node.js Dockerfile ke Liye Comparison
 
 ```dockerfile
 # Node.js equivalent
@@ -95,24 +93,24 @@ CMD ["node", "dist/main.js"]
 | Base image | `python:3.12-slim` (120MB) | `node:20-slim` (70MB) |
 | Dependencies | `pip install` | `npm ci` |
 | Build artifacts | Installed packages in `/usr/local` | `node_modules/` + `dist/` |
-| Virtual envs | Not needed in Docker (container IS the env) | N/A |
-| C extensions | May need `build-essential` in builder stage | N/A (native addons rare) |
-| ML libraries | Can add 500MB+ (numpy, torch) | Rarely an issue |
+| Virtual envs | Docker mein zaruri nahi (container hi environment hai) | N/A |
+| C extensions | `build-essential` builder stage mein chahiye | N/A (native addons rare) |
+| ML libraries | 500MB+ tak ho sakta hai (numpy, torch) | Rarely an issue |
 
-### Optimizing Image Size for ML Dependencies
+### ML Dependencies ke Liye Image Size Optimize Karna
 
 ```dockerfile
-# If you need torch, numpy, etc. -- use a dedicated ML base image
+# Agar torch, numpy, etc. chahiye -- dedicated ML base image use kro
 FROM python:3.12-slim AS production
 
-# Install only CPU versions (saves ~1.5GB over CUDA versions)
+# CPU versions install kro (CUDA se 1.5GB bachen)
 RUN pip install --no-cache-dir \
     torch --index-url https://download.pytorch.org/whl/cpu
 
-# Or use multi-stage to strip test files and docs
+# Alternatively: multi-stage use karke test files aur docs hatao
 FROM python:3.12-slim AS builder
 RUN pip install --no-cache-dir --prefix=/install langchain langchain-openai
-# Remove unnecessary files
+# Unnecessary files ko hatao
 RUN find /install -name "tests" -type d -exec rm -rf {} + && \
     find /install -name "*.pyc" -delete && \
     find /install -name "__pycache__" -type d -exec rm -rf {} +
@@ -125,17 +123,16 @@ RUN find /install -name "tests" -type d -exec rm -rf {} + && \
 ### Development: uvicorn
 
 ```bash
-# Direct uvicorn -- like nodemon for Node.js
+# Direct uvicorn -- Node.js ke nodemon ki tarah
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
-# With auto-reload on file changes
+# Auto-reload file changes par
 uvicorn src.main:app --reload --reload-dir src
 ```
 
 ### Production: gunicorn + uvicorn workers
 
-In Node.js, you typically use `pm2` or the built-in `cluster` module for multi-process.
-In Python, `gunicorn` is the standard process manager.
+Node.js mein typically `pm2` ya built-in `cluster` module use hote ho. Python mein `gunicorn` standard process manager hai.
 
 ```bash
 # Production command
@@ -154,22 +151,22 @@ gunicorn src.main:app \
 ### Worker Configuration
 
 ```python
-# gunicorn.conf.py -- equivalent to pm2 ecosystem config
+# gunicorn.conf.py -- pm2 ecosystem config ki tarah
 import multiprocessing
 
-# Workers: (2 * CPU cores) + 1 is the standard formula
-# For LLM apps: fewer workers because each request uses significant memory
+# Workers: (2 * CPU cores) + 1 standard formula hai
+# LLM apps ke liye: kam workers kyunki har request memory le leta hai
 workers = min(multiprocessing.cpu_count() + 1, 4)
 worker_class = "uvicorn.workers.UvicornWorker"
 
 # Timeouts
-timeout = 120         # Kill worker after 120s of no response
-graceful_timeout = 30 # Give 30s to finish current requests on shutdown
-keepalive = 5         # Keep connections alive for 5s
+timeout = 120         # Kill worker agar 120s tak response na de
+graceful_timeout = 30 # Shutdown par current requests khatam karne de 30s
+keepalive = 5         # Connections ko 5s tak alive rakho
 
-# Worker recycling (prevents memory leaks)
-max_requests = 1000       # Restart worker after 1000 requests
-max_requests_jitter = 50  # Add randomness to prevent all workers restarting at once
+# Worker recycling (memory leaks se bachne ke liye)
+max_requests = 1000       # 1000 requests ke baad worker restart kro
+max_requests_jitter = 50  # Random element taki sab workers same time restart na ho
 
 # Binding
 bind = "0.0.0.0:8000"
@@ -181,36 +178,36 @@ loglevel = "info"
 
 # Hooks
 def on_starting(server):
-    """Called before master process starts."""
+    """Master process start hone se pehle."""
     pass
 
 def post_fork(server, worker):
-    """Called after a worker is forked -- initialize per-worker resources."""
+    """Worker fork hone ke baad -- per-worker resources initialize karo."""
     pass
 ```
 
 ```javascript
-// pm2 ecosystem.config.js equivalent
+// pm2 ecosystem.config.js ka equivalent
 module.exports = {
   apps: [{
     name: 'api',
     script: 'dist/main.js',
-    instances: 4,           // = workers in gunicorn
+    instances: 4,           // = gunicorn mein workers
     max_memory_restart: '1G',
     env: { NODE_ENV: 'production' },
   }],
 };
 ```
 
-### Why Not Just Use uvicorn in Production?
+### Sirf uvicorn Production mein Kyun Nahi?
 
 | Feature | uvicorn alone | gunicorn + uvicorn workers |
 |---------|--------------|--------------------------|
-| Multi-process | No (single process) | Yes (one per worker) |
-| Worker management | No | Yes (restart crashed workers) |
+| Multi-process | Nahi (single process) | Haan (ek per worker) |
+| Worker management | Nahi | Haan (crashed workers restart) |
 | Graceful shutdown | Basic | Full (drain connections) |
-| Memory leak protection | No | Yes (max_requests) |
-| Hot reload | Yes (dev only) | No (use rolling deploys) |
+| Memory leak protection | Nahi | Haan (max_requests) |
+| Hot reload | Haan (dev only) | Nahi (rolling deploys use kro) |
 
 ---
 
@@ -236,7 +233,7 @@ class Settings(BaseSettings):
 
     @property
     def docs_url(self) -> str | None:
-        """Disable Swagger UI in production."""
+        """Production mein Swagger UI disable karo."""
         return None if self.is_production else "/docs"
 
     @property
@@ -245,7 +242,7 @@ class Settings(BaseSettings):
 
     @property
     def workers(self) -> int:
-        """More workers in production."""
+        """Production mein zyada workers."""
         import multiprocessing
         if self.is_production:
             return min(multiprocessing.cpu_count() + 1, 4)
@@ -255,7 +252,7 @@ class Settings(BaseSettings):
 ### .env Files
 
 ```bash
-# .env.example (committed to repo)
+# .env.example (repo mein commit kro)
 ENVIRONMENT=development
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/mydb
 OPENAI_API_KEY=sk-...
@@ -265,8 +262,8 @@ SENTRY_DSN=
 # .env (gitignored -- local dev overrides)
 OPENAI_API_KEY=sk-actual-key-here
 
-# Production: set via Kubernetes Secrets, AWS Parameter Store, etc.
-# NEVER commit production secrets to any file
+# Production: Kubernetes Secrets, AWS Parameter Store, etc. se set kro
+# Kभी BHI production secrets commit mat kro kisi bhi file mein
 ```
 
 ---
@@ -352,7 +349,7 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
-          OPENAI_API_KEY: sk-test-key  # Mock in tests
+          OPENAI_API_KEY: sk-test-key  # Tests mein mock kro
         run: |
           pytest tests/ \
             --cov=src \
@@ -415,10 +412,10 @@ jobs:
           kubectl rollout status deployment/ai-backend --timeout=300s
 ```
 
-### Node.js CI/CD Comparison
+### Node.js CI/CD ke Saath Comparison
 
 ```yaml
-# Typical Node.js CI/CD -- notice the similarities
+# Typical Node.js CI/CD -- patterns similar hain dekhna
 jobs:
   quality:
     steps:
@@ -438,7 +435,7 @@ jobs:
       - run: docker push app           # Same
 ```
 
-The tooling names differ, but the workflow is nearly identical.
+Tooling names alag hain, lekin workflow almost identical hai.
 
 ---
 
@@ -495,7 +492,7 @@ spec:
                   name: ai-backend-config
                   key: redis-url
 
-          # Health checks -- CRITICAL for zero-downtime deployments
+          # Health checks -- zero-downtime deployments ke liye CRITICAL
           livenessProbe:
             httpGet:
               path: /health
@@ -518,7 +515,7 @@ spec:
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 5
-            failureThreshold: 30  # Give up to 150s for slow startup (ML model loading)
+            failureThreshold: 30  # ML model loading ke liye 150s tak time de
 
       # Graceful shutdown
       terminationGracePeriodSeconds: 60
@@ -541,7 +538,7 @@ spec:
   type: ClusterIP
 ```
 
-### ConfigMap and Secret
+### ConfigMap aur Secret
 
 ```yaml
 # k8s/configmap.yaml
@@ -555,7 +552,7 @@ data:
   environment: "production"
 
 ---
-# k8s/secret.yaml (use sealed-secrets or external-secrets in practice)
+# k8s/secret.yaml (production mein sealed-secrets ya external-secrets use kro)
 apiVersion: v1
 kind: Secret
 metadata:
@@ -594,7 +591,7 @@ spec:
         target:
           type: Utilization
           averageUtilization: 80
-    # Custom metric: scale based on request queue depth
+    # Custom metric: request queue depth ke basis par scale kro
     - type: Pods
       pods:
         metric:
@@ -610,14 +607,14 @@ spec:
           value: 2
           periodSeconds: 60
     scaleDown:
-      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      stabilizationWindowSeconds: 300  # Scale down se pehle 5 min wait kro
       policies:
         - type: Pods
           value: 1
           periodSeconds: 120
 ```
 
-### Health Check Endpoints in FastAPI
+### FastAPI mein Health Check Endpoints
 
 ```python
 # src/api/v1/health.py
@@ -636,8 +633,8 @@ logger = structlog.get_logger(__name__)
 @router.get("/health")
 async def health_check():
     """
-    Liveness probe -- is the process running?
-    Keep this fast and simple. No external dependency checks.
+    Liveness probe -- kya process run ho raha hai?
+    Ise fast aur simple rakho. External dependencies mat check kro.
 
     Node.js equivalent: app.get('/health', (req, res) => res.json({ status: 'ok' }))
     """
@@ -649,12 +646,12 @@ async def readiness_check(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Readiness probe -- can this instance serve traffic?
-    Checks all critical dependencies.
+    Readiness probe -- kya yeh instance traffic handle kar sakta hai?
+    Sab critical dependencies check kro.
     """
     checks = {}
 
-    # Check database
+    # Database check kro
     try:
         await db.execute(text("SELECT 1"))
         checks["database"] = "ok"
@@ -662,7 +659,7 @@ async def readiness_check(
         logger.error("Database health check failed", error=str(e))
         checks["database"] = "error"
 
-    # Check Redis
+    # Redis check kro
     try:
         redis = get_redis()
         await redis.ping()
@@ -671,8 +668,8 @@ async def readiness_check(
         logger.error("Redis health check failed", error=str(e))
         checks["redis"] = "error"
 
-    # Check LLM API (optional -- don't call on every probe)
-    checks["llm_api"] = "ok"  # Could do a lightweight check periodically
+    # LLM API check (optional -- har probe par mat call kro)
+    checks["llm_api"] = "ok"  # Could do periodic lightweight check
 
     all_ok = all(v == "ok" for v in checks.values())
     status_code = 200 if all_ok else 503
@@ -686,7 +683,7 @@ async def readiness_check(
 
 ---
 
-## 6. Docker Compose for Local Development
+## 6. Local Development ke Liye Docker Compose
 
 ```yaml
 # docker-compose.yml
@@ -694,7 +691,7 @@ services:
   api:
     build:
       context: .
-      target: production  # Use the production stage
+      target: production  # Production stage use kro
     ports:
       - "8000:8000"
     environment:
@@ -703,7 +700,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./src:/app/src  # Hot reload in development
+      - ./src:/app/src  # Development mein hot reload
     command: uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
     depends_on:
       db:
@@ -737,7 +734,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # pgAdmin for database management (optional)
+  # pgAdmin database management ke liye (optional)
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -753,28 +750,27 @@ volumes:
 ```
 
 ```bash
-# Start everything
+# Sab kuch start kro
 docker compose up -d
 
-# View logs
+# Logs dekhna
 docker compose logs -f api
 
-# Run database migrations
+# Database migrations chalao
 docker compose exec api alembic upgrade head
 
-# Run tests inside the container
+# Container ke andar tests chalao
 docker compose exec api pytest tests/ -v
 
-# Rebuild after dependency changes
+# Dependency changes ke baad rebuild kro
 docker compose build api && docker compose up -d api
 ```
 
 ---
 
-## 7. pyproject.toml: The Modern Python Project File
+## 7. pyproject.toml: Modern Python Project File
 
-This is your `package.json` equivalent. Modern Python projects use this single file
-for all project configuration.
+Yeh package.json ka equivalent hai. Modern Python projects ek single file use karte hain sab project configuration ke liye.
 
 ```toml
 # pyproject.toml
@@ -805,7 +801,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
-    "httpx>=0.26.0",       # For TestClient
+    "httpx>=0.26.0",       # TestClient ke liye
     "ruff>=0.2.0",
     "mypy>=1.8.0",
     "fakeredis>=2.21.0",   # Redis mock
@@ -842,7 +838,7 @@ addopts = "-v --tb=short"
 ```
 
 ```json
-// package.json equivalent for reference
+// package.json equivalent reference ke liye
 {
   "name": "my-ai-backend",
   "version": "1.0.0",
@@ -861,63 +857,79 @@ addopts = "-v --tb=short"
 
 ## 8. Practice Exercises
 
-### Exercise 1: Write a Production Dockerfile
-Create a multi-stage Dockerfile for a FastAPI + LangChain application that:
-1. Uses `python:3.12-slim` as the base
-2. Installs dependencies in a builder stage
-3. Runs as a non-root user
-4. Uses gunicorn with uvicorn workers
-5. Has a HEALTHCHECK instruction
-6. Keeps the final image under 300MB (no ML frameworks)
+### Exercise 1: Production Dockerfile Likhna
 
-Build it and verify the health check works: `docker build -t myapp . && docker run -p 8000:8000 myapp`
+FastAPI + LangChain application ke liye multi-stage Dockerfile banao jo:
+1. `python:3.12-slim` base use kre
+2. Builder stage mein dependencies install kre
+3. Non-root user ke taur par chalre
+4. Gunicorn + uvicorn workers use kre
+5. HEALTHCHECK instruction ho
+6. Final image 300MB se kam ho (koi ML frameworks nahi)
+
+Build kro aur health check verify kro: `docker build -t myapp . && docker run -p 8000:8000 myapp`
 
 ### Exercise 2: Local Development Stack
-Create a `docker-compose.yml` that includes:
-1. Your FastAPI app with hot reload
-2. PostgreSQL with health checks
-3. Redis with health checks
-4. A pgAdmin instance for database management
 
-Verify all services start correctly and the app connects to both Postgres and Redis.
+`docker-compose.yml` banao jo include kre:
+1. FastAPI app hot reload ke saath
+2. PostgreSQL health checks ke saath
+3. Redis health checks ke saath
+4. pgAdmin database management ke liye
+
+Verify kro sab services properly start ho rahi hain aur app Postgres aur Redis se connect ho raha hai.
 
 ### Exercise 3: CI/CD Pipeline
-Write a GitHub Actions workflow that:
-1. Runs `ruff check` and `ruff format --check`
-2. Runs `mypy` type checking
-3. Runs `pytest` with PostgreSQL and Redis services
-4. Builds a Docker image on main branch pushes
-5. Fails the pipeline if test coverage drops below 80%
 
-Compare this with your current Node.js CI/CD pipeline -- what is similar, what is different?
+GitHub Actions workflow likho jo:
+1. `ruff check` aur `ruff format --check` chalaye
+2. `mypy` type checking chalaye
+3. `pytest` PostgreSQL aur Redis services ke saath chalaye
+4. Main branch mein push par Docker image build kre
+5. Test coverage 80% se kam ho toh pipeline fail kre
+
+Apne Node.js CI/CD pipeline ke saath compare kro -- kya similar hai, kya different?
 
 ### Exercise 4: Kubernetes Deployment
-Write Kubernetes manifests (Deployment, Service, ConfigMap, Secret, HPA) for your application.
-Include:
-1. Liveness and readiness probes hitting your health endpoints
-2. Resource requests and limits
-3. Environment variables from ConfigMap and Secret
-4. HPA that scales from 2-8 replicas based on CPU utilization
 
-Test with `kubectl apply -f k8s/ --dry-run=client` to validate the YAML.
+Kubernetes manifests likho (Deployment, Service, ConfigMap, Secret, HPA) for your application.
+Include kro:
+1. Health endpoints par liveness aur readiness probes
+2. Resource requests aur limits
+3. ConfigMap aur Secret se environment variables
+4. HPA jo 2-8 replicas ke beech scale kre CPU utilization ke basis par
+
+Validate kro YAML ke saath: `kubectl apply -f k8s/ --dry-run=client`
 
 ### Exercise 5: gunicorn Tuning
-Create a `gunicorn.conf.py` that:
-1. Sets workers based on CPU count (but max 4 for LLM apps)
-2. Enables worker recycling after 1000 requests
-3. Sets appropriate timeouts for LLM calls (120s)
-4. Logs access and errors to stdout
 
-Run your app with `gunicorn -c gunicorn.conf.py src.main:app` and verify it
-handles concurrent requests properly using `hey` or `ab` (load testing tools).
+`gunicorn.conf.py` banao jo:
+1. Workers ko CPU count ke basis par set kre (lekin LLM apps ke liye max 4)
+2. 1000 requests ke baad worker recycling enable kre
+3. LLM calls ke liye appropriate timeouts set kre (120s)
+4. Access aur errors ko stdout par log kre
+
+Apne app ko chalao `gunicorn -c gunicorn.conf.py src.main:app` ke saath aur verify kro ye concurrent requests properly handle karti hai `hey` ya `ab` (load testing tools) use karke.
 
 ### Exercise 6: Environment Matrix
-Create three `.env` files: `.env.development`, `.env.staging`, `.env.production`.
-Each should have appropriate values for:
+
+Teen `.env` files banao: `.env.development`, `.env.staging`, `.env.production`.
+Har ek mein appropriate values rakho:
 - Log level (DEBUG / INFO / WARNING)
 - Database pool size (5 / 10 / 20)
 - LLM cache TTL (60 / 600 / 3600)
 - Swagger docs enabled (yes / yes / no)
 - Sentry sample rate (1.0 / 0.5 / 0.1)
 
-Write a script that validates all three files parse correctly with your Settings class.
+Script likho jo verify kre sab teen files apke Settings class ke saath properly parse ho rahe hain.
+
+---
+
+> [!tip]
+> Docker multi-stage builds aur process management samajhna tum Zomato ya Swiggy jaise apps scale karte time kaam aayega. Har stage ka apna purpose hota hai, production image lean rehta hai.
+
+> [!warning]
+> KABHI BAHI production secrets `.env` file mein commit mat kro. Always Kubernetes Secrets, AWS Parameter Store, ya equivalent use kro.
+
+> [!info]
+> Gunicorn worker configuration tune karna ho toh har use case alag hota hai. LLM apps ke liye kam workers better hain kyunki har request heavy memory use karta hai.

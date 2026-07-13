@@ -1,16 +1,16 @@
-# Iterators and Generators
+# Iterators aur Generators
 
 ## Lazy Evaluation ka Powerhouse
 
-Python ka iterator protocol aur generators uske sabse powerful features mein se ek hain. JavaScript ne generators Python se hi udhaar liye hain (`function*` syntax), toh concepts tumhe familiar lagenge — lekin Python ka pura ecosystem iteration ke around bahut zyada rich hai.
+Dekho, Python ka iterator protocol aur generators uske sabse powerful features mein se ek hain. JavaScript ne bhi generators Python se hi copy kiye hain (`function*` syntax), toh concepts tumhe familiar lagenge — lekin Python ka pura ecosystem iteration ke around bahut zyada rich hai.
 
 ---
 
 ## Iterator Protocol
 
-Python mein koi bhi object jo `__iter__()` aur `__next__()` implement karta hai, wo iterator hota hai. Ye bilkul JavaScript ke `Symbol.iterator` protocol jaisa hai.
+Python mein koi bhi object jo `__iter__()` aur `__next__()` implement karta hai, wo iterator hota hai. Bilkul JavaScript ke `Symbol.iterator` protocol jaisa hi.
 
-Socho ek vending machine — har baar button dabao, ek item bahar aata hai, jab tak stock khatam na ho jaaye. Wahi `__next__()` ka kaam hai — har call pe agla item do, aur jab kuch bacha na ho toh bata do "bas, khatam".
+Socho ek vending machine — har baar button dabao, ek item bahar aata hai, jab tak stock khatam na ho jaaye. Wahi `__next__()` ka kaam hai — har call pe agla item do, aur jab kuch bacha na ho toh bata do "bas, khatam, aur kuch nahi hai".
 
 ```python
 class Countdown:
@@ -67,7 +67,7 @@ for (const num of new Countdown(5)) {
 
 ### Iterable vs Iterator — Difference Kya Hai?
 
-Ye ek important distinction hai jo shuru mein confuse karta hai:
+Ye ek important distinction hai jo starting mein confuse karta hai, bilkul zor se:
 
 ```python
 # Iterable: has __iter__(), returns an iterator
@@ -106,15 +106,15 @@ print(list(nums))  # [1, 2, 3]
 print(list(nums))  # [1, 2, 3]  -- works again because __iter__ makes a new iterator
 ```
 
-Samjho aise: **Iterable** ek Netflix ka show list hai — jab bhi dekhna ho, fresh se play kar sakte ho. **Iterator** wo cursor hai jo abhi kaunsa episode chal raha hai, wo track karta hai. `NumberRange` ek naya `NumberRangeIterator` banata hai har baar, isliye tum `list(nums)` do baar chala sakte ho aur dono baar same result milega — jaise show ko phir se shuru se play karna.
+Samjho aise: **Iterable** ek Netflix ka show list hai — jab bhi dekhna ho, fresh se play kar sakte ho. **Iterator** wo cursor hai jo abhi kaunsa episode chal raha hai, wo track karta hai. `NumberRange` har baar ek naya `NumberRangeIterator` banata hai, isliye tum `list(nums)` do baar chala sakte ho aur dono baar same result milega — bilkul jaise show ko phir se shuru se play karna.
 
 ---
 
 ## Generators with `yield`
 
-Generators, iterators banane ka easy tarika hain. `__iter__` aur `__next__` wali poori class likhne ki jagah, bas ek function likho jisme `yield` ho.
+Generators, iterators banane ka ek super easy tarika hain. `__iter__` aur `__next__` wali poori class likhne ki jagah, bas ek function likho jisme `yield` keyword ho jaaye.
 
-Ye bilkul dabbawala jaisa hai — wo ek saath sab dabbe deliver nahi karta, ek-ek karke deta hai, jab tumhe chahiye tab. `yield` bhi wahi karta hai — value deta hai, pause ho jaata hai, aur jab agli baar `next()` call ho, wahin se aage badhta hai.
+Ye bilkul dabbawala jaisa hai — wo ek saath sab dabbe deliver nahi karta, ek-ek karke deta hai, jab tumhe chahiye tab. `yield` bhi wahi karta hai — value deta hai, pause ho jaata hai function, aur jab agli baar `next()` call ho, wahin se exactly aage badhta hai.
 
 ```python
 def countdown(n: int):
@@ -149,9 +149,9 @@ for (const num of countdown(5)) {
 }
 ```
 
-### Generators Andar Se Kaise Kaam Karte Hain
+### Generators Andar Se Kaise Kaam Karte Hain?
 
-Jab tum generator function call karte ho, wo body execute NAHI karta turant. Sirf ek generator object return hota hai. Body tabhi chalti hai jab tum `next()` call karo:
+Ye samjhna zaroori hai — jab tum generator function call karte ho, wo body ko execute NAHI karta bilkul. Sirf ek generator object return hota hai. Asli kaam tabhi shuru hota hai jab tum `next()` call karo:
 
 ```python
 def demo():
@@ -171,7 +171,7 @@ print(next(gen))    # Prints "After second yield", then yields 3
 ```
 
 > [!tip]
-> Ye samjhna zaruri hai — `demo()` call karna sirf ek "recipe" bana raha hai, khaana bana nahi raha. Actual kaam har `next()` call pe hota hai, ek step aage.
+> Ye samjhna bilkul zaruri hai — `demo()` ko call karna sirf ek "recipe" bana raha hai, khaana bana nahi raha. Actual kaam har `next()` call pe hota hai, ek step aage badha kar.
 
 ### Real-World Generator Examples
 
@@ -209,13 +209,13 @@ for page in paginate(all_users, 10):
     print(f"Page with {len(page)} items: {page[0]}..{page[-1]}")
 ```
 
-`read_lines` wala example dekho — agar file mein lakhon lines hain aur tumhe "ERROR" milte hi ruk jaana hai, toh generator poori file load hi nahi karega memory mein. Bilkul Swiggy order tracking jaisa — tumhe pura delivery history nahi chahiye, bas "abhi kahan hai" — wahi ek update chahiye hoti hai.
+`read_lines` wala example dekho — agar file mein lakhon lines hain aur tumhe "ERROR" milte hi ruk jaana hai, toh generator poori file ko memory mein load hi nahi karega. Bilkul Swiggy order tracking jaisa — tumhe pura delivery history nahi chahiye, bas "abhi kahan hai" — wahi ek update chahiye hoti hai.
 
 ---
 
 ## Generator Expressions
 
-Generator expressions, list comprehensions jaisi hi hoti hain lekin lazy. Square brackets ki jagah round brackets use hote hain:
+Generator expressions, list comprehensions jaisi hi syntax hain, lekin lazy hote hain. Square brackets `[]` ki jagah round brackets `()` use hote hain:
 
 ```python
 # List comprehension -- creates entire list in memory
@@ -240,7 +240,7 @@ function* squaresGen(n) {
 }
 ```
 
-### Kab Kaunsa Use Karein
+### Kab Kaunsa Use Karein?
 
 ```python
 # Use LIST when you need:
@@ -259,13 +259,13 @@ results = (transform(x) for x in huge_data)
 ```
 
 > [!info]
-> Simple rule: agar tumhe data ko baar-baar access karna hai ya index se pick karna hai (`items[5]` jaisa), list rakho. Agar bas ek baar se seedha guzarna hai (loop karke process karna hai), generator use karo — RAM bachega.
+> Simple rule: agar tumhe data ko baar-baar access karna hai ya index se pick karna hai (`items[5]` jaisa), list rakho. Agar bas ek baar se seedha guzarna hai (loop karke process karna hai), generator use karo — RAM bahut zyada bachega.
 
 ---
 
 ## `yield from`: Generators Ko Delegate Karna
 
-`yield from` iteration ko kisi doosre iterable ko delegate kar deta hai. Har item ko manually loop mein yield karne se ye zyada clean hai.
+`yield from` matlab ek generator apne iteration ko kisi doosre iterable ko delegate kar deta hai. Har item ko manually loop mein yield karne se ye zyada clean aur readable hota hai.
 
 ```python
 # Without yield from
@@ -274,7 +274,7 @@ def flatten(nested: list[list[int]]):
         for item in sublist:
             yield item
 
-# With yield from -- cleaner
+# With yield from -- much cleaner
 def flatten(nested: list[list[int]]):
     for sublist in nested:
         yield from sublist
@@ -312,13 +312,13 @@ function* flatten(nested) {
 }
 ```
 
-`yield from` ka use case bilkul team lead jaisa hai jo apna kaam khud nahi karta, kisi junior ko delegate kar deta hai, aur junior ka output seedha aage forward ho jaata hai. Tree traversal wala recursive example dekho — perfect analogy hai kisi company ke org chart traverse karne ka, jahan har manager apne reports ko recursively "yield from" karta hai.
+`yield from` ka use case bilkul team lead jaisa hota hai jo apna kaam khud nahi karta, kisi junior developer ko delegate kar deta hai, aur junior ka output seedha aage forward ho jaata hai. Tree traversal wala recursive example dekho — perfect analogy hai company ke org chart traverse karne ka, jahan har manager apne reports ko recursively "yield from" karta hai.
 
 ---
 
 ## `itertools` Module
 
-`itertools` Python ki standard library ka module hai jo efficient iterator operations ke liye bana hai. Ye ek functional programmer ka toolkit hai sequences ke saath kaam karne ke liye.
+`itertools` Python ki standard library ka ek powerful module hai jo efficient iterator operations ke liye banaya gaya hai. Ye bilkul ek functional programmer ka toolkit hai sequences ke saath kaam karne ke liye.
 
 ### Iterables Ko Combine Karna
 
@@ -361,7 +361,7 @@ zeros = itertools.repeat(0, times=5)
 print(list(zeros))  # [0, 0, 0, 0, 0]
 ```
 
-`cycle` ko IRCTC ke waiting list token system jaisa socho — red, green, blue baar-baar repeat hote rehte hain, jaise round-robin token allocation. Bas dhyan rakhna, `count` aur `cycle` bina `break` ke infinite chalte rahenge — real dabba, khaali nahi hota!
+`cycle` ko IRCTC ke waiting list token system jaisa socho — red, green, blue baar-baar repeat hote rehte hain, jaise round-robin token allocation hota hai. Bas ek bahut zaroori baatdhyan rakhna — `count` aur `cycle` bina `break` ke infinite chalte rehenge. Real dabba, khaali nahi hota kabhi!
 
 ### Slicing aur Filtering
 
@@ -410,7 +410,7 @@ for dept, members in itertools.groupby(data, key=lambda x: x["dept"]):
 ```
 
 > [!warning]
-> `groupby` sirf **consecutive** (lagatar aane wale) items ko group karta hai — SQL ke `GROUP BY` jaisa poora scan karke group nahi karta. Isliye sort karna zaruri hai pehle, warna galat groups milenge (jaise agar "eng" beech mein phir se aa jaaye, toh do alag groups ban jaayenge).
+> `groupby` sirf **consecutive** (lagatar aane wale) items ko group karta hai — SQL ke `GROUP BY` jaisa poora scan karke group nahi karta. Isliye sort karna zaruri hai pehle, warna galat groups milenge. Agar "eng" beech mein phir se aa jaaye, toh do alag groups ban jaayenge, ek group nahi.
 
 ### Combinatorics
 
@@ -454,7 +454,7 @@ running_product = itertools.accumulate([1, 2, 3, 4], operator.mul)
 print(list(running_product))  # [1, 2, 6, 24]
 ```
 
-Ye bilkul tumhare UPI wallet ka running balance jaisa hai — har transaction ke baad ek naya total dikhta hai, sirf final balance nahi.
+Ye bilkul tumhare UPI wallet ka running balance jaisa hai — har transaction ke baad ek naya total dikhta hai, sirf final balance nahi. Har step visible hota hai.
 
 ---
 
@@ -476,7 +476,7 @@ big_range = range(1_000_000)
 print(f"Range size: {sys.getsizeof(big_range):,} bytes")  # 48 bytes
 ```
 
-Numbers dekho — list **8 MB** khaati hai, generator sirf **200 bytes**! Farak samjho: list ek pura tiffin box hai jisme sab kuch pehle se pack hai, generator ek recipe card hai jo batata hai "kaise banana hai", jab zarurat ho tab bana lo.
+Numbers dekho — list **8 MB** khaati hai, generator sirf **200 bytes**! Ye farak bohot bada hai. Socho aise: list ek pura tiffin box hai jisme sab kuch pehle se pack hai, generator ek recipe card hai jo batata hai "kaise banana hai", jab zarurat ho tab bana lo.
 
 ### Bade Files Process Karna
 
@@ -502,7 +502,7 @@ def process_log(filepath: str):
         yield from recent
 ```
 
-`process_log` wala pipeline dekho — ye Zomato order pipeline jaisa hai: order aata hai → restaurant ko forward hota hai → cook hota hai → deliver hota hai. Har stage apna kaam karke agli stage ko pass kar deti hai, poora batch ek saath process nahi hota. Isse memory bachta hai aur code bhi readable rehta hai.
+`process_log` wala pipeline dekho — ye Zomato order pipeline jaisa hai: order aata hai → restaurant ko forward hota hai → cook hota hai → deliver hota hai. Har stage apna kaam karke agli stage ko pass kar deti hai, poora batch ek saath process nahi hota. Isse memory bahut zyada bachta hai aur code bhi readable rehta hai.
 
 ---
 
@@ -551,7 +551,7 @@ def sensor_readings(sensor_id: str):
 ```
 
 > [!warning]
-> Infinite generators ko kabhi seedha `list()` mein wrap mat karna — RAM khatam ho jaayega aur program hang ho jaayega. Hamesha `islice` ya kisi `break` condition ke saath use karo, jaise upar `fibonacci()` aur `primes()` mein dikhaya.
+> Infinite generators ko kabhi seedha `list()` mein wrap mat karna — RAM khatam ho jaayega aur program hang ho jaayega. Hamesha `islice` ya kisi `break` condition ke saath use karo, jaise upar `fibonacci()` aur `primes()` mein dikhaya hai.
 
 `sensor_readings` wala example socho ek smart AC ka temperature sensor jo continuously data bhejta rehta hai — kabhi rukta nahi, jab tak tum khud "bas, enough" na bolo.
 
@@ -559,7 +559,7 @@ def sensor_readings(sensor_id: str):
 
 ## Generator `.send()`, `.throw()`, aur `.close()`
 
-Python ke generators actually coroutines hote hain — inme values bhi bheji ja sakti hain, sirf nikali nahi jaati:
+Python ke generators actually coroutines hote hain — inme values bhi bheji ja sakti hain, sirf values nikali nahi jaathin:
 
 ```python
 def accumulator():
@@ -644,7 +644,7 @@ Dono ka memory usage compare karo `sys.getsizeof()` ya `tracemalloc` module use 
 
 ## Key Takeaways
 
-- Iterator protocol matlab `__iter__()` + `__next__()` — JS ke `Symbol.iterator` jaisa hi hai.
+- Iterator protocol matlab `__iter__()` + `__next__()` — JavaScript ke `Symbol.iterator` jaisa hi hai.
 - Iterable ek naya iterator return karta hai har baar, isliye baar-baar loop chal sakta hai; iterator ek baar mein hi khatam ho jaata hai.
 - `yield` wale generator functions lazy hote hain — body tabhi chalti hai jab `next()` call ho.
 - Generator expressions `(x for x in ...)` list comprehensions se kam memory leti hain, kyunki values on-demand banti hain.

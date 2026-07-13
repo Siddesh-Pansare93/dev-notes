@@ -1,10 +1,10 @@
-# Mocking External APIs in FastAPI Tests
+# FastAPI Tests Mein External APIs Ka Mocking
 
-> **Coming from Jest/Sinon?** Python's `unittest.mock` is similar to Jest's mocking system, but more explicit. The `responses` library is like `nock` for Node.js, and `pytest-mock` makes everything cleaner. You'll find mocking in Python to be powerful and straightforward.
+> **Jest/Sinon se aa rahe ho?** Python ka `unittest.mock` Jest ki mocking system jaisa hi hai, bas thoda zyada explicit. `responses` library Node.js ke `nock` jaisi hai, aur `pytest-mock` sab kuch clean kar deta hai. Python mein mocking power aur simplicity dono hain!
 
 ---
 
-## Table of Contents
+## Contents
 
 1. [Mocking Libraries: Quick Comparison](#mocking-libraries-quick-comparison)
 2. [unittest.mock Basics](#unittestmock-basics)
@@ -21,6 +21,8 @@
 ---
 
 ## Mocking Libraries: Quick Comparison
+
+Socho ek second — Jest aur Python dono ka approach kaafi similar hai. Dekho comparison:
 
 | Feature | Jest (Node.js) | Python Equivalent |
 |---|---|---|
@@ -40,28 +42,32 @@
 ### Installation
 
 ```bash
-# unittest.mock is built into Python (no install needed)
-# But pytest-mock makes it nicer:
+# unittest.mock Python mein built-in hai (koi install nahi)
+# Lekin pytest-mock se aur achha experience milta hai:
 pip install pytest-mock
 ```
 
 ### Example 1: Basic Mock Objects
+
+Ek aam example — imagine karo tu ek external weather API se temperature fetch kar raha hai:
 
 ```python
 # app/services.py
 import httpx
 
 def get_weather(city: str) -> dict:
-    """Fetch weather from external API"""
+    """Bahar se weather ka data nikaal le"""
     response = httpx.get(f"https://api.weather.com/v1/current?city={city}")
     response.raise_for_status()
     return response.json()
 
 def get_temperature(city: str) -> float:
-    """Get just the temperature"""
+    """Sirf temperature nikaal"""
     weather = get_weather(city)
     return weather["temperature"]
 ```
+
+Ab test likhte hain, lekin real API call nahi — mock kar denge:
 
 ```python
 # tests/test_services_basic.py
@@ -69,9 +75,9 @@ from unittest.mock import Mock, patch
 from app.services import get_temperature
 
 def test_get_temperature_with_unittest_mock():
-    """Test using unittest.mock (verbose way)"""
+    """unittest.mock se test (thoda verbose, par samajhne mein aasan)"""
     
-    # Create a mock response object
+    # Ek fake response object bana de
     mock_response = Mock()
     mock_response.json.return_value = {
         "temperature": 72.5,
@@ -79,19 +85,19 @@ def test_get_temperature_with_unittest_mock():
     }
     mock_response.raise_for_status.return_value = None
     
-    # Patch httpx.get to return our mock response
+    # httpx.get ko replace kar de hamare mock se
     with patch('httpx.get', return_value=mock_response) as mock_get:
         result = get_temperature("San Francisco")
         
-        # Verify the result
+        # Check karo result sahi hai
         assert result == 72.5
         
-        # Verify httpx.get was called correctly
+        # Verify karo httpx.get correctly call hua
         mock_get.assert_called_once()
         call_args = mock_get.call_args[0][0]
         assert "San Francisco" in call_args
 
-# Compare with Jest:
+# Jest ke comparison mein
 """
 // Jest version
 jest.mock('axios');
@@ -112,13 +118,15 @@ test('get temperature', async () => {
 
 ### Example 2: Mock with Side Effects
 
+Kya hota hai jab same function ko bar bar call karte ho, aur har baar different value return kare? Side effects use kar:
+
 ```python
 from unittest.mock import Mock
 
 def test_mock_side_effects():
-    """Test using side effects for sequential calls"""
+    """Side effects se sequential calls handle kar"""
     
-    # Create a mock that returns different values on each call
+    # Ek mock jo har call par different value return kare
     mock_func = Mock(side_effect=[1, 2, 3])
     
     assert mock_func() == 1
@@ -126,7 +134,7 @@ def test_mock_side_effects():
     assert mock_func() == 3
 
 def test_mock_exception():
-    """Test mocking exceptions"""
+    """Exception ko mock kar"""
     
     mock_func = Mock(side_effect=ValueError("Invalid input"))
     
@@ -138,7 +146,7 @@ def test_mock_exception():
 
 ## pytest-mock: The Better Way
 
-**pytest-mock** provides a `mocker` fixture that's cleaner than `unittest.mock`.
+**pytest-mock** se `mocker` fixture milta hai jo `unittest.mock` se kaafi cleaner hai. Jaise Swiggy ka interface simple hai, yeh bhi utna hi clean:
 
 ### Example 3: Using pytest-mock
 
@@ -148,16 +156,16 @@ import pytest
 from app.services import get_temperature
 
 def test_get_temperature_with_mocker(mocker):
-    """Test using pytest-mock (cleaner way)"""
+    """pytest-mock se (clean aur simple)"""
     
-    # Create mock response
+    # Mock response bana le
     mock_response = mocker.Mock()
     mock_response.json.return_value = {
         "temperature": 68.0,
         "conditions": "cloudy"
     }
     
-    # Patch httpx.get
+    # httpx.get ko patch kar de
     mock_get = mocker.patch('httpx.get', return_value=mock_response)
     
     result = get_temperature("New York")
@@ -166,25 +174,25 @@ def test_get_temperature_with_mocker(mocker):
     mock_get.assert_called_once()
 
 def test_get_temperature_error_handling(mocker):
-    """Test handling API errors"""
+    """Error handling test"""
     
-    # Mock httpx.get to raise an exception
+    # Mock httpx.get ko error throw karane ke liye set kar
     mocker.patch('httpx.get', side_effect=httpx.HTTPError("API Error"))
     
     with pytest.raises(httpx.HTTPError):
         get_temperature("Invalid City")
 
 def test_mock_return_value_changes(mocker):
-    """Test changing mock return values"""
+    """Return value ko test ke dauran change kar"""
     
     mock_response = mocker.Mock()
     mock_get = mocker.patch('httpx.get', return_value=mock_response)
     
-    # First call returns 70 degrees
+    # Pehla call 70 degree return kare
     mock_response.json.return_value = {"temperature": 70}
     assert get_temperature("City1") == 70
     
-    # Second call returns 80 degrees
+    # Dusra call 80 degree return kare
     mock_response.json.return_value = {"temperature": 80}
     assert get_temperature("City2") == 80
     
@@ -193,6 +201,8 @@ def test_mock_return_value_changes(mocker):
 
 ### Example 4: Spying on Methods
 
+Kabhi kabhi tu check karna hota hai ki ek function ke andar kaunse dusre functions call ho rahe hain. Spy use kar:
+
 ```python
 # app/calculator.py
 class Calculator:
@@ -200,7 +210,7 @@ class Calculator:
         return a + b
     
     def multiply(self, a: int, b: int) -> int:
-        """Uses add() internally"""
+        """Multiply ke andar add() use hota hai"""
         result = 0
         for _ in range(b):
             result = self.add(result, a)
@@ -208,30 +218,30 @@ class Calculator:
 
 # tests/test_calculator_spy.py
 def test_multiply_uses_add(mocker):
-    """Test that multiply() calls add() internally"""
+    """Check karo multiply ke andar add() kitni baar call hua"""
     
     calc = Calculator()
     
-    # Spy on the add method (still calls the real method)
+    # Spy lagaa de add method par (real method chalti rahegi)
     spy_add = mocker.spy(calc, 'add')
     
     result = calc.multiply(3, 4)
     
     assert result == 12
-    # Verify add was called 4 times
+    # Verify karo add 4 baar call hua
     assert spy_add.call_count == 4
 
 def test_multiply_with_mocked_add(mocker):
-    """Test multiply with add completely mocked"""
+    """Multiply ko test kar completely mocked add ke sath"""
     
     calc = Calculator()
     
-    # Mock add to return a fixed value
+    # Add ko completely mock kar de
     mocker.patch.object(calc, 'add', return_value=100)
     
     result = calc.multiply(3, 4)
     
-    # Since add always returns 100, multiply will too
+    # Ab har add call 100 return karega
     assert result == 100
 ```
 
@@ -241,6 +251,8 @@ def test_multiply_with_mocked_add(mocker):
 
 ### Example 5: Mocking FastAPI Dependencies that Call External APIs
 
+Ek realistic scenario — imagine karo Zomato jaisa app hai, aur tu currency converter build kar raha hai:
+
 ```python
 # app/main.py
 from fastapi import FastAPI, HTTPException, Depends
@@ -249,7 +261,7 @@ import httpx
 app = FastAPI()
 
 async def get_exchange_rate(from_currency: str, to_currency: str) -> float:
-    """Fetch exchange rate from external API"""
+    """External API se exchange rate nikaal"""
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f"https://api.exchangerate.com/v1/latest?base={from_currency}"
@@ -267,7 +279,7 @@ async def convert_currency(
     to_curr: str,
     rate: float = Depends(get_exchange_rate)
 ):
-    """Convert currency using external exchange rate"""
+    """Currency convert kar external rate se"""
     converted = amount * rate
     return {
         "original_amount": amount,
@@ -277,6 +289,8 @@ async def convert_currency(
         "rate": rate
     }
 ```
+
+Ab test likhte hain:
 
 ```python
 # tests/test_currency.py
@@ -290,9 +304,9 @@ from app.main import app, get_exchange_rate
 client = TestClient(app)
 
 def test_convert_currency_with_dependency_override():
-    """Test currency conversion by overriding the dependency"""
+    """Dependency ko override karke test kar"""
     
-    # Create a mock dependency that returns a fixed rate
+    # Mock dependency jo fixed rate return kare
     async def mock_exchange_rate(from_currency: str, to_currency: str):
         return 1.2  # 1 USD = 1.2 EUR
     
@@ -310,9 +324,9 @@ def test_convert_currency_with_dependency_override():
 
 @pytest.mark.asyncio
 async def test_get_exchange_rate_with_mock(mocker):
-    """Test the exchange rate function directly with mocked httpx"""
+    """Exchange rate function ko directly mock karke test kar"""
     
-    # Create mock response
+    # Mock response bana
     mock_response = mocker.Mock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
@@ -323,11 +337,11 @@ async def test_get_exchange_rate_with_mock(mocker):
         }
     }
     
-    # Create mock async context manager
+    # Mock async context manager
     mock_client = mocker.Mock()
     mock_client.get = AsyncMock(return_value=mock_response)
     
-    # Patch AsyncClient
+    # AsyncClient ko patch kar
     mocker.patch('httpx.AsyncClient', return_value=mock_client)
     
     rate = await get_exchange_rate("USD", "EUR")
@@ -336,9 +350,9 @@ async def test_get_exchange_rate_with_mock(mocker):
 
 @pytest.mark.asyncio
 async def test_get_exchange_rate_error_handling(mocker):
-    """Test handling of API errors"""
+    """API error handling test"""
     
-    # Mock response with error status
+    # Error response mock kar
     mock_response = mocker.Mock()
     mock_response.status_code = 500
     
@@ -347,7 +361,7 @@ async def test_get_exchange_rate_error_handling(mocker):
     
     mocker.patch('httpx.AsyncClient', return_value=mock_client)
     
-    # Should raise HTTPException
+    # HTTPException throw hona chahiye
     with pytest.raises(HTTPException) as exc_info:
         await get_exchange_rate("USD", "EUR")
     
@@ -358,7 +372,7 @@ async def test_get_exchange_rate_error_handling(mocker):
 
 ## Using responses Library
 
-The `responses` library is perfect for mocking HTTP requests (like `nock` in Node.js).
+`responses` library Node.js ke `nock` jaisa kaam karta hai — HTTP requests ko cleanly mock karte ho:
 
 ### Installation
 
@@ -373,16 +387,18 @@ pip install responses
 import httpx
 
 def get_github_user(username: str) -> dict:
-    """Fetch GitHub user info"""
+    """GitHub se user info fetch kar"""
     response = httpx.get(f"https://api.github.com/users/{username}")
     response.raise_for_status()
     return response.json()
 
 def get_user_repos_count(username: str) -> int:
-    """Get number of public repos"""
+    """Public repos count nikaal"""
     user_data = get_github_user(username)
     return user_data["public_repos"]
 ```
+
+Ab responses library se test likhte hain:
 
 ```python
 # tests/test_github.py
@@ -392,9 +408,9 @@ from app.github import get_github_user, get_user_repos_count
 
 @responses.activate
 def test_get_github_user():
-    """Test fetching GitHub user with responses library"""
+    """GitHub API ko mock karke test"""
     
-    # Mock the GitHub API endpoint
+    # GitHub API endpoint ko mock kar
     responses.add(
         responses.GET,
         "https://api.github.com/users/octocat",
@@ -416,7 +432,7 @@ def test_get_github_user():
 
 @responses.activate
 def test_get_user_repos_count():
-    """Test getting repo count"""
+    """Repo count test"""
     
     responses.add(
         responses.GET,
@@ -430,7 +446,7 @@ def test_get_user_repos_count():
 
 @responses.activate
 def test_github_user_not_found():
-    """Test handling 404 errors"""
+    """404 error handling"""
     
     responses.add(
         responses.GET,
@@ -444,9 +460,9 @@ def test_github_user_not_found():
 
 @responses.activate
 def test_multiple_api_calls():
-    """Test making multiple API calls"""
+    """Multiple API calls ka test"""
     
-    # Add multiple mocked responses
+    # Multiple mocked responses add kar
     responses.add(
         responses.GET,
         "https://api.github.com/users/user1",
@@ -465,13 +481,13 @@ def test_multiple_api_calls():
     assert user2["public_repos"] == 10
     assert len(responses.calls) == 2
 
-# Using responses with dynamic responses
+# Dynamic response ke sath
 @responses.activate
 def test_dynamic_response():
-    """Test with dynamic response based on request"""
+    """Request ke basis par dynamic response"""
     
     def request_callback(request):
-        # Extract username from URL
+        # URL se username nikaal
         username = request.url.split('/')[-1]
         
         if username == "admin":
@@ -498,6 +514,8 @@ def test_dynamic_response():
 ## Mocking Database Connections
 
 ### Example 7: Mocking SQLAlchemy
+
+Database ko mock karna zaruri hota hai kyunki har test mein real database hit karna costly aur slow hota hai:
 
 ```python
 # app/database.py
@@ -530,7 +548,7 @@ from sqlalchemy.orm import Session
 from app.database import User
 
 def create_user(db: Session, username: str, email: str) -> User:
-    """Create a new user"""
+    """Naya user create kar"""
     user = User(username=username, email=email)
     db.add(user)
     db.commit()
@@ -544,6 +562,8 @@ def get_all_users(db: Session) -> list[User]:
     return db.query(User).all()
 ```
 
+Test likhte hain:
+
 ```python
 # tests/test_database_mocking.py
 import pytest
@@ -552,31 +572,27 @@ from app.crud import create_user, get_user_by_id, get_all_users
 from app.database import User
 
 def test_create_user_with_mock_db(mocker):
-    """Test creating user with completely mocked database"""
+    """Completely mocked database ke sath user create"""
     
-    # Create a mock database session
+    # Mock database session bana
     mock_db = MagicMock()
     
-    # Mock the User object that would be returned
+    # Mock User object jo return hona chahiye
     mock_user = User(id=1, username="testuser", email="test@example.com")
-    
-    # The create_user function calls db.add(), db.commit(), db.refresh()
-    # We don't need to mock these since MagicMock handles them
-    # But we can set expectations
     
     result = create_user(mock_db, "testuser", "test@example.com")
     
-    # Verify database methods were called
+    # Verify database methods call hue
     assert mock_db.add.called
     assert mock_db.commit.called
     assert mock_db.refresh.called
 
 def test_get_user_by_id_with_mock(mocker):
-    """Test getting user with mocked query"""
+    """Mocked query ke sath user fetch"""
     
     mock_db = MagicMock()
     
-    # Mock the query chain: db.query().filter().first()
+    # Mock query chain: db.query().filter().first()
     mock_user = User(id=1, username="john", email="john@example.com")
     mock_db.query.return_value.filter.return_value.first.return_value = mock_user
     
@@ -585,11 +601,11 @@ def test_get_user_by_id_with_mock(mocker):
     assert result == mock_user
     assert result.username == "john"
     
-    # Verify query was called with User model
+    # Verify query User model ke sath call hua
     mock_db.query.assert_called_once_with(User)
 
 def test_get_user_not_found(mocker):
-    """Test getting non-existent user returns None"""
+    """Non-existent user None return kare"""
     
     mock_db = MagicMock()
     mock_db.query.return_value.filter.return_value.first.return_value = None
@@ -599,7 +615,7 @@ def test_get_user_not_found(mocker):
     assert result is None
 
 def test_get_all_users(mocker):
-    """Test getting all users"""
+    """Sab users get kar"""
     
     mock_db = MagicMock()
     
@@ -617,13 +633,15 @@ def test_get_all_users(mocker):
     assert result[0].username == "user1"
 ```
 
-**Better Approach: Use SQLite in-memory database for integration tests** (covered in next tutorial)
+> [!tip] **Better Approach:** Integration tests ke liye SQLite in-memory database use kar. Zyada realistic testing hoti hai!
 
 ---
 
 ## Mocking External Services
 
 ### Example 8: Mocking Redis
+
+Redis caching har production app mein use hota hai. Test ke liye mock karle:
 
 ```python
 # app/cache.py
@@ -633,12 +651,12 @@ import json
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
 def cache_user(user_id: int, user_data: dict, ttl: int = 3600):
-    """Cache user data in Redis"""
+    """User data ko Redis mein cache kar"""
     key = f"user:{user_id}"
     redis_client.setex(key, ttl, json.dumps(user_data))
 
 def get_cached_user(user_id: int) -> dict | None:
-    """Get user from cache"""
+    """Cache se user data nikaal"""
     key = f"user:{user_id}"
     data = redis_client.get(key)
     return json.loads(data) if data else None
@@ -652,26 +670,26 @@ from app.cache import cache_user, get_cached_user
 
 @pytest.fixture
 def mock_redis(mocker):
-    """Fixture to mock Redis client"""
+    """Redis client ko mock karne ka fixture"""
     mock = MagicMock()
     mocker.patch('app.cache.redis_client', mock)
     return mock
 
 def test_cache_user(mock_redis):
-    """Test caching user data"""
+    """User data caching test"""
     user_data = {"username": "john", "email": "john@example.com"}
     
     cache_user(1, user_data)
     
-    # Verify setex was called with correct arguments
+    # Verify setex correct arguments ke sath call hua
     mock_redis.setex.assert_called_once()
     args = mock_redis.setex.call_args[0]
     assert args[0] == "user:1"
     assert args[1] == 3600  # TTL
-    assert "john" in args[2]  # JSON string contains username
+    assert "john" in args[2]  # JSON string mein username ho
 
 def test_get_cached_user_exists(mock_redis):
-    """Test getting user from cache when exists"""
+    """Cache se user jab exist kare"""
     import json
     
     cached_data = json.dumps({"username": "jane", "email": "jane@example.com"})
@@ -683,7 +701,7 @@ def test_get_cached_user_exists(mock_redis):
     mock_redis.get.assert_called_once_with("user:1")
 
 def test_get_cached_user_not_exists(mock_redis):
-    """Test getting user from cache when doesn't exist"""
+    """Cache se user jab exist naa kare"""
     mock_redis.get.return_value = None
     
     result = get_cached_user(999)
@@ -693,6 +711,8 @@ def test_get_cached_user_not_exists(mock_redis):
 
 ### Example 9: Mocking AWS S3
 
+S3 ke liye real API call karna expensive hai (billing bhi hoti hai!). Mock kar de:
+
 ```python
 # app/storage.py
 import boto3
@@ -701,7 +721,7 @@ from botocore.exceptions import ClientError
 s3_client = boto3.client('s3')
 
 def upload_file(file_data: bytes, bucket: str, key: str) -> str:
-    """Upload file to S3"""
+    """S3 mein file upload kar"""
     try:
         s3_client.put_object(Bucket=bucket, Key=key, Body=file_data)
         return f"https://{bucket}.s3.amazonaws.com/{key}"
@@ -709,7 +729,7 @@ def upload_file(file_data: bytes, bucket: str, key: str) -> str:
         raise Exception(f"Failed to upload: {e}")
 
 def download_file(bucket: str, key: str) -> bytes:
-    """Download file from S3"""
+    """S3 se file download kar"""
     response = s3_client.get_object(Bucket=bucket, Key=key)
     return response['Body'].read()
 ```
@@ -723,13 +743,13 @@ from app.storage import upload_file, download_file
 
 @pytest.fixture
 def mock_s3(mocker):
-    """Fixture to mock S3 client"""
+    """S3 client ko mock karne ka fixture"""
     mock = MagicMock()
     mocker.patch('app.storage.s3_client', mock)
     return mock
 
 def test_upload_file_success(mock_s3):
-    """Test successful file upload"""
+    """Successful file upload"""
     file_data = b"Hello, World!"
     
     url = upload_file(file_data, "my-bucket", "file.txt")
@@ -742,7 +762,7 @@ def test_upload_file_success(mock_s3):
     )
 
 def test_upload_file_error(mock_s3):
-    """Test handling upload errors"""
+    """Upload mein error handling"""
     mock_s3.put_object.side_effect = ClientError(
         {'Error': {'Code': 'AccessDenied'}},
         'PutObject'
@@ -752,8 +772,8 @@ def test_upload_file_error(mock_s3):
         upload_file(b"data", "my-bucket", "file.txt")
 
 def test_download_file(mock_s3):
-    """Test downloading file from S3"""
-    # Mock the response object
+    """S3 se file download"""
+    # Response object ko mock kar
     mock_response = {
         'Body': MagicMock()
     }
@@ -769,11 +789,13 @@ def test_download_file(mock_s3):
     )
 ```
 
-**Better Approach for AWS:** Use `moto` library for more realistic AWS mocking (covered in advanced patterns).
+> [!info] **Pro Tip:** AWS services ke liye `moto` library use kar zyada realistic mocking ke liye!
 
 ---
 
 ## Testing LangChain and OpenAI
+
+AI features ab sab apps mein hain. OpenAI aur LangChain ko mock karna seekh le:
 
 ### Example 10: Mocking OpenAI API Calls
 
@@ -785,7 +807,7 @@ from typing import List
 client = OpenAI(api_key="your-api-key")
 
 def generate_completion(prompt: str, max_tokens: int = 100) -> str:
-    """Generate text completion using OpenAI"""
+    """OpenAI se text completion generate kar"""
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
@@ -794,7 +816,7 @@ def generate_completion(prompt: str, max_tokens: int = 100) -> str:
     return response.choices[0].message.content
 
 def generate_embeddings(texts: List[str]) -> List[List[float]]:
-    """Generate embeddings for texts"""
+    """Texts ke embeddings generate kar"""
     response = client.embeddings.create(
         model="text-embedding-3-small",
         input=texts
@@ -810,15 +832,15 @@ from app.ai import generate_completion, generate_embeddings
 
 @pytest.fixture
 def mock_openai_client(mocker):
-    """Mock OpenAI client"""
+    """OpenAI client ko mock kar"""
     mock_client = MagicMock()
     mocker.patch('app.ai.client', mock_client)
     return mock_client
 
 def test_generate_completion(mock_openai_client):
-    """Test generating text completion"""
+    """Text completion generation"""
     
-    # Mock the response structure
+    # Response structure ko mock kar
     mock_response = Mock()
     mock_response.choices = [Mock()]
     mock_response.choices[0].message.content = "This is the AI response"
@@ -829,7 +851,7 @@ def test_generate_completion(mock_openai_client):
     
     assert result == "This is the AI response"
     
-    # Verify the API was called correctly
+    # Verify API correctly call hua
     mock_openai_client.chat.completions.create.assert_called_once_with(
         model="gpt-4",
         messages=[{"role": "user", "content": "Hello, AI!"}],
@@ -837,9 +859,9 @@ def test_generate_completion(mock_openai_client):
     )
 
 def test_generate_embeddings(mock_openai_client):
-    """Test generating embeddings"""
+    """Embeddings generation"""
     
-    # Mock embeddings response
+    # Embeddings response ko mock kar
     mock_response = Mock()
     mock_response.data = [
         Mock(embedding=[0.1, 0.2, 0.3]),
@@ -855,7 +877,7 @@ def test_generate_embeddings(mock_openai_client):
     assert result[1] == [0.4, 0.5, 0.6]
 
 def test_generate_completion_with_error(mock_openai_client):
-    """Test handling OpenAI API errors"""
+    """OpenAI API error handling"""
     from openai import APIError
     
     mock_openai_client.chat.completions.create.side_effect = APIError("API Error")
@@ -866,6 +888,8 @@ def test_generate_completion_with_error(mock_openai_client):
 
 ### Example 11: Mocking LangChain
 
+LangChain chains ko mock karna straightforward hai:
+
 ```python
 # app/langchain_app.py
 from langchain_openai import ChatOpenAI
@@ -873,7 +897,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 def create_chat_chain():
-    """Create a simple chat chain"""
+    """Simple chat chain banaa"""
     llm = ChatOpenAI(model="gpt-4")
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are a helpful assistant."),
@@ -885,7 +909,7 @@ def create_chat_chain():
     return chain
 
 def ask_question(question: str) -> str:
-    """Ask a question using LangChain"""
+    """LangChain se question pooch"""
     chain = create_chat_chain()
     return chain.invoke({"input": question})
 ```
@@ -897,13 +921,13 @@ from unittest.mock import Mock, MagicMock
 from app.langchain_app import ask_question, create_chat_chain
 
 def test_ask_question(mocker):
-    """Test asking question with mocked LangChain"""
+    """LangChain question answering"""
     
-    # Mock the entire chain
+    # Pura chain mock kar de
     mock_chain = MagicMock()
     mock_chain.invoke.return_value = "Mocked AI response"
     
-    # Patch create_chat_chain to return our mock
+    # create_chat_chain ko override kar
     mocker.patch('app.langchain_app.create_chat_chain', return_value=mock_chain)
     
     result = ask_question("What is Python?")
@@ -912,29 +936,29 @@ def test_ask_question(mocker):
     mock_chain.invoke.assert_called_once_with({"input": "What is Python?"})
 
 def test_create_chat_chain_with_mock_llm(mocker):
-    """Test chain creation with mocked LLM"""
+    """Chain creation with mocked LLM"""
     
-    # Mock ChatOpenAI
+    # ChatOpenAI ko mock kar
     mock_llm = MagicMock()
     mocker.patch('app.langchain_app.ChatOpenAI', return_value=mock_llm)
     
     chain = create_chat_chain()
     
-    # Verify LLM was instantiated correctly
+    # Verify LLM correctly instantiate hua
     from app.langchain_app import ChatOpenAI
     ChatOpenAI.assert_called_once_with(model="gpt-4")
 ```
 
-**Pro Tip:** For LangChain, consider using `FakeListLLM` from `langchain_community.llms.fake` for testing:
+> [!tip] **Pro Tip:** LangChain ke liye `FakeListLLM` use kar testing mein:
 
 ```python
 from langchain_community.llms.fake import FakeListLLM
 
 def test_with_fake_llm():
-    """Test using FakeListLLM"""
+    """FakeListLLM se simple testing"""
     fake_llm = FakeListLLM(responses=["Response 1", "Response 2"])
     
-    # Use fake_llm in your chain
+    # Chain mein fake_llm use kar
     result1 = fake_llm.invoke("Question 1")
     result2 = fake_llm.invoke("Question 2")
     
@@ -948,19 +972,21 @@ def test_with_fake_llm():
 
 ### Pattern 1: Context Manager Mocking
 
+File operations ko test karte waqt real files nahi chahiye:
+
 ```python
 # app/file_handler.py
 def process_file(filename: str) -> str:
-    """Read and process file"""
+    """File ko read aur process kar"""
     with open(filename, 'r') as f:
         content = f.read()
     return content.upper()
 
 # tests/test_file_handler.py
 def test_process_file(mocker):
-    """Test file processing with mocked open()"""
+    """File processing ko mock open() se"""
     
-    # Mock the built-in open function
+    # Built-in open function ko mock kar
     mock_open = mocker.mock_open(read_data="hello world")
     mocker.patch('builtins.open', mock_open)
     
@@ -972,6 +998,8 @@ def test_process_file(mocker):
 
 ### Pattern 2: Mocking Environment Variables
 
+App configuration environment variables se aate hain. Test mein mock kar le:
+
 ```python
 # app/config.py
 import os
@@ -981,14 +1009,14 @@ def get_database_url() -> str:
 
 # tests/test_config.py
 def test_get_database_url_from_env(mocker):
-    """Test reading from environment variable"""
+    """Environment variable se database URL"""
     mocker.patch.dict(os.environ, {"DATABASE_URL": "postgresql://test"})
     
     url = get_database_url()
     assert url == "postgresql://test"
 
 def test_get_database_url_default(mocker):
-    """Test default value when env var not set"""
+    """Default value jab env var naa ho"""
     mocker.patch.dict(os.environ, {}, clear=True)
     
     url = get_database_url()
@@ -996,6 +1024,8 @@ def test_get_database_url_default(mocker):
 ```
 
 ### Pattern 3: Mocking Datetime
+
+Time-sensitive tests mein specific datetime fix kar de:
 
 ```python
 # app/time_utils.py
@@ -1012,7 +1042,7 @@ def is_business_hours() -> bool:
 from datetime import datetime
 
 def test_get_current_timestamp(mocker):
-    """Test with fixed datetime"""
+    """Fixed datetime ke sath test"""
     fixed_time = datetime(2024, 1, 15, 12, 30, 0)
     mocker.patch('app.time_utils.datetime')
     app.time_utils.datetime.now.return_value = fixed_time
@@ -1021,13 +1051,13 @@ def test_get_current_timestamp(mocker):
     assert "2024-01-15T12:30:00" in result
 
 def test_is_business_hours(mocker):
-    """Test business hours check"""
-    # Test during business hours
+    """Business hours check"""
+    # Business hours mein
     mocker.patch('app.time_utils.datetime')
     app.time_utils.datetime.now.return_value = datetime(2024, 1, 15, 14, 0)
     assert is_business_hours() is True
     
-    # Test outside business hours
+    # Business hours se bahar
     app.time_utils.datetime.now.return_value = datetime(2024, 1, 15, 20, 0)
     assert is_business_hours() is False
 ```
@@ -1036,7 +1066,7 @@ def test_is_business_hours(mocker):
 
 ## Common Pitfalls
 
-### ❌ Pitfall 1: Patching the Wrong Location
+### Pitfall 1: Galat Jagah Patch Karna
 
 ```python
 # app/calculator.py
@@ -1045,61 +1075,61 @@ from math import sqrt
 def calculate_hypotenuse(a, b):
     return sqrt(a**2 + b**2)
 
-# WRONG: Patching math.sqrt
+# GALAT: math.sqrt ko patch karna
 def test_wrong_patch(mocker):
-    mocker.patch('math.sqrt', return_value=5)  # ❌ Won't work!
+    mocker.patch('math.sqrt', return_value=5)  # ❌ Kaam nahi karega!
     result = calculate_hypotenuse(3, 4)
-    # sqrt is imported, not referenced as math.sqrt
+    # sqrt imported hai, math.sqrt nahi
 
-# CORRECT: Patch where it's used
+# SAHI: Jahan use ho rahe ho vahan patch kar
 def test_correct_patch(mocker):
-    mocker.patch('app.calculator.sqrt', return_value=5)  # ✅ Works!
+    mocker.patch('app.calculator.sqrt', return_value=5)  # ✅ Sahi hai!
     result = calculate_hypotenuse(3, 4)
     assert result == 5
 ```
 
-**Rule:** Patch where the function is used, not where it's defined!
+> [!warning] **Important Rule:** Patch kar jahan function use ho rahe ho, jahan define ho rahe ho nahi!
 
-### ❌ Pitfall 2: Not Cleaning Up Mocks
+### Pitfall 2: Mock Cleanup Naa Karna
 
 ```python
-# BAD: Mock persists between tests
+# GALAT: Mock tests ke baad persist rehta hai
 def test_first(mocker):
     mocker.patch('app.service.api_call', return_value="mocked")
-    # Mock is still active after test!
+    # Mock test ke baad bhi active rahta hai!
 
 def test_second():
-    # This test might behave unexpectedly!
+    # Yeh test unexpected behavior kar sakta hai!
     pass
 
-# GOOD: Use pytest-mock (auto-cleanup)
-def test_first(mocker):  # mocker fixture auto-cleans up
+# SAHI: pytest-mock auto-cleanup karta hai
+def test_first(mocker):  # mocker fixture auto-clean karta hai
     mocker.patch('app.service.api_call', return_value="mocked")
 
-# Or use context manager
+# Ya context manager use kar
 def test_manual_cleanup():
     with patch('app.service.api_call', return_value="mocked"):
-        # Mock only active within this block
+        # Mock sirf is block mein active hai
         pass
 ```
 
-### ✅ Best Practice: Verify Mock Calls
+### Best Practice: Mock Calls Verify Karna
 
 ```python
 def test_verify_mock_calls(mocker):
-    """Always verify your mocks were called correctly"""
+    """Hamesha verify kar mock correctly call hua"""
     mock_api = mocker.patch('app.service.external_api')
     mock_api.return_value = {"status": "ok"}
     
     result = app.service.process_data("input")
     
-    # Verify the mock was called
+    # Verify mock call hua
     mock_api.assert_called_once()
     
     # Verify call arguments
     mock_api.assert_called_with("input")
     
-    # Or use more flexible matching
+    # Ya flexible matching
     assert mock_api.call_count == 1
     assert "input" in str(mock_api.call_args)
 ```
@@ -1108,61 +1138,59 @@ def test_verify_mock_calls(mocker):
 
 ## Practice Exercises
 
-### Exercise 1: Mock a Weather API
+### Exercise 1: Weather API Mock Karna
 
 ```python
-# TODO: Create a weather service that:
-# - Fetches weather from external API
-# - Caches results in Redis
-# - Handles API errors gracefully
+# TODO: Ek weather service banao jo:
+# - External API se weather fetch kare
+# - Results ko Redis mein cache kare
+# - API errors gracefully handle kare
 
-# TODO: Write tests that:
-# - Mock the external API call
-# - Mock Redis caching
-# - Test error handling
-# - Verify cache is used when available
+# TODO: Tests likhna:
+# - External API call ko mock kar
+# - Redis caching ko mock kar
+# - Error handling test kar
+# - Verify cache use ho rahe ho
 ```
 
-### Exercise 2: Mock Email Sending
+### Exercise 2: Email Sending Mock Karna
 
 ```python
-# TODO: Create an email service using SMTP
-# TODO: Mock the SMTP connection
-# TODO: Verify emails are sent with correct content
-# TODO: Test error handling (connection failures, etc.)
+# TODO: SMTP use karke email service banao
+# TODO: SMTP connection ko mock kar
+# TODO: Verify emails correct content ke sath send ho
+# TODO: Error handling test kar (connection failures, etc.)
 ```
 
-### Exercise 3: Mock Database with Complex Queries
+### Exercise 3: Complex Database Queries Mock Karna
 
 ```python
-# TODO: Create functions that use SQLAlchemy with joins
-# TODO: Mock the database queries
-# TODO: Test different query results (empty, single, multiple rows)
-# TODO: Test transaction rollback on errors
+# TODO: SQLAlchemy joins ke sath functions banao
+# TODO: Database queries ko mock kar
+# TODO: Different query results test kar (empty, single, multiple)
+# TODO: Transaction rollback on errors test kar
 ```
 
-### Exercise 4: Mock OpenAI Streaming Responses
+### Exercise 4: OpenAI Streaming Mock Karna
 
 ```python
-# TODO: Create a function that uses OpenAI streaming
-# TODO: Mock the streaming response
-# TODO: Test partial updates
-# TODO: Handle streaming errors
+# TODO: OpenAI streaming use karne wala function banao
+# TODO: Streaming response ko mock kar
+# TODO: Partial updates test kar
+# TODO: Streaming errors handle kar
 ```
 
 ---
 
-## Summary
+## Key Takeaways
 
-You've learned:
+✅ `unittest.mock` aur `pytest-mock` se basic mocking kar  
+✅ `responses` library se HTTP requests mock kar  
+✅ Databases, Redis, aur AWS services ko mock kar  
+✅ OpenAI aur LangChain ko mock kar  
+✅ Advanced patterns: datetime, environment variables, context managers  
+✅ Common pitfalls avoid kar aur best practices follow kar
 
-✅ Using `unittest.mock` and `pytest-mock` for basic mocking  
-✅ Mocking HTTP requests with `responses` library  
-✅ Mocking databases, Redis, and AWS services  
-✅ Mocking OpenAI and LangChain  
-✅ Advanced mocking patterns (datetime, environment variables, context managers)  
-✅ Common pitfalls and best practices
+**Yaad rakh:** External dependencies ko mock karke tests fast, reliable, aur deterministic ban jaate hain. Hamesha patch kar jahan use ho rahe ho, jahan define ho rahe ho nahi!
 
-**Key Takeaway:** Mock external dependencies to make tests fast, reliable, and deterministic. Always patch where the function is used, not where it's defined!
-
-**Next Tutorial:** Database testing strategies with real test databases
+**Next Tutorial:** Real test databases ke sath database testing strategies

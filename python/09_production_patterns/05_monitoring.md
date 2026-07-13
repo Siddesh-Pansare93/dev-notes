@@ -1,15 +1,15 @@
-# Monitoring, Observability, and LLM-Specific Metrics
+# Monitoring, Observability, aur LLM-Specific Metrics
 
-## Why Standard Monitoring Is Not Enough for AI Apps
+## Kyun Standard Monitoring AI Apps Ke Liye Kaafi Nahi Hota?
 
-A traditional backend needs monitoring for latency, error rates, and throughput.
-An AI backend also needs monitoring for:
-- **LLM costs** (you can burn through $1000 in minutes with a bug)
-- **Token usage** (hitting rate limits degrades all users)
-- **Agent behavior** (infinite loops, hallucinations, tool failures)
-- **Response quality** (was the answer actually correct?)
+Socho ek normal backend application — usme sirf latency, error rates, aur throughput dekh liya toh chal jata hai. Lekin ek AI-powered backend bilkul alag khel hai. Yaha tumhe ek aur layer dekhnا पड़ता है:
 
-This guide covers all four layers: health checks, metrics, tracing, and LLM-specific observability.
+- **LLM costs** — tum ek chhoti-si bug se ek ghante mein 1000 doller ud sakta hai. Zomato ke servers crash ho jaaye toh orders affected hote hain, lekin LLM bug se sirf paise jaate hain. Bahut expensive!
+- **Token usage** — agar rate limit hit ho gaya toh sare users ke requests block ho jaenge. Tera cache nahi hit kar raha toh continuously paise burn ho rahe hain.
+- **Agent behavior** — infinite loops, hallucinations, ya tool failures mein agent kabhi kabhi pagal ho sakta hai. Ise catch karna padta hai real-time mein.
+- **Response quality** — bas API 200 return kar di, bas nahi. Dekhna padta hai ki answer galat to nahi diya. Ek chatbot ne galat info de dia toh user ko follow-up support deni padegi.
+
+Toh yaha monitoring ke 4 layers ho jaate hain: health checks, metrics, distributed tracing, aur LLM-specific observability.
 
 ```mermaid
 flowchart LR
@@ -42,7 +42,7 @@ flowchart LR
 
 ## 1. Health Check Endpoints
 
-Every production application needs at minimum two health endpoints.
+Har production app ko minimum do health endpoints chahiye. Socho Swiggy ke restaurants — unhe pata chalana hota hai ki delivery boy ready hai ya nahi. Isi tarah:
 
 ```python
 # src/api/v1/health.py
@@ -65,10 +65,10 @@ _start_time = time.time()
 @router.get("/health")
 async def health():
     """
-    Liveness probe: Is the process alive?
+    Liveness probe: Kyaprocess alive hai?
 
-    Kubernetes uses this to decide whether to restart the pod.
-    Keep it lightweight -- no external calls.
+    Kubernetes use karta hai decide karne ke liye ki pod ko restart karna hai ya nahi.
+    Keep it lightweight -- koi external calls nahi.
 
     Node.js equivalent:
         app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -83,10 +83,10 @@ async def health():
 @router.get("/ready")
 async def readiness(db: AsyncSession = Depends(get_db)):
     """
-    Readiness probe: Can this instance handle requests?
+    Readiness probe: Kya yeh instance requests handle kar sakta hai?
 
-    Kubernetes uses this to decide whether to route traffic to the pod.
-    Check all critical dependencies.
+    Kubernetes use karta hai traffic route karne ke liye. Sab critical dependencies
+    ko check kar. Agar database niche hai ya Redis crash hua hai, toh 'ready nahi' bolde.
     """
     checks: dict[str, dict] = {}
 
@@ -163,8 +163,7 @@ app.get('/ready', async (req, res) => {
 
 ### prometheus-fastapi-instrumentator
 
-This library automatically instruments FastAPI with Prometheus metrics -- similar
-to `express-prometheus-middleware` or `prom-client` in Node.js.
+Yeh library FastAPI ko automatically Prometheus metrics se instrument kar deta hai — bilkul `express-prometheus-middleware` ya `prom-client` ke tarah Node.js mein.
 
 ```python
 # src/core/metrics.py
@@ -185,14 +184,14 @@ instrumentator = Instrumentator(
 
 # ── Custom LLM Metrics ──────────────────────────────────
 
-# How many LLM calls are we making?
+# Hum kitne LLM calls kar rahe hain?
 llm_calls_total = Counter(
     "llm_calls_total",
     "Total number of LLM API calls",
     ["model", "status"],  # Labels: model name, success/failure
 )
 
-# How long do LLM calls take?
+# LLM calls kitna time leta hain?
 llm_call_duration_seconds = Histogram(
     "llm_call_duration_seconds",
     "LLM API call duration in seconds",
@@ -200,28 +199,28 @@ llm_call_duration_seconds = Histogram(
     buckets=[0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0],
 )
 
-# How many tokens are we using?
+# Kitne tokens use kar rahe hain?
 llm_tokens_total = Counter(
     "llm_tokens_total",
     "Total tokens consumed",
     ["model", "token_type"],  # token_type: prompt, completion
 )
 
-# Estimated cost tracking
+# Cost tracking — sabse important!
 llm_cost_usd_total = Counter(
     "llm_cost_usd_total",
     "Estimated cumulative LLM cost in USD",
     ["model"],
 )
 
-# Active agent executions
+# Kitne agents abhi chal rahe hain?
 agent_executions_active = Gauge(
     "agent_executions_active",
     "Number of agent executions currently running",
     ["agent_name"],
 )
 
-# Agent iteration count (to detect infinite loops)
+# Agent iterations — infinite loop detect karne ke liye
 agent_iterations = Histogram(
     "agent_iterations_total",
     "Number of iterations per agent execution",
@@ -262,7 +261,7 @@ def setup_metrics(app):
     instrumentator.instrument(app).expose(app, endpoint="/metrics")
 ```
 
-### Using Metrics in Application Code
+### Application Code Mein Metrics Use Karna
 
 ```python
 # src/services/llm_service.py
@@ -378,8 +377,7 @@ app.get('/metrics', async (req, res) => {
 
 ## 3. LangSmith for LLM Observability
 
-LangSmith is LangChain's observability platform. Think of it as Datadog specifically
-designed for LLM applications. It traces every LLM call, tool use, and chain execution.
+LangSmith ek observability platform hai LangChain ke liye. Soch Datadog like, lekin sirf LLM applications ke liye. Har LLM call, har tool use, har chain execution ka trace dekh sakta hai. Itne detailed se pata chalta hai kaunsi request slow chal rahi, kaunsa agent infinite loop mein ja raha hai.
 
 ### Setup
 
@@ -393,8 +391,8 @@ def setup_langsmith() -> None:
     """
     Configure LangSmith tracing.
 
-    Once configured, ALL LangChain/LangGraph calls are automatically
-    traced -- no code changes needed in your agents or chains.
+    Ek baar configure kar do, fir saari LangChain/LangGraph calls
+    automatically trace ho jaengi — code mein kuch change karne ki zarurat nahi.
     """
     if not settings.LANGSMITH_API_KEY:
         return
@@ -426,19 +424,18 @@ class ChatService:
     )
     async def process_message(self, user_id: str, message: str) -> dict:
         """
-        The @traceable decorator sends this function's execution trace
-        to LangSmith, including:
+        @traceable decorator se yeh function ki puri execution LangSmith ko
+        bhej di jati hai:
         - Input arguments
         - Output value
         - Duration
-        - Any nested LLM/tool calls
-        - Errors (if any)
+        - Nested LLM/tool calls
+        - Errors (agar ho)
 
-        This is like adding a span to a distributed trace,
-        but specifically designed for LLM workflows.
+        Distributed trace ka span add karne jaisa, lekin LLM workflows ke liye specially design kiya.
         """
 
-        # Add metadata to the current trace
+        # Current trace mein metadata add kar
         run = get_current_run_tree()
         if run:
             run.metadata = {
@@ -447,8 +444,8 @@ class ChatService:
                 "environment": "production",
             }
 
-        # All LangChain calls inside this function are automatically
-        # nested under this trace
+        # Is function ke andar sari LangChain calls automatically
+        # nested trace ban jate hain
         result = await self.agent.invoke(message)
 
         return {
@@ -457,7 +454,7 @@ class ChatService:
         }
 ```
 
-### What LangSmith Shows You
+### LangSmith Dikhata Kya Hai?
 
 ```
 Trace: process_chat_message (2.3s)
@@ -483,8 +480,8 @@ Trace: process_chat_message (2.3s)
 ```python
 # scripts/run_eval.py
 """
-Run LLM evaluations against a test dataset.
-This is how you measure whether your prompts and agents are improving.
+Test dataset ke against LLM evaluations run kar.
+Issi se pata chalta hai ke tere prompts aur agents improve kar rahe hain ya nahi.
 """
 from langsmith import Client
 from langsmith.evaluation import evaluate
@@ -492,7 +489,7 @@ from langsmith.evaluation import evaluate
 
 client = Client()
 
-# Create or load a dataset
+# Dataset create ya load kar
 dataset = client.create_dataset("qa-test-cases")
 client.create_examples(
     inputs=[
@@ -537,8 +534,7 @@ print(f"Results: {results}")
 
 ## 4. OpenTelemetry
 
-OpenTelemetry (OTel) is the vendor-neutral standard for observability.
-It works the same way in Python and Node.js.
+OpenTelemetry (OTel) vendor-neutral standard hai observability ke liye. Same tarike se kaam karta hai Python aur Node.js dono mein.
 
 ### Setup
 
@@ -562,14 +558,14 @@ from src.core.config import settings
 
 def setup_telemetry(app) -> None:
     """
-    Configure OpenTelemetry for traces, metrics, and logs.
+    OpenTelemetry setup — traces, metrics, aur logs.
 
-    Equivalent Node.js setup:
+    Node.js mein equivalent:
         const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
         const { registerInstrumentations } = require('@opentelemetry/instrumentation');
     """
     if settings.ENVIRONMENT == "development":
-        return  # Skip in development, use LangSmith instead
+        return  # Development mein LangSmith use kar, bas wahi kaafi hai
 
     resource = Resource.create({
         "service.name": settings.PROJECT_NAME,
@@ -813,8 +809,8 @@ class CostLimitExceeded(AppError):
 
 class CostLimiter:
     """
-    Circuit breaker that stops LLM calls if spending exceeds a threshold.
-    This prevents a buggy agent from burning through your budget.
+    Circuit breaker jo LLM calls ko block kar de agar budget exceed ho jaye.
+    Buggy agent ko paise ud dene se rokta hai.
     """
 
     def __init__(self, redis: aioredis.Redis, hourly_limit_usd: float = 50.0):
@@ -822,7 +818,7 @@ class CostLimiter:
         self.hourly_limit = hourly_limit_usd
 
     async def check_and_record(self, cost_usd: float) -> None:
-        """Call after every LLM call to track spending."""
+        """Every LLM call ke baad call kar spending track karne ke liye."""
         key = "cost:hourly"
 
         pipe = self.redis.pipeline()
@@ -1028,67 +1024,63 @@ scrape_configs:
 ## 8. Practice Exercises
 
 ### Exercise 1: Health Endpoints
-Implement `/health` and `/ready` endpoints that:
-1. `/health` returns immediately with status and uptime
-2. `/ready` checks PostgreSQL, Redis, and returns per-dependency status
-3. Returns 503 if any dependency is down
-4. Include response time for each dependency check
+`/health` aur `/ready` endpoints banao:
+1. `/health` tujra immediately status aur uptime return kare
+2. `/ready` PostgreSQL, Redis check kare aur har dependency ka status dikhaye
+3. Agar koi dependency down hai toh 503 return kare
+4. Har dependency check ke liye response time show kare
 
-Test by stopping Redis and verifying `/ready` returns 503 while `/health` still returns 200.
+Redis stop karke test kar ke dekh ki `/ready` 503 return kare jabki `/health` abhi 200 daye.
 
 ### Exercise 2: Custom Prometheus Metrics
-Add the following custom metrics to your application:
-1. `llm_calls_total` (Counter) with labels: model, status
-2. `llm_call_duration_seconds` (Histogram) with labels: model
-3. `llm_tokens_total` (Counter) with labels: model, token_type
-4. `llm_cost_usd_total` (Counter) with labels: model
+Apne application mein following custom metrics add kar:
+1. `llm_calls_total` (Counter) — labels: model, status
+2. `llm_call_duration_seconds` (Histogram) — labels: model
+3. `llm_tokens_total` (Counter) — labels: model, token_type
+4. `llm_cost_usd_total` (Counter) — labels: model
 
-Instrument your LLM service to record these metrics on every call.
-Verify the metrics appear at `/metrics` endpoint.
+Har LLM call par yeh metrics record kar. Verify kar `/metrics` endpoint par visible ho.
 
 ### Exercise 3: LangSmith Integration
-Set up LangSmith tracing:
-1. Create a LangSmith account and get an API key
-2. Configure environment variables
-3. Add `@traceable` decorator to your main service method
-4. Run 10 different queries and view the traces in the LangSmith dashboard
-5. Create a test dataset and run an evaluation
+LangSmith tracing setup kar:
+1. LangSmith account banao aur API key lo
+2. Environment variables configure kar
+3. Apne main service method pe `@traceable` decorator add kar
+4. 10 different queries chala aur LangSmith dashboard mein traces dekh
+5. Test dataset create kar aur evaluation run kar
 
 ### Exercise 4: Cost Circuit Breaker
-Implement the `CostLimiter` class that:
-1. Tracks hourly LLM spending in Redis
-2. Warns at 80% of the limit
-3. Blocks all LLM calls at 100% of the limit
-4. Automatically resets every hour
+`CostLimiter` class implement kar:
+1. Redis mein hourly LLM spending track kar
+2. 80% limit par warning de
+3. 100% par sab LLM calls block kar
+4. Auto-reset har hour
 
-Write a test that simulates 100 LLM calls with known costs and verifies
-the circuit breaker triggers at the right threshold.
+Test likh jo 100 LLM calls simulate kare known costs ke saath aur verify kare circuit breaker sahi point par trigger ho.
 
 ### Exercise 5: Observability Stack
-Deploy the full observability stack with Docker Compose:
+Pura observability stack Docker Compose se deploy kar:
 1. Application with Prometheus metrics endpoint
-2. Prometheus scraping the application
-3. Grafana with a dashboard showing the key LLM metrics
-4. Set up one alert: "LLM error rate > 5% for 5 minutes"
+2. Prometheus application ko scrape kare
+3. Grafana with dashboard jo key LLM metrics dikhaye
+4. One alert: "LLM error rate > 5% for 5 minutes"
 
-Take a screenshot of your Grafana dashboard after sending 50 test requests.
+50 test requests bhej kar Grafana dashboard ka screenshot le.
 
 ### Exercise 6: End-to-End Trace
-Create a request that flows through:
+Ek request banao jo flow kare:
 1. FastAPI route (auto-instrumented)
 2. Service layer (custom span)
 3. LLM call (custom span with token attributes)
 4. Tool execution (custom span)
 5. Database query (auto-instrumented)
 
-View the complete trace in Jaeger and verify all 5 spans are connected.
-Compare this trace view with what you see in your Node.js application's
-tracing (if you have one set up).
+Jaeger mein complete trace dekh aur verify kar sab 5 spans connected ho. Apne Node.js application ke tracing se compare kar (agar setup hai).
 
 ### Exercise 7: Monitoring Comparison
-Create a table comparing monitoring approaches:
+Ek table banao monitoring approaches compare karne ke liye:
 
-| Aspect | Your Node.js App | This Python Setup |
+| Aspect | Tera Node.js App | Yeh Python Setup |
 |--------|-----------------|-------------------|
 | Health checks | ? | /health + /ready |
 | Metrics | ? | Prometheus + custom |
@@ -1096,4 +1088,15 @@ Create a table comparing monitoring approaches:
 | LLM cost tracking | ? | Prometheus counter + circuit breaker |
 | Alerting | ? | Alertmanager rules |
 
-Fill in the Node.js column with your current setup and identify gaps.
+Node.js column mein apna current setup fill kar aur gaps identify kar.
+
+---
+
+## Key Takeaways
+
+- **Health checks** (`/health` aur `/ready`) kubelet ko decision lete hain pod restart karna hai ya traffic route karna hai
+- **Prometheus metrics** automatically LLM costs, tokens, error rates track karte hain
+- **LangSmith** specifically LLM chains aur agents ke liye designed hai — detailed traces aur evaluations
+- **OpenTelemetry** vendor-neutral standard hai — Jaeger, Datadog, New Relic — kisi ko bhi bhej sakta hai
+- **Cost circuit breaker** runaway agent se bachata hai — production mein mandatory hai
+- **Alerting** proactive hona chahiye — cost spikes, error rates, infinite loops — sab par eyes rakhni chahiye

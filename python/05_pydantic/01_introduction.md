@@ -1,8 +1,8 @@
 # 01 - Introduction to Pydantic
 
-## What Is Pydantic?
+## Pydantic Kya Hai?
 
-Pydantic is a **runtime data validation library** for Python that uses standard Python type hints to define data schemas. When data enters your application (from an API request, a config file, a database row, etc.), Pydantic checks every field against the type you declared and either returns a clean, validated object or raises a detailed error.
+Pydantic ek **runtime data validation library** hai Python ke liye jo Python ke type hints use karke data schemas define karta hai. Jab bhi koi data aapke application mein aata hai (API request se, config file se, database se, etc.), Pydantic har ek field ko check karta hai aur ya toh clean, validated object return karta hai ya detailed error throw karta hai.
 
 ```python
 from pydantic import BaseModel
@@ -12,45 +12,45 @@ class User(BaseModel):
     age: int
     email: str
 
-# Valid data - works fine
+# Valid data - sab theek hai
 user = User(name="Alice", age=30, email="alice@example.com")
 
-# Invalid data - raises ValidationError at RUNTIME
+# Invalid data - ValidationError throw hoga RUNTIME pe
 user = User(name="Alice", age="not a number", email="alice@example.com")
 # ValidationError: 1 validation error for User
 # age
 #   Input should be a valid integer, unable to parse string as an integer
 ```
 
-That is the entire pitch: **declare your types, get validation for free.**
+Bas itna ही pitch hai: **apne types declare karo, validation apne aap mil jaayega.**
 
 ---
 
-## The JS/TS Comparison: Why This Matters
+## JS/TS Comparison: Kyun Zaruri Hai?
 
-If you come from the Node.js/TypeScript world, you already know the pain that Pydantic solves. Consider the typical layers of a TypeScript project:
+Agar tum Node.js/TypeScript se aaye ho, toh Pydantic jo problem solve karta hai woh toh tumhe pata ही है। Dekho, ek typical TypeScript project ke layers:
 
-### TypeScript: Types Vanish at Runtime
+### TypeScript: Types Compile Time Par Hote Hain, Runtime Par Vanish
 
 ```typescript
-// TypeScript - types exist ONLY at compile time
+// TypeScript - types sirf compile time par exist karti hain
 interface User {
   name: string;
   age: number;
   email: string;
 }
 
-// This compiles fine, but at runtime there is ZERO checking.
-// If your API receives { name: 123, age: "hello" }, TypeScript won't save you.
+// Ye compile toh ho jaayega, lekin runtime par ZERO checking nahi hogi.
+// Agar API ko { name: 123, age: "hello" } milega, TypeScript tume bachaa nahi sakta.
 function createUser(data: User): User {
-  return data; // no validation whatsoever at runtime
+  return data; // runtime par koi validation nahi
 }
 ```
 
-So in a real Node.js/Express or Fastify app, you bolt on a **separate** validation library:
+Toh real Node.js/Express ya Fastify app mein tume **alag** validation library lag jaati hai:
 
 ```typescript
-// Zod - runtime validation (separate from your TS types)
+// Zod - runtime validation (alag, aapke TS types se)
 import { z } from "zod";
 
 const UserSchema = z.object({
@@ -59,17 +59,17 @@ const UserSchema = z.object({
   email: z.string().email(),
 });
 
-type User = z.infer<typeof UserSchema>; // derive TS type from Zod schema
+type User = z.infer<typeof UserSchema>; // Zod schema se TS type derive karo
 
-// Now you validate at runtime
+// Ab runtime par validate karo
 const result = UserSchema.safeParse(requestBody);
 if (!result.success) {
-  // handle errors
+  // errors handle karo
 }
 ```
 
 ```typescript
-// Joi - another popular runtime validator
+// Joi - ek aur popular runtime validator
 import Joi from "joi";
 
 const userSchema = Joi.object({
@@ -82,7 +82,7 @@ const { error, value } = userSchema.validate(requestBody);
 ```
 
 ```typescript
-// class-validator - decorators on classes (used with NestJS)
+// class-validator - decorators use karti hai (NestJS ke saath use hoti hai)
 import { IsString, IsInt, IsEmail, Min } from "class-validator";
 
 class CreateUserDto {
@@ -98,9 +98,9 @@ class CreateUserDto {
 }
 ```
 
-### Pydantic: Types ARE the Validation
+### Pydantic: Types HI Validation Hain
 
-In Python with Pydantic, you write **one thing** and it serves as both the type annotation AND the runtime validation:
+Python mein Pydantic ke saath, tum **ek ही cheez** likho aur wo type annotation bhi ho aur runtime validation bhi:
 
 ```python
 from pydantic import BaseModel, EmailStr
@@ -110,9 +110,9 @@ class User(BaseModel):
     age: int
     email: EmailStr
 
-# This IS your schema. It IS your type. It IS your validator.
-# One declaration, everything works.
-user = User.model_validate(request_json)  # validates at runtime, raises on failure
+# Ye HI tumhara schema hai. Ye HI tumhara type hai. Ye HI tumhara validator hai.
+# Ek jagah likho, sab kaam ho jaaye.
+user = User.model_validate(request_json)  # validates runtime par, fail ho toh error
 ```
 
 ### Side-by-Side Comparison Table
@@ -130,9 +130,9 @@ user = User.model_validate(request_json)  # validates at runtime, raises on fail
 
 ---
 
-## Why Pydantic Matters for FastAPI
+## FastAPI Ke Liye Pydantic Kyun Important Hai?
 
-If you plan to learn **FastAPI** (the Python equivalent of Express/Fastify/NestJS), Pydantic is not optional -- it is the backbone of the entire framework.
+Agar tum **FastAPI** seekhne wale ho (jo Python ka Express/Fastify/NestJS equivalent hai), toh Pydantic optional nahi hai -- wo **pura backbone** है। Imagine karo: jaise Swiggy ke backend mein order data aata hai, aur usko validate karna padta hai (delivery address theek hai, payment valid hai, etc.). FastAPI mein Pydantic exactly yahi kaam karta hai.
 
 ```python
 from fastapi import FastAPI
@@ -146,18 +146,18 @@ class Item(BaseModel):
     in_stock: bool = True
 
 @app.post("/items/")
-async def create_item(item: Item):  # FastAPI uses Pydantic to:
-    # 1. Parse the request body
-    # 2. Validate all fields
-    # 3. Return 422 errors automatically if validation fails
-    # 4. Generate OpenAPI/Swagger docs from the model
+async def create_item(item: Item):  # FastAPI, Pydantic use karta hai:
+    # 1. Request body parse karo
+    # 2. Sab fields validate karo
+    # 3. Agar validation fail ho, auto 422 error return karo
+    # 4. OpenAPI/Swagger docs bhi auto generate karo
     return {"item_name": item.name, "price": item.price}
 ```
 
-Compare that with an Express + Zod setup:
+Express + Zod ke saath dekho farak:
 
 ```typescript
-// Express - you wire everything yourself
+// Express - tume sab manually wire karna padta hai
 app.post("/items", (req, res) => {
   const result = ItemSchema.safeParse(req.body);
   if (!result.success) {
@@ -168,15 +168,15 @@ app.post("/items", (req, res) => {
 });
 ```
 
-FastAPI removes all that boilerplate because Pydantic models are first-class citizens in the framework.
+FastAPI ne woh boilerplate sab hataa diya kyunki Pydantic models framework ke andar first-class citizen hote hain.
 
 ---
 
-## Pydantic v2: The Current Version
+## Pydantic v2: Current Version
 
-Pydantic v2 (released mid-2023) was a ground-up rewrite. The core validation engine is now written in **Rust** (via the `pydantic-core` package), which makes it dramatically faster.
+Pydantic v2 (mid-2023 mein release hua) ek ground-up rewrite tha. Core validation engine ab **Rust** mein likha hai (`pydantic-core` package ke through), jo speed mein kaafi faster hai.
 
-Key differences from v1 (you will see v1 code in older tutorials):
+Key differences v1 se (tum purane tutorials mein v1 code dekh sakte ho):
 
 | v1 (Legacy) | v2 (Current) |
 |---|---|
@@ -190,25 +190,25 @@ Key differences from v1 (you will see v1 code in older tutorials):
 | `class Config:` inside model | `model_config = ConfigDict(...)` |
 | Pure Python core | Rust core (5-50x faster) |
 
-Always use v2 syntax. If you see `.dict()` or `@validator` in a tutorial, it is v1 code.
+Hamesha v2 syntax use karo. Agar kisi tutorial mein `.dict()` ya `@validator` dikhe, toh vo v1 code hai.
 
 ---
 
-## Installing Pydantic
+## Pydantic Install Karna
 
 ```bash
 # Basic install
 pip install pydantic
 
-# With extra validation types (EmailStr, HttpUrl, etc.)
+# Extra validation types ke saath (EmailStr, HttpUrl, etc.)
 pip install "pydantic[email]"
 
-# Check your version
+# Version check karo
 python -c "import pydantic; print(pydantic.__version__)"
-# Should print 2.x.x
+# 2.x.x print hona chahiye
 ```
 
-If you use a virtual environment (and you should):
+Agar tum virtual environment use karo (aur karo bhi):
 
 ```bash
 python -m venv .venv
@@ -222,7 +222,7 @@ pip install "pydantic[email]"
 
 ---
 
-## Your First Pydantic Model
+## Pehla Pydantic Model
 
 ```python
 from pydantic import BaseModel
@@ -232,23 +232,23 @@ class Product(BaseModel):
     price: float
     quantity: int = 0  # default value
 
-# Create from keyword arguments
+# Keyword arguments se banao
 p1 = Product(name="Laptop", price=999.99, quantity=5)
 print(p1)
 # name='Laptop' price=999.99 quantity=5
 
-# Create from a dictionary (like parsing a request body)
+# Dictionary se banao (jaise request body ho)
 data = {"name": "Mouse", "price": 29.99}
 p2 = Product.model_validate(data)
 print(p2)
-# name='Mouse' price=29.99 quantity=0  (default applied)
+# name='Mouse' price=29.99 quantity=0  (default apply ho gaya)
 
-# Pydantic coerces types when it can (like Zod's .coerce)
+# Pydantic types coerce karta hai jab possible ho (Zod ke .coerce jaisa)
 p3 = Product(name="Keyboard", price="49.99", quantity="3")
-print(p3.price)    # 49.99 (float, not string)
-print(p3.quantity)  # 3 (int, not string)
+print(p3.price)    # 49.99 (float, string nahi)
+print(p3.quantity)  # 3 (int, string nahi)
 
-# But it rejects truly invalid data
+# Lekin bekar data reject karta hai
 try:
     p4 = Product(name="Monitor", price="not a price")
 except Exception as e:
@@ -263,16 +263,16 @@ except Exception as e:
 ## Practice Exercises
 
 ### Exercise 1: Hello Pydantic
-Create a `Book` model with fields: `title` (str), `author` (str), `pages` (int), `price` (float). Create an instance from a dictionary and print it.
+Ek `Book` model banao fields ke saath: `title` (str), `author` (str), `pages` (int), `price` (float). Dictionary se ek instance banao aur print karo.
 
 ### Exercise 2: Type Coercion
-Create a `Config` model with `debug` (bool), `port` (int), `host` (str). Try creating it with `{"debug": "true", "port": "8080", "host": "localhost"}`. What types do the fields end up as? What happens if you pass `debug=1`?
+Ek `Config` model banao `debug` (bool), `port` (int), `host` (str) ke saath. `{"debug": "true", "port": "8080", "host": "localhost"}` pass karte hue create karo. Fields kis type ke ban gaye? Agar `debug=1` pass karo toh kya hota hai?
 
 ### Exercise 3: Validation Errors
-Create a model and intentionally pass invalid data. Catch the `ValidationError` and print the list of errors using `e.errors()`. Inspect the structure of each error (loc, msg, type).
+Ek model banao aur intentionally invalid data pass karo. `ValidationError` catch karo aur `e.errors()` use karke errors list print karo. Har error ke structure ko dekho (loc, msg, type).
 
 ### Exercise 4: Compare with Zod
-If you have a Zod schema in an existing project, rewrite it as a Pydantic model. Note the differences in syntax. Which feels more natural? Which has less boilerplate?
+Agar kisi existing project mein Zod schema hai, toh usse Pydantic model mein rewrite karo. Syntax mein farak note karo. Kaunsa zyada natural lagta है? Kaunse mein less boilerplate hai?
 
-### Exercise 5: Install and Verify
-Create a new virtual environment, install pydantic with the email extra, and verify the version is 2.x. Write a script that imports `pydantic` and `EmailStr` and prints a success message.
+### Exercise 5: Install aur Verify Karo
+Ek naya virtual environment banao, pydantic email extra ke saath install karo, aur verify karo version 2.x है। Ek script likho jo `pydantic` aur `EmailStr` import kare aur success message print kare.

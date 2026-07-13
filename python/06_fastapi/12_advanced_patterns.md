@@ -2,9 +2,9 @@
 
 ## APIRouter: Modular Routing
 
-APIRouter in FastAPI is the equivalent of `express.Router()`. It lets you split your routes into separate files and modules.
+Socho, agar ek badi Express app ko organize karna hai toh `express.Router()` use karte ho na? FastAPI mein bhi same concept hai, uska naam hai **APIRouter**. Jab tumhe routes ko different files mein split karna ho, ya phir organize karna ho, toh yeh pattern use karte ho.
 
-### Express.js Router
+### Express.js Router (JavaScript reference)
 
 ```javascript
 // routes/users.js
@@ -23,13 +23,15 @@ app.use('/api/users', usersRouter);
 
 ### FastAPI APIRouter
 
+FastAPI mein bhi same karte ho, bas thoda structured:
+
 ```python
 # routers/users.py
 from fastapi import APIRouter, Depends
 
 router = APIRouter(
     prefix="/users",
-    tags=["users"],                    # Groups in Swagger UI
+    tags=["users"],                    # Swagger UI mein group hota hai
     responses={404: {"description": "Not found"}},  # Default responses
 )
 
@@ -46,6 +48,8 @@ def get_user(user_id: int):
     return {"id": user_id}
 ```
 
+Ab ek aur router file bana lete ho:
+
 ```python
 # routers/posts.py
 from fastapi import APIRouter
@@ -61,6 +65,8 @@ def create_post(post: PostCreate):
     return post
 ```
 
+Ab main app mein sabko include kar do:
+
 ```python
 # main.py
 from fastapi import FastAPI
@@ -74,12 +80,14 @@ app.include_router(posts.router, prefix="/api")   # /api/posts/...
 
 ### Router with Dependencies
 
+Ek aur advanced use-case: jab tumhe ek poora router ke liye auth ka requirement ho? Jaise admin panel ke liye sab endpoints ko auth check karna pade:
+
 ```python
-# All routes in this router require authentication
+# Admin routes par authentication mandatory hai
 admin_router = APIRouter(
     prefix="/admin",
     tags=["admin"],
-    dependencies=[Depends(get_admin_user)],  # Applied to ALL routes
+    dependencies=[Depends(get_admin_user)],  # Sabko apply hoga
 )
 
 @admin_router.get("/stats")
@@ -95,8 +103,10 @@ app.include_router(admin_router)
 
 ### Nested Routers
 
+Kabhi kabhi API versioning ke liye nested routers banana padta hai. Jaise v1 aur v2 dono routes ko maintain karna ho:
+
 ```python
-# Like nested Express routers
+# v1 aur v2 dono versions banate ho
 v1_router = APIRouter(prefix="/api/v1")
 v1_router.include_router(users.router)
 v1_router.include_router(posts.router)
@@ -112,7 +122,7 @@ app.include_router(v2_router)
 
 ## Sub-Applications
 
-You can mount entirely separate FastAPI apps. This is useful for microservice-like architectures or admin panels.
+Kuch badi companies ke paas main API hota hai aur admin panel alag. Jaise Zomato ka customer API aur admin panel alag. FastAPI mein bhi aisa kar sakte ho — **mount** kar sakte ho pura app ko:
 
 ```python
 # Main app
@@ -122,7 +132,7 @@ main_app = FastAPI(title="Main API")
 def main_root():
     return {"app": "main"}
 
-# Admin app (completely separate)
+# Admin app (bilkul alag)
 admin_app = FastAPI(title="Admin Panel")
 
 @admin_app.get("/")
@@ -133,22 +143,22 @@ def admin_root():
 def admin_users():
     return {"users": []}
 
-# Mount admin app under /admin
+# Admin ko /admin path ke neeche mount kar do
 main_app.mount("/admin", admin_app)
 
-# Now:
+# Ab aisa kaam karta hai:
 # GET /          -> main_root()
 # GET /admin/    -> admin_root()  (separate Swagger docs at /admin/docs)
 # GET /admin/users -> admin_users()
 ```
 
-Each sub-application gets its own OpenAPI docs. This is useful for having separate public API docs and admin docs.
+Ek faida yeh hai ke har sub-app ka apna Swagger documentation hota hai. Toh public API ke liye `/docs` aur admin panel ke liye `/admin/docs`.
 
 ---
 
 ## Lifespan Context Manager (Advanced)
 
-The lifespan pattern for managing application-wide resources.
+Jab app start hota hai toh kuch resources ko initialize karna padta hai na — database connection, cache, external APIs. Aur jab app shut down hota hai toh cleanup karna padta hai. FastAPI mein **lifespan** context manager se yeh sab handle karte ho:
 
 ```python
 from contextlib import asynccontextmanager
@@ -157,28 +167,28 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- STARTUP ---
+    # --- STARTUP (App shuru hote waqt) ---
     print("Initializing application...")
 
-    # Database
+    # Database connection
     app.state.db_engine = create_async_engine("postgresql+asyncpg://...")
 
-    # HTTP Client for external APIs
+    # External APIs ke liye HTTP client (jaise payment gateway)
     import httpx
     app.state.http_client = httpx.AsyncClient(timeout=30)
 
-    # Redis cache
+    # Redis cache (jaise IRCTC booking mein cache use hota hai)
     import redis.asyncio as redis
     app.state.redis = redis.from_url("redis://localhost")
 
-    # ML Model (loaded once, used by all requests)
+    # ML Model ek bar load karo, sabko reuse karna hai
     app.state.ml_model = load_model("./model.pkl")
 
     print("Application ready!")
 
-    yield  # Application runs and serves requests here
+    yield  # Yahan se app requests serve karta hai
 
-    # --- SHUTDOWN ---
+    # --- SHUTDOWN (App band hote waqt) ---
     print("Shutting down...")
     await app.state.http_client.aclose()
     await app.state.db_engine.dispose()
@@ -187,7 +197,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Access shared resources from routes
+# Routes mein access karo shared resources
 @app.get("/predict")
 async def predict(request: Request, data: PredictInput):
     model = request.app.state.ml_model
@@ -203,22 +213,27 @@ async def get_cached(request: Request, key: str):
     # ... fetch from DB, cache, return
 ```
 
+> [!tip]
+> `app.state` ek dict jaisa kaam karta hai jahan global resources rakho. Sab requests isse access kar sakte hain.
+
 ---
 
 ## Streaming Responses
 
-### StreamingResponse for Large Data
+### StreamingResponse for Large Files
+
+Kabhi tumhe large file download करना हो, jaise 1GB CSV dump. Agar pura file memory mein load kar do toh server crash ho jayega. Instead, **streaming** use karte ho — chhote chunks mein bhejte ho:
 
 ```python
 from fastapi.responses import StreamingResponse
 import asyncio
 
-# Stream a large file
+# Badi file ko download karne ke liye
 @app.get("/download/large-file")
 def download_large_file():
     def file_generator():
         with open("large_file.csv", "rb") as f:
-            while chunk := f.read(8192):  # 8KB chunks
+            while chunk := f.read(8192):  # 8KB ke chunks mein read karo
                 yield chunk
 
     return StreamingResponse(
@@ -227,7 +242,7 @@ def download_large_file():
         headers={"Content-Disposition": "attachment; filename=data.csv"},
     )
 
-# Stream generated data
+# Dynamically generate karo (jaise IRCTC se lakh users ka data)
 @app.get("/export/users")
 def export_users():
     def generate():
@@ -240,7 +255,7 @@ def export_users():
 
 ### Server-Sent Events (SSE)
 
-SSE is a simpler alternative to WebSockets for server-to-client streaming. Like `EventSource` in JavaScript.
+SSE ek easy way hai server se client ko updates bhejne ka, bina WebSocket ke. Jaise Zomato app mein order status update aata raha ta — SSE se woh implement ho sakta hai:
 
 ```python
 import asyncio
@@ -252,7 +267,7 @@ from fastapi.responses import StreamingResponse
 async def event_stream():
     """
     Server-Sent Events endpoint.
-    Client: const eventSource = new EventSource('/events/stream');
+    JavaScript mein: const eventSource = new EventSource('/events/stream');
     """
     async def generate():
         while True:
@@ -275,7 +290,7 @@ async def event_stream():
     )
 ```
 
-Client-side JavaScript:
+JavaScript mein client side aesa implement karte ho:
 
 ```javascript
 const eventSource = new EventSource('/events/stream');
@@ -287,11 +302,13 @@ eventSource.onmessage = (event) => {
 
 eventSource.onerror = () => {
   console.log('Connection lost, reconnecting...');
-  // EventSource auto-reconnects!
+  // Browser automatically reconnect karta hai!
 };
 ```
 
 ### SSE with Named Events
+
+Agar alag alag types ke events hain toh:
 
 ```python
 @app.get("/events/notifications")
@@ -303,15 +320,17 @@ async def notification_stream(user_id: int):
                 # Named events
                 yield f"event: notification\ndata: {json.dumps(notif)}\n\n"
 
-            # Heartbeat to keep connection alive
+            # Heartbeat se connection alive rahe
             yield f"event: heartbeat\ndata: {json.dumps({'time': datetime.now().isoformat()})}\n\n"
             await asyncio.sleep(5)
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 ```
 
+JavaScript mein:
+
 ```javascript
-// Client handles named events separately
+// Different events alag handle karo
 const es = new EventSource('/events/notifications?user_id=1');
 
 es.addEventListener('notification', (event) => {
@@ -324,22 +343,26 @@ es.addEventListener('heartbeat', (event) => {
 });
 ```
 
-### Comparison: SSE vs WebSocket
+### SSE vs WebSocket comparison
 
 | Feature | SSE | WebSocket |
 |---|---|---|
-| Direction | Server -> Client only | Bidirectional |
+| Direction | Server → Client only | Dono taraf |
 | Protocol | HTTP | WS |
-| Auto-reconnect | Built-in (browser) | Manual |
-| Complexity | Very simple | More complex |
+| Auto-reconnect | Built-in (browser mein) | Manual code karna padta hai |
+| Complexity | Bahut simple | Thoda zyada complex |
 | Use case | Live feeds, notifications | Chat, real-time collaboration |
-| Browser support | All modern browsers | All modern browsers |
+| Browser support | Sab modern browsers mein | Sab modern browsers mein |
 
 ---
 
 ## API Versioning Strategies
 
+Kya hota hai jab API change karna padhe? Purane clients ko break na kare toh versioning use karte ho. Teeno approaches dekho:
+
 ### Strategy 1: URL Prefix (Most Common)
+
+URL mein hi version mention kar do:
 
 ```python
 # routers/v1/users.py
@@ -361,7 +384,11 @@ app.include_router(v1_router)
 app.include_router(v2_router)
 ```
 
+Ab `/api/v1/users` aur `/api/v2/users` dono work karte hain.
+
 ### Strategy 2: Header-Based Versioning
+
+Header mein specify karo:
 
 ```python
 from fastapi import Header
@@ -373,13 +400,16 @@ def list_users(accept_version: str = Header(default="v1", alias="Accept-Version"
     return [{"id": 1, "name": "Alice"}]
 ```
 
+Client `Accept-Version: v2` header bheje toh v2 response milega.
+
 ### Strategy 3: Sub-Applications
+
+Har version ko alag app bana do:
 
 ```python
 v1_app = FastAPI(title="API v1")
 v2_app = FastAPI(title="API v2")
 
-# Each version has its own routes and docs
 @v1_app.get("/users")
 def v1_users():
     return []
@@ -396,6 +426,8 @@ main_app.mount("/api/v2", v2_app)  # Docs at /api/v2/docs
 ---
 
 ## Rate Limiting
+
+Jab spam attacks hote hain, ya phir kisi ko unlimited requests कर रहे हो, toh rate limiting use karte ho. Zomato app mein bhi iska use ho hota hai — zyada requests mein throttle.
 
 ### Simple In-Memory Rate Limiter
 
@@ -414,7 +446,7 @@ class RateLimiter:
         now = datetime.now()
         window_start = now - timedelta(seconds=self.window_seconds)
 
-        # Clean old entries
+        # Purane requests ko clean karo
         self.requests[key] = [
             t for t in self.requests[key] if t > window_start
         ]
@@ -425,11 +457,11 @@ class RateLimiter:
         self.requests[key].append(now)
         return True
 
-# Create limiters for different tiers
+# Alag alag limits banao
 default_limiter = RateLimiter(max_requests=100, window_seconds=60)
-auth_limiter = RateLimiter(max_requests=5, window_seconds=300)  # 5 attempts per 5 min
+auth_limiter = RateLimiter(max_requests=5, window_seconds=300)  # Login ke liye tight
 
-# As a dependency
+# Dependency ke taur use karo
 def rate_limit(request: Request):
     client_ip = request.client.host
     if not default_limiter.check(client_ip):
@@ -439,12 +471,12 @@ def rate_limit(request: Request):
             headers={"Retry-After": "60"},
         )
 
-# Apply to specific routes
+# Specific routes par apply karo
 @app.get("/api/data", dependencies=[Depends(rate_limit)])
 def get_data():
     return {"data": "here"}
 
-# Or make a factory for different limits
+# Ya phir factory se different limits banao
 def rate_limit_factory(max_requests: int, window: int):
     limiter = RateLimiter(max_requests, window)
 
@@ -454,7 +486,7 @@ def rate_limit_factory(max_requests: int, window: int):
 
     return check
 
-# Usage
+# Different endpoints ko different limits
 @app.post("/auth/login", dependencies=[Depends(rate_limit_factory(5, 300))])
 def login():
     ...
@@ -465,6 +497,8 @@ def search():
 ```
 
 ### With Redis (Production)
+
+Production mein in-memory nahi, Redis use karte ho taaki multiple servers ke liye consistent rate limiting rahe:
 
 ```python
 import redis.asyncio as redis
@@ -497,7 +531,11 @@ class RedisRateLimiter:
 
 ## Pagination Patterns
 
+Jab data bahut zyada ho, toh sab ek sath bhej sakta? Nahi. Pagination use karte ho — chunks mein data bhejte ho.
+
 ### Offset-Based Pagination (Simple)
+
+Sabse simple: skip karo `n` items, then limit karo `m` items:
 
 ```python
 from pydantic import BaseModel, Field
@@ -536,6 +574,8 @@ def list_users(
 
 ### Cursor-Based Pagination (Better for Large Datasets)
 
+Offset-based slow hota hai jab data bahut ho. Cursor-based zaada fast hai — last ID ko remember करते हो:
+
 ```python
 from pydantic import BaseModel
 import base64
@@ -573,7 +613,7 @@ def list_posts(
 ):
     query = db.query(Post).order_by(Post.id.desc())
 
-    # Apply cursor filter
+    # Cursor apply karo
     if cursor:
         try:
             decoded = json.loads(base64.b64decode(cursor))
@@ -582,7 +622,7 @@ def list_posts(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid cursor")
 
-    items = query.limit(limit + 1).all()  # Fetch one extra to check has_more
+    items = query.limit(limit + 1).all()  # Ek extra fetch karo check ke liye
     has_more = len(items) > limit
     items = items[:limit]
 
@@ -599,6 +639,8 @@ def list_posts(
 ```
 
 ### Page-Based Pagination (Frontend-Friendly)
+
+Jab frontend ko page numbers chaiye:
 
 ```python
 import math
@@ -638,7 +680,7 @@ def list_articles(
 
 ## Generic CRUD Factory
 
-Reduce boilerplate by creating a reusable CRUD factory:
+Socho, har resource ke liye same CRUD routes likhne padta ho. Repetitive code. NestJS mein builder pattern hota hai, FastAPI mein bhi banate ho:
 
 ```python
 from typing import TypeVar, Generic, Type
@@ -653,7 +695,7 @@ UpdateSchema = TypeVar("UpdateSchema", bound=BaseModel)
 ResponseSchema = TypeVar("ResponseSchema", bound=BaseModel)
 
 class CRUDRouter:
-    """Factory for creating CRUD routers (like a NestJS CRUD generator)."""
+    """Factory for creating CRUD routers."""
 
     @staticmethod
     def create(
@@ -706,7 +748,7 @@ class CRUDRouter:
 
         return router
 
-# Usage -- generate CRUD routers with one line each
+# Usage — ek line mein CRUD router ban jayega!
 users_router = CRUDRouter.create(User, UserCreate, UserUpdate, UserResponse, "/users", ["users"])
 posts_router = CRUDRouter.create(Post, PostCreate, PostUpdate, PostResponse, "/posts", ["posts"])
 tags_router = CRUDRouter.create(Tag, TagCreate, TagUpdate, TagResponse, "/tags", ["tags"])
@@ -720,6 +762,8 @@ app.include_router(tags_router, prefix="/api")
 
 ## Configuration with Pydantic Settings
 
+Environment variables ko manage karte ho `pydantic-settings` se. Isse type-safe hota hai aur validation bhi hota hai:
+
 ```python
 # config.py
 from pydantic_settings import BaseSettings
@@ -727,8 +771,9 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     """
-    Like dotenv + process.env in Node.js, but typed and validated.
-    Reads from environment variables and .env files.
+    Node.js ke `dotenv + process.env` jaisa,
+    but type-safe aur validated.
+    .env file se read karta hai.
     """
     app_name: str = "My API"
     debug: bool = False
@@ -740,11 +785,11 @@ class Settings(BaseSettings):
 
     model_config = {"env_file": ".env"}
 
-@lru_cache  # Cache settings (singleton pattern)
+@lru_cache  # Settings ko cache कर दो (singleton pattern)
 def get_settings() -> Settings:
     return Settings()
 
-# Use as dependency
+# Routes mein dependency ke taur use karo
 @app.get("/info")
 def app_info(settings: Settings = Depends(get_settings)):
     return {
@@ -766,16 +811,18 @@ ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:5173"]
 
 ## Project Structure for Large Applications
 
+Jab app bada hone lage, toh organized structure zarurah hai. Yeh standard structure hai:
+
 ```
 project/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py                  # FastAPI app creation and router includes
+│   ├── main.py                  # FastAPI app creation aur routers
 │   ├── config.py                # Settings
-│   ├── database.py              # Database engine and session
-│   ├── dependencies.py          # Shared dependencies (auth, db, pagination)
-│   ├── exceptions.py            # Custom exception classes
-│   ├── error_handlers.py        # Exception handler registration
+│   ├── database.py              # DB engine aur session
+│   ├── dependencies.py          # Shared dependencies (auth, db)
+│   ├── exceptions.py            # Custom exceptions
+│   ├── error_handlers.py        # Exception handlers
 │   │
 │   ├── models/                  # SQLAlchemy models
 │   │   ├── __init__.py
@@ -787,9 +834,9 @@ project/
 │   │   ├── __init__.py
 │   │   ├── user.py
 │   │   ├── post.py
-│   │   └── common.py            # Shared schemas (pagination, errors)
+│   │   └── common.py
 │   │
-│   ├── routers/                 # Route handlers (controllers)
+│   ├── routers/                 # Route handlers
 │   │   ├── __init__.py
 │   │   ├── auth.py
 │   │   ├── users.py
@@ -813,7 +860,7 @@ project/
 │       └── pagination.py
 │
 ├── tests/
-│   ├── conftest.py              # Shared fixtures
+│   ├── conftest.py
 │   ├── test_auth.py
 │   ├── test_users.py
 │   └── test_posts.py
@@ -823,11 +870,13 @@ project/
 │   └── env.py
 │
 ├── alembic.ini
-├── pyproject.toml               # Like package.json
+├── pyproject.toml               # package.json ke jaisa
 ├── requirements.txt
 ├── .env
 └── Dockerfile
 ```
+
+Main app ka structure:
 
 ```python
 # app/main.py
@@ -881,43 +930,41 @@ def health():
 ## Practice Exercises
 
 ### Exercise 1: Modular App
-Refactor a monolithic `main.py` into a modular structure:
-- Create separate router files for users, posts, and comments
-- Each router in its own file with its own schemas
-- Include all routers in `main.py` with appropriate prefixes and tags
-- Verify all endpoints appear correctly in `/docs`
+Ek monolithic app ko multiple files mein split karo:
+- Users, posts, aur comments ke liye alag router files banao
+- Har router apna schema ho
+- Main app mein sabko include kar ke `/docs` mein check karo
 
 ### Exercise 2: API Versioning
-Create an API with two versions:
-- v1: `/api/v1/users` returns `{id, name}`
-- v2: `/api/v2/users` returns `{id, name, email, created_at}`
-- Both versions share the same database models
-- Each version has its own Pydantic schemas
+Do versions ka API banao:
+- v1: `/api/v1/users` → `{id, name}`
+- v2: `/api/v2/users` → `{id, name, email, created_at}`
+- Database same ho, but schemas alag
+- Dono versions `/docs` mein alag दिखे
 
 ### Exercise 3: SSE Dashboard
-Build a live dashboard using Server-Sent Events:
-- `GET /events/dashboard` -- SSE stream with system stats every 2 seconds
-- `GET /events/logs` -- SSE stream of fake log entries
-- Create an HTML page that displays both streams
-- Add a "subscribe/unsubscribe" mechanism for different event types
+Real-time dashboard banao:
+- `GET /events/dashboard` — system stats har 2 seconds mein
+- `GET /events/logs` — fake log entries
+- HTML page jo dono streams ko display kare
+- Subscribe/unsubscribe mechanism add karo
 
 ### Exercise 4: Pagination Library
-Create a reusable pagination system that supports:
+Reusable pagination system banao:
 - Offset-based: `?skip=0&limit=20`
 - Page-based: `?page=1&per_page=20`
 - Cursor-based: `?cursor=abc123&limit=20`
-- Make it a dependency that works with any SQLAlchemy model
-- Return consistent metadata (total, has_more, next_cursor/next_page)
+- Consistent metadata return karo (total, has_more, etc.)
 
 ### Exercise 5: Full Application
-Build a complete blog API with:
+Complete blog API banao with:
 - Modular structure (routers, models, schemas, services)
-- JWT authentication with refresh tokens
-- CRUD for posts with pagination
-- Tags with many-to-many relationships
-- Comment system
+- JWT auth with refresh tokens
+- Paginated posts CRUD
+- Tags with many-to-many
+- Comments system
 - Rate limiting on write endpoints
-- SSE for real-time notifications of new posts
-- Complete test suite with database fixtures
-- Custom error handling with consistent error format
+- SSE for post notifications
+- Tests with fixtures
+- Custom error handling
 - API versioning (v1)

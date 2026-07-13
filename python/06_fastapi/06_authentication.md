@@ -1,13 +1,15 @@
-# 06 - Authentication in FastAPI
+# 06 - FastAPI mein Authentication
 
 ## Overview
 
-Authentication in FastAPI uses a dependency-based approach. Instead of passport.js strategies or express-jwt middleware, you build authentication as reusable dependencies.
+Socho ek second — tumne Zomato par khana order kia, toh Zomato ko kaise pata hai ki TUM ho, na ki koi aur? Token ke through! 🔐
+
+FastAPI mein authentication ka pattern bilkul alag hai Node.js se. Express mein passport.js strategies aur middleware chalate ho, lekin FastAPI mein sab kuch **dependency-based** hai. Matlab dependencies ke through auth logic likhte ho.
 
 ### Express.js Auth Stack
 
 ```javascript
-// Express: multiple packages, lots of config
+// Express: multiple packages, verbose setup
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
@@ -27,7 +29,7 @@ app.get('/protected', passport.authenticate('jwt', { session: false }), handler)
 ### FastAPI Auth Stack
 
 ```python
-# FastAPI: built-in OAuth2 support + standard Python packages
+# FastAPI: built-in OAuth2 + sirf yeh kaafi hai
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
@@ -35,31 +37,31 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.get("/protected")
 def protected_route(token: str = Depends(oauth2_scheme)):
-    # token is extracted from Authorization: Bearer <token>
+    # token automatically extract ho jayega Authorization header se
     return {"token": token}
 ```
 
 ---
 
-## OAuth2PasswordBearer: The Foundation
+## OAuth2PasswordBearer: Foundation Samjho
 
-`OAuth2PasswordBearer` is a FastAPI class that:
-1. Tells FastAPI to look for an `Authorization: Bearer <token>` header
-2. Extracts the token string
-3. Adds a "lock" icon to the endpoint in Swagger UI
-4. Provides a login form in Swagger UI at the `tokenUrl`
+`OAuth2PasswordBearer` ek FastAPI class hai jo kya karta hai:
+1. `Authorization: Bearer <token>` header ko dhundta hai
+2. Token string ko extract karta hai
+3. Swagger UI mein "lock" icon show karta hai
+4. Swagger UI par login form add karta hai
 
 ```python
 from fastapi.security import OAuth2PasswordBearer
 
-# tokenUrl is the endpoint where clients POST username/password to get a token
-# This is for Swagger UI -- it tells the docs where the login endpoint is
+# tokenUrl = jaha par clients username/password send karte hain token pane ke liye
+# Yeh sirf Swagger UI ke liye hai — docs ko batata hai login endpoint kaha hai
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @app.get("/users/me")
 def read_users_me(token: str = Depends(oauth2_scheme)):
-    # token = the raw JWT string from the Authorization header
-    # If no token is present, FastAPI returns 401 automatically
+    # token = raw JWT string jo Authorization header se aaya
+    # Agar token nahi hai toh FastAPI automatic 401 return karega
     return {"token": token}
 ```
 
@@ -67,14 +69,14 @@ def read_users_me(token: str = Depends(oauth2_scheme)):
 
 ## Complete JWT Authentication System
 
-Here's a full implementation, step by step.
+Chalo step-by-step ek poora auth system banate hain.
 
-### Step 1: Install Dependencies
+### Step 1: Dependencies Install Karo
 
 ```bash
 pip install "passlib[bcrypt]" "python-jose[cryptography]"
-# passlib: password hashing (like bcrypt in Node.js)
-# python-jose: JWT encoding/decoding (like jsonwebtoken in Node.js)
+# passlib: password hashing (Node.js mein bcrypt ki tarah)
+# python-jose: JWT encode/decode (Node.js mein jsonwebtoken ki tarah)
 ```
 
 ### Step 2: Configuration
@@ -83,30 +85,32 @@ pip install "passlib[bcrypt]" "python-jose[cryptography]"
 # config.py
 from datetime import timedelta
 
-SECRET_KEY = "your-secret-key-change-this-in-production"  # Like JWT_SECRET in .env
+SECRET_KEY = "your-secret-key-change-this-in-production"  # .env se late honge
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 ```
 
 ### Step 3: Password Hashing
 
+Password ko plaintext mein store mat karo! Zomato bhi tumhara password hash karke rakhta hai.
+
 ```python
 # auth/password.py
 from passlib.context import CryptContext
 
-# This is like bcrypt.hash() and bcrypt.compare() in Node.js
+# Yeh bcrypt.hash() aur bcrypt.compare() ki tarah kaam karta hai
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
-    """Hash a password. Like bcrypt.hash(password, 10) in Node.js"""
+    """Password hash karo. Node.js mein bcrypt.hash(password, 10) ka same"""
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password. Like bcrypt.compare(password, hash) in Node.js"""
+    """Password verify karo. Node.js mein bcrypt.compare() ka same"""
     return pwd_context.verify(plain_password, hashed_password)
 ```
 
-### Step 4: JWT Token Creation and Verification
+### Step 4: JWT Token Create aur Verify Karo
 
 ```python
 # auth/jwt.py
@@ -116,8 +120,8 @@ from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """
-    Create a JWT token.
-    Like jwt.sign(payload, secret, { expiresIn: '30m' }) in Node.js
+    JWT token create karo.
+    Node.js mein jwt.sign(payload, secret, { expiresIn: '30m' }) ka same
     """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
@@ -126,8 +130,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 def verify_token(token: str) -> dict | None:
     """
-    Verify and decode a JWT token.
-    Like jwt.verify(token, secret) in Node.js
+    JWT token verify aur decode karo.
+    Node.js mein jwt.verify(token, secret) ka same
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -136,7 +140,7 @@ def verify_token(token: str) -> dict | None:
         return None
 ```
 
-### Step 5: User Models and Fake Database
+### Step 5: User Models aur Fake Database
 
 ```python
 # schemas.py
@@ -164,7 +168,7 @@ class TokenData(BaseModel):
 ```
 
 ```python
-# Fake user database (replace with real DB later)
+# Ek fake database (production mein real DB use karoge)
 from auth.password import hash_password
 
 fake_users_db: dict[str, dict] = {
@@ -189,6 +193,8 @@ fake_users_db: dict[str, dict] = {
 
 ### Step 6: Authentication Dependencies
 
+Yeh dependencies jo likhengen, isi ke through auth ka sab kuch hoga.
+
 ```python
 # auth/dependencies.py
 from fastapi import Depends, HTTPException, status
@@ -200,13 +206,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     """
-    This dependency:
-    1. Extracts the Bearer token (via oauth2_scheme)
-    2. Decodes and validates the JWT
-    3. Looks up the user
-    4. Returns the user object
+    Yeh dependency:
+    1. Bearer token extract karta hai (oauth2_scheme ke through)
+    2. JWT ko decode aur validate karta hai
+    3. User ko dhundta hai
+    4. User object return karta hai
 
-    Like passport.authenticate('jwt') in Express
+    Express mein passport.authenticate('jwt') ka same kaam
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -229,13 +235,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 async def get_current_active_user(user: dict = Depends(get_current_user)):
-    """Check if the authenticated user is active."""
+    """Check karo ki user active hai ya nahi."""
     if not user.get("is_active"):
         raise HTTPException(status_code=400, detail="Inactive user")
     return user
 
 async def get_admin_user(user: dict = Depends(get_current_active_user)):
-    """Check if the authenticated user is an admin."""
+    """Check karo ki user admin hai ya nahi."""
     if not user.get("is_admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -261,8 +267,8 @@ app = FastAPI()
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     OAuth2 compatible token login.
-    OAuth2PasswordRequestForm expects form data with 'username' and 'password'.
-    This is the standard OAuth2 "password flow".
+    OAuth2PasswordRequestForm automatically 'username' aur 'password' expect karta hai.
+    Yeh standard OAuth2 "password flow" hai.
     """
     user = fake_users_db.get(form_data.username)
 
@@ -273,7 +279,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create JWT with username as "sub" (subject) claim
+    # JWT create karo with username as "sub" (subject) claim
     access_token = create_access_token(data={"sub": user["username"]})
 
     return {"access_token": access_token, "token_type": "bearer"}
@@ -284,6 +290,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 ```python
 @app.get("/users/me")
 async def read_users_me(current_user: dict = Depends(get_current_active_user)):
+    # Sirf logged-in users yeh endpoint access kar sakte hain
     return {
         "id": current_user["id"],
         "username": current_user["username"],
@@ -292,12 +299,13 @@ async def read_users_me(current_user: dict = Depends(get_current_active_user)):
 
 @app.get("/admin/dashboard")
 async def admin_dashboard(admin: dict = Depends(get_admin_user)):
+    # Sirf admins yeh endpoint access kar sakte hain
     return {
         "message": f"Welcome admin {admin['username']}",
         "total_users": len(fake_users_db),
     }
 
-# Public endpoint (no dependency = no auth required)
+# Public endpoint (koi dependency nahi = auth zaroori nahi)
 @app.get("/public")
 def public_endpoint():
     return {"message": "This is public"}
@@ -305,31 +313,37 @@ def public_endpoint():
 
 ---
 
-## How It All Flows
+## Flow Samjho: Diagram Style
+
+Zomato ki tarah sochte hain:
 
 ```
-Client sends: POST /token
-  Body: username=alice&password=secret123
-  -> Server validates credentials
-  -> Server returns: {"access_token": "eyJ...", "token_type": "bearer"}
+User: "Mujhe login karna hai"
+      -> POST /token bhejta hai
+      -> Body: username=alice&password=secret123
 
-Client sends: GET /users/me
-  Header: Authorization: Bearer eyJ...
-  -> oauth2_scheme extracts "eyJ..."
-  -> get_current_user decodes JWT, finds user
-  -> get_current_active_user checks user.is_active
-  -> Route handler receives the user dict
-  -> Returns user data
+Server: "Credentials check karta hai"
+        -> Sahi ho toh JWT token generate karta hai
+        -> Response: {"access_token": "eyJ...", "token_type": "bearer"}
+
+User: "Mujhe apni profile chahiye"
+      -> GET /users/me bhejta hai
+      -> Header mein token: Authorization: Bearer eyJ...
+
+Server: "Token extract karta hai oauth2_scheme se"
+        -> get_current_user JWT decode karta hai, user dhundta hai
+        -> get_current_active_user check karta hai active hai ya nahi
+        -> User data return karta hai
 ```
 
 ---
 
-## Comparison with Node.js Approaches
+## Node.js ke saath Comparison
 
 ### Express + passport-jwt
 
 ```javascript
-// Node.js: passport setup (verbose!)
+// Node.js: verbose setup
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 
@@ -346,7 +360,7 @@ passport.use(new JwtStrategy({
   }
 }));
 
-// Using it
+// Usage
 app.get('/protected',
   passport.authenticate('jwt', { session: false }),
   (req, res) => {
@@ -355,7 +369,7 @@ app.get('/protected',
 );
 ```
 
-### Express + express-jwt (simpler)
+### Express + express-jwt (thoda simple)
 
 ```javascript
 const { expressjwt: jwt } = require('express-jwt');
@@ -370,26 +384,26 @@ app.get('/protected', (req, res) => {
 });
 ```
 
-### FastAPI (same thing, cleaner)
+### FastAPI (cleaner, na?)
 
 ```python
 @app.get("/protected")
 async def protected(user: dict = Depends(get_current_active_user)):
     return user
-# That's it. The dependency handles everything.
+# Bas itna. Dependency sab kuch handle kar lega.
 ```
 
 ---
 
-## Scopes and Permissions
+## Scopes aur Permissions
 
-FastAPI has built-in support for OAuth2 scopes (fine-grained permissions).
+Kya agar tumhare app mein different user roles hain? Jaise Zomato mein — customer, delivery boy, restaurant owner. FastAPI ke paas **OAuth2 scopes** hain fine-grained permissions ke liye.
 
 ```python
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from fastapi import Security
 
-# Define available scopes
+# Available scopes define karo
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="token",
     scopes={
@@ -413,7 +427,7 @@ async def get_current_user(
     if not payload:
         raise credentials_exception
 
-    # Check scopes
+    # Check karo ki user ke paas required scopes hain ya nahi
     token_scopes = payload.get("scopes", [])
     for scope in security_scopes.scopes:
         if scope not in token_scopes:
@@ -427,7 +441,7 @@ async def get_current_user(
         raise credentials_exception
     return user
 
-# Routes with specific scope requirements
+# Routes jo specific scopes require karte hain
 @app.get("/users")
 async def list_users(
     user: dict = Security(get_current_user, scopes=["users:read"]),
@@ -448,7 +462,7 @@ async def delete_user(
     return {"message": f"User {user_id} deleted"}
 ```
 
-### Including Scopes in the Token
+### Token mein Scopes Include Karo
 
 ```python
 @app.post("/token")
@@ -457,7 +471,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Determine scopes based on user role
+    # User role ke based par scopes decide karo
     scopes = ["users:read"]
     if user.get("is_admin"):
         scopes.extend(["users:write", "admin"])
@@ -472,7 +486,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 ## Refresh Tokens
 
-A common pattern for handling token expiration.
+Token 30 minutes mein expire hona chahiye security ke liye. Lekin baar-baar login karna padhao users ko? Refresh tokens solution hain.
+
+**Analogy**: UPI par PIN enter karte ho login ke time, phir kai transactions bina PIN ke ho sakte hain — refresh token bhi aisa hi kaam karta hai.
 
 ```python
 from datetime import timedelta
@@ -509,7 +525,7 @@ async def refresh_token(refresh_token: str):
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    # Issue new access token
+    # Naya access token issue karo
     new_access_token = create_access_token(
         data={"sub": payload["sub"], "type": "access"},
         expires_delta=timedelta(minutes=30),
@@ -522,12 +538,12 @@ async def refresh_token(refresh_token: str):
 
 ## Optional Authentication
 
-Sometimes you want routes that work for both authenticated and unauthenticated users.
+Kya agar koi route both authenticated aur unauthenticated users ke liye kaam kare? Jaise blog post — logon ko read to karni chahiye, lekin bookmark sirf login users kare.
 
 ```python
 from fastapi.security import OAuth2PasswordBearer
 
-# auto_error=False means it won't raise 401 if no token is present
+# auto_error=False means agar token nahi hai toh 401 error nahi ayega
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 async def get_optional_user(token: str | None = Depends(oauth2_scheme_optional)):
@@ -542,7 +558,7 @@ async def get_optional_user(token: str | None = Depends(oauth2_scheme_optional))
 async def get_post(post_id: int, user: dict | None = Depends(get_optional_user)):
     post = get_post_by_id(post_id)
     if user:
-        # Authenticated: show personalized data
+        # Authenticated: personalized data dikhao
         return {**post, "is_bookmarked": check_bookmark(user["id"], post_id)}
     else:
         # Anonymous: basic data
@@ -554,19 +570,19 @@ async def get_post(post_id: int, user: dict | None = Depends(get_optional_user))
 ## Practice Exercises
 
 ### Exercise 1: Basic JWT Auth
-Implement a complete JWT authentication system with:
-- `POST /register` -- create a new user (store hashed password)
-- `POST /token` -- login and get JWT token
-- `GET /users/me` -- get current user profile (protected)
-- Test all three endpoints using the Swagger UI
+Ek complete JWT authentication system banao with:
+- `POST /register` — naya user create karo (hashed password store karo)
+- `POST /token` — login karo aur JWT token lo
+- `GET /users/me` — apni profile dekho (protected)
+- Swagger UI se sab endpoints test karo
 
 ### Exercise 2: Role-Based Access Control
-Extend Exercise 1 with roles:
-- Users can have roles: "user", "moderator", "admin"
-- `GET /posts` -- accessible by anyone (authenticated)
-- `DELETE /posts/{id}` -- only moderators and admins
-- `GET /admin/users` -- only admins
-- Create a `require_role` dependency factory:
+Exercise 1 ko extend karo roles ke saath:
+- Users ke paas roles ho sakte hain: "user", "moderator", "admin"
+- `GET /posts` — sirf authenticated users
+- `DELETE /posts/{id}` — sirf moderators aur admins
+- `GET /admin/users` — sirf admins
+- Ek `require_role` dependency factory banao:
 
 ```python
 def require_role(*roles: str):
@@ -583,21 +599,21 @@ async def delete_post(post_id: int, user = Depends(require_role("moderator", "ad
 ```
 
 ### Exercise 3: Refresh Token Flow
-Implement a complete refresh token system:
-- `POST /auth/login` -- returns access_token (15 min) and refresh_token (7 days)
-- `POST /auth/refresh` -- exchange refresh token for new access token
-- `POST /auth/logout` -- invalidate refresh token (add to blacklist)
-- Store refresh tokens in a set (simulating a database)
+Complete refresh token system implement karo:
+- `POST /auth/login` — access_token (15 min) aur refresh_token (7 days) return karo
+- `POST /auth/refresh` — refresh token se naya access token lo
+- `POST /auth/logout` — refresh token invalidate karo (blacklist mein add karo)
+- Refresh tokens ko ek set mein store karo (database simulate karna)
 
 ### Exercise 4: API Key + JWT Dual Auth
-Create an API that supports both authentication methods:
-- JWT Bearer tokens for user-facing endpoints
-- API keys (via `X-API-Key` header) for service-to-service communication
-- Create a unified `get_current_client` dependency that checks both
+Ek API banao jo dono auth methods support karey:
+- JWT Bearer tokens — user-facing endpoints
+- API keys (X-API-Key header) — service-to-service communication
+- Ek unified `get_current_client` dependency banao jo dono check kare
 
 ### Exercise 5: Testing with Auth Overrides
-Write tests for protected endpoints by:
-1. Creating a `get_current_user` override that returns a fake user
-2. Testing that protected endpoints work with the override
-3. Testing that admin endpoints reject non-admin users
-4. Testing the login endpoint with valid and invalid credentials
+Protected endpoints ko test karo:
+1. `get_current_user` override create karo jo fake user return karey
+2. Protected endpoints test karo override ke saath
+3. Admin endpoints ko non-admin users se reject krao
+4. Login endpoint ko valid aur invalid credentials se test karo

@@ -1,15 +1,15 @@
-# 10 - Testing FastAPI Applications
+# 10 - FastAPI Applications Ka Testing
 
 ## Overview
 
-Testing in FastAPI is remarkably similar to testing Express with supertest. The `TestClient` from FastAPI plays the same role as supertest -- it lets you make HTTP requests to your app without running a real server.
+FastAPI mein testing bilkul Express mein Supertest ka kaam karta hai. `TestClient` ek HTTP request bhej sakta hai tumhara app ko bina actual server chale. Socho ek dabbawala ki tarah — aapne order kiya (request), woh deliver karke check karta hai (response) — sab kuch harkat ek confined environment mein.
 
 ### Comparison
 
 | Feature | Express (Jest + Supertest) | FastAPI (pytest + TestClient) |
 |---|---|---|
 | Test runner | Jest / Mocha | pytest |
-| HTTP testing | supertest | TestClient (based on httpx) |
+| HTTP testing | supertest | TestClient (httpx par based) |
 | Assertions | expect() / chai | assert (Python built-in) |
 | Mocking | jest.mock() | dependency_overrides |
 | Async testing | async/await in Jest | pytest-asyncio |
@@ -19,14 +19,14 @@ Testing in FastAPI is remarkably similar to testing Express with supertest. The 
 
 ```bash
 pip install pytest httpx
-# httpx is needed for TestClient and async testing
+# httpx zaruri hai TestClient aur async testing ke liye
 ```
 
 ---
 
-## TestClient: The Basics
+## TestClient: Basics Se Shuru
 
-### Express + Supertest (for comparison)
+### Express + Supertest (comparison ke liye)
 
 ```javascript
 const request = require('supertest');
@@ -79,30 +79,30 @@ def test_create_user():
     assert data["name"] == "Alice"
 ```
 
-### Running Tests
+### Tests Kaise Chalaate Ho
 
 ```bash
-# Run all tests
+# Sab tests chalao
 pytest
 
-# Run with verbose output
+# Verbose output ke saath (zyada details)
 pytest -v
 
-# Run a specific file
+# Ek specific file ka test chalao
 pytest test_main.py
 
-# Run a specific test
+# Ek specific test chalao
 pytest test_main.py::test_create_user
 
-# Run with coverage
+# Coverage ke saath chalao (kitna code cover hua)
 pytest --cov=app --cov-report=html
 ```
 
 ---
 
-## TestClient Features
+## TestClient Ki Features
 
-### Setting Headers
+### Headers Set Karna
 
 ```python
 def test_authenticated_endpoint():
@@ -130,13 +130,13 @@ def test_search():
     assert len(data["results"]) <= 5
 ```
 
-### Form Data
+### Form Data (Zomato jaise order form par think karo)
 
 ```python
 def test_login():
     response = client.post(
         "/token",
-        data={"username": "alice", "password": "secret123"},  # Form data, not JSON
+        data={"username": "alice", "password": "secret123"},  # Form data, JSON nahi
     )
     assert response.status_code == 200
     assert "access_token" in response.json()
@@ -166,30 +166,30 @@ def test_file_upload_with_form_data():
 
 ```python
 def test_cookies():
-    # Set cookies in request
+    # Request mein cookies set karo
     response = client.get("/me", cookies={"session_id": "abc123"})
     assert response.status_code == 200
 
-    # Check cookies in response
+    # Response mein cookies check karo
     response = client.post("/login", json={"username": "alice"})
     assert "session_id" in response.cookies
 ```
 
 ---
 
-## Dependency Overrides for Mocking
+## Dependency Overrides Se Mocking (FastAPI Ka Killer Feature!)
 
-This is FastAPI's killer testing feature. No jest.mock(), no proxyquire, no sinon.
+Yeh FastAPI ka sabse powerful testing feature hai. Jest.mock(), proxyquire, ya sinon ki zarurat hi nahi.
 
-### The Problem in Express
+### Express Mein Problem
 
 ```javascript
-// Express: mocking database is painful
+// Express: database mock karna boht painful hota hai
 jest.mock('../database', () => ({
   getUsers: jest.fn().mockResolvedValue([{ id: 1, name: 'Alice' }]),
 }));
 
-// Or use dependency injection manually, which Express doesn't support
+// Ya manually dependency injection, jo Express support hi nahi karta
 ```
 
 ### FastAPI: Clean Dependency Overrides
@@ -211,9 +211,9 @@ def list_users(db = Depends(get_db)):
 from fastapi.testclient import TestClient
 from main import app, get_db
 
-# Create a fake database dependency
+# Ek fake database dependency banana
 def override_get_db():
-    """Return a fake database session for testing."""
+    """Testing ke liye fake database session return karo."""
     fake_db = FakeDB()
     fake_db.data = [
         {"id": 1, "name": "Alice"},
@@ -224,7 +224,7 @@ def override_get_db():
     finally:
         fake_db.close()
 
-# Override the real dependency
+# Real dependency ko override karo
 app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
@@ -234,12 +234,12 @@ def test_list_users():
     assert response.status_code == 200
     assert len(response.json()) == 2
 
-# IMPORTANT: Clean up overrides after tests
+# IMPORTANT: Tests ke baad overrides ko clean karo!
 def teardown_module():
     app.dependency_overrides.clear()
 ```
 
-### Using pytest Fixtures for Cleaner Setup
+### pytest Fixtures Use Karke Clean Setup
 
 ```python
 import pytest
@@ -248,7 +248,7 @@ from main import app
 
 @pytest.fixture
 def client():
-    """Provide a test client with overridden dependencies."""
+    """Overridden dependencies ke saath test client dedo."""
 
     def override_get_db():
         db = TestDatabase()
@@ -271,7 +271,7 @@ def client():
 
 @pytest.fixture
 def admin_client():
-    """Client authenticated as admin."""
+    """Admin ke taur par authenticated client."""
 
     def override_get_current_user():
         return {"id": 1, "username": "admin", "is_admin": True}
@@ -283,7 +283,7 @@ def admin_client():
 
     app.dependency_overrides.clear()
 
-# Tests use fixtures
+# Tests fixtures use karte hain
 def test_list_users(client):
     response = client.get("/users")
     assert response.status_code == 200
@@ -297,11 +297,14 @@ def test_admin_rejected_for_regular_user(client):
     assert response.status_code == 403
 ```
 
+> [!tip]
+> Fixtures ko socho Zomato ke test kitchen ki tarah — har test ko fresh setup milta hai, aur test khatam hone par sab clean ho jata hai.
+
 ---
 
-## Async Testing with httpx
+## Async Testing httpx Se
 
-For testing async endpoints, use `httpx.AsyncClient` instead of `TestClient`.
+Async endpoints ke liye `httpx.AsyncClient` use karo, `TestClient` ki jagah.
 
 ```bash
 pip install pytest-asyncio
@@ -331,17 +334,17 @@ async def test_async_create():
         assert response.status_code == 201
 ```
 
-### Configure pytest for async
+### pytest ko Async ke liye Configure Karo
 
 ```ini
 # pyproject.toml or pytest.ini
 [tool.pytest.ini_options]
-asyncio_mode = "auto"  # No need for @pytest.mark.anyio on every test
+asyncio_mode = "auto"  # Har test par @pytest.mark.anyio likhne ki zarurat nahi
 ```
 
 ---
 
-## Testing with a Real Database
+## Real Database ke Saath Testing
 
 ### Strategy 1: Test Database with Transaction Rollback
 
@@ -352,21 +355,21 @@ from sqlalchemy.orm import sessionmaker
 from database import Base, get_db
 from main import app
 
-# Use a separate test database
+# Alag test database use karo
 TEST_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
 TestSessionLocal = sessionmaker(bind=engine)
 
 @pytest.fixture(scope="session", autouse=True)
 def create_test_database():
-    """Create tables once for the test session."""
+    """Test session ke liye ek baar tables banao."""
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture
 def db_session():
-    """Each test gets a fresh transaction that's rolled back."""
+    """Har test ko fresh transaction milta hai jo baad mein rollback ho jata hai."""
     connection = engine.connect()
     transaction = connection.begin()
     session = TestSessionLocal(bind=connection)
@@ -379,7 +382,7 @@ def db_session():
 
 @pytest.fixture
 def client(db_session):
-    """Test client with database override."""
+    """Database override ke saath test client."""
     def override_get_db():
         yield db_session
 
@@ -390,7 +393,7 @@ def client(db_session):
 
 # Tests
 def test_create_and_read_user(client):
-    # Create
+    # Create karo
     response = client.post(
         "/users",
         json={"name": "Alice", "email": "alice@example.com", "password": "secret"},
@@ -398,7 +401,7 @@ def test_create_and_read_user(client):
     assert response.status_code == 201
     user_id = response.json()["id"]
 
-    # Read
+    # Read karo
     response = client.get(f"/users/{user_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "Alice"
@@ -410,12 +413,12 @@ def test_duplicate_email(client):
     assert "already registered" in response.json()["detail"]
 ```
 
-### Strategy 2: In-Memory SQLite
+### Strategy 2: In-Memory SQLite (Sabse Tez!)
 
 ```python
 @pytest.fixture
 def client():
-    """Use in-memory SQLite for fastest tests."""
+    """In-memory SQLite use karo — tests boht fast chale."""
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
     Base.metadata.create_all(bind=engine)
     TestSession = sessionmaker(bind=engine)
@@ -433,9 +436,12 @@ def client():
     app.dependency_overrides.clear()
 ```
 
+> [!info]
+> In-memory SQLite real database jaisa behave karta hai, par RAM mein chalta hai — testing ke liye perfect!
+
 ---
 
-## Testing WebSocket Endpoints
+## WebSocket Endpoints Ka Testing
 
 ```python
 def test_websocket_echo():
@@ -452,10 +458,10 @@ def test_websocket_json():
         assert response["content"] == "Hi!"
 
 def test_websocket_auth_required():
-    # Test that connecting without auth closes the connection
+    # Test karo ki auth ke bina connection close ho jata hai
     with pytest.raises(Exception):
         with client.websocket_connect("/ws/secure") as websocket:
-            websocket.receive_text()  # Should fail
+            websocket.receive_text()  # Fail hona chahiye
 
 def test_websocket_with_auth():
     with client.websocket_connect("/ws/secure?token=valid-jwt") as websocket:
@@ -464,12 +470,12 @@ def test_websocket_with_auth():
         assert "Hello" in data
 
 def test_websocket_broadcast():
-    """Test that messages are broadcast to multiple clients."""
+    """Test karo ki messages multiple clients ko milte hain."""
     with client.websocket_connect("/ws/chat") as ws1:
         with client.websocket_connect("/ws/chat") as ws2:
             ws1.send_json({"type": "message", "content": "Hello from ws1"})
 
-            # Both should receive the message
+            # Dono ko message milna chahiye
             data1 = ws1.receive_json()
             data2 = ws2.receive_json()
             assert data1["content"] == "Hello from ws1"
@@ -480,7 +486,7 @@ def test_websocket_broadcast():
 
 ## Testing Patterns
 
-### Testing Validation Errors
+### Validation Errors Ko Test Karna
 
 ```python
 def test_validation_error():
@@ -490,12 +496,12 @@ def test_validation_error():
     )
     assert response.status_code == 422
     errors = response.json()["detail"]
-    # Check that specific fields have errors
+    # Check karo ke specific fields mein errors hain
     error_fields = [e["loc"][-1] for e in errors]
     assert "name" in error_fields or "email" in error_fields
 
 def test_missing_required_field():
-    response = client.post("/users", json={"name": "Alice"})  # Missing email
+    response = client.post("/users", json={"name": "Alice"})  # Email missing
     assert response.status_code == 422
 
 def test_invalid_path_parameter():
@@ -503,7 +509,7 @@ def test_invalid_path_parameter():
     assert response.status_code == 422
 ```
 
-### Testing Error Responses
+### Error Responses Ko Test Karna
 
 ```python
 def test_not_found():
@@ -516,7 +522,7 @@ def test_unauthorized():
     assert response.status_code == 401
 
 def test_forbidden():
-    # Using non-admin client
+    # Non-admin client use karo
     response = client.get(
         "/admin/dashboard",
         headers={"Authorization": "Bearer regular-user-token"},
@@ -524,7 +530,7 @@ def test_forbidden():
     assert response.status_code == 403
 ```
 
-### Parameterized Tests
+### Parameterized Tests (Multiple Data Points)
 
 ```python
 import pytest
@@ -550,30 +556,33 @@ def test_invalid_emails(client, invalid_email):
     assert response.status_code == 422
 ```
 
-### Testing Background Tasks
+> [!tip]
+> Parameterized tests tabada use karo jab same logic ko different inputs ke saath test karna ho — code repetition save hota hai!
+
+### Background Tasks Ko Test Karna
 
 ```python
 def test_register_triggers_email(client, mocker):
     """
-    Background tasks run during TestClient requests,
-    so we can check their side effects.
+    TestClient requests ke doran background tasks run hote hain,
+    toh hum un ke side effects check kar sakte hain.
     """
-    # If using a file-based log for emails
+    # Agar file-based log use kar rahe ho emails ke liye
     response = client.post(
         "/register",
         json={"email": "test@example.com", "name": "Test"},
     )
     assert response.status_code == 201
 
-    # Check that the background task ran
-    # (depends on what the task does -- check file, check mock, etc.)
+    # Check karo ke background task chala ya nahi
+    # (depends on task kya karta hai — file check karo, mock check karo, etc.)
 ```
 
 ---
 
-## Comparison with Jest/Supertest Patterns
+## Jest/Supertest Se Comparison
 
-### Jest Lifecycle -> pytest Fixtures
+### Jest Lifecycle → pytest Fixtures
 
 ```javascript
 // Jest
@@ -592,13 +601,13 @@ def setup_database():
 
 @pytest.fixture(autouse=True)
 def clear_tables(db_session):
-    # Runs before each test
+    # Har test se pehle chalega
     yield
-    # Runs after each test (cleanup)
+    # Har test ke baad cleanup
     db_session.rollback()
 ```
 
-### Jest Describe/It -> pytest Classes/Functions
+### Jest Describe/It → pytest Classes/Functions
 
 ```javascript
 describe('Users API', () => {
@@ -621,41 +630,41 @@ class TestUsersAPI:
 ## Practice Exercises
 
 ### Exercise 1: Basic Test Suite
-Write tests for a simple CRUD API:
-- Test creating an item (valid data)
-- Test creating with invalid data (expect 422)
-- Test reading an existing item
-- Test reading a non-existent item (expect 404)
-- Test updating an item
-- Test deleting an item
-- Test listing items with pagination
+Ek simple CRUD API ke liye tests likho:
+- Creating an item (valid data)
+- Creating with invalid data (expect 422)
+- Reading an existing item
+- Reading a non-existent item (expect 404)
+- Updating an item
+- Deleting an item
+- Listing items with pagination
 
 ### Exercise 2: Auth Testing
-Write tests for authentication:
-- Test login with valid credentials
-- Test login with invalid credentials (expect 401)
-- Test accessing protected route with valid token
-- Test accessing protected route without token (expect 401)
-- Test accessing admin route as regular user (expect 403)
-- Use dependency overrides to mock the current user
+Authentication ke liye tests likho:
+- Login with valid credentials
+- Login with invalid credentials (expect 401)
+- Protected route ko valid token se access karo
+- Protected route ko bina token ke access karo (expect 401)
+- Admin route ko regular user ke taur par access karo (expect 403)
+- Dependency overrides use karke current user ko mock karo
 
 ### Exercise 3: Database Testing
-Set up a test database and write tests that:
-- Create records and verify they persist within a test
-- Verify that tests are isolated (data from one test doesn't leak to another)
-- Test unique constraint violations
-- Test relationship creation (e.g., user with posts)
+Ek test database setup karo aur tests likho jo:
+- Records create karo aur verify karo ke persist ho gaye
+- Verify karo ke tests isolated hain (ek test ka data dusre mein leak nahi hona chahiye)
+- Unique constraint violations ko test karo
+- Relationship creation ko test karo (e.g., user with posts)
 
 ### Exercise 4: WebSocket Testing
-Write tests for a chat WebSocket:
-- Test connecting and receiving a welcome message
-- Test sending a message and receiving an echo
-- Test that messages are broadcast to multiple clients
-- Test connection rejection for invalid auth
+Ek chat WebSocket ke liye tests likho:
+- Connect karo aur welcome message receive karo
+- Message bhejo aur echo receive karo
+- Verify karo ke messages multiple clients ko broadcast ho rahe hain
+- Invalid auth ke liye connection rejection test karo
 
 ### Exercise 5: Integration Test Suite
-Build a complete test suite for a mini API with:
-- User registration and login
+Ek complete test suite likho mini API ke liye:
+- User registration aur login
 - Protected CRUD operations on a resource
-- Use fixtures to create authenticated test clients
-- Test the full flow: register -> login -> create item -> list items -> delete item
+- Fixtures use karke authenticated test clients banao
+- Full flow test karo: register → login → create item → list items → delete item

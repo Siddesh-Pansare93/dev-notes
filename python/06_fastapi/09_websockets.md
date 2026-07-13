@@ -2,7 +2,7 @@
 
 ## Overview
 
-FastAPI has built-in WebSocket support through Starlette. If you've used the `ws` or `socket.io` packages in Node.js, the concepts are the same -- persistent bidirectional connections between client and server.
+FastAPI mein WebSocket support built-in hai Starlette ke through. Agar tumne Node.js mein `ws` ya `socket.io` use kiye ho, toh concept bilkul same hi hai — client aur server ke beech ek persistent bidirectional connection, jaise Zomato delivery partner aur restaurant ke beech real-time chat hota hai.
 
 ### Comparison
 
@@ -15,7 +15,7 @@ FastAPI has built-in WebSocket support through Starlette. If you've used the `ws
 | Binary support | Yes | Yes | Yes |
 | Complexity | High-level | Low-level | Low-level |
 
-FastAPI's WebSocket support is more like the `ws` package than socket.io -- it gives you the raw WebSocket protocol without extra abstractions.
+FastAPI ka WebSocket support zyada `ws` package jaisa hai socket.io ke bajaay — tumhe raw WebSocket protocol milta hai bina extra layers ke.
 
 ---
 
@@ -50,16 +50,16 @@ app = FastAPI()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()  # Must accept the connection first
+    await websocket.accept()  # Pehle connection ko accept karna zaroori hai
     print("Client connected")
 
     try:
         while True:
-            # Receive message
+            # Message receive karo
             data = await websocket.receive_text()
             print(f"Received: {data}")
 
-            # Send response
+            # Response bhejo
             await websocket.send_text(f"Echo: {data}")
     except Exception:
         print("Client disconnected")
@@ -67,10 +67,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 ### Key Differences
 
-1. **Decorator-based routing**: `@app.websocket("/ws")` instead of a separate server
-2. **Async/await**: Everything is async in FastAPI WebSocket handlers
-3. **Same server**: WebSocket routes share the same server as HTTP routes
-4. **Must call `accept()`**: Unlike `ws` in Node.js where the connection is already established
+1. **Decorator-based routing**: `@app.websocket("/ws")` — alag server banane ki zaroorat nahi
+2. **Async/await**: FastAPI mein sab kuch async hota hai WebSocket handlers mein
+3. **Same server**: WebSocket routes aur HTTP routes ek hi server par chlte hain, jaise Zomato app mein food order aur delivery tracking same platform par chlti hai
+4. **Must call `accept()`**: Node.js `ws` mein connection pehle se hi establish hota hai, yaha explicitly accept() call karna padta hai
 
 ---
 
@@ -81,23 +81,23 @@ async def websocket_endpoint(websocket: WebSocket):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
 
-    # --- Sending Data ---
-    await websocket.send_text("Hello!")                       # Send string
-    await websocket.send_bytes(b"\x00\x01\x02")              # Send binary
-    await websocket.send_json({"type": "greeting", "data": "hi"})  # Send JSON
+    # --- Data Bhejno ---
+    await websocket.send_text("Hello!")                       # String bhejo
+    await websocket.send_bytes(b"\x00\x01\x02")              # Binary data bhejo
+    await websocket.send_json({"type": "greeting", "data": "hi"})  # JSON bhejo
 
-    # --- Receiving Data ---
-    text = await websocket.receive_text()        # Receive string
-    binary = await websocket.receive_bytes()     # Receive binary
-    json_data = await websocket.receive_json()   # Receive and parse JSON
+    # --- Data Receive Karo ---
+    text = await websocket.receive_text()        # String receive karo
+    binary = await websocket.receive_bytes()     # Binary receive karo
+    json_data = await websocket.receive_json()   # JSON parse karke receive karo
 
-    # --- Generic receive (returns dict with type info) ---
+    # --- Generic receive (type info ke saath dict milta hai) ---
     message = await websocket.receive()
     # message = {"type": "websocket.receive", "text": "hello"}
-    # or {"type": "websocket.receive", "bytes": b"..."}
-    # or {"type": "websocket.disconnect"}
+    # ya {"type": "websocket.receive", "bytes": b"..."}
+    # ya {"type": "websocket.disconnect"}
 
-    # --- Closing ---
+    # --- Connection Band Karo ---
     await websocket.close(code=1000, reason="Done")
 ```
 
@@ -105,7 +105,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 ## Connection Manager Pattern
 
-This is the most important WebSocket pattern -- managing multiple connections for broadcasting. It's the equivalent of socket.io rooms, but done manually.
+Ye sabse zaroori WebSocket pattern hai — multiple connections ko manage karna aur sabko broadcast karna. Socket.io rooms jaisa, par manually karna padta hai. Jaise Swiggy mein har restaurant ka ek separate manager hota hai jo har delivery ko track karta hai.
 
 ### socket.io (Node.js)
 
@@ -124,7 +124,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 app = FastAPI()
 
 class ConnectionManager:
-    """Manages WebSocket connections (like a simple socket.io room)."""
+    """WebSocket connections ko manage karta hai (jaise socket.io room)."""
 
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -140,7 +140,7 @@ class ConnectionManager:
         await websocket.send_text(message)
 
     async def broadcast(self, message: str):
-        """Send to all connected clients (like io.emit())."""
+        """Sab connected clients ko bhejo (io.emit() jaisa)."""
         for connection in self.active_connections:
             await connection.send_text(message)
 
@@ -156,7 +156,7 @@ async def chat_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            # Broadcast to all connected clients
+            # Sab connected clients ko broadcast karo
             await manager.broadcast(f"Someone said: {data}")
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -167,7 +167,7 @@ async def chat_endpoint(websocket: WebSocket):
 
 ```python
 class RoomManager:
-    """Like socket.io rooms."""
+    """Socket.io rooms jaisa."""
 
     def __init__(self):
         self.rooms: dict[str, list[WebSocket]] = {}
@@ -185,7 +185,7 @@ class RoomManager:
                 del self.rooms[room]
 
     async def broadcast_to_room(self, room: str, message: dict):
-        """Like io.to(room).emit()"""
+        """io.to(room).emit() jaisa"""
         if room in self.rooms:
             for connection in self.rooms[room]:
                 await connection.send_json(message)
@@ -193,7 +193,7 @@ class RoomManager:
     async def broadcast_to_room_except(
         self, room: str, message: dict, exclude: WebSocket
     ):
-        """Like socket.to(room).emit() -- excludes the sender."""
+        """socket.to(room).emit() jaisa — sender ko exclude karta hai."""
         if room in self.rooms:
             for connection in self.rooms[room]:
                 if connection != exclude:
@@ -207,7 +207,7 @@ async def room_endpoint(websocket: WebSocket, room_name: str):
     try:
         while True:
             data = await websocket.receive_json()
-            # Broadcast to room, excluding sender
+            # Room ko broadcast karo, sender ko exclude karke
             await room_manager.broadcast_to_room_except(
                 room_name,
                 {"type": "message", "data": data},
@@ -223,9 +223,9 @@ async def room_endpoint(websocket: WebSocket, room_name: str):
 
 ---
 
-## Path Parameters and Query Parameters
+## Path Parameters aur Query Parameters
 
-WebSocket routes support the same parameters as HTTP routes.
+WebSocket routes mein bhi same parameters use ho sakte ho jaise HTTP routes mein.
 
 ```python
 @app.websocket("/ws/users/{user_id}")
@@ -266,7 +266,7 @@ async def websocket_endpoint(
 ```python
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str | None = None):
-    # Verify before accepting
+    # Accept karne se pehle verify karo
     if not token:
         await websocket.close(code=4001, reason="Token required")
         return
@@ -279,7 +279,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str | None = None):
     await websocket.accept()
     await websocket.send_json({"message": f"Welcome, {user['name']}"})
 
-    # ... handle messages
+    # ... messages handle karo
 ```
 
 Client:
@@ -294,7 +294,7 @@ const ws = new WebSocket('ws://localhost:8000/ws?token=eyJ...');
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
 
-    # Wait for auth message
+    # Auth message wait karo
     try:
         auth_data = await websocket.receive_json()
         if auth_data.get("type") != "auth":
@@ -309,7 +309,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         await websocket.send_json({"type": "auth_success", "user": user["name"]})
 
-        # Now handle regular messages
+        # Ab regular messages handle karo
         while True:
             data = await websocket.receive_json()
             await websocket.send_json({"type": "echo", "data": data})
@@ -331,7 +331,7 @@ ws.onopen = () => {
 ```python
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Cookies are sent automatically by the browser
+    # Browser automatically cookies bhej deta hai
     cookies = websocket.cookies
     session_id = cookies.get("session_id")
 
@@ -377,13 +377,13 @@ class ChatManager:
         await websocket.accept()
         self.connections[username] = websocket
 
-        # Send message history to new user
+        # Naye user ko message history bhejo
         await websocket.send_json({
             "type": "history",
             "messages": self.message_history[-50:],  # Last 50 messages
         })
 
-        # Broadcast join notification
+        # Sab ko join notification broadcast karo
         await self.broadcast({
             "type": "join",
             "username": username,
@@ -407,7 +407,7 @@ class ChatManager:
 
     async def broadcast(self, message: dict):
         self.message_history.append(message)
-        # Keep only last 100 messages
+        # Sirf last 100 messages rakhte ho
         if len(self.message_history) > 100:
             self.message_history = self.message_history[-100:]
 
@@ -418,7 +418,7 @@ class ChatManager:
             except Exception:
                 disconnected.append(username)
 
-        # Clean up dead connections
+        # Dead connections ko clean up karo
         for username in disconnected:
             del self.connections[username]
 
@@ -444,7 +444,7 @@ async def chat_websocket(websocket: WebSocket, username: str):
     except WebSocketDisconnect:
         await chat.disconnect(username)
 
-# Serve a simple HTML client for testing
+# Testing ke liye simple HTML client serve karo
 @app.get("/chat")
 def chat_page():
     return HTMLResponse("""
@@ -493,7 +493,7 @@ def chat_page():
 
 ---
 
-## Handling Binary Data
+## Binary Data Handle Karna
 
 ```python
 @app.websocket("/ws/binary")
@@ -501,11 +501,11 @@ async def binary_websocket(websocket: WebSocket):
     await websocket.accept()
 
     while True:
-        # Receive binary data (like file chunks)
+        # Binary data receive karo (file chunks jaisa)
         data = await websocket.receive_bytes()
         print(f"Received {len(data)} bytes")
 
-        # Process and send back
+        # Process karo aur wapas bhejo
         processed = data.upper()  # Example: uppercase for text bytes
         await websocket.send_bytes(processed)
 ```
@@ -519,12 +519,12 @@ import asyncio
 
 @app.websocket("/ws/live-data")
 async def live_data_endpoint(websocket: WebSocket):
-    """Push data to the client at intervals (like a live dashboard)."""
+    """Client ko intervals mein data push karo (live dashboard jaisa)."""
     await websocket.accept()
 
     try:
         while True:
-            # Simulate fetching live data
+            # Live data fetch karo (simulate)
             data = {
                 "timestamp": datetime.now().isoformat(),
                 "cpu_usage": 45.2,
@@ -532,7 +532,7 @@ async def live_data_endpoint(websocket: WebSocket):
                 "active_users": 142,
             }
             await websocket.send_json(data)
-            await asyncio.sleep(1)  # Push every second
+            await asyncio.sleep(1)  # Har second push karo
     except WebSocketDisconnect:
         print("Client disconnected from live data")
 ```
@@ -545,24 +545,24 @@ async def dashboard_endpoint(websocket: WebSocket):
     await websocket.accept()
 
     async def send_updates():
-        """Task: continuously push data."""
+        """Task: continuously data push karo."""
         while True:
             data = get_dashboard_data()
             await websocket.send_json({"type": "update", "data": data})
             await asyncio.sleep(2)
 
     async def receive_commands():
-        """Task: listen for client commands."""
+        """Task: client commands listen karo."""
         while True:
             message = await websocket.receive_json()
             if message["type"] == "subscribe":
-                # Handle subscription changes
+                # Subscription changes handle karo
                 pass
             elif message["type"] == "refresh":
                 data = get_dashboard_data()
                 await websocket.send_json({"type": "update", "data": data})
 
-    # Run both tasks concurrently
+    # Dono tasks ko concurrently run karo
     try:
         await asyncio.gather(send_updates(), receive_commands())
     except WebSocketDisconnect:
@@ -574,37 +574,37 @@ async def dashboard_endpoint(websocket: WebSocket):
 ## Practice Exercises
 
 ### Exercise 1: Echo Server
-Create a WebSocket echo server at `/ws/echo` that:
-- Accepts text messages and sends them back with a timestamp
-- Accepts JSON messages and echoes them with an added `received_at` field
-- Handles disconnections gracefully
+Ek WebSocket echo server `/ws/echo` mein banao jo:
+- Text messages accept kare aur timestamp ke saath wapas bheje
+- JSON messages accept kare aur ek `received_at` field ke saath echo kare
+- Disconnections ko gracefully handle kare
 
 ### Exercise 2: Chat Room
-Build a multi-room chat system:
-- `WS /ws/chat/{room_name}` -- join a room
-- First message must be `{"type": "auth", "username": "..."}`
-- Support message types: "message", "typing" (broadcast to room)
-- Track and broadcast who's online in each room
-- Send last 20 messages as history on join
+Ek multi-room chat system banao:
+- `WS /ws/chat/{room_name}` — room join karo
+- Pehla message `{"type": "auth", "username": "..."}` hona chahiye
+- Support message types: "message", "typing" (room ko broadcast karo)
+- Track karo aur broadcast karo ki har room mein kaun online hai
+- Join pe last 20 messages history ke saath send karo
 
 ### Exercise 3: Live Notifications
-Create a notification system:
-- `POST /notifications` -- HTTP endpoint to create a notification for a user
-- `WS /ws/notifications/{user_id}` -- WebSocket for receiving notifications
-- When a notification is created via HTTP, push it to the connected user in real-time
-- Queue notifications for offline users and deliver when they connect
+Ek notification system banao:
+- `POST /notifications` — HTTP endpoint notification create karne ke liye
+- `WS /ws/notifications/{user_id}` — WebSocket notifications receive karne ke liye
+- Jab HTTP se notification create ho, usse real-time mein connected user ko push karo
+- Offline users ke liye notifications queue karo aur deliver karo jab woh connect ho
 
 ### Exercise 4: Collaborative Counter
-Build a shared counter that multiple clients can increment:
-- `WS /ws/counter` -- connect to see and modify the counter
+Ek shared counter banao jo multiple clients increment kar sakein:
+- `WS /ws/counter` — connect karo counter dekne aur modify karne ke liye
 - Messages: `{"action": "increment"}`, `{"action": "decrement"}`, `{"action": "reset"}`
-- Broadcast the current count to ALL connected clients on every change
-- Send the current count to new clients on connect
+- Har change par current count ko SABHИ connected clients ko broadcast karo
+- Naye clients ko connect hote hi current count send karo
 
 ### Exercise 5: WebSocket + Authentication
-Implement a secure WebSocket endpoint:
-- Clients must pass a JWT token as a query parameter
-- Verify the token before accepting the connection
-- Close with code 4001 if the token is invalid or expired
-- Once authenticated, allow the user to send/receive messages
-- Include the username (from JWT) in all broadcast messages
+Ek secure WebSocket endpoint implement karo:
+- Clients ko JWT token query parameter mein pass karna chahiye
+- Accept karne se pehle token verify karo
+- Close karo code 4001 ke saath agar token invalid ya expired ho
+- Authentication ke baad user ko messages send/receive karne do
+- Sab broadcast messages mein username (JWT se) include karo

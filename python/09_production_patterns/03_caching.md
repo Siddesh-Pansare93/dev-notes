@@ -1,22 +1,24 @@
 # Caching Strategies for LLM-Powered Applications
 
-## Why Caching Is Critical for AI Backends
+## Kyun Zaruri Hai Caching? AI Backends ke Liye
 
-A typical API call costs fractions of a cent. A GPT-4o call costs 1-5 cents.
-If 100 users ask the same question, that is 100 identical LLM calls at $1-5 total,
-plus 100x the latency. Caching a single response saves both money and time.
+Socho ek second ke liye — ek API call ka kharcha kayi paisa ka fraction hota hai. Lekin ek GPT-4o call? Wo 1-5 cents khata hai.
 
-**The math:**
+Agar 100 users ek hi sawal puche to 100 identical LLM calls chalenge, $1-5 kharch hoga, aur latency 100x badhega. Ek baar response cache kar do to dono money aur speed shudhear jata hai. Bilkul Zomato jaise, jab sab ko biryani ka order aata hai to factory se direct deliver karte hain na.
+
+**Math check karo:**
 - GPT-4o: ~$5 per 1M input tokens, ~$15 per 1M output tokens
 - Average response: ~500 tokens = ~$0.0075
 - 10,000 similar requests/day = $75/day = $2,250/month
-- With caching at 60% hit rate: $900/month saved
+- Caching se 60% hit rate = $900/month *saved* 🎉
 
 ---
 
-## 1. Redis with Python vs Node.js
+## 1. Redis Python mein, Node.js jaisa
 
-### redis-py (Sync and Async)
+### redis-py (Sync aur Async)
+
+Socho Redis ko ek ultra-fast dictionary ke tarah — in-memory key-value store. Node.js mein `ioredis` use karte ho na? Python mein vahi kaam `redis-py` karta hai.
 
 ```python
 # Sync client -- similar to ioredis in Node.js
@@ -47,6 +49,8 @@ async def example():
         await pipe.execute()
 ```
 
+Ek hi request mein multiple commands chalana padhe to pipeline use karo. Bilkul order delivery platform par multiple items ek bag mein pack karke bhejte hain na.
+
 ```typescript
 // ioredis equivalent in Node.js
 import Redis from 'ioredis';
@@ -62,7 +66,9 @@ pipeline.set('b', '2');
 await pipeline.exec();
 ```
 
-### Redis Connection in FastAPI
+### FastAPI mein Redis Connection
+
+Connection pool banate hain taki saari requests ek hi pool se share kar sakein:
 
 ```python
 # src/core/redis.py
@@ -89,7 +95,9 @@ async def close_redis():
 
 ---
 
-## 2. Caching Strategies for LLM Applications
+## 2. LLM Applications ke Liye Caching Strategies
+
+Dikhte hain kaise caching ka flow kaam karta hai:
 
 ```mermaid
 flowchart TD
@@ -122,7 +130,7 @@ flowchart TD
 
 ### Strategy 1: Exact Match LLM Response Cache
 
-The simplest approach -- cache the exact prompt-response pair.
+Sabse simple tarika — same prompt ka response cache kar do. Doosri bar same sawal aaye to directly cache se nikal do.
 
 ```python
 # src/services/cache/llm_cache.py
@@ -186,7 +194,9 @@ class LLMResponseCache:
         await self.redis.delete(key)
 ```
 
-### Using the Cache in a Service
+### Service mein Cache Use Karna
+
+Ab isko apne LLM service mein add karo:
 
 ```python
 # src/services/chat_service.py
@@ -196,15 +206,15 @@ class ChatService:
         self.cache = cache
 
     async def get_response(self, prompt: str) -> str:
-        # Check cache first
+        # Cache check pehle
         cached = await self.cache.get(model="gpt-4o", prompt=prompt)
         if cached:
             return cached["content"]
 
-        # Call LLM
+        # LLM call karo
         response = await self.llm.ainvoke(prompt)
 
-        # Cache the result
+        # Cache mein store karo
         await self.cache.set(
             model="gpt-4o",
             prompt=prompt,
@@ -219,8 +229,10 @@ class ChatService:
 
 ### Strategy 2: Semantic Cache
 
-Exact match misses "What is Python?" vs "Tell me about Python". Semantic caching
-uses embeddings to find similar-enough cached prompts.
+> [!info]
+> Exact match "What is Python?" aur "Tell me about Python" ko alag samajhta hai. Semantic caching is smarter — embeddings se similar prompts find karta hai.
+
+"Python kya hai?" aur "Python ke baare mein batao" — dono ka matlab same hai, par exact text match nahi hoga. Semantic caching embeddings use karke similar-enough cached prompts find karta hai.
 
 ```python
 # src/services/cache/semantic_cache.py
@@ -303,8 +315,7 @@ class SemanticCache:
 
 ### Strategy 3: Embedding Cache
 
-Embeddings are deterministic -- the same text always produces the same embedding.
-Cache them aggressively.
+Kya hota hai embeddings mein? Same text ko har baar same embedding milta hai (deterministic). To usse aggressively cache kar sakte ho — months ke liye!
 
 ```python
 # src/services/cache/embedding_cache.py
@@ -367,7 +378,7 @@ class CachedEmbeddings:
 
 ## 3. LangChain Built-in Cache Integration
 
-LangChain has native caching support. This is the easiest way to get started.
+LangChain mein already caching built-in hai. Most simple way to start! Bilkul Swiggy ka subscription — set it once, enjoy forever.
 
 ```python
 # src/core/llm_cache.py
@@ -404,11 +415,14 @@ response1 = await llm.ainvoke("What is Python?")
 response2 = await llm.ainvoke("What is Python?")
 ```
 
+> [!tip]
+> Development mein InMemoryCache chalao (fast), production mein Redis (survives restarts, shared across servers).
+
 ---
 
 ## 4. FastAPI Response Caching
 
-For API responses (not just LLM calls), use HTTP-level caching.
+LLM calls ke alawa, API responses ko bhi cache kar sakte ho. HTTP-level caching karte hain:
 
 ```python
 # src/api/middleware/cache.py
@@ -480,9 +494,9 @@ def cache_response(
 
 ---
 
-## 5. functools.lru_cache and @cache
+## 5. functools.lru_cache aur @cache
 
-Python has built-in function-level caching -- no external library needed.
+Python mein built-in function-level caching hai — koi external library ki zaroorat nahi!
 
 ```python
 from functools import lru_cache, cache
@@ -534,7 +548,7 @@ function getPromptTemplate(name: string): string {
 }
 ```
 
-### Important: lru_cache Gotchas
+### Important: lru_cache ke Gotchas
 
 ```python
 # WRONG -- mutable default arguments are cached by reference
@@ -559,8 +573,8 @@ info = get_prompt_template.cache_info()
 
 ## 6. Cache Invalidation Strategies
 
-Cache invalidation is one of the hardest problems in computer science.
-Here are practical strategies for LLM apps.
+> [!warning]
+> Cache invalidation — computer science ke sabse hard problems mein se ek. Lekin production apps ke liye practical strategies hain.
 
 ```python
 # src/services/cache/invalidation.py
@@ -644,18 +658,18 @@ class CacheManager:
         return 0
 ```
 
-### When to Use Each Strategy
+### Kaun sa Strategy Use Karo?
 
-| Strategy | Use Case | Example |
+| Strategy | Kab Use Karo? | Example |
 |----------|----------|---------|
-| TTL | Data that naturally expires | LLM responses, API data |
-| Event-based | Data tied to source changes | Document embeddings after doc edit |
-| Version-based | Deploy-time invalidation | Prompt template changes |
-| Tag-based | Related data groups | All caches for a user or project |
+| TTL | Data jo naturally expire ho | LLM responses, API data |
+| Event-based | Source mein change aaye | Document embeddings after doc edit |
+| Version-based | Deploy time invalidation | Prompt template changes |
+| Tag-based | Related data ke groups | Sab caches ek user ya project ke |
 
 ---
 
-## 7. Cost Optimization: When to Cache
+## 7. Cost Optimization: Kab Cache Karo?
 
 ```python
 # src/services/cache/cost_tracker.py
@@ -707,21 +721,21 @@ class CacheCostTracker:
 # ── Decision framework: what to cache ──────────────────
 
 CACHING_DECISION_GUIDE = """
-Cache aggressively:
+Aggressively cache karo:
   - Embeddings (deterministic, expensive at scale)
   - Summarizations of static documents
   - Classification results for unchanged inputs
   - Prompt templates and system prompts
 
-Cache with short TTL (5-60 min):
-  - Search/RAG results (source data might change)
+Short TTL se cache karo (5-60 min):
+  - Search/RAG results (source data badh sakta hai)
   - API response aggregations
 
-Cache with long TTL (1-24 hours):
+Long TTL se cache karo (1-24 hours):
   - LLM responses for common questions (FAQ-like)
   - Generated reports
 
-Do NOT cache:
+Cache mat karo:
   - Conversational responses (context-dependent)
   - Creative generation (users expect variety)
   - Real-time data lookups
@@ -732,6 +746,8 @@ Do NOT cache:
 ---
 
 ## 8. Complete Caching Integration Example
+
+Sab kuch ek saath kaise use hota hai dekho:
 
 ```python
 # src/services/chat_service.py (with caching integrated)
@@ -798,27 +814,30 @@ class ChatService:
 ## 9. Practice Exercises
 
 ### Exercise 1: Redis Basics
-Set up a Redis connection with `redis.asyncio` and write an async function that:
-1. Stores a JSON object with a 60-second TTL
-2. Retrieves it and parses it back to a dict
-3. Checks if a key exists before getting it
-4. Deletes a key
-5. Uses a pipeline to set 5 keys in one round-trip
 
-Compare the API to `ioredis` -- write the same operations in Node.js side by side.
+Redis connection set up karo `redis.asyncio` se aur ek async function likho jo:
+1. JSON object store kare 60-second TTL ke saath
+2. Retrieve kare aur dict mein parse kare
+3. Key existence check kare before getting
+4. Key delete kare
+5. Pipeline use karke ek saath 5 keys set kare
+
+`ioredis` ke API se compare karo — dono ko side-by-side Node.js mein likho.
 
 ### Exercise 2: LLM Response Cache
-Build a complete `LLMResponseCache` class that:
-1. Generates deterministic cache keys from (model, prompt, temperature, max_tokens)
-2. Serializes responses to JSON for storage
-3. Tracks hit/miss counts
-4. Has a `clear_by_model(model_name)` method that removes all cache entries for a model
-5. Exposes cache statistics via a `stats()` method
 
-Write tests using `fakeredis` (a Redis mock library).
+Complete `LLMResponseCache` class banao jo:
+1. Deterministic cache keys generate kare (model, prompt, temperature, max_tokens) se
+2. Responses JSON mein serialize kare storage ke liye
+3. Hit/miss counts track kare
+4. `clear_by_model(model_name)` method ho jo ek model ke sab cache entries remove kare
+5. `stats()` method se cache statistics expose kare
+
+`fakeredis` library se tests likho (Redis mock).
 
 ### Exercise 3: Smart Cache Decorator
-Create a `@cached` decorator that works on any async function:
+
+Ek `@cached` decorator banao jo kisi bhi async function pe lage:
 
 ```python
 @cached(ttl=300, key_prefix="summary")
@@ -827,36 +846,39 @@ async def summarize_document(doc_id: str) -> str:
     ...
 ```
 
-The decorator should:
+Decorator mein:
 - Auto-generate cache keys from function name + arguments
-- Support TTL configuration
-- Support cache bypass with a `skip_cache=True` parameter
+- TTL configuration support
+- Cache bypass with `skip_cache=True` parameter
 - Log cache hits and misses
 
 ### Exercise 4: Cache Invalidation
-Build a document processing system where:
-1. Documents are embedded and cached
-2. Summaries are generated and cached
-3. When a document is updated, both caches are invalidated
-4. Implement tag-based invalidation: each document's caches are tagged with `doc:{id}`
 
-Write a test that verifies: upload doc -> cache embedding -> update doc -> old cache gone.
+Ek document processing system banao jisme:
+1. Documents embedded aur cached ho
+2. Summaries generate aur cached ho
+3. Document update par dono caches invalidate ho
+4. Tag-based invalidation: har document ke caches `doc:{id}` tag se tagged ho
+
+Test likho jo verify kare: upload doc -> cache embedding -> update doc -> old cache gone.
 
 ### Exercise 5: Cost Dashboard
-Create a FastAPI endpoint `GET /admin/cache-stats` that returns:
+
+FastAPI endpoint `GET /admin/cache-stats` banao jo return kare:
 - Total cache hits and misses
 - Hit rate percentage
 - Estimated tokens saved
-- Estimated cost saved (in USD)
+- Estimated cost saved (USD mein)
 - Top 10 most frequently cached prompts
 
-Use the `CacheCostTracker` from the example above and extend it.
+`CacheCostTracker` use karo aur extend karo.
 
 ### Exercise 6: Benchmark
-Write a benchmark script that:
-1. Sends 100 identical requests to your API
-2. Measures latency for cached vs uncached responses
-3. Calculates the speedup factor
-4. Estimates monthly cost savings at 10,000 requests/day
 
-Compare the results with and without caching enabled.
+Benchmark script likho jo:
+1. API ko 100 identical requests bheje
+2. Cached vs uncached responses mein latency measure kare
+3. Speedup factor calculate kare
+4. Monthly cost savings estimate kare 10,000 requests/day par
+
+Results compare karo caching enabled aur disabled dono modes mein.

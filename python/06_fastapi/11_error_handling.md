@@ -1,24 +1,24 @@
-# 11 - Error Handling in FastAPI
+# 11 - FastAPI mein Error Handling
 
 ## Overview
 
-Error handling in FastAPI is more structured than Express. Instead of the `(err, req, res, next)` middleware pattern, FastAPI uses exceptions and exception handlers.
+Agar tu Node.js se aaya hai, to FastAPI ka error handling pattern bilkul alag hota hai. Express ka `(err, req, res, next)` middleware wala approach yahan nahi hai. FastAPI exceptions aur exception handlers use karta hai — zyada clean aur Pythonic.
 
-### Comparison
+### Pattern Comparison
 
 | Pattern | Express.js | FastAPI |
 |---|---|---|
-| Throw an error | `next(createError(404))` or `throw` | `raise HTTPException(404)` |
+| Error throw karo | `next(createError(404))` ya `throw` | `raise HTTPException(404)` |
 | Error middleware | `app.use((err, req, res, next) => {})` | `@app.exception_handler(Exception)` |
-| Validation errors | Manual (zod/joi) | Automatic (Pydantic) |
-| Not found | `res.status(404).json(...)` | `raise HTTPException(status_code=404)` |
-| Error format | Custom (you decide) | Structured `{"detail": "..."}` |
+| Validation errors | Manual lagta hai (zod/joi) | Automatic Pydantic kar deta hai |
+| Not found handler | `res.status(404).json(...)` | `raise HTTPException(status_code=404)` |
+| Error format | Tu banao apna | Structured `{"detail": "..."}` |
 
 ---
 
-## HTTPException: The Basics
+## HTTPException: Basics
 
-### Express.js
+### Express.js mein kaise sochta tha
 
 ```javascript
 const createError = require('http-errors');
@@ -27,13 +27,13 @@ app.get('/users/:id', async (req, res, next) => {
   const user = await findUser(req.params.id);
   if (!user) {
     return next(createError(404, 'User not found'));
-    // Or: return res.status(404).json({ error: 'User not found' });
+    // Ya: return res.status(404).json({ error: 'User not found' });
   }
   res.json(user);
 });
 ```
 
-### FastAPI
+### FastAPI mein ab
 
 ```python
 from fastapi import FastAPI, HTTPException
@@ -48,32 +48,32 @@ def get_user(user_id: int):
     return user
 ```
 
-`raise HTTPException` is like `throw new HttpException()` in NestJS or `next(createError())` in Express. FastAPI catches it and returns the appropriate HTTP response.
+Dekho — `raise HTTPException` बिलकुल `throw new HttpException()` (NestJS) jaisa hai ya `next(createError())` (Express) jaisa. FastAPI automatically pakad ke proper HTTP response return kar deta hai.
 
-### HTTPException Parameters
+### HTTPException ke parameters
 
 ```python
 raise HTTPException(
     status_code=404,                      # HTTP status code
-    detail="User not found",              # Response body (can be string, dict, or list)
-    headers={"X-Error": "user-missing"},  # Optional response headers
+    detail="User not found",              # Response body (string, dict, ya list ho sakta hai)
+    headers={"X-Error": "user-missing"},  # Optional headers
 )
 
-# detail can be complex
+# Detail complex bhi ho sakta hai (Flipkart order cancel ka error dekh!)
 raise HTTPException(
     status_code=400,
     detail={
         "code": "INVALID_INPUT",
-        "message": "The provided data is invalid",
+        "message": "Provided data theek nahi hai",
         "errors": [
-            {"field": "email", "message": "Invalid email format"},
-            {"field": "age", "message": "Must be positive"},
+            {"field": "email", "message": "Email format galat hai"},
+            {"field": "age", "message": "Positive number hona chahiye"},
         ],
     },
 )
 ```
 
-### Common Error Patterns
+### Common error patterns
 
 ```python
 from fastapi import status
@@ -81,44 +81,44 @@ from fastapi import status
 # 400 Bad Request
 raise HTTPException(
     status_code=status.HTTP_400_BAD_REQUEST,
-    detail="Invalid request data",
+    detail="Request data invalid hai",
 )
 
-# 401 Unauthorized
+# 401 Unauthorized (Zomato login nahi kiya, fir order nahi kar sakta)
 raise HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Not authenticated",
+    detail="Tum authenticated nahi ho",
     headers={"WWW-Authenticate": "Bearer"},
 )
 
-# 403 Forbidden
+# 403 Forbidden (Login to kar gaya, but access denied)
 raise HTTPException(
     status_code=status.HTTP_403_FORBIDDEN,
-    detail="Not enough permissions",
+    detail="Tere paas permissions nahi hai",
 )
 
 # 404 Not Found
 raise HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
-    detail="Resource not found",
+    detail="Resource nahi mila",
 )
 
-# 409 Conflict
+# 409 Conflict (Woh item already ban gaya)
 raise HTTPException(
     status_code=status.HTTP_409_CONFLICT,
-    detail="Resource already exists",
+    detail="Resource already exist kar raha hai",
 )
 
-# 422 Unprocessable Entity (usually automatic from Pydantic)
+# 422 Unprocessable Entity (Pydantic automatically throw karta hai)
 raise HTTPException(
     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-    detail="Could not process the request",
+    detail="Request process nahi kar pa rahe",
 )
 
-# 429 Too Many Requests
+# 429 Too Many Requests (Rate limit — jaise IRCTC par server down)
 raise HTTPException(
     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-    detail="Rate limit exceeded",
+    detail="Bohot zyada requests kar diye",
     headers={"Retry-After": "60"},
 )
 ```
@@ -127,9 +127,9 @@ raise HTTPException(
 
 ## Custom Exception Classes
 
-For larger apps, define your own exception types. This is like creating custom Error classes in Node.js.
+Agar tu production-level app bana raha hai, to apne custom exception types define kar sakte ho. Node.js ke custom Error classes jaisa hi concept hai.
 
-### Node.js Pattern
+### Node.js pattern (tere liye familiar)
 
 ```javascript
 class AppError extends Error {
@@ -147,13 +147,13 @@ class NotFoundError extends AppError {
 }
 ```
 
-### FastAPI Pattern
+### FastAPI pattern (apne tareeke se)
 
 ```python
 # exceptions.py
 
 class AppException(Exception):
-    """Base exception for the application."""
+    """Base exception — sab custom exceptions yahan se inherit karenge."""
     def __init__(
         self,
         status_code: int,
@@ -167,25 +167,28 @@ class AppException(Exception):
         self.details = details
 
 class NotFoundException(AppException):
+    """Jab resource nahi mila."""
     def __init__(self, resource: str, resource_id: int | str):
         super().__init__(
             status_code=404,
             code="NOT_FOUND",
-            message=f"{resource} with id '{resource_id}' not found",
+            message=f"{resource} with id '{resource_id}' nahi mila",
             details={"resource": resource, "id": str(resource_id)},
         )
 
 class DuplicateException(AppException):
+    """Jab whi item already exist kar raha hai (duplicate email, username, etc.)."""
     def __init__(self, resource: str, field: str, value: str):
         super().__init__(
             status_code=409,
             code="DUPLICATE",
-            message=f"{resource} with {field} '{value}' already exists",
+            message=f"{resource} with {field} '{value}' already exist kar raha hai",
             details={"resource": resource, "field": field, "value": value},
         )
 
 class UnauthorizedException(AppException):
-    def __init__(self, message: str = "Not authenticated"):
+    """Login nahi kiya."""
+    def __init__(self, message: str = "Tum authenticated nahi ho"):
         super().__init__(
             status_code=401,
             code="UNAUTHORIZED",
@@ -193,7 +196,8 @@ class UnauthorizedException(AppException):
         )
 
 class ForbiddenException(AppException):
-    def __init__(self, message: str = "Insufficient permissions"):
+    """Access denied — admin area dekh raha hai normal user."""
+    def __init__(self, message: str = "Tere permissions theek nahi hai"):
         super().__init__(
             status_code=403,
             code="FORBIDDEN",
@@ -205,10 +209,10 @@ class ForbiddenException(AppException):
 
 ## Custom Exception Handlers
 
-### Express.js Error Middleware
+### Express.js ka error middleware (purana way)
 
 ```javascript
-// Express: error middleware (must have 4 parameters)
+// Express mein 4 parameters hone zaroori hote hain error middleware mein
 app.use((err, req, res, next) => {
   console.error(err.stack);
 
@@ -219,12 +223,12 @@ app.use((err, req, res, next) => {
   }
 
   res.status(500).json({
-    error: { code: 'INTERNAL_ERROR', message: 'Something went wrong' },
+    error: { code: 'INTERNAL_ERROR', message: 'Kuch to gadbad ho gaya' },
   });
 });
 ```
 
-### FastAPI Exception Handlers
+### FastAPI exception handlers (modern approach)
 
 ```python
 # main.py
@@ -236,7 +240,9 @@ app = FastAPI()
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
-    """Handle all AppException subclasses."""
+    """
+    Sab AppException subclasses ko handle kar do.
+    """
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -249,7 +255,7 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 ```
 
-Now you can use your custom exceptions anywhere:
+Ab tu apne custom exceptions kaheen bhi use kar sakta hai:
 
 ```python
 from exceptions import NotFoundException, DuplicateException
@@ -258,7 +264,7 @@ from exceptions import NotFoundException, DuplicateException
 def get_user(user_id: int):
     user = find_user(user_id)
     if not user:
-        raise NotFoundException("User", user_id)
+        raise NotFoundException("User", user_id)  # Boom!
     return user
 
 @app.post("/users")
@@ -269,13 +275,13 @@ def create_user(user: UserCreate):
     return save_user(user)
 ```
 
-The response for a 404 would look like:
+404 ka response aisa dikhega:
 
 ```json
 {
   "error": {
     "code": "NOT_FOUND",
-    "message": "User with id '42' not found",
+    "message": "User with id '42' nahi mila",
     "details": {
       "resource": "User",
       "id": "42"
@@ -286,11 +292,11 @@ The response for a 404 would look like:
 
 ---
 
-## Handling Pydantic Validation Errors
+## Pydantic Validation Errors Handle Karna
 
-FastAPI uses Pydantic for request validation. When validation fails, it raises `RequestValidationError` which returns a 422 response by default. You can customize this.
+FastAPI apne request validation ke liye Pydantic use karta hai. Jab validation fail ho jaaye, to `RequestValidationError` throw hota hai aur 422 response return hota hai. Tu isko customize kar sakta hai.
 
-### Default Validation Error Response
+### Default validation error response
 
 ```json
 {
@@ -298,7 +304,7 @@ FastAPI uses Pydantic for request validation. When validation fails, it raises `
     {
       "type": "string_too_short",
       "loc": ["body", "name"],
-      "msg": "String should have at least 1 character",
+      "msg": "String mein at least 1 character hona chahiye",
       "input": "",
       "ctx": {"min_length": 1}
     }
@@ -306,7 +312,7 @@ FastAPI uses Pydantic for request validation. When validation fails, it raises `
 }
 ```
 
-### Custom Validation Error Handler
+### Custom validation error handler
 
 ```python
 from fastapi import FastAPI, Request
@@ -320,12 +326,13 @@ async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ):
     """
-    Customize the validation error response format.
-    Maybe you want it to match your Node.js API's error format.
+    Validation error response ko apne style mein format kar do.
+    Shayad tu chahta hai ki apna Node.js API jaisa format ho.
     """
     errors = []
     for error in exc.errors():
-        field = ".".join(str(loc) for loc in error["loc"][1:])  # Skip "body"
+        # "body" skip kar, bas field name nikaal
+        field = ".".join(str(loc) for loc in error["loc"][1:])
         errors.append({
             "field": field,
             "message": error["msg"],
@@ -337,29 +344,29 @@ async def validation_exception_handler(
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
-                "message": "Request validation failed",
+                "message": "Request validation fail ho gaya",
                 "errors": errors,
             }
         },
     )
 ```
 
-Now validation errors look like:
+Ab validation errors aisa dikhenge:
 
 ```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "Request validation failed",
+    "message": "Request validation fail ho gaya",
     "errors": [
       {
         "field": "name",
-        "message": "String should have at least 1 character",
+        "message": "String mein at least 1 character hona chahiye",
         "type": "string_too_short"
       },
       {
         "field": "email",
-        "message": "value is not a valid email address",
+        "message": "Email address valid nahi hai",
         "type": "value_error"
       }
     ]
@@ -369,9 +376,9 @@ Now validation errors look like:
 
 ---
 
-## Handling Starlette HTTP Exceptions
+## Starlette HTTP Exceptions Handle Karna
 
-FastAPI's `HTTPException` extends Starlette's `HTTPException`. If you want to catch both:
+FastAPI ka `HTTPException` Starlette ka `HTTPException` extend karta hai. Agar dono pakadne hain:
 
 ```python
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -391,19 +398,19 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 ---
 
-## Global Error Handler (Catch All)
+## Global Error Handler (Catch-All)
 
-### Express.js
+### Express.js approach
 
 ```javascript
-// Catch everything that wasn't handled
+// Jo bhi error na pakda gaya, yahan aa jaye
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 ```
 
-### FastAPI
+### FastAPI approach
 
 ```python
 import logging
@@ -414,8 +421,9 @@ logger = logging.getLogger("api")
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
-    Catch-all for unhandled exceptions.
-    Log the full traceback but return a generic message to the client.
+    Sab unhandled exceptions ko pakad lo.
+    Full traceback log kar do, lekin client ko generic message bhej.
+    (Apne database password client ko dikha na de!)
     """
     logger.error(
         f"Unhandled exception on {request.method} {request.url.path}: "
@@ -428,7 +436,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "error": {
                 "code": "INTERNAL_ERROR",
-                "message": "An unexpected error occurred",
+                "message": "Kuch unexpected ho gaya",
             }
         },
     )
@@ -438,7 +446,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 ## Error Response Schema Documentation
 
-You can document error responses in the OpenAPI spec:
+OpenAPI spec mein error responses document kar sakta hai (Swagger UI mein dikhaega):
 
 ```python
 from pydantic import BaseModel
@@ -451,7 +459,7 @@ class ErrorResponse(BaseModel):
             "example": {
                 "error": {
                     "code": "NOT_FOUND",
-                    "message": "User not found",
+                    "message": "User nahi mila",
                     "details": None,
                 }
             }
@@ -464,7 +472,7 @@ class ErrorResponse(BaseModel):
     responses={
         404: {
             "model": ErrorResponse,
-            "description": "User not found",
+            "description": "User nahi mila",
         },
         422: {
             "model": ErrorResponse,
@@ -479,13 +487,13 @@ def get_user(user_id: int):
     return user
 ```
 
-This adds the error response schemas to the Swagger UI documentation.
+Isse Swagger UI mein error response schemas automatically add ho jayengi. Client ko pata chale ki kya response expect karna hai.
 
 ---
 
-## Complete Error Handling System
+## Production-Ready Error Handling System
 
-Here's a production-ready error handling setup:
+Yeh complete setup hai jo real projects mein use hota hai:
 
 ```python
 # exceptions.py
@@ -498,16 +506,16 @@ class AppException(Exception):
 
 class NotFound(AppException):
     def __init__(self, resource: str, identifier=None):
-        msg = f"{resource} not found"
+        msg = f"{resource} nahi mila"
         if identifier:
-            msg = f"{resource} '{identifier}' not found"
+            msg = f"{resource} '{identifier}' nahi mila"
         super().__init__(404, "NOT_FOUND", msg)
 
 class AlreadyExists(AppException):
     def __init__(self, resource: str, field: str = None):
-        msg = f"{resource} already exists"
+        msg = f"{resource} already exist kar raha hai"
         if field:
-            msg = f"{resource} with this {field} already exists"
+            msg = f"{resource} with this {field} already exist kar raha hai"
         super().__init__(409, "ALREADY_EXISTS", msg)
 
 class Unauthorized(AppException):
@@ -536,7 +544,7 @@ from exceptions import AppException
 logger = logging.getLogger("api.errors")
 
 def register_error_handlers(app: FastAPI):
-    """Register all error handlers on the FastAPI app."""
+    """FastAPI app par sab error handlers register kar do."""
 
     @app.exception_handler(AppException)
     async def app_exception_handler(request: Request, exc: AppException):
@@ -569,7 +577,7 @@ def register_error_handlers(app: FastAPI):
                 "success": False,
                 "error": {
                     "code": "VALIDATION_ERROR",
-                    "message": "Invalid request data",
+                    "message": "Request data invalid hai",
                     "details": errors,
                 },
             },
@@ -600,7 +608,7 @@ def register_error_handlers(app: FastAPI):
                 "success": False,
                 "error": {
                     "code": "INTERNAL_ERROR",
-                    "message": "An unexpected error occurred",
+                    "message": "Kuch unexpected ho gaya",
                 },
             },
         )
@@ -614,7 +622,7 @@ from error_handlers import register_error_handlers
 app = FastAPI()
 register_error_handlers(app)
 
-# Now all your routes automatically get consistent error handling
+# Ab sab routes ko automatically consistent error handling milega
 @app.get("/users/{user_id}")
 def get_user(user_id: int):
     user = find_user(user_id)
@@ -628,50 +636,50 @@ def get_user(user_id: int):
 ## Practice Exercises
 
 ### Exercise 1: Custom Error System
-Create a set of custom exceptions and handlers that produce this response format:
+Ek error system banao jo aisa response dey:
 
 ```json
 {
   "status": "error",
   "error": {
     "code": "RESOURCE_NOT_FOUND",
-    "message": "The requested user was not found",
+    "message": "Woh user nahi mila",
     "timestamp": "2024-01-15T10:30:00Z",
     "path": "/users/42"
   }
 }
 ```
 
-Include the request path and timestamp in every error response.
+Request path aur timestamp har error mein add karo.
 
 ### Exercise 2: Validation Error Formatting
-Override the default validation error handler to produce errors that match this format (common in frontend libraries):
+Validation error handler ko customize kar ke aisa format dey:
 
 ```json
 {
   "errors": {
-    "email": ["Invalid email format", "Email is required"],
-    "age": ["Must be at least 13"]
+    "email": ["Email format galat hai", "Email zaroori hai"],
+    "age": ["Kam se kam 13 hona chahiye"]
   }
 }
 ```
 
-Group errors by field name.
+Errors ko field-wise group kar.
 
 ### Exercise 3: Error Logging
-Create error handling middleware that:
-- Logs all 4xx errors at WARNING level
-- Logs all 5xx errors at ERROR level with full stack trace
-- Includes request ID, method, path, and client IP in log messages
-- Does NOT log 2xx or 3xx responses
+Error handling jo:
+- Sab 4xx errors ko WARNING level par log kare
+- Sab 5xx errors ko ERROR level par log kare (full stack trace ke saath)
+- Request ID, method, path, aur client IP include kare
+- 2xx aur 3xx responses log na kare
 
 ### Exercise 4: API Error Documentation
-Create a CRUD API where every endpoint has documented error responses in the OpenAPI spec. Include example error responses for 400, 401, 403, 404, and 422 status codes.
+Ek CRUD API banao jahan har endpoint ke error responses OpenAPI spec mein documented hon. 400, 401, 403, 404, 422 ke liye example error responses add kar.
 
 ### Exercise 5: Error Handler Testing
-Write tests that verify:
-- 404 errors return the correct format
-- Validation errors list all invalid fields
-- Unauthorized access returns 401 with `WWW-Authenticate` header
-- Unhandled exceptions return 500 without leaking internal details
-- Custom exceptions return the expected code, message, and details
+Tests likho jo verify kare:
+- 404 errors correct format mein return ho
+- Validation errors sab invalid fields list kare
+- Unauthorized access 401 return kare `WWW-Authenticate` header ke saath
+- Unhandled exceptions 500 return kare (internal details leak na ho)
+- Custom exceptions expected code, message, aur details return kare

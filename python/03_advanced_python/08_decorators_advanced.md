@@ -145,7 +145,7 @@ Trick simple hai — check karo `func` diya gaya hai ya nahi. Agar diya hai, mat
 
 ## `functools.wraps` aur Yeh Kyun Zaruri Hai
 
-`@functools.wraps` ke bina, decorator original function ka metadata chura leta hai — matlab tumhara function apni "identity" khho deta hai:
+`@functools.wraps` ke bina, decorator original function ka metadata chura leta hai — matlab tumhara function apni "identity" kho deta hai:
 
 ```python
 def bad_decorator(func):

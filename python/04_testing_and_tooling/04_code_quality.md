@@ -1,9 +1,8 @@
-# Code Quality Tools in Python
+# Python mein Code Quality Tools
 
-> **Coming from Node.js/TypeScript?** You are used to Prettier + ESLint + TypeScript.
-> Python has direct equivalents: Black (Prettier), Ruff (ESLint), and mypy (tsc).
-> The great news: Python's tooling has converged on a single config file (`pyproject.toml`)
-> for everything, and Ruff is so fast it can replace multiple tools at once.
+> **Node.js/TypeScript se aa rahe ho?** Tumhe Prettier + ESLint + TypeScript familiar hai na. Python mein bilkul same cheezain hain, bas alag naam se — Black (Prettier like), Ruff (ESLint ka replacement), aur mypy (tsc jaisa).
+> 
+> Acha news: Python ka tooling ek hi file mein concentrate hai (`pyproject.toml`), aur Ruff itna fast hai ki ek saath multiple tools ka kaam kar leta hai!
 
 ---
 
@@ -16,7 +15,7 @@
 5. [isort: Import Sorting](#isort)
 6. [pre-commit: Git Hooks](#pre-commit)
 7. [Unified Configuration in pyproject.toml](#unified-configuration)
-8. [Setting Up a Complete Quality Pipeline](#complete-pipeline)
+8. [Complete Quality Pipeline Setup](#complete-pipeline)
 9. [VSCode Integration](#vscode-integration)
 10. [Practice Exercises](#practice-exercises)
 
@@ -24,52 +23,49 @@
 
 ## Tool Mapping: Node.js to Python
 
-| Purpose | Node.js/TypeScript | Python | Notes |
+| Kaam kya hai | Node.js/TypeScript | Python | Notes |
 |---|---|---|---|
-| Formatting | Prettier | **Black** | Both are opinionated, minimal config |
-| Linting | ESLint | **Ruff** | Ruff is written in Rust, extremely fast |
-| Type checking | `tsc` (TypeScript) | **mypy** | Optional in Python (gradual typing) |
-| Import sorting | eslint-plugin-import | **isort** / **Ruff** | Ruff includes isort rules |
-| Git hooks | husky + lint-staged | **pre-commit** | More powerful, language-agnostic |
-| Config file | `package.json` + many `.rc` files | **pyproject.toml** | One file for everything |
-| CI runner | GitHub Actions / etc. | Same | Tools run the same way in CI |
+| Code format karna | Prettier | **Black** | Dono opinionated hain, minimum config |
+| Linting | ESLint | **Ruff** | Rust mein likha hai, lightning fast |
+| Type checking | `tsc` (TypeScript) | **mypy** | Python mein optional hai (gradual typing) |
+| Imports organize karna | eslint-plugin-import | **isort** / **Ruff** | Ruff ke paas isort rules hain |
+| Git hooks | husky + lint-staged | **pre-commit** | Zyada powerful, sab languages ke liye |
+| Config file | `package.json` + multiple files | **pyproject.toml** | Ek hi file mein sab kuch |
+| CI runner | GitHub Actions / etc. | Same | Kahin bhi same tarah chalte hain |
 
-**Modern recommendation:** You can use **Ruff alone** for both linting AND formatting
-(it now includes a formatter). But understanding Black + Ruff separately helps when
-you encounter projects using both.
+**Aaj kal ka recommendation:** Sirf **Ruff** use karo — ek hi tool se linting aur formatting dono mil jaega. But pehle Black + Ruff separately samajh lena zaroori hai kyunki porane projects mein dono milengi.
 
 ---
 
 ## Black: The Opinionated Formatter
 
-Black is Prettier for Python. Its motto is "The uncompromising code formatter." Like
-Prettier, it makes almost no configuration options available on purpose.
+Black Python ka Prettier hai. Uska motto hi hai — "The uncompromising code formatter." Bilkul Prettier jaisa — maximum flexibility nahi deta, bas sab kuch consistent kar deta hai.
 
-### Installation and Usage
+### Installation aur Usage
 
 ```bash
 pip install black
 
-# Format a file
+# Ek file format kar
 black myfile.py
 
-# Format a directory
+# Pura directory format kar
 black src/
 
-# Check without modifying (useful in CI)
+# Sirf check kar, change na kar (CI ke liye achha)
 black --check src/
 
-# Show diff of what would change
+# Dekh ke batao kya change hoga
 black --diff src/
 
-# Format a string (useful for debugging)
+# String directly format kar (debugging ke liye)
 black -c "x = {  'a':1,  'b':  2  }"
 ```
 
-### What Black Does
+### Black Kya Karta Hai
 
 ```python
-# Before Black:
+# Black se pehle (bilkul mess):
 x={'a':1,'b':2,'c':3}
 def   foo(   x,y,z   ):
     return (x+y
@@ -77,7 +73,7 @@ def   foo(   x,y,z   ):
 long_variable_name = some_function(argument1,argument2,argument3,argument4,argument5)
 if (condition1 and condition2 and condition3 and condition4): do_thing()
 
-# After Black:
+# Black ke baad (bilkul clean):
 x = {"a": 1, "b": 2, "c": 3}
 
 
@@ -92,24 +88,24 @@ if condition1 and condition2 and condition3 and condition4:
     do_thing()
 ```
 
-### Configuration (Minimal by Design)
+### Configuration (Bilkul Minimal)
 
 ```toml
 # pyproject.toml
 [tool.black]
-line-length = 88          # Default. Prettier uses 80, Black uses 88.
-target-version = ["py312"] # Python version to target
+line-length = 88          # Default. Prettier 80 use karta hai, Black 88
+target-version = ["py312"] # Kaunsa Python version target kar rahe ho
 ```
 
-That is essentially all you configure. Black intentionally does not support things like:
-- Single vs double quotes (always double)
-- Trailing commas (Black adds them when it wraps)
-- Semicolons (always removed)
+Bas itna hi! Black iski zyada settings nahi deta:
+- Single vs double quotes? Always double quotes
+- Trailing commas? Black apne app add kar dega
+- Semicolons? Hamesha remove
 
-### Comparison with Prettier
+### Prettier ke Saath Compare Karo
 
 ```javascript
-// .prettierrc (many options)
+// .prettierrc (kai options)
 {
     "semi": true,
     "singleQuote": true,
@@ -122,36 +118,35 @@ That is essentially all you configure. Black intentionally does not support thin
 ```
 
 ```toml
-# pyproject.toml - Black config (barely anything to configure)
+# pyproject.toml - Black config (barely kuch configure ho sakta hai)
 [tool.black]
 line-length = 88
 ```
 
-**Philosophy:** Fewer options means less debate. Your team never argues about formatting.
+**Philosophy:** Kam options = kam jhagde. Team kabhi formatting ke baare mein argue nahi karega.
 
 ---
 
 ## Ruff: The Fast Linter (and Formatter)
 
-Ruff is a Python linter written in Rust. It is 10-100x faster than traditional Python
-linters (flake8, pylint). It also now includes a formatter that is Black-compatible.
+Ruff Python ka ESLint hai, aur Rust mein likha hai. Yeh traditional Python linters (flake8, pylint) se 10-100x faster hai. Plus iske paas formatter bhi hai jo Black-compatible hai.
 
-### Installation and Usage
+### Installation aur Usage
 
 ```bash
 pip install ruff
 
-# Lint
-ruff check .                    # Check for issues
-ruff check --fix .              # Auto-fix what's possible
-ruff check --watch .            # Watch mode (like eslint --watch)
+# Issues check kar
+ruff check .                    # Dekh ke batao kya problem hai
+ruff check --fix .              # Jo fix ho sake utna auto-fix kar de
+ruff check --watch .            # Watch mode (eslint --watch jaisa)
 
-# Format (Black-compatible)
-ruff format .                   # Format files
-ruff format --check .           # Check formatting without changing
+# Format karna (Black-compatible)
+ruff format .                   # Files ko format kar
+ruff format --check .           # Sirf check kar, change na kar
 
-# Show what rules are enabled
-ruff rule E501                  # Explain a specific rule
+# Rules ka matalab samjha
+ruff rule E501                  # Specific rule explain kar
 ```
 
 ### Ruff vs ESLint
@@ -177,24 +172,24 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors (like eslint:recommended)
+    "E",    # pycodestyle errors (eslint:recommended jaisa)
     "W",    # pycodestyle warnings
     "F",    # pyflakes (unused imports, undefined names)
     "I",    # isort (import sorting)
     "N",    # pep8-naming
-    "UP",   # pyupgrade (modernize syntax)
+    "UP",   # pyupgrade (syntax ko modern banao)
     "B",    # flake8-bugbear (common bugs)
     "SIM",  # flake8-simplify
-    "RUF",  # Ruff-specific rules
+    "RUF",  # Ruff ka apna rules
 ]
 ignore = [
-    "E501",  # Line too long (let the formatter handle this)
+    "E501",  # Line bahut lamba hai (formatter sambhal lega)
 ]
 ```
 
 ### Common Ruff Rule Sets
 
-| Rule Prefix | Name | ESLint Equivalent |
+| Rule Prefix | Naam | ESLint Equivalent |
 |---|---|---|
 | `E` / `W` | pycodestyle | eslint:recommended |
 | `F` | pyflakes | no-unused-vars, no-undef |
@@ -202,37 +197,37 @@ ignore = [
 | `N` | pep8-naming | naming-convention |
 | `UP` | pyupgrade | es-latest suggestions |
 | `B` | flake8-bugbear | common bug patterns |
-| `SIM` | flake8-simplify | prefer simpler constructs |
-| `C4` | flake8-comprehensions | prefer list/dict comprehensions |
-| `DTZ` | flake8-datetimez | timezone-aware datetime |
-| `T20` | flake8-print | no-console |
+| `SIM` | flake8-simplify | simpler constructs prefer karo |
+| `C4` | flake8-comprehensions | list/dict comprehensions prefer karo |
+| `DTZ` | flake8-datetimez | timezone-aware datetime use karo |
+| `T20` | flake8-print | no-console jaisa |
 | `PT` | flake8-pytest-style | testing best practices |
-| `RUF` | Ruff-specific | unique to Ruff |
+| `RUF` | Ruff-specific | Ruff ka unique rules |
 
-### Example: What Ruff Catches
+### Example: Kya Catch Karta Hai Ruff?
 
 ```python
-# ruff will flag all of these:
+# Ruff yeh sab flag karega:
 
-import os              # F401: imported but unused
+import os              # F401: import kiya but use nahi kiya
 import json
-from typing import List  # UP006: Use list instead of List (Python 3.9+)
+from typing import List  # UP006: Python 3.9+ mein 'list' use kar na (List nahi)
 
-def processData(x):    # N802: function name should be lowercase
-    Items = []         # N806: variable in function should be lowercase
+def processData(x):    # N802: function ka naam lowercase hona chahiye
+    Items = []         # N806: variable ko lowercase hona chahiye
 
-    for i in range(len(x)):  # SIM113: use enumerate()
+    for i in range(len(x)):  # SIM113: enumerate() use kar na
         Items.append(x[i])
 
-    if len(Items) > 0:  # SIM103: return condition directly / use truthiness
+    if len(Items) > 0:  # SIM103: seedha return kar na
         return True
     else:
         return False
 
-    y = 42              # F841: local variable 'y' is assigned but never used
+    y = 42              # F841: variable assign kiya but use nahi kiya
 ```
 
-After `ruff check --fix`:
+`ruff check --fix` ke baad:
 
 ```python
 import json
@@ -251,56 +246,54 @@ def process_data(x):
 
 ```toml
 [tool.ruff.lint.per-file-ignores]
-# Tests can use assert and have unused imports (fixtures)
+# Tests ke liye assert aur unused imports OK hain
 "tests/**/*.py" = ["S101", "F401"]
-# __init__.py files often just re-export
+# __init__.py sirf export karta hai
 "__init__.py" = ["F401"]
-# Migration files are auto-generated
+# Auto-generated files
 "migrations/**/*.py" = ["E501"]
 ```
 
-### Ruff as a Formatter (Replacing Black)
+### Ruff ko Formatter ke Taur Use Karna (Black ki Jagah)
 
 ```bash
-# Use Ruff for BOTH linting and formatting:
-ruff format .    # Format (Black-compatible)
-ruff check .     # Lint
+# Ruff se DONO kaam (linting + formatting):
+ruff format .    # Format kar
+ruff check .     # Lint kar
 
-# This means you only need ONE tool instead of two!
+# Matlab ek hi tool, do kaam!
 ```
 
 ```toml
-# pyproject.toml - Ruff handles everything
+# pyproject.toml - Ruff sab sambhal raha
 [tool.ruff]
 line-length = 88
 target-version = "py312"
 
 [tool.ruff.format]
-quote-style = "double"           # Like Black
+quote-style = "double"           # Black jaisa
 indent-style = "space"
-docstring-code-format = true     # Format code in docstrings too
+docstring-code-format = true     # Docstrings mein code bhi format kar
 ```
 
 ---
 
 ## mypy: Static Type Checking
 
-mypy is like running `tsc --noEmit`. It checks your type annotations without running
-the code. The key difference: **Python typing is optional and gradual**. You can add
-types to one file at a time.
+mypy `tsc --noEmit` jaisa hai. Yeh type annotations ko check karta hai without code run kiye. Badi baath: **Python mein typing optional aur gradual hai**. Ek file mein types add kar sakte ho, baaki mein nahi.
 
-### Installation and Usage
+### Installation aur Usage
 
 ```bash
 pip install mypy
 
-# Check a file
+# Ek file check kar
 mypy src/main.py
 
-# Check a package
+# Pura package check kar
 mypy src/
 
-# Check with strict mode (like tsconfig strict: true)
+# Strict mode mein (tsconfig mein strict: true jaisa)
 mypy --strict src/
 ```
 
@@ -340,7 +333,7 @@ class User:
     name: str
     email: str
     roles: list[str]
-    metadata: Optional[dict[str, any]] = None  # Optional = can be None
+    metadata: Optional[dict[str, any]] = None  # Optional = None ho sakta hai
 
 async def fetch_user(user_id: int) -> User:
     async with httpx.AsyncClient() as client:
@@ -356,27 +349,27 @@ async def fetch_user(user_id: int) -> User:
 [tool.mypy]
 python_version = "3.12"
 
-# Strictness (start lenient, tighten over time)
+# Strictness (pehle relax, phir tight karte ja)
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true        # Like "noImplicitAny" in tsconfig
+disallow_untyped_defs = true        # TypeScript mein "noImplicitAny" jaisa
 check_untyped_defs = true
-strict_optional = true               # Like "strictNullChecks"
+strict_optional = true               # "strictNullChecks" jaisa
 
-# Incremental mode (faster re-checks)
+# Incremental mode (re-checks faster)
 incremental = true
 
-# Per-module overrides (like tsconfig paths)
+# Specific files ke liye alag rules
 [[tool.mypy.overrides]]
 module = "tests.*"
-disallow_untyped_defs = false        # Tests don't need strict typing
+disallow_untyped_defs = false        # Tests ko strict types nahi chahiye
 
 [[tool.mypy.overrides]]
 module = "third_party_lib.*"
-ignore_missing_imports = true        # No stubs for this library
+ignore_missing_imports = true        # Library ke paas type stubs nahi hain
 ```
 
-### Comparison: tsconfig.json vs mypy config
+### Compare Karo: tsconfig.json vs mypy config
 
 ```json
 // tsconfig.json
@@ -395,11 +388,11 @@ ignore_missing_imports = true        # No stubs for this library
 ```toml
 # pyproject.toml [tool.mypy] equivalent
 [tool.mypy]
-strict = true                   # Enables all strict flags at once
-# Individual flags (enabled by strict):
-# disallow_untyped_defs = true  -> like noImplicitAny
-# strict_optional = true        -> like strictNullChecks
-# warn_unused_ignores = true    -> like noUnusedLocals (partially)
+strict = true                   # Ek baari mein sab strict flags on
+# Individual flags (strict mein enabled):
+# disallow_untyped_defs = true  -> noImplicitAny jaisa
+# strict_optional = true        -> strictNullChecks jaisa
+# warn_unused_ignores = true    -> noUnusedLocals (partially)
 ```
 
 ### Common mypy Patterns
@@ -408,7 +401,7 @@ strict = true                   # Enables all strict flags at once
 from typing import Union, Optional, TypeVar, Generic
 from collections.abc import Callable, Sequence
 
-# Union types (like TypeScript union)
+# Union types (TypeScript union jaisa)
 def process(value: int | str) -> str:   # Python 3.10+ syntax
     if isinstance(value, int):
         return str(value)
@@ -420,13 +413,13 @@ T = TypeVar("T")
 def first(items: Sequence[T]) -> T | None:
     return items[0] if items else None
 
-# Callable types (like TypeScript function types)
+# Callable types (TypeScript function types jaisa)
 Handler = Callable[[str, int], bool]
 
 def register_handler(handler: Handler) -> None:
     pass
 
-# TypedDict (like TypeScript interfaces for dicts)
+# TypedDict (TypeScript interfaces dicts ke liye)
 from typing import TypedDict
 
 class UserDict(TypedDict):
@@ -436,37 +429,36 @@ class UserDict(TypedDict):
     is_active: bool
 
 def process_user(user: UserDict) -> str:
-    return user["name"]  # mypy knows this is str
+    return user["name"]  # mypy jaanta hai yeh str hai
 
-# Protocol (like TypeScript interfaces for structural typing)
+# Protocol (TypeScript interfaces ka structural typing)
 from typing import Protocol
 
 class Serializable(Protocol):
     def to_json(self) -> str: ...
 
 def save(obj: Serializable) -> None:
-    data = obj.to_json()  # mypy ensures obj has to_json()
+    data = obj.to_json()  # mypy ensure karta hai obj ke paas to_json() hai
 ```
 
 ### Gradual Typing Strategy
 
-Unlike TypeScript where you typically type everything from the start, Python supports
-gradual adoption:
+TypeScript mein sab kuch type karte ho shuru se. Python mein slowly add kar sakte ho:
 
 ```python
-# Step 1: No types (valid Python, mypy skips or warns)
+# Step 1: Koi types nahi (valid Python, mypy skip karega)
 def add(a, b):
     return a + b
 
-# Step 2: Add parameter types
+# Step 2: Parameter types add kar
 def add(a: int, b: int):
     return a + b
 
-# Step 3: Add return type
+# Step 3: Return type add kar
 def add(a: int, b: int) -> int:
     return a + b
 
-# Step 4: Full strict typing with generics
+# Step 4: Full strict typing generics ke saath
 T = TypeVar("T", int, float)
 def add(a: T, b: T) -> T:
     return a + b
@@ -476,13 +468,12 @@ def add(a: T, b: T) -> T:
 
 ## isort: Import Sorting
 
-isort automatically sorts and organizes Python imports. It is like `eslint-plugin-import`
-with auto-fix.
+isort automatically Python imports ko organize kar deta hai. `eslint-plugin-import` jaisa hai but auto-fix ke saath.
 
-### The Problem
+### Problem Kya Hai
 
 ```python
-# Before isort (messy, unorganized imports):
+# isort se pehle (bilkul mess, imports random order mein):
 from myapp.models import User
 import json
 from typing import Optional
@@ -494,10 +485,10 @@ from myapp.config import settings
 import pytest
 ```
 
-### The Solution
+### isort Se Baad (Clean!)
 
 ```python
-# After isort (organized by section):
+# isort ke baad (properly organized):
 import json           # 1. Standard library
 import os
 import sys
@@ -516,17 +507,16 @@ from myapp.utils import helper
 ```toml
 # pyproject.toml
 [tool.isort]
-profile = "black"     # Compatible with Black's formatting
+profile = "black"     # Black ke saath compatible
 known_first_party = ["myapp"]
 known_third_party = ["pytest", "fastapi", "httpx"]
 ```
 
-**Modern approach:** Ruff includes isort rules (`I` prefix), so you can skip installing
-isort separately:
+**Aaj kal:** Ruff mein isort rules hain (`I` prefix), to isort separately install na karna padhe:
 
 ```toml
 [tool.ruff.lint]
-select = ["I"]   # Enable isort rules in Ruff
+select = ["I"]   # Ruff mein isort rules enable kar
 
 [tool.ruff.lint.isort]
 known-first-party = ["myapp"]
@@ -536,15 +526,14 @@ known-first-party = ["myapp"]
 
 ## pre-commit: Git Hooks
 
-pre-commit is like husky + lint-staged, but more powerful. It manages git hooks and
-runs tools automatically before commits.
+pre-commit husky + lint-staged jaisa hai, par zyada powerful. Yeh git hooks automatically manage karta hai aur commit se pehle tools run karta hai.
 
 ### Installation
 
 ```bash
 pip install pre-commit
 
-# Install the git hooks (like npx husky install)
+# Git hooks install kar (husky mein npx husky install jaisa)
 pre-commit install
 ```
 
@@ -552,10 +541,10 @@ pre-commit install
 
 ```yaml
 # .pre-commit-config.yaml
-# This is like having both .husky/ and .lintstagedrc in one file
+# Yeh file .husky/ aur .lintstagedrc ko combine karta hai
 
 repos:
-  # Ruff - linting and formatting
+  # Ruff - linting aur formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
     hooks:
@@ -574,16 +563,16 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: trailing-whitespace      # Remove trailing whitespace
-      - id: end-of-file-fixer        # Ensure files end with newline
-      - id: check-yaml                # Validate YAML syntax
-      - id: check-toml                # Validate TOML syntax
-      - id: check-added-large-files   # Prevent committing large files
-      - id: check-merge-conflict      # Check for merge conflict markers
-      - id: debug-statements          # Check for leftover debugger/breakpoint
+      - id: trailing-whitespace      # Trailing whitespace hata
+      - id: end-of-file-fixer        # File end mein newline ensure kar
+      - id: check-yaml                # YAML syntax validate kar
+      - id: check-toml                # TOML syntax validate kar
+      - id: check-added-large-files   # Bade files commit hone se pehle rokh
+      - id: check-merge-conflict      # Merge conflict markers check kar
+      - id: debug-statements          # debugger/breakpoint ka pata laga
 ```
 
-### Comparison with husky + lint-staged
+### husky + lint-staged ke Saath Compare
 
 ```json
 // package.json (Node.js)
@@ -601,7 +590,7 @@ repos:
 ```
 
 ```yaml
-# .pre-commit-config.yaml (Python) - same thing but more powerful
+# .pre-commit-config.yaml (Python) - same logic, zyada powerful
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
@@ -614,19 +603,19 @@ repos:
 ### Usage
 
 ```bash
-# Run hooks on staged files (happens automatically on git commit)
+# Staged files par hooks run kar (commit ke samay automatically)
 pre-commit run
 
-# Run on all files (not just staged)
+# Sab files par run kar (sirf staged nahi)
 pre-commit run --all-files
 
-# Run a specific hook
+# Specific hook run kar
 pre-commit run ruff
 
-# Update hook versions
+# Hook versions update kar
 pre-commit autoupdate
 
-# Skip hooks for one commit (like --no-verify in git)
+# Ek commit ke liye hooks skip kar (git --no-verify jaisa)
 git commit --no-verify -m "WIP: skip hooks"
 ```
 
@@ -634,18 +623,18 @@ git commit --no-verify -m "WIP: skip hooks"
 
 ## Unified Configuration in pyproject.toml
 
-One of Python's best features: **everything goes in one file**.
+Python mein sabse achha: **sab kuch ek file mein**.
 
 ```toml
-# pyproject.toml - THE configuration file for your Python project
+# pyproject.toml - THE configuration file
 
 # ============================================================
-# Project metadata (like package.json name, version, etc.)
+# Project metadata (package.json ke name, version jaisa)
 # ============================================================
 [project]
 name = "my-awesome-app"
 version = "1.0.0"
-description = "A great Python application"
+description = "Ek achha Python application"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
@@ -664,7 +653,7 @@ dev = [
 ]
 
 # ============================================================
-# pytest configuration (like jest.config.js)
+# pytest configuration (jest.config.js jaisa)
 # ============================================================
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -676,7 +665,7 @@ markers = [
 ]
 
 # ============================================================
-# Ruff configuration (like .eslintrc + .prettierrc)
+# Ruff configuration (.eslintrc + .prettierrc combine)
 # ============================================================
 [tool.ruff]
 line-length = 88
@@ -696,7 +685,7 @@ known-first-party = ["myapp"]
 docstring-code-format = true
 
 # ============================================================
-# mypy configuration (like tsconfig.json)
+# mypy configuration (tsconfig.json jaisa)
 # ============================================================
 [tool.mypy]
 python_version = "3.12"
@@ -709,7 +698,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 # ============================================================
-# Coverage configuration (like jest coverage options)
+# Coverage configuration (jest coverage options jaisa)
 # ============================================================
 [tool.coverage.run]
 source = ["src"]
@@ -725,7 +714,7 @@ exclude_lines = [
 ]
 ```
 
-Compare with the Node.js ecosystem where you might have:
+Compare karo Node.js ecosystem mein:
 - `package.json`
 - `.eslintrc.js`
 - `.prettierrc`
@@ -734,28 +723,28 @@ Compare with the Node.js ecosystem where you might have:
 - `.lintstagedrc`
 - `.husky/pre-commit`
 
-In Python: **one file**.
+Python mein: **ek hi file** (pyproject.toml)!
 
 ---
 
-## Setting Up a Complete Quality Pipeline
+## Complete Quality Pipeline Setup
 
-### Step 1: Install Everything
+### Step 1: Install Sab Kuch
 
 ```bash
-# Create a virtual environment first
+# Virtual environment pehle (zaroori!)
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows par: .venv\Scripts\activate
 
-# Install tools
+# Tools install kar
 pip install ruff mypy pytest pytest-asyncio pytest-cov pre-commit
 ```
 
-### Step 2: Configure pyproject.toml
+### Step 2: pyproject.toml Configure Kar
 
-Use the comprehensive example from the previous section.
+Upar diye comprehensive example ko use kar.
 
-### Step 3: Set Up pre-commit
+### Step 3: pre-commit Setup Kar
 
 ```yaml
 # .pre-commit-config.yaml
@@ -786,10 +775,10 @@ repos:
 pre-commit install
 ```
 
-### Step 4: Add Makefile / Scripts
+### Step 4: Makefile / Scripts Add Kar
 
 ```makefile
-# Makefile - common commands (like npm scripts in package.json)
+# Makefile - common commands (package.json ke npm scripts jaisa)
 
 .PHONY: lint format typecheck test test-cov ci
 
@@ -808,19 +797,19 @@ test:
 test-cov:
 	pytest --cov=src --cov-report=html --cov-report=term-missing
 
-# Run everything (like npm run ci)
+# Sab run kar (npm run ci jaisa)
 ci: lint typecheck test
 ```
 
-Or use `pyproject.toml` scripts via a task runner:
+Or `pyproject.toml` scripts ke through task runner:
 
 ```toml
 # pyproject.toml
 [project.scripts]
-# These work with: pip install -e . && my-app
+# Yeh `pip install -e .` ke baad work karega
 my-app = "myapp.main:main"
 
-# For dev scripts, use a Makefile, or tools like:
+# Dev scripts ke liye:
 # - taskipy (pip install taskipy)
 # - poethepoet (pip install poethepoet)
 # - just (cargo install just)
@@ -864,9 +853,9 @@ jobs:
         uses: codecov/codecov-action@v4
 ```
 
-Compare with a typical Node.js CI:
+Node.js mein compare karo:
 ```yaml
-# Node.js CI for comparison
+# Node.js CI (bilkul same pattern)
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -879,7 +868,7 @@ jobs:
       - run: npm test -- --coverage
 ```
 
-Almost identical workflow. The tools are different, the CI pattern is the same.
+Pattern same hai, bas tools alag hain!
 
 ---
 
@@ -888,8 +877,8 @@ Almost identical workflow. The tools are different, the CI pattern is the same.
 ### Required Extensions
 
 1. **Python** (ms-python.python) - Core Python support
-2. **Pylance** (ms-python.vscode-pylance) - Fast IntelliSense (like TypeScript language server)
-3. **Ruff** (charliermarsh.ruff) - Linting and formatting
+2. **Pylance** (ms-python.vscode-pylance) - Fast IntelliSense (TypeScript language server jaisa)
+3. **Ruff** (charliermarsh.ruff) - Linting aur formatting
 4. **Even Better TOML** (tamasfe.even-better-toml) - pyproject.toml support
 
 ### VSCode Settings
@@ -900,7 +889,7 @@ Almost identical workflow. The tools are different, the CI pattern is the same.
     // Python interpreter
     "python.defaultInterpreterPath": ".venv/bin/python",
 
-    // Use Ruff as the formatter (replaces Black)
+    // Ruff as formatter (Black ki jagah)
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
@@ -914,7 +903,7 @@ Almost identical workflow. The tools are different, the CI pattern is the same.
     "ruff.lint.args": ["--config=pyproject.toml"],
 
     // Type checking with Pylance
-    "python.analysis.typeCheckingMode": "basic",  // or "strict"
+    "python.analysis.typeCheckingMode": "basic",  // ya "strict"
     "python.analysis.autoImportCompletions": true,
 
     // Testing
@@ -927,7 +916,7 @@ Almost identical workflow. The tools are different, the CI pattern is the same.
 }
 ```
 
-Compare with typical Node.js/TypeScript VSCode settings:
+Node.js/TypeScript settings se compare:
 ```jsonc
 // Node.js .vscode/settings.json
 {
@@ -942,7 +931,7 @@ Compare with typical Node.js/TypeScript VSCode settings:
 }
 ```
 
-Same pattern: format on save, fix lint issues on save, enable testing.
+Same pattern: format on save, lint on save, testing enable.
 
 ### VSCode Extensions Equivalence
 
@@ -958,9 +947,9 @@ Same pattern: format on save, fix lint issues on save, enable testing.
 
 ## Practice Exercises
 
-### Exercise 1: Set Up a Project from Scratch
+### Exercise 1: Project Scratch Se Setup Kar
 
-Create a new Python project with full quality tooling:
+Ek nayi Python project ek full quality tooling ke saath:
 
 ```
 my_project/
@@ -973,7 +962,7 @@ my_project/
         __init__.py
         test_calculator.py
         test_validators.py
-    pyproject.toml            # ALL configuration here
+    pyproject.toml            # SABA configuration yaha
     .pre-commit-config.yaml
     .vscode/
         settings.json
@@ -981,17 +970,16 @@ my_project/
 ```
 
 Requirements:
-1. `pyproject.toml` with Ruff, mypy, and pytest configuration
-2. Ruff rules: at minimum `E`, `F`, `I`, `UP`, `B`
+1. `pyproject.toml` mein Ruff, mypy, pytest configuration
+2. Ruff rules: minimum `E`, `F`, `I`, `UP`, `B`
 3. mypy with `disallow_untyped_defs = true`
-4. pre-commit hooks for Ruff linting and formatting
-5. A Makefile with `lint`, `format`, `typecheck`, `test`, and `ci` targets
-6. VSCode settings for format-on-save with Ruff
+4. pre-commit hooks Ruff linting aur formatting ke liye
+5. Makefile with `lint`, `format`, `typecheck`, `test`, `ci` targets
+6. VSCode settings format-on-save ke saath Ruff
 
-### Exercise 2: Fix a Messy File
+### Exercise 2: Messy File Fix Kar
 
-Take this intentionally messy Python file and fix all the issues that Ruff and mypy
-would catch:
+Yeh intentionally messy file lo aur Ruff + mypy se sab issues fix kar:
 
 ```python
 # fix_me.py
@@ -1042,27 +1030,26 @@ class userManager:
         unused_var = "this is never used"
 ```
 
-Fix list:
-1. Add type annotations to all functions and methods
-2. Fix naming conventions (PEP 8)
-3. Use modern type syntax (`list` instead of `List`, etc.)
-4. Remove unused imports and variables
-5. Simplify boolean comparisons
-6. Use `enumerate()` instead of `range(len())`
-7. Use `is None` / `is not None` instead of `== None`
-8. Simplify return statements
-9. Sort imports properly
+Fix करने वाली चीजें:
+1. Sab functions aur methods mein type annotations add kar
+2. PEP 8 naming conventions fix kar
+3. Modern type syntax use kar (`list` instead of `List`)
+4. Unused imports aur variables hata
+5. Boolean comparisons simplify kar
+6. `range(len())` ki jagah `enumerate()` use kar
+7. `== None` ki jagah `is None` use kar
+8. Return statements simplify kar
+9. Imports properly sort kar
 
 ### Exercise 3: Gradual Typing
 
-Start with this untyped code and add types progressively. Run mypy after each step
-to verify.
+Untyped code se shuru kar aur progressively types add kar. Har step ke baad mypy run kar.
 
 ```python
-# step1: Add basic types to function signatures
-# step2: Add TypedDict for structured dicts
-# step3: Add generics where appropriate
-# step4: Run mypy --strict and fix all issues
+# step1: Function signatures mein basic types add kar
+# step2: Structured dicts ke liye TypedDict add kar
+# step3: Generics add kar jaha zaroori ho
+# step4: mypy --strict run kar aur sab issues fix kar
 
 def fetch_config(path, defaults=None):
     import json
@@ -1106,33 +1093,27 @@ class Repository:
 
 ### Exercise 4: CI Pipeline
 
-Write a GitHub Actions workflow file (`.github/workflows/ci.yml`) that:
+GitHub Actions workflow file (`.github/workflows/ci.yml`) likho jo:
 
-1. Runs on pushes to `main` and on all pull requests
-2. Tests on Python 3.11 and 3.12
-3. Installs project with dev dependencies
-4. Runs these checks in parallel jobs:
+1. `main` par pushes aur all pull requests par run ho
+2. Python 3.11 aur 3.12 par test kare
+3. Project install kare dev dependencies ke saath
+4. Ye checks parallel mein run kare:
    - Ruff linting
    - Ruff format check
    - mypy type checking
-   - pytest with coverage (fail if under 80%)
-5. Uploads coverage report as an artifact
+   - pytest with coverage (80% se kam ho to fail)
+5. Coverage report as artifact upload kare
 
 ---
 
 ## Key Takeaways
 
-1. **Ruff is your Swiss Army knife.** It handles linting AND formatting, is blazingly fast,
-   and replaces Black + isort + flake8.
-2. **pyproject.toml is the one file.** All tool configuration goes here. No more config
-   file sprawl.
-3. **mypy is optional but valuable.** Start with basic settings, tighten over time.
-   Python's gradual typing lets you adopt at your own pace.
-4. **pre-commit catches issues early.** Like husky + lint-staged, but more powerful and
-   language-agnostic.
-5. **VSCode integration is excellent.** The Ruff extension gives you the same experience
-   as ESLint + Prettier.
-6. **The CI pipeline is nearly identical** to what you are used to in Node.js projects.
+1. **Ruff tumhara Swiss Army knife hai.** Ek hi tool se linting aur formatting dono, bilkul fast, aur Black + isort + flake8 sab ka kaam kar deta hai.
+2. **pyproject.toml ek hi file hai.** Sab tool configuration yaha. Config files ka maze nahi.
+3. **mypy optional hai but valuable.** Basic settings se shuru kar, gradually tight karte ja. Python gradual typing deta hai.
+4. **pre-commit issues jaldi catch karta hai.** husky + lint-staged jaisa but zyada powerful aur language-agnostic.
+5. **VSCode integration bilkul excellent hai.** Ruff extension tumhe ESLint + Prettier jaisa experience deta hai.
+6. **CI pipeline almost identical hai** Node.js projects se.
 
-Next up: [Project Structure](./05_project_structure.md) -- how to organize a Python
-project like a professional.
+Aage dekho: [Project Structure](./05_project_structure.md) -- professional taur se Python project organize kaise karte hain.

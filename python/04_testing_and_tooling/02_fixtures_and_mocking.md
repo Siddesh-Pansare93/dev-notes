@@ -1,9 +1,8 @@
-# Fixtures and Mocking in pytest
+# Fixtures और Mocking pytest में
 
-> **Coming from Node.js/TypeScript?** Fixtures are pytest's replacement for Jest's
-> `beforeEach`/`beforeAll`/`afterEach`/`afterAll` -- but they are far more powerful.
-> Think of them as dependency injection for your tests. Mocking works similarly to
-> `jest.mock()` but uses Python's `unittest.mock` module.
+> **Node.js/TypeScript से आ रहे हो?** Fixtures, Jest के `beforeEach`/`beforeAll`/`afterEach`/`afterAll` जैसे ही हैं
+> — लेकिन **कहीं ज्यादा powerful** हैं। सोचो इन्हें अपने tests के लिए dependency injection की तरह।
+> Mocking भी Jest जैसे ही काम करता है, बस Python के `unittest.mock` module का इस्तेमाल होता है।
 
 ---
 
@@ -25,10 +24,10 @@
 
 ## Fixtures vs beforeEach/beforeAll
 
-### The Jest Way (Mutable Shared State)
+### Jest का तरीका (Mutable Shared State)
 
 ```typescript
-// Jest: Setup/teardown is imperative and relies on mutable outer scope
+// Jest: Setup/teardown imperative है, mutable outer scope पर निर्भर करता है
 describe('UserService', () => {
     let db: Database;
     let userService: UserService;
@@ -56,50 +55,50 @@ describe('UserService', () => {
 });
 ```
 
-### The pytest Way (Dependency Injection)
+### pytest का तरीका (Dependency Injection)
 
 ```python
-# pytest: Fixtures are declared, injected, and scoped explicitly
+# pytest: Fixtures explicitly declare होते हैं, inject होते हैं, scoped होते हैं
 import pytest
 
 @pytest.fixture(scope="session")
 def db():
-    """Create database connection once for all tests."""
+    """डेटाबेस connection एक बार सभी tests के लिए बनाओ।"""
     database = Database.connect()
-    yield database               # yield = "use this, then run cleanup below"
+    yield database               # yield = "यह use करो, फिर cleanup करना"
     database.disconnect()
 
 @pytest.fixture
-def user_service(db):            # db fixture is injected automatically!
-    """Create a fresh UserService for each test."""
+def user_service(db):            # db fixture automatically inject हो गया!
+    """हर test के लिए fresh UserService बनाओ।"""
     service = UserService(db)
     yield service
     db.clear()
 
-def test_creates_user(user_service):   # user_service fixture injected here
+def test_creates_user(user_service):   # user_service यहाँ inject हुआ
     user = user_service.create(name="Alice")
     assert user.name == "Alice"
 ```
 
-**Key differences:**
-- No mutable outer-scope variables (`let db`, `let userService`)
-- Fixtures explicitly declare dependencies (`user_service` depends on `db`)
-- Each test declares exactly which fixtures it needs (no hidden setup)
-- Cleanup is co-located with setup (via `yield`)
+**क्या फर्क है:**
+- कोई mutable outer-scope variables नहीं (`let db`, `let userService`)
+- Fixtures explicitly अपने dependencies declare करते हैं (`user_service` को `db` चाहिए)
+- हर test बिल्कुल clear करता है कि उसे कौन से fixtures चाहिए (कोई hidden setup नहीं)
+- Setup और cleanup एक जगह रहता है (via `yield`)
 
 ---
 
 ## Basic Fixtures
 
-### Defining and Using Fixtures
+### Kya hota hai? Fixtures कैसे define करते हैं
 
 ```python
 import pytest
 
-# A fixture is just a function decorated with @pytest.fixture
+# Fixture सिर्फ एक function है @pytest.fixture decorator के साथ
 @pytest.fixture
 def sample_user():
-    """Provides a sample user dict for tests."""
+    """Tests के लिए sample user data देता है।"""
     return {
         "id": 1,
         "name": "Alice",
@@ -109,10 +108,10 @@ def sample_user():
 
 @pytest.fixture
 def empty_list():
-    """Provides an empty list."""
+    """खाली list देता है।"""
     return []
 
-# Tests request fixtures by naming them as parameters
+# Tests fixtures माँगते हैं उन्हें parameter नाम से रखके
 def test_user_has_name(sample_user):
     assert sample_user["name"] == "Alice"
 
@@ -123,7 +122,7 @@ def test_empty_list_is_falsy(empty_list):
     assert not empty_list
 ```
 
-### Each Test Gets a Fresh Instance
+### हर Test को Fresh Instance मिलता है
 
 ```python
 @pytest.fixture
@@ -135,20 +134,20 @@ def test_append(numbers):
     assert numbers == [1, 2, 3, 4]
 
 def test_still_original(numbers):
-    # This gets a FRESH list - not affected by test_append
+    # यह एक FRESH list पाता है - test_append का असर नहीं है
     assert numbers == [1, 2, 3]
 ```
 
-This is like `beforeEach` automatically creating a new instance for every test.
+यह `beforeEach` जैसे ही है — हर test को नया instance मिल जाता है।
 
-### Fixtures Returning Factories
+### Fixtures जो Functions Return करते हैं (Factory Pattern)
 
-Sometimes you need to create multiple objects with different parameters:
+कभी-कभी तुम्हें multiple objects create करने हैं different parameters के साथ:
 
 ```python
 @pytest.fixture
 def make_user():
-    """Factory fixture - returns a function that creates users."""
+    """Factory fixture - एक function return करता है जो users बनाता है।"""
     def _make_user(name: str = "Alice", age: int = 30) -> dict:
         return {"name": name, "age": age, "id": id(name)}
     return _make_user
@@ -160,9 +159,9 @@ def test_multiple_users(make_user):
     assert alice["id"] != bob["id"]
 ```
 
-Jest equivalent:
+Jest में तुम सिर्फ helper function बनाते हो:
 ```typescript
-// In Jest, you'd just create a helper function
+// Jest में ऐसे करते हो
 function makeUser(name = 'Alice', age = 30) {
     return { name, age, id: Math.random() };
 }
@@ -178,59 +177,64 @@ test('multiple users', () => {
 
 ## Fixture Scopes
 
-Scopes control how often a fixture is created and destroyed.
+**Kya zaruri hai scope का?** क्योंकि कुछ चीजें expensive होती हैं (database connection, server startup)। 
+Scope बताता है कि fixture कितनी बार बने और कितने tests share करें।
 
 ```python
 import pytest
 
-@pytest.fixture(scope="function")  # Default! New instance per test function
+@pytest.fixture(scope="function")  # Default! हर test function के लिए नया
 def per_test_resource():
-    print("Creating resource")
+    print("Resource बना रहे हैं")
     return Resource()
 
-@pytest.fixture(scope="class")     # One instance shared across a test class
+@pytest.fixture(scope="class")     # एक बार एक test class के लिए
 def per_class_resource():
-    print("Creating resource for class")
+    print("Class के लिए resource बना रहे हैं")
     return Resource()
 
-@pytest.fixture(scope="module")    # One instance shared across a test file
+@pytest.fixture(scope="module")    # एक बार एक test file के लिए
 def per_module_resource():
-    print("Creating resource for module")
+    print("Module के लिए resource बना रहे हैं")
     return Resource()
 
-@pytest.fixture(scope="session")   # One instance shared across ALL tests
+@pytest.fixture(scope="session")   # एक बार पूरे test session के लिए
 def per_session_resource():
-    print("Creating resource for session")
+    print("Session के लिए resource बना रहे हैं")
     return Resource()
 ```
 
-### Scope Comparison with Jest
+### Scope: pytest vs Jest
 
-| pytest Scope | Jest Equivalent | Runs |
+| pytest Scope | Jest का equivalent | कब चलता है |
 |---|---|---|
-| `function` (default) | `beforeEach` / `afterEach` | Before/after each test |
-| `class` | Inner `describe` with `beforeAll` | Once per test class |
-| `module` | Per-file `beforeAll` / `afterAll` | Once per test file |
-| `session` | `globalSetup` / `globalTeardown` | Once for the entire test run |
+| `function` (default) | `beforeEach` / `afterEach` | हर test से पहले/बाद |
+| `class` | Inner `describe` के साथ `beforeAll` | एक बार test class के लिए |
+| `module` | Per-file `beforeAll` / `afterAll` | एक बार test file के लिए |
+| `session` | `globalSetup` / `globalTeardown` | पूरे test run के लिए एक बार |
 
 ### Real-World Example: Database Connection
+
+Zomato API की तरह सोचो — हर request के लिए connection खोलना महंगा है। तो:
+- **Session scope**: पूरे test run के लिए एक connection
+- **Function scope**: हर test के लिए नया transaction (जो rollback हो जाए)
 
 ```python
 import pytest
 
 @pytest.fixture(scope="session")
 def db_connection():
-    """Expensive: create once for entire test session."""
+    """महंगा है: पूरे session के लिए एक बार database खोलो।"""
     conn = create_database_connection()
     yield conn
     conn.close()
 
 @pytest.fixture(scope="function")
 def db_transaction(db_connection):
-    """Cheap: start a new transaction for each test, rollback after."""
+    """सस्ता है: हर test के लिए नया transaction, बाद में rollback करो।"""
     transaction = db_connection.begin()
     yield db_connection
-    transaction.rollback()  # Each test's changes are rolled back
+    transaction.rollback()  # हर test का data rollback हो जाता है
 
 def test_create_user(db_transaction):
     db_transaction.execute("INSERT INTO users (name) VALUES ('Alice')")
@@ -238,7 +242,7 @@ def test_create_user(db_transaction):
     assert result.fetchone() is not None
 
 def test_no_user_leakage(db_transaction):
-    # Previous test's INSERT was rolled back!
+    # पिछला test का INSERT rollback हो गया है!
     result = db_transaction.execute("SELECT * FROM users WHERE name = 'Alice'")
     assert result.fetchone() is None
 ```
@@ -247,37 +251,37 @@ def test_no_user_leakage(db_transaction):
 
 ## Fixture Teardown
 
-### Using yield (Recommended)
+### yield करना (Recommended तरीका)
 
 ```python
 @pytest.fixture
 def temp_file():
-    """Create a temp file, clean up after test."""
+    """Temp file बनाओ, test के बाद clean करो।"""
     import tempfile
     import os
 
-    # Setup: everything before yield
+    # Setup: yield से पहले की चीजें
     fd, path = tempfile.mkstemp()
     os.write(fd, b"test data")
     os.close(fd)
 
-    yield path  # This value is what the test receives
+    yield path  # यह value test को मिल जाती है
 
-    # Teardown: everything after yield
+    # Teardown: yield के बाद की चीजें
     os.unlink(path)
 
 def test_read_temp_file(temp_file):
     with open(temp_file) as f:
         assert f.read() == "test data"
-    # After this test, the temp file is automatically cleaned up
+    # Test खत्म होने के बाद, temp file automatically delete हो जाती है
 ```
 
-### Using addfinalizer (Less Common)
+### addfinalizer करना (कम use होता है)
 
 ```python
 @pytest.fixture
 def resource(request):
-    """Alternative teardown using request.addfinalizer."""
+    """Alternative cleanup तरीका: request.addfinalizer use करना।"""
     r = acquire_resource()
 
     def cleanup():
@@ -287,43 +291,41 @@ def resource(request):
     return r
 ```
 
-### Teardown Even on Failure
+### Teardown चलती है भले ही Test Fail हो
 
-Both `yield` and `addfinalizer` run cleanup even if the test fails. This is crucial
-for preventing resource leaks.
+यह बहुत जरूरी है resource leaks रोकने के लिए। `yield` और `addfinalizer` दोनों ही cleanup run करते हैं।
 
 ```python
 @pytest.fixture
 def server():
     srv = start_test_server(port=8080)
     yield srv
-    srv.stop()  # This runs even if the test raises an exception
+    srv.stop()  # यह चलेगा भले ही test exception throw करे
 ```
 
 ---
 
 ## conftest.py: Shared Fixtures
 
-This is one of pytest's most powerful features with **no Jest equivalent**.
+यह pytest की **सबसे शक्तिशाली feature** है। Jest में इसका कोई exact equivalent नहीं है।
 
-`conftest.py` files contain fixtures that are automatically available to all tests
-in the same directory and its subdirectories. No imports needed!
+`conftest.py` में जो fixtures लिखते हो, वह **automatically** उसी directory और सभी subdirectories के सभी tests को मिल जाता है। कोई imports की जरूरत नहीं!
 
 ### Project Structure
 
 ```
 tests/
-    conftest.py              # Fixtures available to ALL tests
+    conftest.py              # सभी tests के लिए fixtures
     test_auth.py
     test_home.py
 
     api/
-        conftest.py          # Fixtures for api/ tests only
+        conftest.py          # सिर्फ api/ tests के लिए fixtures
         test_users.py
         test_products.py
 
     integration/
-        conftest.py          # Fixtures for integration/ tests only
+        conftest.py          # सिर्फ integration/ tests के लिए fixtures
         test_database.py
 ```
 
@@ -335,17 +337,17 @@ import pytest
 
 @pytest.fixture
 def auth_headers():
-    """Available to ALL tests everywhere."""
+    """सभी tests को automatically मिल जाता है।"""
     return {"Authorization": "Bearer test-token-123"}
 
 @pytest.fixture
 def sample_user():
-    """Available to ALL tests everywhere."""
+    """सभी tests को automatically मिल जाता है।"""
     return {"id": 1, "name": "Alice", "email": "alice@test.com"}
 
 @pytest.fixture(scope="session")
 def app():
-    """Create the Flask/FastAPI app once for the test session."""
+    """Flask/FastAPI app एक बार test session के लिए बनाओ।"""
     from myapp import create_app
     app = create_app(testing=True)
     return app
@@ -359,23 +361,23 @@ import pytest
 
 @pytest.fixture
 def api_client(app):
-    """Only available to tests in tests/api/.
-    Uses the 'app' fixture from the parent conftest.py."""
+    """सिर्फ tests/api/ में available है।
+    Parent conftest.py का 'app' fixture automatically inject होता है।"""
     return app.test_client()
 
 @pytest.fixture
 def authenticated_client(api_client, auth_headers):
-    """Combines fixtures from different conftest.py files."""
+    """Different conftest.py files के fixtures को combine करना।"""
     api_client.default_headers = auth_headers
     return api_client
 ```
 
-### Using Shared Fixtures (No Imports!)
+### Shared Fixtures Use करना (कोई imports नहीं!)
 
 ```python
 # tests/api/test_users.py
 
-# No imports needed for fixtures! pytest injects them automatically.
+# fixtures के लिए कोई imports की जरूरत नहीं! pytest automatically inject करता है।
 
 def test_list_users(authenticated_client):
     response = authenticated_client.get("/api/users")
@@ -386,21 +388,21 @@ def test_create_user(authenticated_client, sample_user):
     assert response.status_code == 201
 ```
 
-### conftest.py Can Also Configure pytest
+### conftest.py pytest को भी Configure कर सकता है
 
 ```python
 # tests/conftest.py
 import pytest
 
 def pytest_addoption(parser):
-    """Add custom command-line options."""
+    """Custom command-line options add करना।"""
     parser.addoption(
         "--runslow", action="store_true", default=False,
-        help="Run slow tests"
+        help="Slow tests को भी चलाओ"
     )
 
 def pytest_collection_modifyitems(config, items):
-    """Skip slow tests unless --runslow is passed."""
+    """--runslow न दिया तो slow tests skip कर दो।"""
     if not config.getoption("--runslow"):
         skip_slow = pytest.mark.skip(reason="Need --runslow option to run")
         for item in items:
@@ -412,7 +414,7 @@ def pytest_collection_modifyitems(config, items):
 
 ## Fixture Dependency Injection
 
-Fixtures can depend on other fixtures, forming a dependency graph.
+Fixtures दूसरे fixtures पर depend कर सकते हैं। एक dependency chain बन जाती है।
 
 ```python
 import pytest
@@ -422,37 +424,36 @@ def database_url():
     return "postgresql://localhost:5432/testdb"
 
 @pytest.fixture
-def database_connection(database_url):       # Depends on database_url
+def database_connection(database_url):       # database_url पर depend करता है
     conn = connect(database_url)
     yield conn
     conn.close()
 
 @pytest.fixture
-def user_repository(database_connection):    # Depends on database_connection
+def user_repository(database_connection):    # database_connection पर depend करता है
     return UserRepository(database_connection)
 
 @pytest.fixture
-def user_service(user_repository):           # Depends on user_repository
+def user_service(user_repository):           # user_repository पर depend करता है
     return UserService(user_repository)
 
-# The test only asks for what it needs. pytest builds the entire chain.
+# Test सिर्फ वही मांगता है जो चाहिए। pytest पूरी chain build कर देता है।
 def test_create_user(user_service):
-    # pytest automatically creates: database_url -> database_connection ->
+    # pytest automatically बना देता है: database_url -> database_connection ->
     #   user_repository -> user_service
     user = user_service.create("Alice")
     assert user.name == "Alice"
 ```
 
-This is like a lightweight dependency injection container that wires up your test
-dependencies automatically.
+यह एक lightweight dependency injection container जैसे है जो automatically wire करता है।
 
-### Visualizing Fixture Dependencies
+### Fixture Dependencies Visualize करना
 
 ```bash
-# Show what fixtures a test uses:
+# देखो कि एक test को कौन से fixtures चाहिए:
 pytest --fixtures-per-test test_example.py
 
-# Show all available fixtures:
+# सभी available fixtures देखो:
 pytest --fixtures
 ```
 
@@ -460,22 +461,22 @@ pytest --fixtures
 
 ## Built-in Fixtures
 
-pytest comes with several useful built-in fixtures.
+pytest के साथ कुछ built-in fixtures आते हैं जो super useful हैं।
 
-### tmp_path - Temporary Directory
+### tmp_path — Temporary Directory
 
 ```python
 def test_write_file(tmp_path):
-    """tmp_path is a pathlib.Path to a unique temp directory."""
+    """tmp_path एक unique temporary directory का pathlib.Path है।"""
     file = tmp_path / "test.txt"
     file.write_text("hello world")
 
     assert file.read_text() == "hello world"
     assert file.exists()
-    # Directory is automatically cleaned up
+    # Directory automatically clean हो जाती है
 
 def test_create_structure(tmp_path):
-    """Create a complex file structure for testing."""
+    """Complex file structure testing के लिए बनाओ।"""
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "main.py").write_text("print('hello')")
     (tmp_path / "tests").mkdir()
@@ -484,7 +485,7 @@ def test_create_structure(tmp_path):
     assert (tmp_path / "src" / "main.py").exists()
 ```
 
-### capsys - Capture stdout/stderr
+### capsys — stdout/stderr को Capture करना
 
 ```python
 def greet(name: str) -> None:
@@ -497,7 +498,7 @@ def test_greet_output(capsys):
     assert captured.err == ""
 ```
 
-### caplog - Capture Logging
+### caplog — Logging को Capture करना
 
 ```python
 import logging
@@ -521,11 +522,11 @@ def test_empty_data_warning(caplog):
     assert "Empty data received" in caplog.text
 ```
 
-### request - Test Metadata
+### request — Test Metadata
 
 ```python
 def test_example(request):
-    print(f"Test name: {request.node.name}")
+    print(f"Test का नाम: {request.node.name}")
     print(f"Test file: {request.fspath}")
     print(f"Test markers: {list(request.node.iter_markers())}")
 ```
@@ -534,30 +535,31 @@ def test_example(request):
 
 ## unittest.mock: Mock, MagicMock, patch
 
-Python's standard library includes a powerful mocking library. You do not need to install
-anything extra (though `pytest-mock` provides a nicer API).
+Python के standard library में एक powerful mocking library है। कुछ install नहीं करना पड़ता 
+(अलबत्ता `pytest-mock` अगर चाहो तो ज्यादा nice API देता है)।
 
 ### Mock vs jest.fn()
 
 ```python
 from unittest.mock import Mock, MagicMock
 
-# Create a mock (like jest.fn())
+# Mock बनाओ (jest.fn() जैसे ही)
 mock_fn = Mock()
 
-# Call it
+# उसे call करो
 mock_fn(1, 2, 3)
 mock_fn("hello")
 
-# Assert it was called
+# Assert कि यह call हुआ
 mock_fn.assert_called()
-mock_fn.assert_called_with("hello")  # Last call
-mock_fn.assert_any_call(1, 2, 3)     # Any call ever
+mock_fn.assert_called_with("hello")  # आखिरी call
+mock_fn.assert_any_call(1, 2, 3)     # कोई भी call
 assert mock_fn.call_count == 2
 ```
 
-Jest equivalent:
+Jest में ऐसे लिखते हो:
 ```typescript
+// Jest: jest.fn()
 const mockFn = jest.fn();
 mockFn(1, 2, 3);
 mockFn('hello');
@@ -567,23 +569,23 @@ expect(mockFn).toHaveBeenCalledWith(1, 2, 3);
 expect(mockFn).toHaveBeenCalledTimes(2);
 ```
 
-### return_value and side_effect
+### return_value और side_effect
 
 ```python
 from unittest.mock import Mock
 
-# Mock with a return value (like jest.fn().mockReturnValue())
+# Mock जो specific value return करे (jest.fn().mockReturnValue() जैसे)
 mock_db = Mock()
 mock_db.get_user.return_value = {"id": 1, "name": "Alice"}
 result = mock_db.get_user(1)
 assert result == {"id": 1, "name": "Alice"}
 
-# Mock with different return values per call (like mockReturnValueOnce)
+# Different return values हर call के लिए (mockReturnValueOnce जैसे)
 mock_api = Mock()
 mock_api.fetch.side_effect = [
-    {"status": "ok"},      # First call
-    {"status": "error"},   # Second call
-    ConnectionError("timeout"),  # Third call raises!
+    {"status": "ok"},      # पहली call
+    {"status": "error"},   # दूसरी call
+    ConnectionError("timeout"),  # तीसरी call exception throw करे!
 ]
 assert mock_api.fetch()["status"] == "ok"
 assert mock_api.fetch()["status"] == "error"
@@ -592,45 +594,45 @@ import pytest
 with pytest.raises(ConnectionError):
     mock_api.fetch()
 
-# Mock with a function (like jest.fn().mockImplementation())
+# Mock जो function की तरह काम करे (mockImplementation जैसे)
 mock_calculator = Mock()
 mock_calculator.add.side_effect = lambda a, b: a + b
 assert mock_calculator.add(2, 3) == 5
 
-# Mock that always raises (like jest.fn().mockRejectedValue())
+# Mock जो हमेशा exception throw करे (mockRejectedValue जैसे)
 mock_service = Mock()
 mock_service.connect.side_effect = ConnectionError("refused")
 with pytest.raises(ConnectionError):
     mock_service.connect()
 ```
 
-### MagicMock - Mock with Magic Methods
+### MagicMock — Magic Methods के साथ Mock
 
 ```python
 from unittest.mock import MagicMock
 
-# MagicMock supports Python's magic/dunder methods
+# MagicMock Python के magic/dunder methods को support करता है
 mock = MagicMock()
 
-# Supports len()
+# len() support करता है
 mock.__len__.return_value = 5
 assert len(mock) == 5
 
-# Supports iteration
+# Iteration support करता है
 mock.__iter__.return_value = iter([1, 2, 3])
 assert list(mock) == [1, 2, 3]
 
-# Supports context manager (with statement)
+# Context manager support करता है (with statement)
 mock.__enter__.return_value = "resource"
 with mock as resource:
     assert resource == "resource"
 
-# Supports subscript access
+# Subscript access support करता है
 mock.__getitem__.return_value = "value"
 assert mock["key"] == "value"
 ```
 
-### Asserting Call Details
+### Call Details को Assert करना
 
 ```python
 from unittest.mock import Mock, call
@@ -640,21 +642,21 @@ mock_fn(1, name="Alice")
 mock_fn(2, name="Bob")
 mock_fn(3, name="Charlie")
 
-# Assert specific calls
-mock_fn.assert_called_with(3, name="Charlie")       # Last call
-mock_fn.assert_any_call(1, name="Alice")             # Any call
+# Specific calls assert करो
+mock_fn.assert_called_with(3, name="Charlie")       # आखिरी call
+mock_fn.assert_any_call(1, name="Alice")             # कोई भी call
 
-# Assert entire call history
+# पूरी call history assert करो
 assert mock_fn.call_args_list == [
     call(1, name="Alice"),
     call(2, name="Bob"),
     call(3, name="Charlie"),
 ]
 
-# Assert call count
+# Call count assert करो
 assert mock_fn.call_count == 3
 
-# Reset mock (like jest.fn().mockClear())
+# Mock reset करो (jest.fn().mockClear() जैसे)
 mock_fn.reset_mock()
 assert mock_fn.call_count == 0
 ```
@@ -663,8 +665,8 @@ assert mock_fn.call_count == 0
 
 ## The @patch Decorator
 
-`@patch` temporarily replaces an object with a mock during a test. This is the Python
-equivalent of `jest.mock()`.
+`@patch` एक object को temporarily mock से replace कर देता है एक test के दौरान। 
+यह Jest के `jest.mock()` का Python equivalent है।
 
 ### Basic @patch Usage
 
@@ -682,22 +684,22 @@ def get_temperature(city: str) -> float:
 # tests/test_weather.py
 from unittest.mock import patch, Mock
 
-# Method 1: @patch as decorator
+# Method 1: @patch decorator की तरह
 @patch("src.weather.requests.get")
 def test_get_temperature(mock_get):
-    # Configure the mock
+    # Mock को configure करो
     mock_response = Mock()
     mock_response.json.return_value = {"temperature": 72.5}
     mock_get.return_value = mock_response
 
-    # Call the real function - it uses the mock internally
+    # Real function को call करो - यह internally mock use करेगा
     from src.weather import get_temperature
     temp = get_temperature("NYC")
 
     assert temp == 72.5
     mock_get.assert_called_once_with("https://api.weather.com/NYC")
 
-# Method 2: patch as context manager
+# Method 2: patch को context manager की तरह
 def test_get_temperature_context():
     with patch("src.weather.requests.get") as mock_get:
         mock_response = Mock()
@@ -710,12 +712,12 @@ def test_get_temperature_context():
         assert temp == 85.0
 ```
 
-**Important:** You patch where the thing is **used**, not where it is **defined**.
-`patch("src.weather.requests.get")` not `patch("requests.get")`.
+**महत्वपूर्ण:** आप patch करते हो जहाँ चीज **use होती है**, जहाँ **define होती है** नहीं।
+`patch("src.weather.requests.get")` सही है, `patch("requests.get")` गलत है।
 
-Jest comparison:
+Jest में:
 ```typescript
-// Jest: jest.mock at module level
+// Jest: jest.mock module level पर
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
@@ -726,15 +728,15 @@ test('get temperature', async () => {
 });
 ```
 
-### Patching Multiple Things
+### Multiple चीजों को Patch करना
 
 ```python
 @patch("src.service.send_email")
 @patch("src.service.save_to_db")
 def test_register_user(mock_save, mock_email):
-    # Note: decorators are applied bottom-up, so parameters are reversed!
-    # mock_save corresponds to save_to_db (inner/lower decorator)
-    # mock_email corresponds to send_email (outer/upper decorator)
+    # Note: Decorators bottom-up लागू होते हैं, तो parameters reverse order में हैं!
+    # mock_save = save_to_db (lower decorator)
+    # mock_email = send_email (upper decorator)
 
     mock_save.return_value = {"id": 1, "name": "Alice"}
 
@@ -744,26 +746,26 @@ def test_register_user(mock_save, mock_email):
     mock_email.assert_called_once_with("alice@test.com", "Welcome!")
 ```
 
-### patch.object - Patch an Attribute
+### patch.object — किसी Attribute को Patch करना
 
 ```python
 from unittest.mock import patch
 
 class PaymentGateway:
     def charge(self, amount: float) -> bool:
-        # Real implementation calls external API
+        # Real implementation external API call करता है
         pass
 
 def test_checkout():
     gateway = PaymentGateway()
 
     with patch.object(gateway, "charge", return_value=True):
-        # gateway.charge is now a mock that returns True
+        # अब gateway.charge एक mock है जो True return करता है
         result = gateway.charge(99.99)
         assert result is True
 ```
 
-### patch.dict - Patch a Dictionary
+### patch.dict — Dictionary को Patch करना
 
 ```python
 import os
@@ -776,7 +778,7 @@ def test_with_env_vars():
 
 @patch.dict(os.environ, {"API_KEY": "test-key"}, clear=True)
 def test_with_clean_env():
-    # Only API_KEY exists - all other env vars are cleared
+    # सिर्फ API_KEY exist करेगी - बाकी सब env vars clear हो जाएंगे
     assert os.environ.get("API_KEY") == "test-key"
     assert os.environ.get("PATH") is None
 ```
@@ -785,10 +787,10 @@ def test_with_clean_env():
 
 ## monkeypatch Fixture
 
-pytest provides a built-in `monkeypatch` fixture that is often easier to use than
-`unittest.mock.patch`. It automatically undoes changes after each test.
+pytest का एक built-in `monkeypatch` fixture है जो अक्सर `unittest.mock.patch` से ज्यादा easy होता है।
+यह automatically हर test के बाद changes undo कर देता है।
 
-### Setting Environment Variables
+### Environment Variables Set करना
 
 ```python
 def test_api_key(monkeypatch):
@@ -797,7 +799,7 @@ def test_api_key(monkeypatch):
 
     from myapp.config import get_api_key
     assert get_api_key() == "test-key-123"
-    # After the test, environment is automatically restored
+    # Test के बाद, environment automatically restore हो जाता है
 
 def test_missing_api_key(monkeypatch):
     monkeypatch.delenv("API_KEY", raising=False)
@@ -808,25 +810,25 @@ def test_missing_api_key(monkeypatch):
         get_api_key()
 ```
 
-### Patching Attributes
+### Attributes को Patch करना
 
 ```python
 def test_custom_timeout(monkeypatch):
     import myapp.client as client
 
-    # Replace an attribute on a module/object
+    # किसी module/object पर attribute replace करो
     monkeypatch.setattr(client, "DEFAULT_TIMEOUT", 1)
     assert client.DEFAULT_TIMEOUT == 1
 
 def test_mock_function(monkeypatch):
     import myapp.auth as auth
 
-    # Replace a function
+    # Function को replace करो
     monkeypatch.setattr(auth, "verify_token", lambda token: True)
     assert auth.verify_token("any-token") is True
 ```
 
-### Patching Dictionary Items
+### Dictionary Items को Patch करना
 
 ```python
 def test_custom_config(monkeypatch):
@@ -834,28 +836,27 @@ def test_custom_config(monkeypatch):
 
     monkeypatch.setitem(config.SETTINGS, "max_retries", 1)
     monkeypatch.setitem(config.SETTINGS, "timeout", 0.1)
-    # SETTINGS dict is restored after the test
+    # Test के बाद, SETTINGS dict restore हो जाती है
 ```
 
 ### monkeypatch vs unittest.mock.patch
 
 | Feature | monkeypatch | unittest.mock.patch |
 |---|---|---|
-| Scope | pytest fixture (function scope) | Decorator or context manager |
-| Undo | Automatic after test | Automatic (decorator/ctx) or manual |
+| Scope | pytest fixture (function scope) | Decorator या context manager |
+| Undo | Test के बाद automatic | Automatic (decorator/ctx) या manual |
 | Best for | Env vars, simple attr replacement | Full mock objects, call tracking |
-| Call assertions | No | Yes (assert_called_with, etc.) |
-| return_value/side_effect | No (use with Mock()) | Yes |
+| Call assertions | नहीं | हाँ (assert_called_with, etc.) |
+| return_value/side_effect | नहीं (Mock() के साथ use करो) | हाँ |
 
-**Rule of thumb:** Use `monkeypatch` for simple replacements (env vars, config values).
-Use `unittest.mock.patch` when you need to track calls or configure complex mock behavior.
+**Rule of thumb:** Simple चीजों के लिए (env vars, config values) `monkeypatch` use करो।
+Complex mock behavior और call tracking के लिए `unittest.mock.patch` use करो।
 
 ---
 
 ## pytest-mock Plugin (Bonus)
 
-The `pytest-mock` package provides a `mocker` fixture that wraps `unittest.mock` with a
-cleaner API.
+`pytest-mock` package एक `mocker` fixture देता है जो `unittest.mock` को wrap करता है।
 
 ```bash
 pip install pytest-mock
@@ -863,19 +864,19 @@ pip install pytest-mock
 
 ```python
 def test_with_mocker(mocker):
-    # mocker.patch works like @patch but as a fixture
+    # mocker.patch @patch जैसे ही काम करता है, लेकिन fixture की तरह
     mock_get = mocker.patch("src.weather.requests.get")
     mock_get.return_value.json.return_value = {"temperature": 72.5}
 
     from src.weather import get_temperature
     assert get_temperature("NYC") == 72.5
 
-    # Create spies (like jest.spyOn)
+    # Spies बनाओ (jest.spyOn जैसे)
     spy = mocker.spy(some_module, "some_function")
     some_module.some_function(42)
     spy.assert_called_once_with(42)
 
-    # Create mocks
+    # Mocks बनाओ
     mock_fn = mocker.Mock(return_value=42)
     assert mock_fn() == 42
 ```
@@ -929,16 +930,16 @@ class TodoList:
 import pytest
 from src.todo import TodoList
 
-# YOUR CODE HERE:
-# 1. Create a fixture that provides an empty TodoList
-# 2. Create a fixture that provides a TodoList with 3 pre-populated items
-# 3. Create a factory fixture that creates todos with custom titles
-# 4. Write tests using these fixtures:
-#    - test_add_todo (using empty TodoList fixture)
-#    - test_complete_todo (using pre-populated fixture)
-#    - test_complete_nonexistent_raises (using empty fixture + pytest.raises)
-#    - test_get_pending (using pre-populated fixture where some are completed)
-#    - test_count (using factory fixture to create variable numbers of todos)
+# आपका कोड यहाँ:
+# 1. एक fixture बनाओ जो empty TodoList देता हो
+# 2. एक fixture बनाओ जो TodoList + 3 pre-populated items देता हो
+# 3. एक factory fixture बनाओ जो custom titles वाले todos create करता हो
+# 4. ये tests लिखो:
+#    - test_add_todo (empty TodoList fixture use करके)
+#    - test_complete_todo (pre-populated fixture use करके)
+#    - test_complete_nonexistent_raises (empty fixture + pytest.raises)
+#    - test_get_pending (pre-populated fixture जहाँ कुछ complete हों)
+#    - test_count (factory fixture use करके variable number के todos बनाओ)
 ```
 
 ### Exercise 2: Mocking an External API
@@ -985,37 +986,37 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from src.github_client import GitHubClient
 
-# YOUR CODE HERE:
-# 1. Create a fixture that provides a GitHubClient with a fake token
-# 2. Mock the requests.Session to avoid real HTTP calls
-# 3. Test get_user returns parsed JSON
-# 4. Test get_repos returns a list of repos
-# 5. Test create_issue sends correct payload
-# 6. Test that HTTP errors (404, 500) are properly raised
-# 7. Test that the Authorization header is set correctly
+# आपका कोड यहाँ:
+# 1. एक fixture बनाओ जो fake token के साथ GitHubClient देता हो
+# 2. requests.Session को mock करो ताकि real HTTP calls न हों
+# 3. test_get_user: parsed JSON return करे
+# 4. test_get_repos: repos की list return करे
+# 5. test_create_issue: correct payload send करे
+# 6. test HTTP errors (404, 500) properly raise होते हैं
+# 7. test Authorization header properly set है
 ```
 
 ### Exercise 3: conftest.py Hierarchy
 
-Create this test structure and implement shared fixtures:
+यह test structure बनाओ और shared fixtures implement करो:
 
 ```
 tests/
     conftest.py           # -> app fixture, auth_token fixture
-    test_health.py        # -> test that app is running
+    test_health.py        # -> test कि app running है
 
     api/
-        conftest.py       # -> api_client fixture (depends on app)
-        test_users.py     # -> tests using api_client
-        test_products.py  # -> tests using api_client
+        conftest.py       # -> api_client fixture (app पर depend करता है)
+        test_users.py     # -> api_client use करके tests
+        test_products.py  # -> api_client use करके tests
 
     integration/
         conftest.py       # -> database fixture (session scope)
-        test_db.py        # -> tests using database
+        test_db.py        # -> database use करके tests
 ```
 
-Implement all conftest.py files and at least 2 tests per test file. Fixtures in child
-conftest files should depend on parent fixtures.
+सभी conftest.py files और कम से कम 2 tests per file implement करो। 
+Child conftest files के fixtures को parent fixtures पर depend करना चाहिए।
 
 ### Exercise 4: monkeypatch Environment
 
@@ -1027,32 +1028,32 @@ def get_config() -> dict:
     return {
         "database_url": os.environ.get("DATABASE_URL", "sqlite:///dev.db"),
         "debug": os.environ.get("DEBUG", "false").lower() == "true",
-        "api_key": os.environ["API_KEY"],  # Required - raises KeyError if missing
+        "api_key": os.environ["API_KEY"],  # Required - अगर missing तो KeyError
         "max_connections": int(os.environ.get("MAX_CONNECTIONS", "10")),
     }
 ```
 
 ```python
 # tests/test_config.py
-# YOUR CODE HERE:
-# 1. Test default values when env vars are not set (use monkeypatch.delenv)
-# 2. Test custom values override defaults
-# 3. Test that missing API_KEY raises KeyError
+# आपका कोड यहाँ:
+# 1. Test default values जब env vars set न हों (monkeypatch.delenv use करो)
+# 2. Test custom values default को override करते हैं
+# 3. Test कि missing API_KEY KeyError raise करता है
 # 4. Test debug mode parsing ("true", "True", "TRUE", "false", "0")
-# 5. Test invalid MAX_CONNECTIONS raises ValueError
-# Use monkeypatch for all environment manipulation
+# 5. Test invalid MAX_CONNECTIONS ValueError raise करता है
+# सभी environment manipulation के लिए monkeypatch use करो
 ```
 
 ---
 
 ## Key Takeaways
 
-1. **Fixtures > beforeEach.** They are explicit, composable, and scoped.
-2. **conftest.py is magic.** Shared fixtures with zero imports. Use the directory hierarchy.
-3. **yield for cleanup.** Setup before yield, teardown after. Always runs.
-4. **Scope carefully.** Use `session` for expensive resources, `function` for isolation.
-5. **Mock where it is used.** `patch("myapp.module.requests")` not `patch("requests")`.
-6. **monkeypatch for simple stuff.** Env vars, config values, simple attribute replacement.
-7. **unittest.mock for complex stuff.** Call tracking, return values, side effects.
+1. **Fixtures > beforeEach.** Explicit हैं, composable हैं, scoped हैं।
+2. **conftest.py magic है।** Shared fixtures zero imports के साथ। Directory hierarchy use करो।
+3. **yield से cleanup करो।** yield से पहले setup, बाद में teardown। हमेशा चलता है।
+4. **Scope को carefully choose करो।** `session` expensive resources के लिए, `function` isolation के लिए।
+5. **Patch जहाँ use होता है।** `patch("myapp.module.requests")` सही है, `patch("requests")` नहीं।
+6. **Simple चीजों के लिए monkeypatch।** Env vars, config values, simple attribute replacement।
+7. **Complex मocking के लिए unittest.mock।** Call tracking, return values, side effects।
 
-Next up: [Async Testing](./03_async_testing.md) -- testing async/await code in Python.
+अगला: [Async Testing](./03_async_testing.md) — Python में async/await code को test करना।

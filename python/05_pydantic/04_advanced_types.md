@@ -1,14 +1,18 @@
 # 04 - Advanced Types
 
-## Extra Validation Types: EmailStr, HttpUrl, and Friends
+## Extra Validation Types: EmailStr, HttpUrl, aur Sab Kuch
 
-Pydantic provides specialized types that go beyond basic `str`/`int`/`float`. These are like using Zod's `.email()`, `.url()`, etc., but as standalone types.
+Pydantic kuch specialized types provide karta hai jo basic `str`/`int`/`float` se bahut aage ka kaam karte hain. Jaise Zod ke `.email()`, `.url()` wale validators hote hain, waise hi yahan hain — bas zyada powerful aur Python-like.
 
 ### EmailStr
+
+Pehle install kar le:
 
 ```bash
 pip install "pydantic[email]"
 ```
+
+Ab use karte hain:
 
 ```python
 from pydantic import BaseModel, EmailStr
@@ -22,46 +26,50 @@ User(name="Alice", email="not-an-email")         # ValidationError
 User(name="Alice", email="alice@example")         # ValidationError
 ```
 
-Zod equivalent:
-```typescript
-z.string().email()
-```
+> [!tip]
+> TypeScript mein toh Zod se `z.string().email()` likhte ho — Python mein direct type use karo.
 
-### HttpUrl and Other URL Types
+---
+
+### HttpUrl aur URL Types
+
+Socho ek delivery app jaise Zomato mein — har restaurant ke paas ek homepage URL hota hai, jo valid HTTPS hona chahiye. Usi tarah, har API ke paas ek endpoint hota hai. Pydantic ko batao ki kaunsa URL type chahiye:
 
 ```python
 from pydantic import BaseModel, HttpUrl, AnyUrl
 
 class Website(BaseModel):
-    homepage: HttpUrl        # must be http:// or https://
-    any_link: AnyUrl         # any valid URL scheme
+    homepage: HttpUrl        # sirf http:// ya https:// allow karega
+    any_link: AnyUrl         # kisi bhi scheme ko allow karega
 
 Website(homepage="https://example.com")  # works
-Website(homepage="ftp://example.com")    # ValidationError (not HTTP)
+Website(homepage="ftp://example.com")    # ValidationError (FTP nahi, HTTP chahiye)
 Website(homepage="not a url")            # ValidationError
 
-# The parsed URL is a Url object, not a plain string
+# Parsed URL ek Url object hota hai, plain string nahi
 site = Website(homepage="https://example.com/path?q=1")
 print(str(site.homepage))   # "https://example.com/path?q=1"
 print(site.homepage.scheme) # "https"
 print(site.homepage.host)   # "example.com"
 ```
 
-Zod equivalent:
-```typescript
-z.string().url()
-```
+> [!info]
+> URL ko parts mein break kar sakte ho — scheme, host, path, query, sab milta hai Pydantic mein.
 
-### Other Useful Types from Pydantic
+---
+
+### Aur Useful Types
+
+Maan lete ho ek server ka config file banate ho. Database path ho, certificate file ho, API key ho. Har ek ka validation alag hona chahiye:
 
 ```python
 from pydantic import (
     BaseModel,
     IPvAnyAddress,
-    FilePath,        # must be a file that exists
-    DirectoryPath,   # must be a directory that exists
-    NewPath,         # must NOT exist yet
-    SecretStr,       # hides value in repr/logs
+    FilePath,        # file exist karna chahiye, nahi toh error
+    DirectoryPath,   # folder exist karna chahiye
+    NewPath,         # isko abhi exist nahi hona chahiye
+    SecretStr,       # logs mein hidden rahega, security ke liye
 )
 
 class ServerConfig(BaseModel):
@@ -72,8 +80,8 @@ class ServerConfig(BaseModel):
 
 config = ServerConfig(
     bind_address="192.168.1.1",
-    cert_file="/etc/ssl/cert.pem",   # must exist
-    log_dir="/var/log/app",           # must exist
+    cert_file="/etc/ssl/cert.pem",   # exists hona chahiye
+    log_dir="/var/log/app",           # exists hona chahije
     api_key="super-secret-key"
 )
 
@@ -81,13 +89,16 @@ print(config.api_key)                  # SecretStr('**********')
 print(config.api_key.get_secret_value())  # "super-secret-key"
 ```
 
-`SecretStr` is particularly useful -- it prevents accidental logging of sensitive data. There is no direct Zod equivalent for this.
+> [!warning]
+> `SecretStr` ek badi baat hai — jab tum print karo ya log karo, toh `**********` dikhega, actual value nahi. Production mein bahut zaruri hai ye! Zod mein directly ye feature nahi hai.
 
 ---
 
 ## Constrained Types: conint, constr, confloat
 
-These are shorthand for creating constrained types without `Field()`:
+Maan lete ho Flipkart par ek product list banate ho. Name 1-100 characters ka ho, price 0.01 se 99999 ke beech ho, quantity 0-10000 ke beech ho. Har ek field ke liye validation rules hain.
+
+Pydantic mein shorthand hai — `Field()` likha nahi par constraints likha:
 
 ```python
 from pydantic import BaseModel, conint, constr, confloat
@@ -99,7 +110,7 @@ class Product(BaseModel):
     sku: constr(pattern=r"^[A-Z]{2}-\d{4}$")
 ```
 
-This is equivalent to:
+Ye bilkul same cheez hai, sirf alag tarika:
 
 ```python
 from pydantic import BaseModel, Field
@@ -111,22 +122,27 @@ class Product(BaseModel):
     sku: str = Field(pattern=r"^[A-Z]{2}-\d{4}$")
 ```
 
-The `Annotated` + `Field()` style is now preferred in modern Pydantic v2 code, but you will see `conint`/`constr` in existing codebases.
+Lekin ek baat — modern Pydantic v2 mein `Annotated` + `Field()` style ko prefer karte hain. Purane codebases mein `conint`/`constr` dikha jayega, par naya likhte wakt Annotated use karo:
 
 ```python
 from typing import Annotated
 from pydantic import Field
 
-# Modern style (preferred)
+# Modern style (best practice)
 PositiveInt = Annotated[int, Field(gt=0)]
 ShortStr = Annotated[str, Field(max_length=50)]
 ```
+
+> [!tip]
+> Agar purane codebase maintain kar rahe ho, toh `conint` samajh lo. Naya likha jaye toh `Annotated` likh.
 
 ---
 
 ## Literal Types
 
-`Literal` restricts a field to specific exact values. This is like a TypeScript string literal union or Zod's `z.enum()`.
+Kya hota hai jab tum UPI payment accept karte ho? Status teen states mein hota hai — "pending", "success", "failed". Kuch aur values allowed nahi hain.
+
+`Literal` exactly ye hi karta hai — specific values only:
 
 ```python
 from typing import Literal
@@ -148,7 +164,7 @@ Task(title="Fix bug", status="todo", priority=5)
 # ValidationError: priority - Input should be 1, 2 or 3
 ```
 
-### TypeScript/Zod Equivalents
+### TypeScript/Zod Equivalent
 
 ```typescript
 // TypeScript
@@ -160,9 +176,11 @@ const StatusSchema = z.enum(["todo", "in_progress", "done"]);
 const PrioritySchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 ```
 
-### Python Enum vs Literal
+---
 
-You can also use Python enums:
+### Python Enum vs Literal — Kaun Zyada Badhiya?
+
+Ek aur tareeka hai — Python ke Enum use karo. Ye jab values ko methods ya logic ke sath bandi karna hota hai:
 
 ```python
 from enum import Enum
@@ -181,17 +199,24 @@ print(task.status)        # Status.TODO
 print(task.status.value)  # "todo"
 ```
 
-**When to use which:**
-- `Literal`: simple, inline, for a few values. Good when you just need to restrict values.
-- `Enum`: when you need the enum as a reusable type with methods, or when the set of values is used in many places.
+**Kab kaun use kare?**
+- **Literal**: Jab simple values chahiye, koi methods nahi. Inline sab likha hai.
+- **Enum**: Jab enum ko multiple jageho use karna ho, ya values ke sath methods bandi karni ho.
+
+> [!info]
+> Literal tez hai, Enum zyada organized hai. Dono valid hain.
 
 ---
 
-## Discriminated Unions (Tagged Unions)
+## Discriminated Unions (Tagged Unions) — TypeScript se Familiar!
 
-This is a concept you already know from TypeScript! A discriminated union uses a shared field (the "discriminator" or "tag") to determine which type in a union to use.
+Tum TypeScript mein discriminated unions likha hoga. Pydantic mein bilkul same concept hai!
 
-### TypeScript Discriminated Union
+Socho — ek geometry app mein tum shapes store kar rahe ho. Circle ko radius chahiye, Rectangle ko width + height chahiye, Triangle ko base + height. Tum kaise pata karo konsa shape data aaya?
+
+**Tag use karo!** Ek field jo bata de "ye circle hai ya rectangle?"
+
+### TypeScript mein Example
 
 ```typescript
 type Shape =
@@ -211,7 +236,7 @@ function area(shape: Shape): number {
 }
 ```
 
-### Pydantic Discriminated Union
+### Python Pydantic mein Same Cheez
 
 ```python
 from typing import Annotated, Literal, Union
@@ -255,32 +280,28 @@ for shape in canvas.shapes:
             print(f"Triangle base={b} height={h}")
 ```
 
-### Why Discriminated Unions Matter
+### Kyun Zaruri Hai Discriminator?
 
-Without the discriminator, Pydantic tries each union member in order and uses the first one that validates. This is slow and can produce confusing errors. With a discriminator, Pydantic looks at the tag field first and immediately knows which model to validate against.
+Bina discriminator ke, Pydantic har union member ko ek-ek karke try karega. Slow hoga, confusing error aayegi. Discriminator se pehle `kind` field dekh leta hai aur seedha right type validate kar leta hai.
 
 ```python
-# WITHOUT discriminator - Pydantic tries each in order (slow, ambiguous)
+# BINA discriminator - Pydantic har ek ko try karega (slow + ambiguous)
 Shape = Union[Circle, Rectangle, Triangle]
 
-# WITH discriminator - Pydantic checks "kind" first (fast, precise)
+# SAATH discriminator - Pydantic "kind" check karke seedha jump karega (fast + precise)
 Shape = Annotated[Union[Circle, Rectangle, Triangle], Field(discriminator="kind")]
 ```
 
-### Zod Equivalent
-
-```typescript
-const CircleSchema = z.object({ kind: z.literal("circle"), radius: z.number() });
-const RectangleSchema = z.object({ kind: z.literal("rectangle"), width: z.number(), height: z.number() });
-
-const ShapeSchema = z.discriminatedUnion("kind", [CircleSchema, RectangleSchema]);
-```
+> [!warning]
+> Agar `discriminator` na use karo, toh multiple union types mein validation complexity aur ambiguity hogi.
 
 ---
 
-## Generic Models
+## Generic Models — Reusable Templates
 
-Pydantic supports Python generics, letting you create reusable model templates. This is like TypeScript generics.
+Maan lete ho Swiggy API banate ho. Jab order fetch karte ho, toh response mein order data hota hai. Jab restaurant fetch karte ho, toh restaurant data hota hai. Response structure same — status, message, data — bas data type badlti hai.
+
+**Generic Types** se ye template ek baar likho, phir kisi bhi type se use karo:
 
 ### TypeScript Generic
 
@@ -299,7 +320,7 @@ const userResponse: ApiResponse<User> = {
 };
 ```
 
-### Pydantic Generic
+### Pydantic Generic — Same Cheez
 
 ```python
 from typing import Generic, TypeVar
@@ -320,7 +341,7 @@ class Product(BaseModel):
     name: str
     price: float
 
-# Use with different types
+# Different types ke sath use karo
 user_response = ApiResponse[User](
     data={"name": "Alice", "age": 30},
     status=200,
@@ -336,7 +357,9 @@ product_response = ApiResponse[Product](
 print(type(product_response.data))  # <class 'Product'>
 ```
 
-### Paginated Response (Real-World Example)
+### Real-World: Paginated Response
+
+Bilkul real example — IRCTC jaise site par train search karte ho, toh response mein list of trains aata hai, total count, page number:
 
 ```python
 from typing import Generic, TypeVar
@@ -356,7 +379,7 @@ class User(BaseModel):
     id: int
     name: str
 
-# In FastAPI:
+# FastAPI mein use:
 # @app.get("/users", response_model=PaginatedResponse[User])
 # async def list_users(page: int = 1):
 #     ...
@@ -373,9 +396,11 @@ response = PaginatedResponse[User](
 
 ---
 
-## Custom Types with Validators
+## Custom Types with Validators — Apna Validation Logic
 
-### Using AfterValidator (Recommended Approach)
+Kya hota hai jab tum chahte ho ek custom field validation likho jo Pydantic ke in-built types mein nahi hai? Jaise, ek number jo sirf even ho sakta hai, ya ek phone number jo formatted hona chahiye.
+
+### AfterValidator — Type Aaye, Phir Check Karo (Recommended)
 
 ```python
 from typing import Annotated
@@ -396,14 +421,18 @@ Config(buffer_size=1024, thread_count=8)  # works
 Config(buffer_size=1023, thread_count=8)  # ValidationError: 1023 is not even
 ```
 
-### Using BeforeValidator (Transform Before Type Checking)
+---
+
+### BeforeValidator — Transform Karke Phir Type Check Karo
+
+Maan lete ho phone number aata hai different formats mein — "(555) 123-4567" ya "555-123-4567" ya "5551234567". Tum normalize karke store karna chahte ho:
 
 ```python
 from typing import Annotated
 from pydantic import BeforeValidator, BaseModel
 
 def normalize_phone(v: str) -> str:
-    """Strip non-digits, then format."""
+    """Digits nikalo, format karo."""
     digits = "".join(c for c in str(v) if c.isdigit())
     if len(digits) == 10:
         return f"+1{digits}"
@@ -424,14 +453,21 @@ c = Contact(name="Bob", phone="1-555-987-6543")
 print(c.phone)  # "+15559876543"
 ```
 
-### Using PlainValidator (Full Control)
+> [!tip]
+> **BeforeValidator** input ko transform karega, **AfterValidator** type check ke baad validate karega.
+
+---
+
+### PlainValidator — Poora Control Tere Paas
+
+Jab complex logic chahiye — input ka type aur value dono check karne hain:
 
 ```python
 from typing import Annotated
 from pydantic import PlainValidator, BaseModel
 
 def parse_color(v) -> tuple[int, int, int]:
-    """Parse hex color string or RGB tuple."""
+    """Hex color ya RGB tuple parse karo."""
     if isinstance(v, (list, tuple)) and len(v) == 3:
         r, g, b = v
     elif isinstance(v, str) and v.startswith("#") and len(v) == 7:
@@ -458,11 +494,13 @@ print(theme.secondary)  # (100, 200, 255)
 
 ---
 
-## UUID, datetime, and Path Types
+## UUID, datetime, aur Path Types
 
-Pydantic natively handles many Python standard library types:
+Python ke standard library mein bahut sare types hote hain. Pydantic inko natively support karta hai. Ab tension nahi le, directly use kar:
 
 ### UUID
+
+Database mein records ka unique ID. Pydantic string se UUID object mein convert kar dega:
 
 ```python
 from uuid import UUID, uuid4
@@ -475,19 +513,19 @@ class Record(BaseModel):
 r = Record(name="Test")
 print(r.id)  # UUID('a1b2c3d4-...')
 
-# Accepts string input and converts to UUID
+# String input se automatic convert
 r2 = Record(id="550e8400-e29b-41d4-a716-446655440000", name="Test")
 print(type(r2.id))  # <class 'uuid.UUID'>
 ```
 
-TypeScript equivalent (with Zod):
-```typescript
-z.string().uuid()  // Zod just validates it's a UUID string
-```
+> [!info]
+> Zod mein toh sirf string validation hota hai `z.string().uuid()`. Pydantic actual UUID object mein convert karega!
 
-Key difference: Pydantic converts strings TO Python `UUID` objects. Zod just validates the string format.
+---
 
 ### datetime, date, time
+
+IRCTC par train ticket book karte ho — exact time chahiye kab express train aayegi. ISO format:
 
 ```python
 from datetime import datetime, date, time, timedelta
@@ -502,24 +540,28 @@ class Event(BaseModel):
 
 event = Event(
     name="Meeting",
-    start="2024-03-15T10:00:00",        # ISO string -> datetime
-    end="2024-03-15T11:00:00Z",          # with timezone
-    date_only="2024-03-15",              # ISO string -> date
-    time_only="10:00:00",                # ISO string -> time
+    start="2024-03-15T10:00:00",        # ISO string -> datetime object
+    end="2024-03-15T11:00:00Z",         # timezone support
+    date_only="2024-03-15",             # ISO date -> date object
+    time_only="10:00:00",               # time string -> time object
 )
 print(type(event.start))  # <class 'datetime.datetime'>
 
-# Unix timestamps also work for datetime
+# Unix timestamps bhi accept karte hain
 event2 = Event(
     name="Event",
-    start=1710500400,                     # unix timestamp -> datetime
+    start=1710500400,                   # unix timestamp -> datetime
     end=1710504000,
     date_only="2024-03-15",
     time_only="10:00:00",
 )
 ```
 
-### Path
+---
+
+### Path — File System Paths
+
+Project structure manage karte ho, directories handle karte ho — Path type use kar:
 
 ```python
 from pathlib import Path
@@ -541,39 +583,59 @@ print(config.root_dir / "src" / "main.py")  # /home/user/project/src/main.py
 
 ## Complete Type Reference Table
 
-| Pydantic Type | Input Accepted | Output Type | Zod Equivalent |
+Ek nazar mein sab types:
+
+| Pydantic Type | Input Accept | Output Type | Zod Equivalent |
 |---|---|---|---|
-| `str` | Any string | `str` | `z.string()` |
-| `int` | Integer or int-parseable string | `int` | `z.number().int()` |
-| `float` | Number or number-parseable string | `float` | `z.number()` |
+| `str` | Koi bhi string | `str` | `z.string()` |
+| `int` | Integer ya int-parseable string | `int` | `z.number().int()` |
+| `float` | Number ya parseable string | `float` | `z.number()` |
 | `bool` | Boolean, 0/1, "true"/"false" | `bool` | `z.boolean()` |
 | `datetime` | ISO string, unix timestamp | `datetime` | `z.date()` / `z.string().datetime()` |
-| `UUID` | UUID string or UUID object | `UUID` | `z.string().uuid()` |
+| `UUID` | UUID string ya UUID object | `UUID` | `z.string().uuid()` |
 | `EmailStr` | Valid email string | `str` | `z.string().email()` |
-| `HttpUrl` | Valid HTTP(S) URL string | `Url` | `z.string().url()` |
-| `Path` | Path string | `Path` | N/A |
-| `SecretStr` | Any string (hidden in repr) | `SecretStr` | N/A |
+| `HttpUrl` | Valid HTTP(S) URL string | `Url` object | `z.string().url()` |
+| `Path` | Path string | `Path` object | N/A |
+| `SecretStr` | Koi bhi string (hidden repr) | `SecretStr` | N/A |
 | `IPvAnyAddress` | IP address string | `IPv4Address`/`IPv6Address` | N/A |
-| `Literal["a","b"]` | One of the literal values | Same type | `z.enum(["a","b"])` |
+| `Literal["a","b"]` | Literal values mein se ek | Same type | `z.enum(["a","b"])` |
 
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: URL Bookmark Manager
-Create a `Bookmark` model with: `title` (str), `url` (HttpUrl), `tags` (list of strings), `created_at` (datetime, default to now). Parse a few bookmarks from JSON data.
+
+Ek `Bookmark` model bana jo store kare: title (str), URL (HttpUrl), tags (list), created_at (datetime, default ab). JSON data se parse karo.
 
 ### Exercise 2: Discriminated Union for Notifications
-Create a notification system with three types: `EmailNotification` (has `to_email: EmailStr`, `subject: str`), `SMSNotification` (has `phone_number: str`, `message: str`), `PushNotification` (has `device_id: str`, `title: str`, `body: str`). Each has a `type` Literal discriminator. Create a `NotificationBatch` model with `notifications: list[Notification]` using a discriminated union.
+
+Notification system bana — EmailNotification (email + subject), SMSNotification (phone + message), PushNotification (device_id + title + body). Har ek mein `type` Literal field ho. `NotificationBatch` mein list of unions use karo.
 
 ### Exercise 3: Generic Wrapper
-Create a generic `Result` model (inspired by Rust's Result type) that has `success: bool`, `data: T | None`, `error: str | None`. Add a model validator that ensures `data` is present when `success=True` and `error` is present when `success=False`.
+
+Ek generic `Result` model bana (Rust style) — success: bool, data: T | None, error: str | None. Model validator add karo jo ensure kare data present ho jab success=True.
 
 ### Exercise 4: Custom Color Type
-Create a `HexColor` custom type using `AfterValidator` that accepts strings like `"#FF5733"` or `"#fff"` (3-char shorthand), validates them, and normalizes to uppercase 6-character format. Use it in a `Theme` model.
+
+Ek `HexColor` type `AfterValidator` se bana. "#FF5733" ya "#fff" (3-char shorthand) accept karo, validate karo, uppercase 6-char format mein normalize karo. Theme model mein use karo.
 
 ### Exercise 5: Mixed Types
-Create an `AppConfig` model that uses at least 6 different advanced types: `UUID` (for app_id), `HttpUrl` (for api_endpoint), `EmailStr` (for admin_email), `SecretStr` (for api_key), `Path` (for log_directory), `datetime` (for deployed_at), `Literal` (for environment). Instantiate it from a dictionary of strings and verify all types are correctly parsed.
+
+`AppConfig` model bana jo minimum 6 types use kare: UUID (app_id), HttpUrl (api_endpoint), EmailStr (admin_email), SecretStr (api_key), Path (log_directory), datetime (deployed_at), Literal (environment). Dictionary se instance banao, types verify karo.
 
 ### Exercise 6: Discriminated Union API
-Create a payment system with: `CreditCardPayment`, `BankTransferPayment`, `CryptoPayment`. Each has different fields. Use a discriminated union on a `method` field. Create a `Transaction` model containing one of these payment types plus `amount`, `currency`, and `timestamp`. Validate several transactions with different payment methods.
+
+Payment system bana — CreditCardPayment, BankTransferPayment, CryptoPayment. Har ek ke alag fields. Discriminated union use karo `method` field par. `Transaction` model banao amount, currency, timestamp ke sath. Different payment methods se transactions validate karo.
+
+---
+
+## Key Takeaways
+
+- **EmailStr, HttpUrl, SecretStr** — specialized types jo validation + parsing dono handle karte hain
+- **Constrained types (conint, constr)** — sirf values restricted karte ho; modern style mein `Annotated + Field()` use karo
+- **Literal** — specific values only allowed; Enum se zyada simple, Enum se zyada organized
+- **Discriminated Unions** — TypeScript jaise, `Field(discriminator="tag")` se performance aur clarity dono milta hai
+- **Generics** — reusable templates; `Generic[T]` se API responses, paginated data, sab handle kar
+- **Validators (AfterValidator, BeforeValidator, PlainValidator)** — custom logic; input transform, type check, sab kuch possible
+- **Standard library types** — UUID, datetime, Path, date, time — Pydantic sab ko natively support karta hai aur convert bhi kar deta hai

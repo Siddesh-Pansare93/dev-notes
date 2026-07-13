@@ -22,15 +22,18 @@
 **Kyun zaruri hai order follow karna?** Kyunki Python OOP ke concepts ek dusre pe stack hote hain — jaise dabbawala ka system: pehle collection point samajhna padta hai, tabhi sorting hub samajh aata hai. Isliye seedha decorators pe kood mat jao, pehle basics pakka karo.
 
 ### Beginner — Pehle fundamentals pakka karo
+
 1. [Classes & Basics](./01_classes_basics.md) — samjho `self` kya hai, `__init__` kya karta hai, aur Python ke properties TypeScript se kaise alag kaam karti hain
 2. [Inheritance](./02_inheritance.md) — `super()` seekho aur Python multiple inheritance ko MRO se kaise handle karta hai
 3. [Abstract Classes](./05_abstract_classes.md) — TypeScript interfaces ki jagah Python ke ABCs aur Protocols use karo
 
 ### Intermediate — Apne Python idioms level up karo
+
 4. [Magic Methods](./03_magic_methods.md) — dunder protocols implement karke apne objects ko native Python jaisa feel karao
 5. [Decorators](./04_decorators.md) — samjho `@property`, `@staticmethod`, aur custom decorators andar se kaise kaam karte hain
 
 ### Advanced — Idiomatic, production-quality Python likho
+
 6. [Dataclasses](./06_dataclasses.md) — `@dataclass` se data-holding classes ka boilerplate hatao
 7. [Enums & NamedTuples](./07_enums_and_namedtuples.md) — constants aur lightweight value types ko cleanly model karo
 

@@ -1,10 +1,10 @@
-# 07 - Database Integration with SQLAlchemy
+# 07 - SQLAlchemy ke sath Database Integration
 
-## Overview
+## Kya Hota Hai?
 
-In the Node.js world, you have Prisma, TypeORM, Sequelize, and Knex. In Python/FastAPI, the standard ORM is **SQLAlchemy**. It's been around since 2006 and is incredibly mature.
+Node.js mein tumhare paas Prisma, TypeORM, Sequelize, aur Knex hote hain. Python/FastAPI mein standard ORM **SQLAlchemy** hai. 2006 se mausam dekh raha hai aur incredibly mature hai.
 
-### ORM Comparison
+### ORM Comparison — Kaunsa Best Hai?
 
 | Feature | Prisma | TypeORM | SQLAlchemy |
 |---|---|---|---|
@@ -17,7 +17,7 @@ In the Node.js world, you have Prisma, TypeORM, Sequelize, and Knex. In Python/F
 
 ---
 
-## Setup
+## Setup — Shuru Se Kya Karna Padega
 
 ### Installation
 
@@ -39,28 +39,28 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 # Connection URL format: dialect+driver://user:password@host:port/dbname
-# Like DATABASE_URL in Prisma
+# Prisma mein DATABASE_URL ke jaisa
 
-# SQLite (development)
+# SQLite (development ke liye)
 SQLALCHEMY_DATABASE_URL = "sqlite:///./app.db"
 
-# PostgreSQL (production)
+# PostgreSQL (production ke liye)
 # SQLALCHEMY_DATABASE_URL = "postgresql://user:password@localhost:5432/mydb"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},  # Only needed for SQLite
-    echo=True,  # Log SQL queries (like Prisma's log: ['query'])
+    connect_args={"check_same_thread": False},  # SQLite ke liye hi zaroori
+    echo=True,  # SQL queries ko log karo (Prisma ke log: ['query'] jaisa)
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for all models
+# Base class sabke liye
 class Base(DeclarativeBase):
     pass
 ```
 
-### The Database Session Dependency
+### Database Session Dependency
 
 ```python
 # dependencies.py
@@ -68,12 +68,12 @@ from database import SessionLocal
 
 def get_db():
     """
-    Yield a database session per request.
-    The session is automatically closed after the request.
+    Ek database session har request ke liye dey do.
+    Request ke baad automatically close ho jayega.
 
-    This is like a middleware in Express that attaches db to req:
+    Express mein middleware ki tarah jo db ko req mein attach karta hai:
     app.use((req, res, next) => { req.db = new Session(); next(); });
-    ...but with guaranteed cleanup.
+    ...lekin cleanup guaranteed hai.
     """
     db = SessionLocal()
     try:
@@ -84,9 +84,9 @@ def get_db():
 
 ---
 
-## Model Definitions
+## Model Definitions — Database Tables Ko Code Mein Likho
 
-### Prisma Schema (for comparison)
+### Prisma Schema (comparison ke liye)
 
 ```prisma
 model User {
@@ -131,8 +131,8 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationship: one user has many posts
-    # Like: posts Post[] in Prisma
+    # Relationship: ek user ke paas kaafi posts ho sakte hain
+    # Prisma mein: posts Post[]
     posts: Mapped[list["Post"]] = relationship(back_populates="author")
 
     def __repr__(self):
@@ -152,10 +152,10 @@ class Post(Base):
         default=lambda: datetime.now(timezone.utc),
     )
 
-    # Relationship back to user
+    # Relationship user ke paas wapas
     author: Mapped["User"] = relationship(back_populates="posts")
 
-    # Many-to-many with tags
+    # Many-to-many tags ke sath
     tags: Mapped[list["Tag"]] = relationship(
         secondary="post_tags", back_populates="posts"
     )
@@ -181,22 +181,22 @@ class Tag(Base):
     )
 ```
 
-### Creating Tables (Development Only)
+### Tables Create Karo (Development ke liye)
 
 ```python
-# For quick development, create tables from models
-# In production, use Alembic migrations instead
+# Quick development ke liye tables models se bana lo
+# Production mein Alembic migrations use karo
 from database import engine, Base
-import models  # Import all models so Base knows about them
+import models  # Saari models import karo taki Base ko pata chale
 
 Base.metadata.create_all(bind=engine)
 ```
 
 ---
 
-## Pydantic Schemas (DTOs)
+## Pydantic Schemas (DTOs) — API aur Database ko Alag Rakho
 
-Separate your database models from your API schemas. This is like having DTOs in NestJS separate from TypeORM entities.
+Database models aur API schemas ko alag rakho. NestJS mein TypeORM entities aur DTOs alag hote hain, yahi concept hai.
 
 ```python
 # schemas.py
@@ -221,8 +221,8 @@ class UserResponse(UserBase):
     created_at: datetime
 
     model_config = {"from_attributes": True}
-    # from_attributes = True tells Pydantic to read data from ORM objects
-    # Like class-transformer's @Expose() in NestJS
+    # from_attributes = True se Pydantic ORM objects se data padh le
+    # NestJS mein class-transformer ke @Expose() jaisa
 
 # --- Post Schemas ---
 class PostBase(BaseModel):
@@ -248,7 +248,7 @@ class PostWithAuthor(PostResponse):
 
 ---
 
-## CRUD Operations
+## CRUD Operations — Create, Read, Update, Delete
 
 ### Create
 
@@ -269,7 +269,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     )
     db.add(db_user)
     db.commit()
-    db.refresh(db_user)  # Reload to get auto-generated fields (id, created_at)
+    db.refresh(db_user)  # Auto-generated fields (id, created_at) ke liye reload karo
     return db_user
 ```
 
@@ -303,7 +303,7 @@ def update_user(db: Session, user_id: int, user_data: UserUpdate) -> User | None
     if not db_user:
         return None
 
-    # Only update provided fields (like Prisma's update)
+    # Sirf jo fields diye gaye hain wo update karo (Prisma ki tarah)
     update_data = user_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_user, field, value)
@@ -330,7 +330,7 @@ def delete_user(db: Session, user_id: int) -> bool:
 
 ---
 
-## Wiring It Up in FastAPI
+## FastAPI Mein Wire Up Karo
 
 ```python
 # main.py
@@ -342,14 +342,14 @@ import models
 import schemas
 import crud
 
-# Create tables (dev only)
+# Tables create karo (dev ke liye hi)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 @app.post("/users", response_model=schemas.UserResponse, status_code=201)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    # Check if email already exists
+    # Check karo ki email pehle se registered to nahi
     existing = crud.get_user_by_email(db, user.email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -385,12 +385,12 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
 ---
 
-## Relationships
+## Relationships — Models Ke Beech Connection
 
-### One-to-Many: User has many Posts
+### One-to-Many: Ek User Ke Kaafi Posts
 
 ```python
-# Creating a post for a user
+# User ke liye ek post create karo
 @app.post("/users/{user_id}/posts", response_model=schemas.PostResponse, status_code=201)
 def create_post(
     user_id: int,
@@ -407,20 +407,20 @@ def create_post(
     db.refresh(db_post)
     return db_post
 
-# Getting a user's posts
+# User ke sari posts ley aao
 @app.get("/users/{user_id}/posts", response_model=list[schemas.PostResponse])
 def get_user_posts(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.Post).filter(models.Post.author_id == user_id).all()
 
-# Getting a post with its author (eager loading)
-# Like Prisma's include: { author: true }
+# Post ko uske author ke sath (eager loading)
+# Prisma mein: include: { author: true }
 @app.get("/posts/{post_id}", response_model=schemas.PostWithAuthor)
 def get_post_with_author(post_id: int, db: Session = Depends(get_db)):
     from sqlalchemy.orm import joinedload
 
     post = (
         db.query(models.Post)
-        .options(joinedload(models.Post.author))  # Eager load author
+        .options(joinedload(models.Post.author))  # Author ko eagerly load karo
         .filter(models.Post.id == post_id)
         .first()
     )
@@ -434,29 +434,29 @@ def get_post_with_author(post_id: int, db: Session = Depends(get_db)):
 ```python
 from sqlalchemy.orm import joinedload, selectinload, lazyload
 
-# Eager loading with JOIN (like Prisma include, one query with JOIN)
+# Eager loading with JOIN (Prisma include jaisa, ek hi query mein JOIN)
 posts = (
     db.query(Post)
     .options(joinedload(Post.author))
     .all()
 )
 
-# Eager loading with separate SELECT (better for large collections)
+# Eager loading with separate SELECT (badi collections ke liye better)
 users = (
     db.query(User)
     .options(selectinload(User.posts))  # SELECT * FROM posts WHERE author_id IN (...)
     .all()
 )
 
-# Lazy loading (default -- loads on access, causes N+1 if not careful)
+# Lazy loading (default -- access karte time load hota hai, N+1 ho sakta hai)
 user = db.query(User).first()
-posts = user.posts  # This triggers a separate query!
+posts = user.posts  # Yeh separate query trigger karega!
 ```
 
-### Many-to-Many: Posts and Tags
+### Many-to-Many: Posts aur Tags
 
 ```python
-# Adding tags to a post
+# Post mein tags add karo
 @app.post("/posts/{post_id}/tags/{tag_id}")
 def add_tag_to_post(post_id: int, tag_id: int, db: Session = Depends(get_db)):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
@@ -469,7 +469,7 @@ def add_tag_to_post(post_id: int, tag_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Tag '{tag.name}' added to post '{post.title}'"}
 
-# Query posts by tag
+# Tag se posts query karo
 @app.get("/tags/{tag_name}/posts", response_model=list[schemas.PostResponse])
 def get_posts_by_tag(tag_name: str, db: Session = Depends(get_db)):
     tag = db.query(models.Tag).filter(models.Tag.name == tag_name).first()
@@ -480,18 +480,18 @@ def get_posts_by_tag(tag_name: str, db: Session = Depends(get_db)):
 
 ---
 
-## Async SQLAlchemy
+## Async SQLAlchemy — Lightning Fast Operations
 
-For high-performance async operations (recommended for production).
+High-performance async operations ke liye (production mein recommend karte hain).
 
 ```python
 # database_async.py
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-# Note: async requires async driver (asyncpg for PostgreSQL, aiosqlite for SQLite)
+# Dhyan: async mein async driver zaroori hai (asyncpg PostgreSQL ke liye, aiosqlite SQLite ke liye)
 DATABASE_URL = "postgresql+asyncpg://user:password@localhost:5432/mydb"
-# Or for dev: "sqlite+aiosqlite:///./app.db"
+# Ya dev ke liye: "sqlite+aiosqlite:///./app.db"
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 
@@ -509,7 +509,7 @@ async def get_db():
             await session.close()
 ```
 
-### Async CRUD
+### Async CRUD — Async Mein Queries
 
 ```python
 from sqlalchemy import select
@@ -528,7 +528,7 @@ async def create_user(db: AsyncSession, user_data: UserCreate):
     await db.refresh(db_user)
     return db_user
 
-# In routes
+# Routes mein
 @app.get("/users", response_model=list[schemas.UserResponse])
 async def list_users(
     skip: int = 0,
@@ -540,65 +540,65 @@ async def list_users(
 
 ---
 
-## Alembic: Database Migrations
+## Alembic: Database Migrations — Schema Ko Track Karo
 
-Alembic is to SQLAlchemy what Prisma Migrate is to Prisma, or what knex migrations are to Knex.
+Alembic SQLAlchemy ke liye vahi hai jo Prisma Migrate hai Prisma ke liye, ya knex migrations Knex ke liye.
 
 ### Setup
 
 ```bash
-# Initialize Alembic (like prisma init)
+# Alembic initialize karo (prisma init jaisa)
 alembic init alembic
 ```
 
-This creates:
+Yeh create karega:
 ```
 alembic/
-├── versions/          # Migration files go here
+├── versions/          # Migration files yahan jayengi
 ├── env.py             # Alembic configuration
 ├── script.py.mako     # Migration template
 alembic.ini            # Main config file
 ```
 
-### Configure Alembic
+### Configure Karo
 
-Edit `alembic/env.py`:
+`alembic/env.py` ko edit karo:
 
 ```python
-# In env.py, update target_metadata
+# env.py mein target_metadata ko update karo
 from database import Base
-import models  # Import all models!
+import models  # Saari models import karo!
 
 target_metadata = Base.metadata
 ```
 
-Edit `alembic.ini`:
+`alembic.ini` ko edit karo:
 
 ```ini
-# Set your database URL
+# Apna database URL set karo
 sqlalchemy.url = postgresql://user:password@localhost:5432/mydb
 ```
 
-### Creating and Running Migrations
+### Migrations Create aur Run Karo
 
 ```bash
-# Generate a migration (like prisma migrate dev --name add_users)
+# Migration generate karo (prisma migrate dev --name add_users jaisa)
 alembic revision --autogenerate -m "create users table"
 
-# Run migrations (like prisma migrate deploy)
+# Migrations run karo (prisma migrate deploy jaisa)
 alembic upgrade head
 
-# Rollback last migration
+# Pichla migration ko revert karo
 alembic downgrade -1
 
-# See current migration status
+# Current migration status dekho
 alembic current
 
-# See migration history
+# Migration history dekho
 alembic history
 ```
 
-### What a Migration File Looks Like
+### Migration File Kaisa Lagta Hai
 
 ```python
 # alembic/versions/abc123_create_users_table.py
@@ -625,7 +625,7 @@ def downgrade():
     op.drop_table('users')
 ```
 
-### Comparison with Node.js Migrations
+### Node.js Migrations ke Sath Comparison
 
 ```javascript
 // Knex migration
@@ -643,16 +643,16 @@ exports.down = function(knex) {
 };
 ```
 
-The concepts are identical. The auto-generate feature in Alembic is similar to `prisma migrate dev` -- it compares your models to the database and generates the SQL.
+Concepts bilkul same hain. Alembic mein auto-generate feature `prisma migrate dev` jaisa hai -- models aur database ko compare karte hue SQL generate karta hai.
 
 ---
 
-## Advanced Queries
+## Advanced Queries — Complex Filtering aur Aggregation
 
 ```python
 from sqlalchemy import select, func, and_, or_, desc
 
-# Filtering with conditions
+# Conditions ke sath filtering
 users = db.query(User).filter(
     and_(
         User.is_active == True,
@@ -668,7 +668,7 @@ users = db.query(User).filter(
     )
 ).all()
 
-# Aggregation
+# Aggregation (counting, summing)
 user_count = db.query(func.count(User.id)).scalar()
 
 # Ordering
@@ -693,39 +693,51 @@ has_posts = db.query(
 
 ---
 
-## Practice Exercises
+## Practice Exercises — Khud Likho, Seekho
 
 ### Exercise 1: Basic CRUD API
-Create a complete CRUD API for a "Book" model with:
+Ek complete CRUD API banao "Book" model ke liye:
 - Fields: `id`, `title`, `author`, `isbn` (unique), `published_year`, `genre`, `created_at`
 - Endpoints: create, read (single + list with pagination), update, delete
-- Use SQLite for storage
-- Separate models.py, schemas.py, and crud.py
+- SQLite use karo storage ke liye
+- models.py, schemas.py, aur crud.py alag rakho
 
 ### Exercise 2: One-to-Many Relationship
-Extend Exercise 1:
-- Add a `Review` model (id, rating 1-5, comment, book_id, reviewer_name, created_at)
-- `POST /books/{book_id}/reviews` -- add a review
-- `GET /books/{book_id}/reviews` -- list reviews for a book
-- `GET /books/{book_id}` -- include average rating in response
+Exercise 1 ko extend karo:
+- Add karo `Review` model (id, rating 1-5, comment, book_id, reviewer_name, created_at)
+- `POST /books/{book_id}/reviews` -- ek review add karo
+- `GET /books/{book_id}/reviews` -- book ke liye reviews list karo
+- `GET /books/{book_id}` -- average rating include karo response mein
 
 ### Exercise 3: Many-to-Many
-Add a "Category" model and a many-to-many relationship with books:
-- `POST /categories` -- create a category
-- `POST /books/{book_id}/categories/{category_id}` -- assign a category
-- `GET /categories/{category_id}/books` -- get all books in a category
-- A book can have multiple categories
+Add karo "Category" model aur many-to-many relationship books ke sath:
+- `POST /categories` -- category create karo
+- `POST /books/{book_id}/categories/{category_id}` -- category assign karo
+- `GET /categories/{category_id}/books` -- ek category mein sari books dekho
+- Ek book ke multiple categories ho sakte hain
 
 ### Exercise 4: Async Database
-Convert Exercise 1 to use async SQLAlchemy with aiosqlite:
-- Change to async session
-- Use `select()` instead of `db.query()`
-- Make all route handlers and CRUD functions async
+Exercise 1 ko async SQLAlchemy ke sath convert karo aur aiosqlite use karo:
+- Change karo async session ko
+- Use karo `select()` instead of `db.query()`
+- Saari route handlers aur CRUD functions ko async banao
 
 ### Exercise 5: Alembic Migrations
-Set up Alembic for your book API:
-1. Initialize Alembic
-2. Create an initial migration
-3. Add a `page_count` column to the Book model
-4. Generate and apply a new migration
-5. Practice rolling back
+Setup karo Alembic tumhare book API ke liye:
+1. Alembic initialize karo
+2. Ek initial migration create karo
+3. Book model mein `page_count` column add karo
+4. Naya migration generate karo aur apply karo
+5. Rolling back practice karo
+
+---
+
+## Key Takeaways
+
+- **SQLAlchemy** Python mein standard ORM hai, mature aur flexible
+- **Relationships** ko `relationship()` se define karo (one-to-many, many-to-many)
+- **Eager loading** (`joinedload`, `selectinload`) se N+1 queries avoid karo
+- **Migrations** ke liye Alembic use karo, Prisma Migrate jaisa
+- **Async SQLAlchemy** production ke liye fast aur responsive apps banate hain
+- **Pydantic schemas** ko database models se alag rakho (DTOs pattern)
+- **CRUD operations** straightforward hain: `query()`, `add()`, `commit()`, `refresh()`

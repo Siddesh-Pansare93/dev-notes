@@ -1,8 +1,8 @@
 # 03 - Field Validation
 
-## The Field() Function
+## Field() Function - Constraints Add Karo
 
-`Field()` is how you add constraints, metadata, and documentation to individual fields. Think of it as the equivalent of chaining methods in Zod (`.min()`, `.max()`, `.describe()`, etc.).
+`Field()` wo cheez hai jisse individual fields par constraints, metadata, aur documentation add kar sakte ho. Iska matlab Zod mein jaise `.min()`, `.max()`, `.describe()` waale methods chain karte ho, vaise hi yaha karte ho.
 
 ```python
 from pydantic import BaseModel, Field
@@ -28,7 +28,7 @@ class Product(BaseModel):
     )
 ```
 
-### Zod Equivalent
+### Zod Ke Saath Comparison
 
 ```typescript
 const ProductSchema = z.object({
@@ -39,9 +39,9 @@ const ProductSchema = z.object({
 });
 ```
 
-### All Numeric Constraints
+### Sab Numeric Constraints
 
-| Pydantic Field() | Zod Equivalent | Meaning |
+| Pydantic Field() | Zod Equivalent | Matlab |
 |---|---|---|
 | `gt=0` | `.gt(0)` | Greater than |
 | `ge=0` | `.gte(0)` / `.min(0)` | Greater than or equal |
@@ -49,17 +49,17 @@ const ProductSchema = z.object({
 | `le=100` | `.lte(100)` / `.max(100)` | Less than or equal |
 | `multiple_of=5` | `.multipleOf(5)` | Must be a multiple of |
 
-### All String Constraints
+### Sab String Constraints
 
-| Pydantic Field() | Zod Equivalent | Meaning |
+| Pydantic Field() | Zod Equivalent | Matlab |
 |---|---|---|
 | `min_length=1` | `.min(1)` | Minimum string length |
 | `max_length=100` | `.max(100)` | Maximum string length |
 | `pattern=r"^\d+$"` | `.regex(/^\d+$/)` | Must match regex |
 
-### Field Examples and Descriptions
+### Field Examples Aur Descriptions - FastAPI Ke Liye Useful
 
-`Field()` also accepts metadata for documentation (used by FastAPI for OpenAPI docs):
+`Field()` metadata bhi accept karta hai jo documentation ke kaam ata hai (FastAPI apne OpenAPI docs ke liye use karta hai):
 
 ```python
 class User(BaseModel):
@@ -80,9 +80,9 @@ class User(BaseModel):
 
 ---
 
-## @field_validator: Custom Field Validation
+## @field_validator: Custom Logic Likhna
 
-When built-in constraints are not enough, use `@field_validator` for custom logic. This is like Zod's `.refine()` or `.transform()`.
+Socho ek second ke liye — jab built-in constraints se kaam nahi ho, aur tumhe kuch special check karna ho? Bas wahi `@field_validator` ka kaam hai. Zod mein `.refine()` ya `.transform()` jaisa kucch.
 
 ```python
 from pydantic import BaseModel, field_validator
@@ -114,7 +114,7 @@ class User(BaseModel):
         return v
 ```
 
-### Zod Equivalent
+### Zod Mein Kaise Likhooge
 
 ```typescript
 const UserSchema = z.object({
@@ -127,14 +127,16 @@ const UserSchema = z.object({
 });
 ```
 
-### Key Rules for @field_validator
+### @field_validator Ke Important Rules
 
-1. **Always use `@classmethod`** (Pydantic v2 requires it)
-2. **Always return the value** (even if you do not modify it)
-3. **Raise `ValueError` or `AssertionError`** on validation failure
-4. The first argument after `cls` is always the field value
+1. **Hamesha `@classmethod` use karo** (Pydantic v2 mein mandatory hai)
+2. **Hamesha value return karo** (bhale usme modify na kiya ho)
+3. **Validation fail ho to `ValueError` ya `AssertionError` raise karo**
+4. `cls` ke baad pehla argument hamesha field ka value hota hai
 
-### Validating Multiple Fields with One Validator
+### Ek Validator Se Multiple Fields Check Karna
+
+Imagine Swiggy ka delivery system — jo deliveries ho rahi hain, unme ek hi tracker se do-do locations check kar sakte ho. Ek jaise:
 
 ```python
 class Config(BaseModel):
@@ -149,9 +151,9 @@ class Config(BaseModel):
         return v.lower()
 ```
 
-### Using `mode="before"` and `mode="after"`
+### `mode="before"` Aur `mode="after"` - Validation Ka Samay
 
-By default, validators run **after** Pydantic's own type parsing (mode="after"). You can run them **before**:
+Default mein validators Pydantic ke type parsing ke **baad** chalte hain (mode="after"). Lekin tum **pehle** bhi chalvaa sakte ho:
 
 ```python
 class Flexible(BaseModel):
@@ -165,12 +167,14 @@ class Flexible(BaseModel):
             return [tag.strip() for tag in v.split(",")]
         return v
 
-# Both work:
+# Dono kaam karte hain:
 Flexible(tags=["python", "pydantic"])
 Flexible(tags="python, pydantic")  # converted before type validation
 ```
 
-This is like Zod's `.preprocess()`:
+> [!tip]
+> Yeh Zod ke `.preprocess()` jaisa kaam karta hai — raw input ko transform karo pehle, phir validation chalao.
+
 ```typescript
 const TagsSchema = z.preprocess(
   (v) => (typeof v === "string" ? v.split(",").map((s) => s.trim()) : v),
@@ -180,13 +184,13 @@ const TagsSchema = z.preprocess(
 
 ---
 
-## @model_validator: Cross-Field Validation
+## @model_validator: Multiple Fields Milkr Check
 
-When validation depends on **multiple fields together**, use `@model_validator`. This is like Zod's `.refine()` at the object level.
+Kabhi-kabhi validation sirf ek field par depend nahi karta — do-teen fields ko **ek sath** check karna padta hai. Jaise Zomato ko order confirm karte waqt: total price check karna hoga items + tax, discount sab ko mila kar. Bas wahi `@model_validator` ka kaam hai.
 
-### mode="after" (Most Common)
+### mode="after" (Sabse Common)
 
-The validator receives the fully constructed model instance:
+Validator ko poora model instance mil jata hai (sab fields validated ho chuke hote hain):
 
 ```python
 from pydantic import BaseModel, model_validator
@@ -209,9 +213,9 @@ DateRange(start_date="2024-12-31", end_date="2024-01-01")
 # ValidationError: end_date must be after start_date
 ```
 
-### mode="before"
+### mode="before" - Raw Data Par Kaam
 
-The validator receives the raw input data (a dict) before any field validation:
+Validator ko raw input data mil jata hai (dict format mein) — fields validate hone se **pehle**:
 
 ```python
 class UserCreate(BaseModel):
@@ -229,7 +233,7 @@ class UserCreate(BaseModel):
         return data
 ```
 
-### Zod Equivalent
+### Zod Mein Yeh Kaise Likhooge
 
 ```typescript
 const DateRangeSchema = z
@@ -253,7 +257,9 @@ const UserCreateSchema = z
   });
 ```
 
-### Real-World Example: Discount Validation
+### Real-World Example: Discount Validation (Jaise Flipkart)
+
+Flipkart par orders dekho — discount amount enter karte ho, aur final price automatically calculate ho jata hai. Agar manual final price enter karo to match karna padta hai:
 
 ```python
 from pydantic import BaseModel, Field, model_validator
@@ -284,9 +290,9 @@ print(item.final_price)  # 24.0
 
 ---
 
-## ValidationError: Understanding Error Structure
+## ValidationError: Error Details Samjhna
 
-When validation fails, Pydantic raises a `ValidationError` with detailed, structured error information.
+Jab validation fail ho, Pydantic `ValidationError` raise karta hai — aur error structure detailed hota hai, jo debugging easy banata hai.
 
 ```python
 from pydantic import BaseModel, Field, ValidationError
@@ -305,7 +311,7 @@ except ValidationError as e:
         print(error)
 ```
 
-Each error in `e.errors()` is a dict with this structure:
+`e.errors()` mein har error ek dict hota hai iska structure:
 
 ```python
 {
@@ -318,7 +324,7 @@ Each error in `e.errors()` is a dict with this structure:
 }
 ```
 
-### Comparison with Zod Errors
+### Zod Errors Ke Saath Comparison
 
 ```typescript
 // Zod error structure
@@ -333,17 +339,17 @@ Each error in `e.errors()` is a dict with this structure:
 }
 ```
 
-| Pydantic | Zod | Meaning |
+| Pydantic | Zod | Matlab |
 |---|---|---|
-| `loc` (tuple) | `path` (array) | Where the error occurred |
-| `msg` | `message` | Human-readable error |
+| `loc` (tuple) | `path` (array) | Error kaha ho gaya |
+| `msg` | `message` | Samajhne wala error message |
 | `type` | `code` | Machine-readable error type |
-| `input` | (not included) | The failing value |
-| `ctx` | (spread in object) | Constraint details |
+| `input` | (nahi hota) | Jo value fail hui |
+| `ctx` | (spread hota) | Constraint details |
 
-### Nested Error Paths
+### Nested Models Ke Liye Error Paths
 
-For nested models, `loc` shows the full path:
+Jab nested models ho (ek model ke andar dusra model), to `loc` poora path show karta hai:
 
 ```python
 class Address(BaseModel):
@@ -358,20 +364,20 @@ try:
     User(name="Alice", address={"city": "NY", "zip_code": "bad"})
 except ValidationError as e:
     print(e.errors()[0]["loc"])
-    # ('address', 'zip_code')  -- similar to Zod's path: ["address", "zipCode"]
+    # ('address', 'zip_code')  -- Zod ke path: ["address", "zipCode"] jaisa
 ```
 
 ---
 
-## Annotated Types: Inline Constraints
+## Annotated Types: Constraints Ko Type Mein Likho
 
-Instead of using `Field()`, you can attach constraints directly to the type using `Annotated`:
+Sochne wali baat — agar ek validation pattern bar-bar use kar rahe ho to kyu har baar `Field()` likho? Annotated use karo, constraints directly type ke saath attach kar do:
 
 ```python
 from typing import Annotated
 from pydantic import BaseModel, Field
 
-# These two are equivalent:
+# Yeh dono same hain:
 
 # Using Field() as default
 class UserA(BaseModel):
@@ -384,18 +390,18 @@ class UserB(BaseModel):
     age: Annotated[int, Field(ge=0, le=150)]
 ```
 
-The `Annotated` approach is preferred when you want to **reuse constraints** as custom types:
+`Annotated` approach tab best hai jab constraints **reuse** karna ho — jaise Flipkart cart mein product IDs, order IDs, user IDs sab ke liye alag-alag validation ho:
 
 ```python
 from typing import Annotated
 from pydantic import BaseModel, Field
 
-# Define reusable constrained types
+# Reusable constrained types define karo
 Username = Annotated[str, Field(min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_]+$")]
 PositiveInt = Annotated[int, Field(gt=0)]
 Percentage = Annotated[float, Field(ge=0, le=100)]
 
-# Use them across multiple models
+# Ab har jagah use kar sakte ho
 class User(BaseModel):
     username: Username
     score: Percentage
@@ -405,7 +411,7 @@ class Product(BaseModel):
     discount: Percentage
 ```
 
-This is like creating reusable Zod types:
+Zod mein yeh jaisa hota hai:
 ```typescript
 const Username = z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/);
 const PositiveInt = z.number().int().positive();
@@ -419,9 +425,9 @@ const UserSchema = z.object({
 
 ---
 
-## Custom Error Messages
+## Custom Error Messages - Apne Shabd Likho
 
-### In Field()
+### Field() Mein Custom Message
 
 ```python
 from pydantic import BaseModel, Field
@@ -432,7 +438,9 @@ class User(BaseModel):
     age: int = Field(ge=13, json_schema_extra={"error_message": "Must be 13+"})
 ```
 
-### In @field_validator
+### @field_validator Mein Custom Message
+
+Custom message likho validators ke andar — jab error raise karo to likho:
 
 ```python
 class User(BaseModel):
@@ -450,7 +458,9 @@ class User(BaseModel):
         return v
 ```
 
-### Using Annotated with AfterValidator for Reusable Validation
+### Annotated + AfterValidator - Reusable Custom Validation
+
+Ek function likho validation logic ke liye, phir use bar-bar:
 
 ```python
 from typing import Annotated
@@ -470,7 +480,9 @@ class Comment(BaseModel):
 
 ---
 
-## Putting It All Together: A Real-World Registration Form
+## Sab Ek Saath: Real Registration Form (Jaise Flipkart par Sign-Up)
+
+Sochte ho — user registration form banana hai. Username, email, strong password, age check, Terms & Conditions agree karna — sab kucch. Yeh dekhte ho kaise:
 
 ```python
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -527,19 +539,19 @@ print(form.email)  # "alice@example.com" (normalized)
 ## Practice Exercises
 
 ### Exercise 1: Constrained Product
-Create a `Product` model with: `name` (1-200 chars), `price` (greater than 0, at most 99999.99), `weight_kg` (greater than 0), `sku` (matches pattern `[A-Z]{3}-\d{6}`). Test with valid and invalid data.
+Ek `Product` model banao: `name` (1-200 chars), `price` (0 se bada, max 99999.99), `weight_kg` (0 se bada), `sku` (pattern: `[A-Z]{3}-\d{6}`). Valid aur invalid data se test karo.
 
 ### Exercise 2: Password Validator
-Create a `ChangePassword` model with `current_password`, `new_password`, and `confirm_password`. Add a field validator on `new_password` that enforces: min 8 chars, at least one uppercase, one lowercase, one digit, one special character. Add a model validator that checks `new_password == confirm_password` and `new_password != current_password`.
+`ChangePassword` model banao — `current_password`, `new_password`, `confirm_password`. Field validator add karo `new_password` par: min 8 chars, at least one uppercase, one lowercase, one digit, one special character. Model validator add karo jo check kare: `new_password == confirm_password` aur `new_password != current_password`.
 
 ### Exercise 3: Error Inspector
-Create a model that will produce multiple validation errors at once. Catch the `ValidationError` and write code that formats the errors as a list of strings like `"field_name: error message"`. This is similar to how you might format errors for an API response.
+Ek model banao jo multiple validation errors produce kare. `ValidationError` catch karo aur errors ko list of strings format mein likho — `"field_name: error message"` style. Yeh API response mein errors format karte time useful hota hai.
 
 ### Exercise 4: Before Validator
-Create a `Tags` model with a `values: list[str]` field. Add a `mode="before"` validator that accepts either a list of strings OR a single comma-separated string. Test with both `["a", "b"]` and `"a, b, c"`.
+`Tags` model banao `values: list[str]` field ke saath. `mode="before"` validator add karo jo accept kare ya to list of strings ya single comma-separated string. Dono se test karo: `["a", "b"]` aur `"a, b, c"`.
 
 ### Exercise 5: Reusable Annotated Types
-Define these reusable types using `Annotated`: `NonEmptyStr`, `PositiveFloat`, `Port` (int between 1 and 65535), `Slug` (lowercase alphanumeric with hyphens, 1-100 chars). Use them in at least two different models.
+`Annotated` use kar ke yeh types define karo: `NonEmptyStr`, `PositiveFloat`, `Port` (1-65535 ke beech int), `Slug` (lowercase alphanumeric with hyphens, 1-100 chars). Kam-se-kam do different models mein use karo.
 
 ### Exercise 6: Cross-Field Date Validation
-Create an `Event` model with `name`, `start_date` (datetime), `end_date` (datetime), and `max_attendees` (positive int). Add model validators to ensure: end is after start, the event is no longer than 30 days, and the event is not in the past (compare with `datetime.now()`).
+`Event` model banao — `name`, `start_date` (datetime), `end_date` (datetime), `max_attendees` (positive int). Model validators add karo: end date must be after start date, event max 30 days long ho, aur event past mein nahi ho (compare with `datetime.now()`).

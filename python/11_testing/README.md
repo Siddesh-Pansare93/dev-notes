@@ -1,6 +1,6 @@
-# Python Testing Deep Dive
+# Python Testing: Tera Code Solid Kaise Bane
 
-A practical, hands-on guide to testing modern Python applications — covering FastAPI integration testing, advanced mocking, async code, database isolation, LLM/AI application testing, and CI/CD automation. Built for developers who want to write tests that actually catch bugs and survive refactors.
+Socho ek second — Zomato ka API jab order place karte ho, uska code test kaise rehta hoga? Ya Swiggy ka delivery tracking? Ye sab production mein live jaane se pehle testing ke through jaate hain. Yeh guide hai *hands-on*, jisme tum sikhoge FastAPI ka integration testing, advanced mocking, async code testing, database isolation, aur LLM apps ka testing kaise karte hain. End mein tum likha aur likha tests likhaoge jo **actually bugs pakda ke** rakh de.
 
 ## Table of Contents
 
@@ -17,52 +17,57 @@ A practical, hands-on guide to testing modern Python applications — covering F
 ## Learning Path
 
 ### Beginner
-Start here if you are new to pytest or Python testing in general.
+Agar testing ke dunia mein nayi ho, idhar shuru kar.
 
-1. **Setup Instructions** — `01_comprehensive_testing.md` (Setup section)
-2. **E2E Testing with FastAPI TestClient** — Basic endpoint tests, POST request validation
-3. **Best Practices: AAA Pattern** — Arrange, Act, Assert
+1. **Setup Instructions** — `01_comprehensive_testing.md` (Setup section) — basics setup karo pehle
+2. **E2E Testing with FastAPI TestClient** — simple endpoint tests likho, POST requests check karo
+3. **Best Practices: AAA Pattern** — Arrange, Act, Assert — basically tum setup karo, action karo, check karo
 
 ### Intermediate
-You know pytest basics and want to write more robust, isolated tests.
+pytest basics ata hai aur ab tum chaho zyada solid tests likho. Database aur mocking k saath comfortable hona chaiye.
 
-4. **Mocking External APIs** — `respx` for httpx, `responses` for requests
-5. **Database Testing Strategies** — In-memory SQLite, pytest fixtures, FastAPI dependency overrides
-6. **Testing Async Code** — `pytest-asyncio`, `httpx.AsyncClient` for async endpoints
+4. **Mocking External APIs** — `respx` for httpx, `responses` for requests — jab API ka response fake karna ho
+5. **Database Testing Strategies** — In-memory SQLite, pytest fixtures, FastAPI dependency overrides — apna test database banao
+6. **Testing Async Code** — `pytest-asyncio`, `httpx.AsyncClient` for async endpoints — async functions kaise test karte hain
 
 ### Advanced
-You are building production-grade APIs or AI-powered applications.
+Production-grade APIs ya AI-powered applications bana rahe ho aur tests solid hone chahiye.
 
-7. **Testing LangChain / LLM Applications** — Mocking OpenAI, using `FakeListLLM`
-8. **CI/CD Integration** — GitHub Actions workflow with coverage reporting
-9. **Practice Exercises** — Parametrize inputs, seed databases, test file uploads
+7. **Testing LangChain / LLM Applications** — OpenAI calls mock karo, `FakeListLLM` use karo — deterministic LLM tests likho
+8. **CI/CD Integration** — GitHub Actions workflow with coverage reporting — tests automatically chalein deployments mein
+9. **Practice Exercises** — Parametrize inputs, seed databases, test file uploads — real-world scenarios
 
-## What You'll Learn
+## Kya Sikhoge
 
-- Write E2E tests for FastAPI endpoints using `TestClient` without spinning up a live server
-- Override FastAPI dependencies (auth, DB sessions) cleanly inside tests
-- Mock HTTP calls to external APIs using `respx` (for `httpx`) and `responses` (for `requests`)
-- Set up isolated test databases using SQLite in-memory and pytest fixtures
-- Test `async` Python functions and async FastAPI endpoints with `pytest-asyncio`
-- Mock OpenAI API calls and use LangChain's `FakeListLLM` for deterministic LLM tests
-- Apply the AAA (Arrange-Act-Assert) pattern for readable, maintainable test code
-- Use `@pytest.mark.parametrize` to cover multiple input cases without test duplication
-- Generate coverage reports and integrate the full test suite into a GitHub Actions CI pipeline
+- **FastAPI endpoints ka E2E testing** — `TestClient` use karke server spin up kiye bina test likho
+- **FastAPI dependencies override karna** — auth, DB sessions, sab cleanly test karo
+- **External APIs ko mock karna** — `respx` (httpx ke liye) aur `responses` (requests ke liye) se fake responses dedo
+- **Isolated test databases** — SQLite in-memory setup karo, pytest fixtures se manage karo
+- **Async Python functions test karna** — `pytest-asyncio` se async endpoints ko test karo
+- **OpenAI API calls mock karna** — LangChain ka `FakeListLLM` use karke deterministic tests likho
+- **AAA pattern apply karna** — Arrange-Act-Assert se readable, maintainable code likho
+- **`@pytest.mark.parametrize` use karna** — ek hi test mein multiple inputs check karo, duplication na ho
+- **Coverage reports generate karna** — pura test suite GitHub Actions mein automate karo
 
-## Prerequisites
+## Zaruri Cheezon Ka Pata Hona
 
-- Comfortable writing Python functions and classes
-- Basic familiarity with FastAPI (routes, request/response models, dependencies)
-- Some exposure to `pytest` — running tests, writing basic `assert` statements
-- Understanding of async/await syntax in Python is helpful for the async sections
-- No prior mocking experience required
+- Python functions aur classes likha sakte ho
+- FastAPI basics pata ho (routes, request/response models, dependencies)
+- `pytest` se test chalana aata ho — basic `assert` statements likha sakte ho
+- Async/await syntax Python mein samajh mein aaye (async sections ke liye helpful)
+- Mocking ka pehle se experience nahi zaruri — yahan par seekhenge
 
-## How to Use This Guide
+## Is Guide Ko Kaise Use Karo
 
-1. **Install the stack first.** Run the setup command at the top of `01_comprehensive_testing.md` before anything else — all examples depend on those packages.
-2. **Follow the examples in order.** Each example builds on the one before it; the database fixture example, for instance, feeds directly into the FastAPI dependency override example.
-3. **Type the code yourself.** Copy-paste works, but typing forces you to read every line and notice what each argument does.
-4. **Run tests after each example.** Use `pytest -v` so you see which tests pass and what output they produce — green feedback reinforces the mental model.
-5. **Attempt the practice exercises at the end.** They cover gaps that the examples deliberately leave open (file uploads, seeded databases, parametrized validation) and are the best way to solidify what you've learned.
+1. **Pehle setup karo.** `01_comprehensive_testing.md` ke top par jo command likha hai, vo pehle run karo. Baaki sab examples uspe depend karte hain.
 
-Testing well is what separates code you can ship confidently from code you can only hope works — keep writing tests, keep refactoring, and let the suite back you up.
+2. **Examples ko order mein follow karo.** Har example se pehle wale se build hota hai — jaise database fixture example, vo directly FastAPI dependency override mein feed hota hai.
+
+3. **Code khud type karo.** Copy-paste karne se tez chalega, lekin typing se har line padega aur samajh mein aayega ki har argument kya kar raha hai.
+
+4. **Har example ke baad tests chalao.** `pytest -v` use karo taaki dekh sake kaun se tests pass/fail ho rahe hain aur output kya hai — green feedback se mental model banegi.
+
+5. **Practice exercises try karo.** End mein jo exercises hain, vo intentionally gaps chhod kar likhi gyi hain (file uploads, seeded databases, parametrized validation) — ye best tareeka hai solidify karne ka.
+
+> [!tip]
+> Testing ही ve difference है जो tumhe confident code ship karne deta hai. Jab coverage achha ho, tab safely refactor kar sakte ho, safely deploy kar sakte ho. Likhte raho tests, refactor karte raho, aur suite tumhara backup rahe.

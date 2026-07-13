@@ -1,30 +1,32 @@
-# Prisma with Python and FastAPI
+# Prisma with Python aur FastAPI
 
-The Prisma Client Python is an asynchronous, auto-generated, and fully type-safe database client. When paired with FastAPI, it offers an incredibly fast and modern stack for developing asynchronous APIs.
+Prisma Client Python — ek asynchronous, auto-generated, aur fully type-safe database client hai. Jab isko FastAPI ke saath couple karte ho, toh ek incredibly fast aur modern stack mil jaata hai for developing asynchronous APIs.
 
-## 1. Setup and Installation
+Socho ek second — jab ek restaurant mein tum customer ho aur waiter tumhara order le raha ho, he doesn't go to the kitchen himself, right? Woh ek piece of paper likhe aur kitchen ko hand over karte hain. Prisma ka kaam exactly yahi hai — data ko manage karta hai bilkul aek professional waiter ki tarah!
 
-Initialize a Python project and install the Prisma Client Python and FastAPI.
+## 1. Setup aur Installation
+
+Pehle Python project initialize karo aur Prisma Client Python + FastAPI install karo.
 
 ```bash
 mkdir fastapi-prisma
 cd fastapi-prisma
 python -m venv venv
-source venv/bin/activate # Windows: venv\Scripts\activate
+source venv/bin/activate # Windows ke liye: venv\Scripts\activate
 
 pip install "prisma[fastapi]" fastapi uvicorn pydantic
 ```
 
-Initialize your Prisma project:
+Ab Prisma project init karo:
 ```bash
 prisma init
 ```
 
-This creates a `prisma` directory with `schema.prisma` and `.env`.
+Yeh `prisma` directory create karte hain jismein `schema.prisma` aur `.env` file hote hain.
 
-## 2. Schema and Type Generation
+## 2. Schema aur Type Generation
 
-Define your schema. Unlike the Node.js client, the generator provider must be `prisma-client-py`.
+Apna schema define karo. Node.js client se alag, yahan generator provider `prisma-client-py` hona zaruri hai.
 
 ```prisma
 // prisma/schema.prisma
@@ -35,7 +37,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite" // or postgresql
+  provider = "sqlite" // ya phir postgresql
   url      = env("DATABASE_URL")
 }
 
@@ -56,7 +58,7 @@ model Post {
 }
 ```
 
-Migrate and generate the Python client:
+Ab migration run karo aur Python client generate karo:
 ```bash
 prisma migrate dev --name init
 prisma generate
@@ -64,7 +66,9 @@ prisma generate
 
 ## 3. Async Operations with FastAPI
 
-In FastAPI, we manage the Prisma connection lifecycle using FastAPI's startup and shutdown events.
+FastAPI mein, Prisma connection lifecycle ko manage karte hain FastAPI ke startup aur shutdown events se.
+
+Socho Zomato app ke bare mein — jab app start hota hai toh database connection open hota hai, aur jab close hota hai toh properly close karte hain. Exactly yahi karte hain hum yahan:
 
 ```python
 # main.py
@@ -75,7 +79,7 @@ from pydantic import BaseModel
 app = FastAPI()
 db = Prisma()
 
-# Initialize the Prisma client connection
+# Database connection ko startup event mein initialize karo
 @app.on_event("startup")
 async def startup():
     await db.connect()
@@ -84,7 +88,7 @@ async def startup():
 async def shutdown():
     await db.disconnect()
 
-# Pydantic models for request/response validation
+# Pydantic models request/response validation ke liye
 class UserCreate(BaseModel):
     email: str
     name: str
@@ -111,32 +115,32 @@ async def create_user(user: UserCreate):
 async def get_user(user_id: int):
     user = await db.user.find_unique(
         where={"id": user_id},
-        include={"posts": True} # Include relations!
+        include={"posts": True} # Relations ko include karo!
     )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 ```
 
-Run the server:
+Server run karo:
 ```bash
 uvicorn main:app --reload
 ```
 
-## 4. Integration with Pydantic Models
+## 4. Pydantic Models ke saath Integration
 
-Prisma Client Python automatically generates Pydantic models for your database schema. You can import these directly to avoid duplicating model definitions!
+Prisma Client Python automatically Pydantic models generate karte hain tumhare database schema se. Isko directly import kar sakte ho — model definitions duplicate nahi karni padegi!
 
 ```python
 from prisma.models import User, Post
 from prisma.partials import UserUpdateInput
 
-# Return the exact Prisma Pydantic Model
+# Exact Prisma Pydantic Model return karo
 @app.get("/users", response_model=list[User])
 async def list_users():
     return await db.user.find_many()
 
-# Use partial models for updates
+# Partial models use karo updates ke liye
 @app.put("/users/{user_id}", response_model=User)
 async def update_user(user_id: int, user_update: UserUpdateInput):
     user = await db.user.update(
@@ -148,7 +152,7 @@ async def update_user(user_id: int, user_update: UserUpdateInput):
 
 ## 5. Testing Strategies
 
-Testing async database operations in Python often involves overriding the dependency or using a dedicated test database.
+Async database operations ko test karte waqt Python mein zyada baar dependency override karte hain ya phir dedicated test database use karte hain.
 
 ```python
 # test_main.py
@@ -159,7 +163,7 @@ from main import app, db
 @pytest.fixture(autouse=True, scope="module")
 async def setup_db():
     await db.connect()
-    # Clean the DB before tests
+    # Tests se pehle DB ko clean karo
     await db.user.delete_many()
     yield
     await db.disconnect()
@@ -174,12 +178,12 @@ async def test_create_user():
 
 ## Performance Tips
 
-*   **Batching**: Use `db.user.create_many()` to insert multiple records at once rather than inside a loop.
-*   **Transactions**: Use `db.tx()` for interactive transactions when executing dependent logic.
-*   **Include Cautiously**: Only use `include={"posts": True}` when necessary, as it translates to JOINs that can bloat payloads.
+*   **Batching**: `db.user.create_many()` use karo multiple records insert karte waqt. Loop mein individual inserts mat karo — yeh Flipkart ka bulk order jaise hai!
+*   **Transactions**: `db.tx()` use karo interactive transactions ke liye jab dependent logic execute karna ho. UPI payment ke jaise — successful hona chahiye ya completely rollback.
+*   **Include Cautiously**: `include={"posts": True}` sirf tab use karo jab zaruri ho. Yeh database mein JOIN translate hota hai jo payload ko bloat kar sakta hai.
 
 ## Practice Exercises
 
-1. Update the schema to include a `Tag` model (Many-to-Many relation with `Post`) and regenerate the client.
-2. Implement a `/posts/` endpoint that accepts tags when creating a post via Prisma's nested create structure.
-3. Write a test suite using `pytest-asyncio` that verifies the `User` and `Post` cascaded delete logic.
+1. Schema mein `Tag` model add karo (`Post` ke saath Many-to-Many relation) aur client regenerate karo.
+2. `/posts/` endpoint implement karo jo tags accept kare post create karte waqt, Prisma's nested create structure use karke.
+3. `pytest-asyncio` use karte hue test suite likho jo `User` aur `Post` cascaded delete logic verify kare.

@@ -1,66 +1,63 @@
 # Production Patterns
 
-Battle-tested patterns for taking a Python AI backend from a working prototype to a
-production-grade system — covering architecture, error handling, caching, deployment,
-and observability. Written for developers coming from a Node.js/NestJS background who
-are building FastAPI + LangGraph applications.
+Socho — tumne ek Python AI backend bana liya hai jo locally kaam kar raha hai. Phir production mein jaate ho aur sab kuch tut jaata hai. Latency, costs, unexpected errors — sab kuch. Yeh guide tumhe vo patterns sikhati hai jo real-world systems mein use hote hain — architecture, error handling, caching, deployment, aur observability. Node.js/NestJS background se aane wale developers ke liye likhi gayi hai jo FastAPI + LangGraph le ke kaam kar rahe hain.
 
 ## Table of Contents
 
 ### Part 1: Structure and Reliability
-1. [Project Architecture](./01_project_architecture.md) — folder layout, app factory pattern, Pydantic settings, dependency injection, and the service/agent layer split
-2. [Error Handling and Logging](./02_error_and_logging.md) — structured logging with structlog, custom exception hierarchies, centralized FastAPI error handlers, LLM-specific retry logic, correlation IDs, and Sentry integration
+1. [Project Architecture](./01_project_architecture.md) — folder layout, app factory pattern, Pydantic settings, dependency injection, aur service/agent layer ko kaise split karein
+2. [Error Handling and Logging](./02_error_and_logging.md) — structlog se structured logging, custom exception hierarchies, centralized FastAPI error handlers, LLM-specific retry logic, correlation IDs, aur Sentry integration
 
 ### Part 2: Performance and Cost
-3. [Caching](./03_caching.md) — Redis with async Python, exact-match LLM response caching, semantic caching with embeddings, LangChain's built-in cache, cache invalidation strategies, and cost tracking
+3. [Caching](./03_caching.md) — Redis async Python mein, exact-match LLM response caching, semantic caching embeddings se, LangChain ke built-in cache, cache invalidation strategies, aur cost tracking
 
 ### Part 3: Operations
-4. [Deployment](./04_deployment.md) — multi-stage Docker builds, CI/CD pipelines, and Kubernetes for Python AI backends
-5. [Monitoring](./05_monitoring.md) — health check endpoints, Prometheus metrics, LangSmith tracing, and LLM-specific observability (cost alerts, token usage, agent behavior)
+4. [Deployment](./04_deployment.md) — multi-stage Docker builds, CI/CD pipelines, aur Kubernetes for Python AI backends
+5. [Monitoring](./05_monitoring.md) — health check endpoints, Prometheus metrics, LangSmith tracing, aur LLM-specific observability (cost alerts, token usage, agent behavior)
 
 ## Learning Path
 
-**Beginner — build a solid foundation first**
-1. Chapter 1: Project Architecture — start here; get the folder structure and config right before writing a single route
-2. Chapter 2: Error Handling and Logging — add structured logging and a custom exception hierarchy while the codebase is still small
+**Beginner — foundation pehle solid banao**
+1. Chapter 1: Project Architecture — yahan se shuru karo; folder structure aur config pehle theek kar lo pehle koi code likhne se
+2. Chapter 2: Error Handling and Logging — structured logging aur custom exception hierarchy add karo jab codebase abhi chhota hai
 
-**Intermediate — harden for real traffic**
-3. Chapter 3: Caching — add Redis-backed LLM and API response caching; understand why it matters for cost, not just speed
-4. Chapter 5: Monitoring — wire up health checks and Prometheus metrics so you can see what is happening in production
+**Intermediate — real traffic ke liye tayyar karo**
+3. Chapter 3: Caching — Redis-backed LLM aur API response caching add karo; samjho kyon ye sirf speed ke liye nahi, cost ke liye bhi zaroori hai
+4. Chapter 5: Monitoring — health checks aur Prometheus metrics wire up karo taki production mein dekh pao ki kya chal raha hai
 
-**Advanced — operate at scale**
-5. Chapter 4: Deployment — containerize with multi-stage Docker builds, set up CI/CD, and configure Kubernetes probes tied to your health endpoints
+**Advanced — scale par chalao**
+5. Chapter 4: Deployment — Docker multi-stage builds se containerize karo, CI/CD setup karo, aur Kubernetes probes configure karo jo tumhare health endpoints se connected ho
 
-## What You'll Learn
+## Kya Sikhoge Tum
 
-- How to structure a FastAPI + LangGraph project so it does not turn into a mess as it grows
-- The Python equivalent of NestJS concepts: modules, providers, exception filters, guards, interceptors
-- How to use Pydantic `BaseSettings` for validated, typed configuration — better than `dotenv` + `zod`
-- FastAPI's `Depends()` system for dependency injection and how it differs from NestJS's `@Injectable()`
-- Structured JSON logging with `structlog` (the Python equivalent of `pino`) and how to bind request-scoped context
-- Building a typed exception hierarchy for CRUD errors, LLM rate limits, token overflows, content filter rejections, and agent loop detection
-- Propagating correlation IDs through the full async call chain using Python's `contextvars`
-- Caching LLM responses in Redis to cut API costs by 40–60% on repeated or similar queries
-- Semantic caching with embeddings to catch prompts that are similar but not identical
-- Deterministic embedding caching — same text always produces the same vector, so cache it forever
-- Cache invalidation strategies: TTL, event-based, version-based, and tag-based
-- Multi-stage Docker builds that keep production images small and handle C-extension dependencies
-- Kubernetes liveness and readiness probes wired to `/health` and `/ready` endpoints
-- LLM-specific monitoring: cost-per-request metrics, token usage dashboards, agent behavior tracing with LangSmith
+- Kaise FastAPI + LangGraph project ko structure karein taki ye mess na ban jaye jab grow kare
+- NestJS concepts ka Python equivalent: modules, providers, exception filters, guards, interceptors
+- Pydantic `BaseSettings` use karke validated, typed configuration — `dotenv` + `zod` se bohot better hai
+- FastAPI ka `Depends()` system for dependency injection aur kaise ye NestJS ke `@Injectable()` se different hai
+- Structured JSON logging `structlog` se (Python ka `pino` equivalent) aur request-scoped context kaise bind karein
+- Typed exception hierarchy banaana CRUD errors, LLM rate limits, token overflows, content filter rejections, aur agent loop detection ke liye
+- Correlation IDs ko full async call chain mein propagate karna using Python ka `contextvars`
+- LLM responses ko Redis mein cache karke API costs 40–60% tak cut karna repeated ya similar queries pe
+- Semantic caching embeddings se — prompts jo similar hain but identical nahi, vo bhi catch karo
+- Deterministic embedding caching — same text hamesha same vector produce karega, to isse cache karo forever
+- Cache invalidation strategies: TTL, event-based, version-based, aur tag-based
+- Multi-stage Docker builds jo production images ko small rakhti hain aur C-extension dependencies handle karti hain
+- Kubernetes liveness aur readiness probes jo `/health` aur `/ready` endpoints se connected ho
+- LLM-specific monitoring: cost-per-request metrics, token usage dashboards, agent behavior tracing LangSmith se
 
 ## Prerequisites
 
-- Comfortable with Python async/await and the basics of FastAPI (routes, Pydantic models)
-- Familiar with the general concepts of REST APIs, middleware, and environment-based configuration
-- Basic Redis knowledge is helpful but not required — Chapter 3 starts from first principles
-- Node.js or NestJS experience is assumed in places where the guides draw direct comparisons, but it is not required to follow along
+- Python async/await aur FastAPI basics (routes, Pydantic models) comfortable ho
+- REST APIs, middleware, aur environment-based configuration ke concepts familiar ho
+- Redis ka basic knowledge helpful hai but zaroori nahi — Chapter 3 first principles se shuru hota hai
+- Node.js ya NestJS experience kuch jagah assume ki gayi hai jahan guides direct comparisons banti hain, lekin ye follow karne ke liye zaruri nahi hai
 
-## How to Use This Guide
+## Isko Kaise Use Karo
 
-1. **Read Chapter 1 before writing any code.** Retrofitting architecture onto an existing messy codebase is ten times harder than starting clean — the project layout and separation-of-concerns rules pay off immediately.
-2. **Copy the code snippets into your own project as you go.** The `structlog` setup, Pydantic `Settings` class, exception hierarchy, and FastAPI dependency patterns are drop-in starting points, not illustrations.
-3. **Run each chapter's practice exercises.** Every chapter ends with 4–6 exercises that build on each other. The deployment chapter's Dockerfile only makes sense after you have a real app to containerize.
-4. **Use the Node.js comparison tables and snippets as a translation guide.** When you see a Python pattern that feels unfamiliar, the NestJS equivalent is usually right beside it.
-5. **Treat the cost math seriously.** The caching and monitoring chapters include concrete numbers — GPT-4o pricing, projected savings at different hit rates, token budget math. Run the numbers against your own expected traffic before choosing a caching strategy.
+1. **Chapter 1 padho pehle koi bhi code likhne se.** Ek existing messy codebase pe architecture retrofit karna das guna harder hai — project layout aur separation-of-concerns rules turant payoff dete hain.
+2. **Code snippets ko apne project mein copy karo jaise chalte ho.** `structlog` setup, Pydantic `Settings` class, exception hierarchy, aur FastAPI dependency patterns — ये drop-in starting points hain, sirf illustrations nahi.
+3. **Har chapter ke practice exercises run karo.** Har chapter ke end mein 4–6 exercises hain jo ek-dusre pe build hote hain। Deployment chapter ka Dockerfile sirf sense banti hai jab tumhare pass real app ho containerize karne ke liye।
+4. **Node.js comparison tables aur snippets ko translation guide ke taur pe use karo.** Jab koi Python pattern unfamiliar lage, NestJS equivalent usually bilkul paas mein hota hai.
+5. **Cost math ko seriously treat karo.** Caching aur monitoring chapters mein concrete numbers hain — GPT-4o pricing, projected savings different hit rates pe, token budget math. Apne expected traffic ke against numbers run karo pehle caching strategy choose karne se.
 
-Shipping to production is where Python's ecosystem really shines — `structlog`, `pydantic-settings`, `sentry-sdk`, and the LangSmith integration make observability straightforward once the patterns are in place.
+Shipping to production ye hai jahan Python ka ecosystem sach mein shine karta hai — `structlog`, `pydantic-settings`, `sentry-sdk`, aur LangSmith integration observability ko straightforward banate hain once patterns place mein ho jate hain.

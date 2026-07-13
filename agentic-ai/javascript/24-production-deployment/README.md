@@ -1,6 +1,6 @@
 # Production Deployment of Agents
 
-🔴 **Production-grade**
+🔴 Production-grade
 
 Socho ek second ke liye — tumne apna agent local machine pe bana liya, `npm run dev` chalaya, terminal me sundar streaming responses aa rahe hain. Sab kuch perfect lag raha hai. Ab tumne wahi code production server pe daal diya aur launch ke 2 ghante baad:
 

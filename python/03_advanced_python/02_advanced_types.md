@@ -1,25 +1,25 @@
-# Advanced Types in Python
+# Python Mein Advanced Types
 
-## Basic Type Hints Se Aage
+## TypeScript Se Python Typing Tak
 
-Yeh chapter Python ke advanced typing features cover karta hai. Agar tumne TypeScript mein interfaces, generics, mapped types aur utility types use kiye hain, toh yahan tumhe seedha parallels milenge -- bas syntax aur kuch behavior thoda alag hai.
+Arre, agar tu TypeScript mein `interfaces`, `generics`, mapped types aur utility types use kiya hai, toh Python mein bhi bilkul same concept hain. Bas syntax thoda alag hai, baaki thinking same hai.
 
 ---
 
 ## TypedDict: Typed Dictionaries
 
-TypedDict tumhe dictionaries ke liye TypeScript-interface jaisi typing deta hai. Python mein plain dicts wahan use hote hain jahan TS mein interface/type use hota.
+Socho TypeScript mein tum `interface` likhte ho data ka shape define karne ke liye. Python mein plain dicts ka use hota tha, lekin ab `TypedDict` se tu usse bhi typed bana sakta hai, bilkul interface jaisa.
 
 ```python
 from typing import TypedDict, NotRequired
 
-# Python TypedDict
+# TypedDict se dict ka shape define karo
 class User(TypedDict):
     name: str
     age: int
     email: str
 
-# Usage
+# Use karo
 user: User = {
     "name": "Alice",
     "age": 30,
@@ -27,12 +27,12 @@ user: User = {
 }
 
 # mypy missing ya galat keys pakad leta hai
-bad_user: User = {"name": "Bob"}  # Error: missing keys 'age', 'email'
-user["name"] = 42                  # Error: expected str
+bad_user: User = {"name": "Bob"}  # Error: 'age' aur 'email' missing hain
+user["name"] = 42                  # Error: str expect kiya tha, int diya
 ```
 
 ```typescript
-// TypeScript equivalent
+// TypeScript mein bilkul same concept
 interface User {
   name: string;
   age: number;
@@ -40,9 +40,9 @@ interface User {
 }
 ```
 
-### Optional Keys
+### Optional Keys Ka Khel
 
-Zomato ke order form ki tarah socho -- kuch fields (address, phone) compulsory hain, kuch (special instructions) optional. TypedDict mein bhi yehi karte hain.
+Zomato ke order form socho -- kuch fields mandatory hain (address, phone number), kuch optional hain (special instructions, dietary preferences). TypedDict mein bhi yehi pattern use kar sakta hai.
 
 ```python
 from typing import TypedDict, NotRequired, Required
@@ -54,21 +54,21 @@ class Config(TypedDict):
     debug: NotRequired[bool]       # Optional key (Python 3.11+)
     timeout: NotRequired[float]
 
-# Ya saari keys ko default optional bana do
+# Ya phir saari keys ko optional bana de
 class PartialConfig(TypedDict, total=False):
     host: str       # ab saari keys optional hain
     port: int
     debug: bool
 
-# total=False ke saath required aur optional mix bhi kar sakte ho
+# Dono ko mix bhi kar sakte ho -- total=False + Required
 class MixedConfig(TypedDict, total=False):
-    host: Required[str]   # yeh wali REQUIRED hai
-    port: int              # optional (kyunki total=False)
+    host: Required[str]   # yeh zaruri hai
+    port: int              # optional (total=False ke wajah se)
     debug: bool            # optional
 ```
 
 ```typescript
-// TypeScript equivalents
+// TypeScript mein
 interface Config {
   host: string;
   port: number;
@@ -96,7 +96,7 @@ class AdminUser(BaseUser):
     role: str
     permissions: list[str]
 
-# AdminUser mein hai: name, email, role, permissions
+# AdminUser mein automatically BaseUser ke fields bhi hain
 admin: AdminUser = {
     "name": "Alice",
     "email": "alice@example.com",
@@ -105,27 +105,27 @@ admin: AdminUser = {
 }
 ```
 
-### TypedDict vs dataclass
+### TypedDict Ya Dataclass?
 
 > [!tip]
-> Simple rule of thumb: agar data JSON se aaya hai ya JSON jaana hai (jaise API response), TypedDict use karo. Agar object mein behavior (methods) chahiye, dataclass use karo.
+> Simple rule: agar data API se aaya hai ya JSON format mein hai (jaise API response), TypedDict use kar. Agar object mein logic/methods chahiye, toh dataclass use kar.
 
 | Feature | TypedDict | dataclass |
 |---|---|---|
 | Underlying type | dict | class instance |
 | Access syntax | `d["key"]` | `d.key` |
-| JSON-friendly | Haan (yeh khud dict hi hai) | Nahi (serialize karna padega) |
+| JSON-friendly | Bilkul (khud dict hai) | Nahi (serialize karna padega) |
 | Mutability | Mutable | Configurable |
 | Methods | Nahi | Haan |
-| Use case | API responses, configs | Domain objects |
+| Best for | API responses, configs | Domain objects, logic |
 
 ```python
-# TypedDict -- dict-shaped data ke liye (JSON, API responses)
+# TypedDict -- JSON aur API responses ke liye
 class ApiResponse(TypedDict):
     status: int
     data: list[dict[str, str]]
 
-# dataclass -- behavior wale objects ke liye
+# dataclass -- agar behavior chahiye
 from dataclasses import dataclass
 
 @dataclass
@@ -139,11 +139,11 @@ class User:
 
 ---
 
-## Protocol: Structural Subtyping (Duck Typing with Types)
+## Protocol: Structural Typing (Duck Typing Ko Typed Banao)
 
-Protocol Python ka TypeScript interfaces jaisa hi structural typing feature hai. Yeh bolta hai "jiske paas yeh methods/attributes hain, woh chalega" -- bina koi inheritance kiye.
+Protocol Python ka way hai TypeScript ke structural typing ko implement karne ka. Iska matlab "mujhe naam/class se matlab nahi, bass shape se" -- tere paas jo methods/attributes hain, woh important hai.
 
-Socho ek dabbawala ka system -- usse matlab nahi ki dabba kis company ka hai, bas dabba "carry-able" hona chahiye (uske paas handle hona chahiye). Waise hi Protocol object ke naam/class se matlab nahi rakhta, sirf shape (methods) se matlab rakhta hai.
+Socho dabbawalas ka system -- unhe matlab nahi ki dabba kis company/brand ka hai, bas duniya dekh le kya dabba "carry-able" hai (handle kar sakta hai kya). Waise hi Protocol isko bhi matlab nahi class ke naam se, sirf shape se -- "yeh object ke paas `draw()` method hai toh chalega, bas!"
 
 ```python
 from typing import Protocol
@@ -156,7 +156,7 @@ class Resizable(Protocol):
     height: int
     def resize(self, w: int, h: int) -> None: ...
 
-# Explicitly implement ya inherit karne ki zarurat nahi!
+# Inherits karne ya explicitly define karne ki zarurat nahi!
 class Circle:
     def draw(self) -> None:
         print("Drawing circle")
@@ -174,24 +174,18 @@ class Square:
         self.height = h
 
 # Circle, Drawable ko satisfy karta hai (draw method hai)
-# Square, Drawable aur Resizable dono ko satisfy karta hai
+# Square, dono ko satisfy karta hai
 def render(shape: Drawable) -> None:
     shape.draw()  # mypy khush hai
 
-render(Circle())  # Chalega
-render(Square())  # Chalega
+render(Circle())  # Bilkul chalega
+render(Square())  # Bilkul chalega
 ```
 
 ```typescript
-// TypeScript equivalent -- interfaces default se structural hote hain
+// TypeScript mein interfaces default se hi structural hote hain
 interface Drawable {
   draw(): void;
-}
-
-interface Resizable {
-  width: number;
-  height: number;
-  resize(w: number, h: number): void;
 }
 
 class Circle {
@@ -200,16 +194,15 @@ class Circle {
   }
 }
 
-// Chalega kyunki TS structurally typed hai
 function render(shape: Drawable): void {
   shape.draw();
 }
-render(new Circle()); // Fine -- explicit 'implements' ki zarurat nahi
+render(new Circle()); // Fine -- inherit karne ki zarurat nahi
 ```
 
 ### Runtime Checkable Protocols
 
-Normally Protocol sirf type-checking time pe kaam karta hai (mypy ke liye), runtime pe `isinstance` se check nahi ho sakta -- jab tak `@runtime_checkable` na lagao.
+Normally Protocol sirf type-checking time (mypy) pe kaam karta hai, runtime pe `isinstance` check nahi kar sakta. Lekin agar `@runtime_checkable` laga de, toh runtime pe bhi check kar sakta hai.
 
 ```python
 from typing import Protocol, runtime_checkable
@@ -218,7 +211,7 @@ from typing import Protocol, runtime_checkable
 class Printable(Protocol):
     def __str__(self) -> str: ...
 
-# Ab isinstance checks bhi use kar sakte ho
+# Ab isinstance checks kaam karte hain
 value = "hello"
 if isinstance(value, Printable):
     print(str(value))
@@ -226,9 +219,9 @@ if isinstance(value, Printable):
 
 ---
 
-## Literal Types
+## Literal Types: Fixed Values
 
-Values ko specific literals tak restrict karo -- bilkul TypeScript ke literal types jaisa:
+Kya sochta hai agar kisi parameter ko sirf specific values accept karni chahiye? TypeScript mein `Literal` hota hai -- Python mein bhi bilkul same.
 
 ```python
 from typing import Literal
@@ -238,13 +231,13 @@ def set_status(status: Literal["active", "inactive", "pending"]) -> None:
     print(f"Status set to {status}")
 
 set_status("active")    # OK
-set_status("deleted")   # mypy error!
+set_status("deleted")   # mypy error! Yeh allowed nahi hai
 
-# Numbers aur bools ke saath bhi chalta hai
+# Numbers aur bools ke saath bhi kaam karta hai
 Mode = Literal[1, 2, 3]
 def set_mode(mode: Mode) -> None: ...
 
-# Union ke saath combine karo
+# Union ke saath combine kar sakte ho
 def open_file(path: str, mode: Literal["r", "w", "a", "rb", "wb"]) -> None: ...
 ```
 
@@ -256,29 +249,29 @@ function setStatus(status: Status): void { ... }
 type Mode = 1 | 2 | 3;
 ```
 
-### LiteralString (Python 3.11+)
+### LiteralString: SQL Injection Protection (Python 3.11+)
 
 > [!warning]
-> Yeh SQL injection jaise bugs ko type-level pe hi pakad leta hai -- user input ko seedha query mein daalne se rokta hai.
+> Yeh cheez SQL injection jaise bugs ko type-level pe hi pakad leta hai -- user input ko directly query mein daalne se tujhe compiler hi rok dega!
 
 ```python
 from typing import LiteralString
 
-# SQL injection ko type level pe rok deta hai
+# Sirf string literals accept karega, user input nahi
 def execute_query(query: LiteralString) -> None:
     ...
 
-execute_query("SELECT * FROM users")           # OK - literal string
+execute_query("SELECT * FROM users")           # OK - literal string hai
 user_input = input("Enter query: ")
 execute_query(user_input)                        # mypy error! Literal nahi hai
-execute_query(f"SELECT * FROM {user_input}")     # mypy error! f-string with non-literal
+execute_query(f"SELECT * FROM {user_input}")     # mypy error! Dynamic string hai
 ```
 
 ---
 
-## TypeVar: Generics
+## TypeVar: Generics Ka Raaz
 
-TypeVar Python ka generics implement karne ka tarika hai. Concept exactly TypeScript ke `<T>` jaisa hi hai, bas syntax alag hai.
+TypeVar Python ka generics implement karne ka tarika hai. Concept bilkul TypeScript ke `<T>` jaisa hai, sirf Python mein syntax thoda alag hai.
 
 ### Basic Generic Functions
 
@@ -291,8 +284,8 @@ def first(items: list[T]) -> T:
     return items[0]
 
 # mypy return type khud infer kar leta hai
-name = first(["alice", "bob"])     # inferred as str
-number = first([1, 2, 3])          # inferred as int
+name = first(["alice", "bob"])     # automatically str
+number = first([1, 2, 3])          # automatically int
 ```
 
 ```typescript
@@ -302,12 +295,12 @@ function first<T>(items: T[]): T {
 }
 ```
 
-### New Syntax (Python 3.12+)
+### Cleaner Syntax (Python 3.12+)
 
-Python 3.12 mein ek cleaner syntax aaya jo TypeScript jaisa hi dikhta hai:
+Python 3.12 mein TypeScript jaisa clean syntax aaya:
 
 ```python
-# Python 3.12+ -- kaafi clean!
+# Python 3.12+ -- kaafi cleaner!
 def first[T](items: list[T]) -> T:
     return items[0]
 
@@ -315,10 +308,10 @@ def pair[T, U](a: T, b: U) -> tuple[T, U]:
     return (a, b)
 ```
 
-### Bounded TypeVars
+### Bounded TypeVars: T Ko Constraint Karo
 
 ```python
-# Old syntax
+# Purana syntax
 from typing import TypeVar
 
 T = TypeVar("T", bound=int)  # T ko int ya uska subclass hona chahiye
@@ -330,7 +323,7 @@ def double(x: T) -> T:
 def double[T: int](x: T) -> T:
     return x * 2
 
-# Sirf specific types tak constrain karo
+# Sirf specific types tak limit kar
 T = TypeVar("T", str, bytes)  # T exactly str ya bytes hi hona chahiye
 
 def concat(a: T, b: T) -> T:
@@ -346,7 +339,7 @@ function double<T extends number>(x: T): T {
 
 ### Generic Classes
 
-Ek generic `Stack` class socho jo kisi bhi type ka data hold kar sake -- bilkul Flipkart ke cart jaisa jo products, wishlist items, ya coupons kuch bhi store kar sakta hai, bas type consistent honi chahiye.
+Flipkart ke shopping cart socho -- koi bhi type ka data (products, wishlist items, coupons) store kar sakta hai, bas type consistent honi chahiye. Waise hi generic classes.
 
 ```python
 from typing import TypeVar, Generic
@@ -362,17 +355,17 @@ class Stack(Generic[T]):
 
     def pop(self) -> T:
         if not self._items:
-            raise IndexError("Stack is empty")
+            raise IndexError("Stack khali hai")
         return self._items.pop()
 
     def peek(self) -> T | None:
         return self._items[-1] if self._items else None
 
-# Type inference ke saath usage
+# Type inference ke saath use
 int_stack: Stack[int] = Stack()
 int_stack.push(1)
 int_stack.push(2)
-value = int_stack.pop()  # inferred as int
+value = int_stack.pop()  # mypy ko pata hai yeh int hai
 
 str_stack: Stack[str] = Stack()
 str_stack.push("hello")
@@ -403,11 +396,11 @@ class Stack<T> {
 
 ---
 
-## ParamSpec: Typing Decorators
+## ParamSpec: Decorators Ko Type Karo
 
-ParamSpec kisi function ke parameter types ko "capture" karta hai -- yeh decorators ko type karne ke liye zaruri hai jo original function ka signature preserve karte hain.
+ParamSpec kisi function ke parameters ko "capture" karta hai -- yeh decorator ko type karte wakt zaruri hai jab original function ka signature preserve karni ho.
 
-Socho ek decorator ek "middleware" jaisa hai jo kisi bhi function ko wrap kar sakta hai -- bina uske parameters ka shape jaane bhi type-safety maintain karni hai. ParamSpec exactly yehi karta hai.
+Decorator ek middleware jaisa hai jo kisi bhi function ko wrap kar sakta hai. ParamSpec se tu type-safety maintain rakh sakta hai bina parameters ka shape jaane bhi.
 
 ```python
 from typing import ParamSpec, TypeVar, Callable
@@ -423,7 +416,7 @@ def timer(func: Callable[P, R]) -> Callable[P, R]:
         start = time.time()
         result = func(*args, **kwargs)
         elapsed = time.time() - start
-        print(f"{func.__name__} took {elapsed:.4f}s")
+        print(f"{func.__name__} ne {elapsed:.4f}s liya")
         return result
     return wrapper
 
@@ -431,7 +424,7 @@ def timer(func: Callable[P, R]) -> Callable[P, R]:
 def greet(name: str, excited: bool = False) -> str:
     return f"Hello, {name}{'!!!' if excited else ''}"
 
-# mypy ko pata hai: greet(name: str, excited: bool = False) -> str
+# mypy ko original signature pata hai: greet(name: str, excited: bool = False) -> str
 result = greet("Alice", excited=True)
 ```
 
@@ -442,42 +435,42 @@ def timer[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         start = time.time()
         result = func(*args, **kwargs)
-        print(f"{func.__name__} took {time.time() - start:.4f}s")
+        print(f"{func.__name__} ne {time.time() - start:.4f}s liya")
         return result
     return wrapper
 ```
 
 ---
 
-## Callable Type
+## Callable Type: Function Signatures
 
-Function parameters ke liye type hint jo doosre functions accept karte hain:
+Jab function ko parameter mein doosra function pass karna ho, Callable use kar:
 
 ```python
 from typing import Callable
 
-# Basic callable: (int, int) -> int
+# Basic: (int, int) -> int
 def apply(func: Callable[[int, int], int], a: int, b: int) -> int:
     return func(a, b)
 
 result = apply(lambda x, y: x + y, 3, 4)
 
-# Bina kisi argument wala callable
+# Bina arguments wala
 Callback = Callable[[], None]
 
 def on_complete(callback: Callback) -> None:
     callback()
 
-# Koi bhi arguments accept karne wala callable
+# Koi bhi arguments accept kare
 from typing import Any
-AnyFunc = Callable[..., Any]  # ... ka matlab hai koi bhi args
+AnyFunc = Callable[..., Any]  # ... = koi bhi args
 
 def register(handler: AnyFunc) -> None:
     ...
 ```
 
 ```typescript
-// TypeScript equivalents
+// TypeScript equivalent
 function apply(func: (a: number, b: number) => number, a: number, b: number): number {
   return func(a, b);
 }
@@ -488,9 +481,9 @@ type AnyFunc = (...args: any[]) => any;
 
 ---
 
-## @overload Decorator
+## @overload: Multiple Signatures Ek Function Mein
 
-Ek hi function ke multiple signatures define karo -- bilkul TypeScript overloads jaisa:
+Ek hi function ke liye multiple type signatures define kar -- TypeScript overloads jaisa.
 
 ```python
 from typing import overload
@@ -511,10 +504,10 @@ def process(value: str | int | float) -> str | int | float:
     else:
         return value * 2.0
 
-# mypy ko input ke hisaab se specific return type pata hai
-x = process("hello")  # inferred as str
-y = process(42)        # inferred as int
-z = process(3.14)      # inferred as float
+# mypy input ke hisaab se output type infer karta hai
+x = process("hello")  # str
+y = process(42)        # int
+z = process(3.14)      # float
 ```
 
 ```typescript
@@ -527,9 +520,9 @@ function process(value: string | number): string | number {
 }
 ```
 
-### Arguments ke hisaab se alag return type wala overload
+### Argument Type Ke Hisaab Se Return Type
 
-Ek payment gateway socho jo `raw=True` pass karne pe raw bytes deta hai (jaise UPI QR image), aur `raw=False` pe readable string. Overload se yeh bhi type-safe likh sakte ho.
+IRCTC booking socho -- agar tu `ticket_type="sleeper"` pass kare toh sleeper berth ka arrangement return hoga, agar `ticket_type="ac"` toh AC berth. Overload se yeh type-safe bana sakta hai.
 
 ```python
 from typing import overload, Literal
@@ -550,26 +543,26 @@ def fetch_data(raw: bool = False) -> str | bytes:
 
 ---
 
-## TYPE_CHECKING for Import Cycles
+## TYPE_CHECKING: Circular Imports Ko Toro
 
-Jab tumhare paas circular imports ho jo sirf type hints ki wajah se exist karte hain, `TYPE_CHECKING` use karo.
+Jab circular imports sirf type hints ki wajah se exist karte hain, `TYPE_CHECKING` use kar.
 
-Socho `User` aur `Order` ek doosre ko reference karte hain -- Zomato mein jaise ek User ke multiple Orders hain aur har Order ek User se linked hai. Agar dono files ek doosre ko normally import karein, circular import error aayega. `TYPE_CHECKING` isse bachata hai.
+Zomato scenario: `User` aur `Order` ek doosre ko reference karte hain -- ek user ke multiple orders hain aur order ka owner user hai. Agar dono files ek doosre ko directly import karein, circular import error aayega. `TYPE_CHECKING` se yeh issue solve ho jaata hai.
 
 ```python
 # models/user.py
-from __future__ import annotations  # Saare annotations ko strings bana deta hai (lazy evaluation)
+from __future__ import annotations  # Lazy evaluation -- annotations strings ban jaate hain
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    # Yeh import sirf mypy check ke time chalta hai,
-    # runtime pe NAHI -- isse circular import tootne se bach jaata hai
+    # Sirf mypy check mein chalta hai, runtime mein NAHI
+    # Isse circular import toot jaati hai
     from models.order import Order
 
 class User:
     def __init__(self, name: str) -> None:
         self.name = name
-        self.orders: list[Order] = []  # `from __future__` ki wajah se OK hai
+        self.orders: list[Order] = []  # `from __future__` se OK hai
 ```
 
 ```python
@@ -587,31 +580,31 @@ class Order:
 ```
 
 ```typescript
-// TypeScript mein iske liye `import type` use karte ho
+// TypeScript mein `import type` use karte ho
 import type { Order } from "./order";
 // ya
 import { type Order } from "./order";
 ```
 
 > [!info]
-> **`from __future__ import annotations`** saare annotations ko lazy bana deta hai (strings ki tarah evaluate hote hain). Python 3.13+ mein yeh default behavior ban jaayega.
+> **`from __future__ import annotations`** saare annotations ko strings mein convert kar deta hai (lazy evaluation). Python 3.13+ mein yeh default behavior ban jaayega.
 
 ---
 
-## Sab Kuch Ek Saath: Real-World Example
+## Real-World: Sab Kuch Ek Saath
 
 ```python
 from __future__ import annotations
-from typing import TypedDict, Protocol, Literal, TypeVar, overload
+from typing import TypedDict, Protocol, Literal, TypeVar, Generic, overload
 from dataclasses import dataclass
 
-# API payloads ke liye TypedDict
+# API payloads -- TypedDict se
 class CreateUserPayload(TypedDict):
     username: str
     email: str
     role: Literal["user", "admin", "moderator"]
 
-# Repository pattern ke liye Protocol
+# Repository pattern -- Protocol se
 class UserRepository(Protocol):
     def find_by_id(self, user_id: int) -> User | None: ...
     def find_by_email(self, email: str) -> User | None: ...
@@ -637,7 +630,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
     "admin": {"read", "write", "moderate", "admin"},
 }
 
-# Generic result type
+# Generic result wrapper
 T = TypeVar("T")
 
 @dataclass
@@ -654,7 +647,7 @@ class Result(Generic[T]):
     def fail(error: str) -> Result[T]:
         return Result(success=False, error=error)
 
-# Overloads wali service
+# Service with overloads
 class UserService:
     def __init__(self, repo: UserRepository) -> None:
         self.repo = repo
@@ -681,15 +674,15 @@ class UserService:
 ### Exercise 1: TypedDict API Models
 Ek blog API ke liye TypedDict classes banao:
 - `BlogPost`: id (int), title (str), content (str), published (bool), tags (list of str), author_id (int)
-- `CreatePostPayload`: title, content, tags (sab required), published (optional, default concept)
-- `UpdatePostPayload`: sab fields optional (`total=False` use karo)
-- Ek function `validate_post(data: dict[str, Any]) -> CreatePostPayload | None` likho jo data validate karke typed data return kare.
+- `CreatePostPayload`: title, content, tags (sab required), published (optional)
+- `UpdatePostPayload`: sab fields optional (`total=False` use kar)
+- Ek function `validate_post(data: dict[str, Any]) -> CreatePostPayload | None` likho jo data validate kare.
 
 ### Exercise 2: Protocols
-`to_json() -> str` aur `from_json(data: str) -> Self` methods wala ek `Serializable` protocol define karo. Do classes banao jo iss protocol ko satisfy karein bina inherit kiye. Ek function likho jo koi bhi `Serializable` accept kare.
+`to_json() -> str` aur `from_json(data: str) -> Self` methods wala ek `Serializable` protocol define kar. Do classes banao jo iss protocol ko satisfy karein bina inherit kiye. Ek function likho jo koi bhi `Serializable` accept kare.
 
 ### Exercise 3: Generics
-Ek generic `Cache[K, V]` class banao jisme ho:
+Ek generic `Cache[K, V]` class banao:
 - `get(key: K) -> V | None`
 - `set(key: K, value: V) -> None`
 - `delete(key: K) -> bool`
@@ -697,7 +690,7 @@ Ek generic `Cache[K, V]` class banao jisme ho:
 - `values() -> list[V]`
 
 ### Exercise 4: Overloads
-Overloads ke saath ek `parse` function likho:
+`parse` function likho overloads ke saath:
 - `parse(data: str, as_type: Literal["json"]) -> dict`
 - `parse(data: str, as_type: Literal["int"]) -> int`
 - `parse(data: str, as_type: Literal["float"]) -> float`
@@ -705,17 +698,18 @@ Overloads ke saath ek `parse` function likho:
 
 ### Exercise 5: Full Typed Module
 Ek simple task manager ke liye fully-typed module banao:
-- Task data shapes ke liye TypedDict use karo
-- Storage backends ke liye Protocol use karo
-- Task status ("todo", "in_progress", "done") ke liye Literal use karo
-- Result wrapper ke liye generics use karo
-- `mypy --strict` chala kar zero errors ensure karo
+- Task shapes ke liye TypedDict
+- Storage backends ke liye Protocol
+- Task status ke liye Literal ("todo", "in_progress", "done")
+- Generic result wrapper
+- `mypy --strict` run karke zero errors ensure kar
 
 ## Key Takeaways
-- **TypedDict** dict-shaped data (JSON, API payloads) ke liye hai -- TS interface jaisa; **dataclass** behavior wale objects ke liye.
-- **Protocol** structural typing deta hai -- bina inherit kiye bhi "shape match" hone pe kaam chal jaata hai, bilkul dabbawala system jaisa.
-- **Literal** values ko fixed set tak restrict karta hai -- TS ke union of literals jaisa.
-- **TypeVar / Generic[T]** Python ke generics hain; Python 3.12+ mein `def first[T](...)` jaisa cleaner syntax bhi mil gaya hai.
+
+- **TypedDict** dict-shaped data (JSON, API responses) ke liye -- TS interface jaisa. **dataclass** agar object mein behavior chahiye.
+- **Protocol** structural typing deta hai -- bina inherit kiye "shape match" hone pe kaam chal jaata hai, dabbawalas system jaisa.
+- **Literal** values ko fixed set tak restrict karta hai -- TS union of literals jaisa.
+- **TypeVar / Generic[T]** Python ke generics hain. Python 3.12+ mein `def first[T](...)` jaisa cleaner syntax aaya.
 - **ParamSpec** decorators mein original function ka signature preserve karne ke liye zaruri hai.
-- **@overload** ek function ke multiple type-safe signatures define karne deta hai.
-- **TYPE_CHECKING** circular imports todta hai jab import sirf type hints ke liye chahiye ho.
+- **@overload** ek function ke multiple type-safe signatures define karta hai.
+- **TYPE_CHECKING** circular imports todta hai jab import sirf type hints ke liye chahiye.

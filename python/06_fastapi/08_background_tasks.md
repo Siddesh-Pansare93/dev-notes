@@ -2,7 +2,9 @@
 
 ## Overview
 
-In Node.js, you might use `setTimeout`, `setImmediate`, or Bull/BullMQ for background work. FastAPI has a built-in `BackgroundTasks` system for simple cases, and you can use Celery for heavy-duty task processing.
+Node.js mein tum `setTimeout`, `setImmediate`, ya Bull/BullMQ use karte ho background work ke liye. FastAPI bhi similar ek built-in `BackgroundTasks` system deta hai simple cases ke liye, aur agar heavy-duty kaam ho to Celery ka use kar sakte ho.
+
+Socho Zomato order ka example — jab tum order dete ho, to response immediately aa jaata hai ("Order received!"), lekin background mein saath-saath confirmation email, SMS, warehouse notification sab chalta rehta hai. Yehi concept hai BackgroundTasks ka.
 
 ### Comparison
 
@@ -17,7 +19,9 @@ In Node.js, you might use `setTimeout`, `setImmediate`, or Bull/BullMQ for backg
 
 ## FastAPI BackgroundTasks
 
-### The Simplest Case
+### Sabse Simple Case
+
+Kyun zaruri hai BackgroundTasks? Socho ek second ke liye — kisi user ko welcome email bhejne mein 5 seconds lag sakte hain. Agar tum us puri 5 seconds user ko wait karaoge, to user experience bekar hoega. Isliye hum response turant bhej dete hain aur email background mein bhejte hain.
 
 ```python
 from fastapi import FastAPI, BackgroundTasks
@@ -25,8 +29,8 @@ from fastapi import FastAPI, BackgroundTasks
 app = FastAPI()
 
 def send_email(email: str, subject: str, body: str):
-    """This runs in the background after the response is sent."""
-    # Simulate slow email sending
+    """Yeh function response bhej dene ke baad background mein chalega."""
+    # Email send karne mein thoda time lagane ke liye simulate karte hain
     import time
     time.sleep(5)
     print(f"Email sent to {email}: {subject}")
@@ -34,25 +38,25 @@ def send_email(email: str, subject: str, body: str):
 @app.post("/register")
 def register_user(
     email: str,
-    background_tasks: BackgroundTasks,  # FastAPI injects this
+    background_tasks: BackgroundTasks,  # FastAPI automatically inject kar deta hai
 ):
-    # Create user immediately
+    # User immediately create kar do
     user = {"email": email, "id": 1}
 
-    # Schedule email to be sent AFTER the response
+    # Email bhejne ka kaam schedule kar do -- response ke BAAD chalega
     background_tasks.add_task(send_email, email, "Welcome!", "Thanks for signing up")
 
-    # Response is sent immediately -- doesn't wait for email
+    # Response turant chala gaya -- email ke baad ke wait nahin karega
     return {"message": "User registered", "user": user}
 ```
 
-### Node.js Equivalent
+### Node.js ke saath Comparison
 
 ```javascript
 app.post('/register', async (req, res) => {
   const user = await createUser(req.body.email);
 
-  // Fire and forget -- don't await
+  // Fire and forget -- await nahin karenege
   sendEmail(req.body.email, 'Welcome!', 'Thanks for signing up')
     .catch(err => console.error('Email failed:', err));
 
@@ -60,11 +64,20 @@ app.post('/register', async (req, res) => {
 });
 ```
 
-The key difference: FastAPI's `BackgroundTasks` is more structured and guaranteed to run after the response is sent, whereas the Node.js approach just starts a Promise that runs concurrently.
+FastAPI ka BackgroundTasks zyada structured hota hai — guaranteed rehta hai task response ke baad chalega. Node.js approach mein to Promise concurrent chalti hai, guarantee nahin hoti.
 
 ---
 
 ## Multiple Background Tasks
+
+Real-world mein to multiple kaam hote hain ek saath. Jab Swiggy mein order dete ho:
+1. Order database mein save hota hai
+2. Restaurant ko notification jaata hai
+3. Delivery partner ko alert milta hai
+4. Analytics track hote hain
+5. Customer ko email/SMS jaata hai
+
+Sab kuch background mein chalti hain:
 
 ```python
 @app.post("/orders")
@@ -74,7 +87,7 @@ def create_order(
 ):
     order = save_order(order_data)
 
-    # Queue multiple tasks -- they run in order
+    # Multiple tasks queue kar do -- ye order mein chalenge
     background_tasks.add_task(send_order_confirmation, order.id, order.email)
     background_tasks.add_task(update_inventory, order.items)
     background_tasks.add_task(notify_warehouse, order.id)
@@ -85,7 +98,7 @@ def create_order(
 
 ### Background Tasks with Dependencies
 
-Background tasks work seamlessly with FastAPI's dependency injection:
+FastAPI ka dependency injection background tasks ke saath perfectly kaam karta hai:
 
 ```python
 def write_audit_log(message: str, user_id: int):
@@ -93,7 +106,7 @@ def write_audit_log(message: str, user_id: int):
         f.write(f"[{datetime.now()}] User {user_id}: {message}\n")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
-    # ... verify token, return user
+    # ... token verify kar aur user return kar
     return user
 
 @app.delete("/posts/{post_id}")
@@ -110,7 +123,7 @@ def delete_post(
     db.delete(post)
     db.commit()
 
-    # Background task runs after response, using data from the request
+    # Post delete karne ke baad audit log background mein likho
     background_tasks.add_task(
         write_audit_log,
         f"Deleted post {post_id}: {post.title}",
@@ -122,14 +135,14 @@ def delete_post(
 
 ### Background Tasks in Dependencies
 
-You can also add background tasks from within dependencies:
+Tumhe dependencies ke andar se bhi background tasks add kar sakte ho:
 
 ```python
 def audit_dependency(
     background_tasks: BackgroundTasks,
     request: Request,
 ):
-    """Dependency that automatically logs all requests."""
+    """Yeh dependency automatically sab requests log kar dega."""
     background_tasks.add_task(
         log_request,
         method=request.method,
@@ -144,49 +157,54 @@ def list_users():
 
 ---
 
-## When BackgroundTasks Is NOT Enough
+## Kab BackgroundTasks Kaafi Nahin Hota?
 
-`BackgroundTasks` has limitations:
-1. Tasks run in the same process as the web server
-2. If the server crashes, pending tasks are lost
-3. No retry logic
-4. No task monitoring or status tracking
-5. No distributed execution across multiple workers
-6. Not suitable for CPU-intensive tasks
+`BackgroundTasks` ke kuch limitations hain:
+
+1. **Process mein hi chalte hain** — Agar server crash ho gaya, to pending tasks udte hain
+2. **No retry logic** — Agar task fail ho jaye to automatic retry nahin hota
+3. **Monitoring nahin** — Task ka status check nahin kar sakte ho
+4. **Scale nahin ho sakte** — Ek server se zyada workers nahin chal sakte
+5. **CPU-intensive nahin** — Heavy processing ke liye suitabl nahin (jaise video encoding ya ML model training)
+
+Tum socho Flipkart ka example — agar koi 2GB video process karna ho (upload, compress, watermark), to ek hi server mein 1000 users ka request aaye to server hang ho jayega. Isliye large-scale applications Celery jaisa task queue use karte hain.
 
 ### Decision Guide
 
 | Scenario | Solution |
 |---|---|
-| Send a welcome email after registration | BackgroundTasks |
-| Write an audit log entry | BackgroundTasks |
-| Process a 2GB video file | Celery |
-| Generate a complex report | Celery |
-| Retry failed API calls with backoff | Celery |
-| Schedule daily data cleanup | Celery Beat |
-| Train an ML model | Celery |
-| Send a notification | BackgroundTasks |
-| Resize an uploaded image | Depends on size -- BackgroundTasks for small, Celery for large |
+| Welcome email registration ke baad | BackgroundTasks |
+| Audit log entry write karna | BackgroundTasks |
+| 2GB video file process karna | Celery |
+| Complex report generate karna | Celery |
+| Failed API calls ko retry karna | Celery |
+| Daily cleanup schedule karna | Celery Beat |
+| ML model training | Celery |
+| Notification send karna | BackgroundTasks |
+| Image resize (chota file) | BackgroundTasks |
+| Image resize (bada file) | Celery |
 
 ---
 
-## Celery: Production Task Queue
+## Celery: Production-Grade Task Queue
 
-Celery is the standard Python task queue. Think of it as BullMQ for Python, but more mature and feature-rich.
+Celery Python ka BullMQ jaisa hai, bas zyada mature aur powerful. Production systems mein Celery use hota hai.
 
 ### Architecture
+
+Kya hota hai? Tum ek task enqueue karte ho, wo Redis/RabbitMQ ke through separate workers tak jaata hai aur woh process karte hain:
 
 ```
 FastAPI App  -->  Redis/RabbitMQ (Broker)  -->  Celery Workers
     |                                              |
-    |  (Enqueue task)                              |  (Execute task)
+    |  (Task enqueue)                             |  (Task execute)
     |                                              |
     v                                              v
   Response                                     Task Result
-  (immediate)                                  (stored in backend)
+  (immediate)                                  (stored)
 ```
 
-Compare with BullMQ in Node.js:
+Node.js ke BullMQ jaisa:
 
 ```
 Express App  -->  Redis (Queue)  -->  Bull Workers
@@ -195,9 +213,9 @@ Express App  -->  Redis (Queue)  -->  Bull Workers
 ### Setup
 
 ```bash
-pip install celery[redis]  # Celery with Redis broker
-# or
-pip install celery[rabbitmq]  # Celery with RabbitMQ broker
+pip install celery[redis]  # Redis ke saath
+# ya
+pip install celery[rabbitmq]  # RabbitMQ ke saath
 ```
 
 ### Celery Configuration
@@ -208,7 +226,7 @@ from celery import Celery
 
 celery_app = Celery(
     "worker",
-    broker="redis://localhost:6379/0",     # Message broker (like Bull's Redis connection)
+    broker="redis://localhost:6379/0",     # Message broker (Bull ka Redis jaisa)
     backend="redis://localhost:6379/1",    # Result storage
 )
 
@@ -219,12 +237,12 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     task_track_started=True,
-    task_acks_late=True,       # Acknowledge after task completes (reliability)
+    task_acks_late=True,       # Task complete hone ke baad acknowledge karega (reliable)
     worker_prefetch_multiplier=1,
 )
 ```
 
-### Defining Tasks
+### Tasks Define Karna
 
 ```python
 # tasks.py
@@ -234,32 +252,32 @@ import time
 @celery_app.task(bind=True, max_retries=3)
 def send_email_task(self, to: str, subject: str, body: str):
     """
-    Like a Bull job processor:
+    Bull worker jaisa:
     queue.process(async (job) => { await sendEmail(job.data); });
     """
     try:
-        # Simulate email sending
+        # Email send karne mein time laga raha hai
         time.sleep(2)
         print(f"Email sent to {to}: {subject}")
         return {"status": "sent", "to": to}
     except Exception as exc:
-        # Retry with exponential backoff (like Bull's backoff option)
+        # Fail ho gaya to retry karo exponential backoff ke saath (Bull jaisa)
         raise self.retry(exc=exc, countdown=2 ** self.request.retries)
 
 @celery_app.task
 def process_image(image_path: str, operations: list[str]):
     """Heavy image processing task."""
-    time.sleep(10)  # Simulate processing
+    time.sleep(10)  # Processing simulate kar rahe hain
     return {"processed": image_path, "operations": operations}
 
 @celery_app.task
 def generate_report(report_type: str, params: dict):
-    """Generate a complex report."""
+    """Complex report generate karna."""
     time.sleep(30)
     return {"report_url": f"/reports/{report_type}_123.pdf"}
 ```
 
-### Using Celery Tasks in FastAPI
+### FastAPI mein Celery Tasks Use Karna
 
 ```python
 # main.py
@@ -272,17 +290,17 @@ app = FastAPI()
 def register(email: str):
     user = create_user(email)
 
-    # Enqueue the task (like queue.add('send-email', data) in Bull)
+    # Task queue mein enqueue karo (Bull ka `queue.add()` jaisa)
     task = send_email_task.delay(email, "Welcome!", "Thanks for signing up")
 
     return {
         "user_id": user.id,
-        "email_task_id": task.id,  # Task ID for tracking
+        "email_task_id": task.id,  # Task ID tracking ke liye
     }
 
 @app.post("/images/process")
 def process_uploaded_image(image_path: str):
-    # Enqueue heavy processing
+    # Heavy processing enqueue karo
     task = process_image.delay(image_path, ["resize", "compress", "watermark"])
 
     return {
@@ -293,7 +311,7 @@ def process_uploaded_image(image_path: str):
 
 @app.get("/tasks/{task_id}")
 def get_task_status(task_id: str):
-    """Check task status (like Bull's job.getState())."""
+    """Task ka status check karo (Bull ka `job.getState()` jaisa)."""
     from celery.result import AsyncResult
     result = AsyncResult(task_id)
 
@@ -310,20 +328,20 @@ def get_task_status(task_id: str):
     return response
 ```
 
-### Running Celery Workers
+### Celery Workers Chalana
 
 ```bash
-# Start a Celery worker (like starting a Bull worker process)
+# Celery worker start karo (Bull worker process jaisa)
 celery -A celery_app worker --loglevel=info
 
-# Start multiple workers
+# Multiple workers start karo
 celery -A celery_app worker --loglevel=info --concurrency=4
 
-# Start with specific queues
+# Specific queues ko handle karne ke liye
 celery -A celery_app worker -Q emails,reports --loglevel=info
 ```
 
-### BullMQ Comparison
+### BullMQ ke Saath Comparison
 
 ```javascript
 // BullMQ (Node.js)
@@ -335,18 +353,18 @@ await emailQueue.add('welcome-email', {
   subject: 'Welcome!',
 });
 
-// Consumer (separate process)
+// Consumer (alag process mein)
 const worker = new Worker('emails', async (job) => {
   await sendEmail(job.data.to, job.data.subject);
 }, { connection: redis });
 ```
 
 ```python
-# Celery (Python) -- equivalent
-# Producer (in FastAPI)
+# Celery (Python) -- exactly wahi kaam
+# Producer (FastAPI mein)
 send_email_task.delay("user@example.com", "Welcome!")
 
-# Consumer: just start the worker
+# Consumer: bas worker start kar do
 # celery -A celery_app worker
 ```
 
@@ -354,26 +372,26 @@ send_email_task.delay("user@example.com", "Welcome!")
 
 ## Task Scheduling with Celery Beat
 
-Celery Beat is like node-cron but integrated with the task queue.
+Celery Beat node-cron jaisa hai, bas task queue ke saath integrate. Cron jobs ke liye perfect.
 
 ```python
-# celery_app.py (add to configuration)
+# celery_app.py (configuration mein add kar do)
 from celery.schedules import crontab
 
 celery_app.conf.beat_schedule = {
-    # Run every 30 minutes
+    # Har 30 minutes mein
     "cleanup-expired-tokens": {
         "task": "tasks.cleanup_expired_tokens",
-        "schedule": 30.0 * 60,  # seconds
+        "schedule": 30.0 * 60,  # seconds mein
     },
 
-    # Run daily at midnight
+    # Har din midnight mein
     "generate-daily-report": {
         "task": "tasks.generate_daily_report",
         "schedule": crontab(hour=0, minute=0),
     },
 
-    # Run every Monday at 9am
+    # Har Monday ko 9am mein
     "send-weekly-digest": {
         "task": "tasks.send_weekly_digest",
         "schedule": crontab(hour=9, minute=0, day_of_week=1),
@@ -385,22 +403,22 @@ celery_app.conf.beat_schedule = {
 # tasks.py
 @celery_app.task
 def cleanup_expired_tokens():
-    """Remove expired tokens from database."""
+    """Database se expired tokens delete kar do."""
     count = delete_expired_tokens()
     return {"deleted": count}
 
 @celery_app.task
 def generate_daily_report():
-    """Generate daily analytics report."""
+    """Daily analytics report banao."""
     report = compile_analytics()
     return {"report_id": report.id}
 ```
 
 ```bash
-# Start the scheduler (in addition to workers)
+# Scheduler start karo (workers ke alawa)
 celery -A celery_app beat --loglevel=info
 
-# Or combine worker + beat in one process (dev only)
+# Ya ek hi process mein combine kar do (sirf development mein)
 celery -A celery_app worker --beat --loglevel=info
 ```
 
@@ -414,7 +432,7 @@ cron.schedule('0 0 * * *', async () => {
   await generateDailyReport();
 });
 
-// Or Agenda.js
+// Ya Agenda.js
 agenda.define('daily report', async (job) => {
   await generateDailyReport();
 });
@@ -425,7 +443,7 @@ await agenda.every('24 hours', 'daily report');
 
 ## Lightweight Alternative: arq
 
-For simpler use cases, `arq` is a lightweight alternative to Celery (async-first, Redis-only).
+Agar Celery thoda heavy lage to `arq` hai — lighter, async-first, aur Redis-only.
 
 ```bash
 pip install arq
@@ -443,7 +461,7 @@ class WorkerSettings:
     functions = [send_email]
     redis_settings = arq.connections.RedisSettings()
 
-# In FastAPI
+# FastAPI mein
 from arq import create_pool
 
 @app.post("/register")
@@ -454,7 +472,7 @@ async def register(email: str):
 ```
 
 ```bash
-# Run worker
+# Worker start karo
 arq tasks.WorkerSettings
 ```
 
@@ -463,38 +481,57 @@ arq tasks.WorkerSettings
 ## Practice Exercises
 
 ### Exercise 1: Email Notification System
-Build an API with BackgroundTasks that:
-- `POST /users` -- creates a user and sends a welcome email in the background
-- `POST /users/{id}/reset-password` -- triggers a background task to "send" a reset email
-- Log all "sent" emails to a file instead of actually sending them
-- Return immediately in all cases
+Ek API banao BackgroundTasks ke saath:
+- `POST /users` -- user create karo aur background mein welcome email bhejo
+- `POST /users/{id}/reset-password` -- background task trigger karo password reset email ke liye
+- Sab "sent" emails ek file mein log karo (actually send mat karo)
+- Har case mein turant response bhej do
 
 ### Exercise 2: File Processing Pipeline
-Create an endpoint `POST /files/process` that:
-- Accepts a file upload
-- Saves the file immediately
-- Adds background tasks to: calculate file hash, count lines (if text), get word count
-- Returns the file ID immediately
-- Create `GET /files/{id}/status` that shows processing results
+`POST /files/process` endpoint banao jo:
+- File accept kare
+- File turant save kare
+- Background tasks add kare: file hash calculate, lines count (text files), word count
+- File ID turant return kare
+- `GET /files/{id}/status` endpoint banao jo processing results dikhaye
 
 ### Exercise 3: Task Status Tracking
-Implement a simple in-memory task tracking system:
-- `POST /tasks` -- creates a long-running background task
-- `GET /tasks/{task_id}` -- returns task status (pending/running/complete/failed)
-- Use a shared dict to track task states
-- Simulate tasks that take 5-10 seconds
+Simple in-memory task tracking system implement karo:
+- `POST /tasks` -- long-running background task create karo
+- `GET /tasks/{task_id}` -- task status return karo (pending/running/complete/failed)
+- Shared dict use karke task states track karo
+- 5-10 seconds lagne wale tasks simulate karo
 
-### Exercise 4: Celery Setup (if Redis is available)
-Set up a basic Celery worker with:
-- A task that generates a "report" (creates a text file)
-- A FastAPI endpoint that enqueues the task
-- A status endpoint to check if the report is ready
-- Retry logic for simulated failures
+### Exercise 4: Celery Setup (agar Redis available hai)
+Basic Celery worker setup kar:
+- Ek task jo "report" generate kare (text file banaye)
+- FastAPI endpoint jo task enqueue kare
+- Status endpoint jo check kare report ready hai ya nahin
+- Simulated failures ke liye retry logic add kar
 
 ### Exercise 5: Scheduled Cleanup
-Create a system that:
-- Stores temporary data with expiration timestamps
-- `POST /temp-data` -- stores data with a TTL
-- `GET /temp-data/{key}` -- retrieves data if not expired
-- Runs a background cleanup every 60 seconds that removes expired data
-- Use either `BackgroundTasks` triggered periodically or Celery Beat
+Ek system banao jo:
+- Temporary data expiration timestamp ke saath store kare
+- `POST /temp-data` -- data store kare TTL ke saath
+- `GET /temp-data/{key}` -- data retrieve kare agar expire na hua ho
+- Har 60 seconds mein background cleanup chalaye jo expired data remove kare
+- BackgroundTasks ya Celery Beat use kar sakte ho
+
+---
+
+## Key Takeaways
+
+> [!tip]
+> **BackgroundTasks** simple fire-and-forget tasks ke liye perfect — welcome emails, audit logs, notifications. Lekin guarantee nahin ki task complete hoga, process crash ho to kaam udte hain.
+
+> [!warning]
+> **Heavy processing ke liye Celery zaruri hai** — video encoding, ML training, large file processing. BackgroundTasks se server hang ho jayega.
+
+> [!info]
+> **Celery + Redis** production-grade queuing ka standard — BullMQ ka Python equivalent. Task retry, monitoring, distributed workers — sab milta hai.
+
+> [!tip]
+> **Celery Beat** scheduled tasks ke liye — daily reports, cleanup jobs, maintenance tasks.
+
+> [!info]
+> **arq** lightweight alternative — sirf Redis chahiye, async-first, simple use cases ke liye perfect.

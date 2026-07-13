@@ -2,19 +2,19 @@
 
 ## Overview
 
-Dependency Injection (DI) is one of FastAPI's most powerful features. If you've used NestJS, you'll feel right at home. If you've only used Express, this is the feature you didn't know you were missing.
+Dependency Injection (DI) FastAPI ka sabse powerful feature hai. Agar tune NestJS use kiya hai, toh tu bilkul ghar jaisa mehsoos karega. Agar tujhe sirf Express ka experience hai, toh yeh woh feature hai jiske liye tu socha bhi nahi tha kahin.
 
-### The Comparison
+### Comparison dekho
 
 | Framework | DI Approach |
 |---|---|
-| Express.js | None built-in. You manually import and call things. |
-| NestJS | Full DI container with `@Injectable()`, modules, providers |
-| FastAPI | `Depends()` function -- simpler than NestJS but equally powerful |
+| Express.js | Kuch nahi built-in. Tu khud sab kuch manually import kar ke call karta hai. |
+| NestJS | Poora DI container `@Injectable()`, modules, providers ke saath |
+| FastAPI | `Depends()` function -- NestJS se simpler lekin utna hi powerful |
 
-### What Problems Does DI Solve?
+### DI kyun zaroori hai?
 
-In Express, you typically do this:
+Express mein tu typically aisa karta hai:
 
 ```javascript
 // Express: manual wiring everywhere
@@ -38,7 +38,7 @@ app.get('/users', async (req, res) => {
 });
 ```
 
-In FastAPI with DI:
+FastAPI mein DI ke saath? Bilkul alag hi scene:
 
 ```python
 # FastAPI: declare what you need, framework provides it
@@ -51,11 +51,13 @@ def get_users(
     return users
 ```
 
+Dekh! Tu bas declare kar de ki tujhe kya chahiye, aur FastAPI khud provide kar dega. Bilkul Zomato ka jaise — tujhe kya order karna hai, woh sab sambhal leta hai, tu bas order place kar.
+
 ---
 
 ## Function Dependencies
 
-The simplest form of dependency: a function that returns a value.
+Sabse simple form hai — ek function jo kuch value return kare.
 
 ### Basic Example
 
@@ -64,24 +66,24 @@ from fastapi import FastAPI, Depends
 
 app = FastAPI()
 
-# This is a dependency -- just a regular function
+# Yeh ek dependency hai -- bas ek normal function
 def get_query_params(skip: int = 0, limit: int = 10):
     return {"skip": skip, "limit": limit}
 
-# Use it with Depends()
+# Depends() ke saath use kar
 @app.get("/items")
 def list_items(params: dict = Depends(get_query_params)):
     return {"params": params}
     # GET /items?skip=5&limit=20 -> params = {"skip": 5, "limit": 20}
 ```
 
-FastAPI inspects the dependency function's parameters and automatically injects query parameters, path parameters, headers, etc. -- just like it does for route handlers.
+FastAPI dependency function ke parameters ko inspect karta hai aur automatically query params, path params, headers etc. inject kar deta hai -- bilkul waise hi jaise route handlers ke liye karta hai.
 
 ### Async Dependencies
 
 ```python
 async def get_current_user(token: str = Header(alias="Authorization")):
-    # Async dependency -- can do database lookups, API calls, etc.
+    # Async dependency -- database lookups, API calls kar sakte ho
     user = await verify_token(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -117,13 +119,13 @@ def list_comments(page: dict = Depends(pagination)):
     return {"comments": [], **page}
 ```
 
-This is like Express middleware that parses and validates pagination params, but type-safe and reusable.
+Yeh bilkul Express middleware jaise hai jo pagination params ko parse aur validate kare, lekin type-safe aur reusable. Ek baar likha, sab jagah use kar.
 
 ---
 
 ## Class-Based Dependencies
 
-For more complex dependencies, you can use classes. This is closer to NestJS's `@Injectable()` services.
+Zyada complex dependencies ke liye classes use kar sakta hai. Yeh NestJS ke `@Injectable()` services jaisa hi hota hai.
 
 ### NestJS
 
@@ -164,11 +166,11 @@ class Pagination:
 
 @app.get("/users")
 def list_users(pagination: Pagination = Depends()):
-    # Note: Depends() with no argument uses the type hint (Pagination)
+    # Note: Depends() without argument uses the type hint (Pagination)
     return {"skip": pagination.skip, "limit": pagination.limit}
 ```
 
-### A More Realistic Class Dependency
+### Thoda Zyada Realistic Example
 
 ```python
 class ItemFilter:
@@ -190,7 +192,7 @@ class ItemFilter:
 
 @app.get("/items")
 def list_items(filters: ItemFilter = Depends()):
-    # All query params are validated and organized in a single object
+    # Sab query params validated aur ek object mein organized
     return {
         "filters": {
             "q": filters.q,
@@ -205,31 +207,31 @@ def list_items(filters: ItemFilter = Depends()):
 
 ## Nested Dependencies (Dependency Chains)
 
-Dependencies can depend on other dependencies. FastAPI resolves the entire chain.
+Dependencies apne aap ke liye dependencies use kar sakte hain. FastAPI poora chain resolve kar deta hai.
 
 ```python
 from fastapi import Depends, Header, HTTPException
 
-# Level 1: Extract token from header
+# Level 1: Token ko header se nikaal
 def get_token(authorization: str = Header()):
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid auth header")
     return authorization.split(" ")[1]
 
-# Level 2: Verify token and get user (depends on get_token)
+# Level 2: Token verify karo aur user nikaal (get_token par depend karta hai)
 async def get_current_user(token: str = Depends(get_token)):
     user = await verify_jwt(token)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
     return user
 
-# Level 3: Check if user is admin (depends on get_current_user)
+# Level 3: Check karo ki user admin hai ya nahi (get_current_user par depend karta hai)
 async def get_admin_user(user: User = Depends(get_current_user)):
     if not user.is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
-# Route: only uses the final dependency, but the whole chain executes
+# Route: final dependency use karta hai, lekin poora chain execute hota hai
 @app.get("/admin/dashboard")
 async def admin_dashboard(admin: User = Depends(get_admin_user)):
     return {"message": f"Welcome, admin {admin.name}"}
@@ -237,10 +239,10 @@ async def admin_dashboard(admin: User = Depends(get_admin_user)):
 
 **Execution flow**: `get_token` -> `get_current_user` -> `get_admin_user` -> `admin_dashboard`
 
-This is like having chained Express middleware, but type-safe:
+Bilkul Express mein chained middleware jaisa, lekin type-safe:
 
 ```javascript
-// Express equivalent (less elegant)
+// Express equivalent (utna elegant nahi)
 app.get('/admin/dashboard',
   extractToken,       // middleware 1
   verifyUser,         // middleware 2
@@ -253,64 +255,66 @@ app.get('/admin/dashboard',
 
 ---
 
-## Yield Dependencies (with Cleanup)
+## Yield Dependencies (Cleanup ke Saath)
 
-This is a killer feature. Dependencies that use `yield` can run cleanup code after the response is sent. This is perfect for database sessions, file handles, temporary resources, etc.
+Yeh ek killer feature hai bhai. Dependencies jo `yield` use karte hain, response bhejne ke baad cleanup code run kar sakte hain. Database sessions, file handles, temporary resources -- sab kuch ke liye perfect.
 
-### The Database Session Pattern
+### Database Session Pattern
 
 ```python
 from sqlalchemy.orm import Session
 
-# This dependency creates a DB session and ensures it's closed after the request
+# Yeh dependency DB session create karta hai aur request ke baad close karta hai
 def get_db():
     db = SessionLocal()  # Create session
     try:
-        yield db         # Provide it to the route handler
+        yield db         # Route handler ko provide kar
     finally:
-        db.close()       # Cleanup: always close, even if there was an error
-
-@app.get("/users")
-def list_users(db: Session = Depends(get_db)):
-    # db is a live database session
-    users = db.query(User).all()
-    return users
-    # After this function returns, the 'finally' block in get_db runs
+        db.close()       # Cleanup: hamesha close kar, agar error bhi aaye toh
 ```
 
-### How It Works
+```python
+@app.get("/users")
+def list_users(db: Session = Depends(get_db)):
+    # db ek live database session hai
+    users = db.query(User).all()
+    return users
+    # Jab yeh function return ho, get_db ka finally block run hota hai
+```
+
+### Kaise Kaam Karta Hai?
 
 ```python
 def my_dependency():
-    # SETUP: runs before the route handler
+    # SETUP: route handler se pehle chalega
     resource = acquire_resource()
     try:
-        yield resource  # This value is injected into the route handler
+        yield resource  # Yeh value route handler ko inject hota hai
     finally:
-        # CLEANUP: runs after the route handler (even on exceptions)
+        # CLEANUP: route handler ke baad (agar exception bhi aaye toh)
         resource.release()
 ```
 
-Think of it like a context manager (`with` statement) but for dependencies.
+Bilkul `with` statement (`context manager`) jaisa, lekin dependencies ke liye.
 
 ### Express.js Comparison
 
-In Express, you'd use middleware with cleanup in `res.on('finish')`:
+Express mein cleanup awkward hota hai `res.on('finish')` ke through:
 
 ```javascript
 // Express: awkward cleanup
 app.use((req, res, next) => {
   req.db = new DatabaseSession();
   res.on('finish', () => {
-    req.db.close();  // Cleanup after response
+    req.db.close();  // Response ke baad cleanup
   });
   next();
 });
 ```
 
-FastAPI's yield pattern is much cleaner.
+FastAPI ka yield pattern bilkul clean aur saaf hai.
 
-### Another Example: Temporary File
+### Ek Aur Example: Temporary File
 
 ```python
 import tempfile
@@ -322,27 +326,27 @@ def get_temp_file():
         yield tmp
     finally:
         tmp.close()
-        os.unlink(tmp.name)  # Delete temp file after request
+        os.unlink(tmp.name)  # Request ke baad temp file delete kar
 
 @app.post("/process")
 async def process_data(tmp_file = Depends(get_temp_file)):
     tmp_file.write(b"some data")
     # Process...
     return {"status": "done"}
-    # Temp file is automatically cleaned up
+    # Temp file automatically delete ho jayega
 ```
 
 ---
 
 ## Dependency Overrides for Testing
 
-This is the feature that makes FastAPI extremely testable. You can swap out any dependency during tests.
+Yeh feature FastAPI ko extremely testable banata hai. Testing ke dauraan kisi bhi dependency ko swap kar sakte ho.
 
-### The Problem in Express
+### Express mein Problem
 
 ```javascript
-// Express: mocking is painful
-// You need proxyquire, rewire, jest.mock, or restructure your code
+// Express: mocking painful hota hai
+// Tujhe proxyquire, rewire, jest.mock, ya code restructure karna padta hai
 jest.mock('../database', () => ({
   getConnection: () => mockConnection,
 }));
@@ -373,7 +377,7 @@ def list_users(db = Depends(get_db)):
 from fastapi.testclient import TestClient
 from app.main import app, get_db
 
-# Create a fake database dependency
+# Fake database dependency create kar
 def override_get_db():
     fake_db = FakeDatabase()
     try:
@@ -381,7 +385,7 @@ def override_get_db():
     finally:
         fake_db.close()
 
-# Override the real dependency with the fake one
+# Real dependency ko fake se replace kar
 app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
@@ -390,13 +394,13 @@ def test_list_users():
     response = client.get("/users")
     assert response.status_code == 200
 
-# Clean up after tests
+# Tests ke baad cleanup
 app.dependency_overrides.clear()
 ```
 
-That's it. No mocking libraries, no monkey-patching, no complex setup. Just swap the dependency function.
+Bas itna! Koi mocking libraries nahi, koi monkey-patching nahi, complex setup nahi. Sirf dependency function ko swap kar.
 
-### Overriding for Different Test Scenarios
+### Alag Alag Test Scenarios Ke Liye Override
 
 ```python
 def test_empty_database():
@@ -420,27 +424,27 @@ def test_database_error():
 
 ## Global Dependencies
 
-Apply dependencies to all routes (like Express `app.use()` middleware).
+Sab routes ke liye dependencies apply kar (Express ke `app.use()` middleware jaisa).
 
 ```python
 from fastapi import FastAPI, Depends, Header, HTTPException
 
-# This dependency runs for EVERY route
+# Yeh dependency EVERY route ke liye run hota hai
 async def verify_api_key(x_api_key: str = Header()):
     if x_api_key != "expected-key":
         raise HTTPException(status_code=403, detail="Invalid API key")
 
-# Apply globally
+# Globally apply kar
 app = FastAPI(dependencies=[Depends(verify_api_key)])
 
 @app.get("/users")
 def list_users():
-    # API key was already verified
+    # API key pehle se hi verify ho gai
     return []
 
 @app.get("/items")
 def list_items():
-    # API key was already verified here too
+    # API key yahan bhi pehle se verify ho gai
     return []
 ```
 
@@ -449,11 +453,11 @@ def list_items():
 ```python
 from fastapi import APIRouter, Depends
 
-# Apply dependencies to a group of routes
+# Routes ke group ke liye dependencies apply kar
 admin_router = APIRouter(
     prefix="/admin",
     tags=["admin"],
-    dependencies=[Depends(get_admin_user)],  # All admin routes require admin
+    dependencies=[Depends(get_admin_user)],  # Sab admin routes ko admin chahiye
 )
 
 @admin_router.get("/dashboard")
@@ -471,7 +475,7 @@ app.include_router(admin_router)
 
 ## Real-World DI Pattern: Service Layer
 
-Here's a complete example showing how DI creates a clean architecture:
+Ek complete example jo dikhaye ki DI kaise clean architecture banata hai:
 
 ```python
 from fastapi import FastAPI, Depends, HTTPException
@@ -521,7 +525,7 @@ class UserService:
     def list_users(self, skip: int = 0, limit: int = 10):
         return self.db.query(UserModel).offset(skip).limit(limit).all()
 
-# Dependency that creates the service
+# Service create karne ke liye dependency
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     return UserService(db)
 
@@ -549,10 +553,10 @@ def create_user(
     return service.create_user(user)
 ```
 
-### The Equivalent NestJS Pattern
+### NestJS mein Equivalent Pattern
 
 ```typescript
-// NestJS version -- very similar structure!
+// NestJS version -- structure bilkul same hai!
 @Injectable()
 export class UserService {
   constructor(@InjectRepository(User) private repo: Repository<User>) {}
@@ -584,24 +588,24 @@ export class UserController {
 ## Practice Exercises
 
 ### Exercise 1: Reusable Pagination
-Create a `Pagination` class dependency that extracts `page` (default 1, min 1) and `per_page` (default 20, min 1, max 100) from query params and computes `skip` and `limit`. Use it in at least two different endpoints.
+`Pagination` class dependency banaa jo query params se `page` (default 1, min 1) aur `per_page` (default 20, min 1, max 100) extract kare aur `skip` aur `limit` compute kare. Atleast do alag endpoints mein use kar.
 
 ### Exercise 2: API Key Authentication
-Create a dependency `verify_api_key` that reads an `X-API-Key` header and checks it against a hardcoded key. Apply it globally. Then create a test that overrides this dependency to bypass authentication.
+`verify_api_key` dependency banaa jo `X-API-Key` header padhaye aur hardcoded key se check kare. Globally apply kar. Phir ek test likho jo is dependency ko override karke authentication bypass kare.
 
 ### Exercise 3: Dependency Chain
-Build a three-level dependency chain:
-1. `get_settings()` -- returns app configuration
-2. `get_db(settings)` -- creates a DB connection using settings
-3. `get_user_repo(db)` -- creates a UserRepository with the DB connection
+Ek three-level dependency chain banaa:
+1. `get_settings()` -- app configuration return kare
+2. `get_db(settings)` -- settings use karke DB connection create kare
+3. `get_user_repo(db)` -- DB connection use karke UserRepository create kare
 
-Use all three in a route handler.
+Teeno ko ek route handler mein use kar.
 
 ### Exercise 4: Yield Dependency with Cleanup
-Create a dependency that:
-1. Logs "Starting request" with a timestamp
-2. Yields a request context object with a unique request ID
-3. After the route handler completes, logs "Request completed" with duration
+Ek dependency banaa jo:
+1. "Starting request" ko timestamp ke saath log kare
+2. Ek request context object yield kare jo unique request ID rakhe
+3. Route handler complete hone ke baad, "Request completed" ko duration ke saath log kare
 
 ```python
 import time
@@ -619,14 +623,14 @@ def request_context():
 ```
 
 ### Exercise 5: Dependency Override Testing
-Given an endpoint that depends on an external API (simulated), write tests that override the dependency to return:
+Ek endpoint banaa jo external API (simulated) par depend kare, phir tests likho jo dependency ko override karke ye sab return karain:
 1. Successful mock data
 2. Empty data
-3. An error
+3. Ek error
 
 ```python
 async def get_weather(city: str) -> dict:
-    """In production, this calls a weather API."""
+    """Production mein yeh weather API ko call karta hai."""
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"https://api.weather.com/{city}")
         return resp.json()
@@ -636,4 +640,4 @@ async def weather(city: str, data: dict = Depends(get_weather)):
     return {"city": city, "weather": data}
 ```
 
-Write test overrides that don't call the real API.
+Tests likho jinhe real API call karna padhe nahi.

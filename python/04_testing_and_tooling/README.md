@@ -1,73 +1,75 @@
 # Python Testing & Tooling
 
-Everything you need to write reliable Python code with confidence — from your first pytest test to a complete quality pipeline with linting, type checking, and automated git hooks. Written for developers coming from a Node.js/TypeScript background.
+Testing aur quality tools — ye hi cheez hai jo tumhare code ko production-ready banati hai. Node.js/TypeScript se aaoge toh pytest ka ecosystem tumhe kaafi familiar lagega, bas naming thoda alag hai. Yahan tak ke testing patterns bhi bilkul same hain, sirf syntax aur conventions thoda Python-flavored hote hain.
 
 ## Table of Contents
 
-### Part 1 — Writing Tests
-1. [pytest Basics](./01_pytest_basics.md) — test discovery, assertions, parametrize, markers, and configuration
-2. [Fixtures and Mocking](./02_fixtures_and_mocking.md) — dependency injection for tests, conftest.py, unittest.mock, and monkeypatch
-3. [Async Testing](./03_async_testing.md) — pytest-asyncio, async fixtures, AsyncMock, aiohttp, and FastAPI testing
+### Part 1 — Testing Likho
+1. [pytest Basics](./01_pytest_basics.md) — test discovery, assertions, parametrize, markers, aur configuration
+2. [Fixtures and Mocking](./02_fixtures_and_mocking.md) — dependency injection for tests, conftest.py, unittest.mock, aur monkeypatch
+3. [Async Testing](./03_async_testing.md) — pytest-asyncio, async fixtures, AsyncMock, aiohttp, aur FastAPI testing
 
-### Part 2 — Code Quality & Project Structure
-4. [Code Quality Tools](./04_code_quality.md) — Ruff, Black, mypy, isort, pre-commit hooks, and CI pipelines
-5. [Project Structure](./05_project_structure.md) — flat vs src layout, pyproject.toml anatomy, and real-world project examples
+### Part 2 — Code Quality & Project Ka Structure
+4. [Code Quality Tools](./04_code_quality.md) — Ruff, Black, mypy, isort, pre-commit hooks, aur CI pipelines
+5. [Project Structure](./05_project_structure.md) — flat vs src layout, pyproject.toml ki anatomy, aur real-world project examples
 
 ---
 
 ## Learning Path
 
-### Beginner — Start here if you are new to testing in Python
-1. Chapter 1: pytest Basics — learn how test discovery works, write your first tests with plain `assert`, and run tests from the command line
-2. Chapter 2: Fixtures and Mocking (first half) — understand fixtures as a replacement for `beforeEach`/`afterEach`, and set up `conftest.py` for shared fixtures
-3. Chapter 4: Code Quality Tools (Ruff + Black sections only) — get formatting and linting working locally with one tool
+### Beginner — Naya ho Python testing mein?
+1. Chapter 1: pytest Basics — samjho ke test discovery kaise hoti hai, pehla test likho sirf `assert` se, command line se chalao
+2. Chapter 2: Fixtures and Mocking (pehla half) — fixtures ko `beforeEach`/`afterEach` ki jagah samjho, conftest.py setup karo shared fixtures ke liye
+3. Chapter 4: Code Quality Tools (sirf Ruff + Black sections) — formatting aur linting locally setup kar le ek hi tool se
 
-### Intermediate — Once your tests are running
-1. Chapter 2: Fixtures and Mocking (mocking sections) — use `unittest.mock.patch`, `MagicMock`, and `monkeypatch` to isolate units under test
-2. Chapter 3: Async Testing — add `pytest-asyncio` to your project and test coroutines, async generators, and HTTP clients
-3. Chapter 4: Code Quality Tools (mypy + pre-commit sections) — add type checking and automate quality gates before every commit
-4. Chapter 5: Project Structure — understand the `src/` layout and `pyproject.toml` anatomy
+### Intermediate — Jab tests chalne lage
+1. Chapter 2: Fixtures and Mocking (mocking sections) — `unittest.mock.patch`, `MagicMock`, aur `monkeypatch` use karke units ko isolate karo
+2. Chapter 3: Async Testing — `pytest-asyncio` add kar aur coroutines, async generators, aur HTTP clients ko test karo
+3. Chapter 4: Code Quality Tools (mypy + pre-commit sections) — type checking add kar aur quality gates automate kar commit se pehle
+4. Chapter 5: Project Structure — `src/` layout aur `pyproject.toml` ka anatomy samjho
 
 ### Advanced — Production-ready quality pipeline
-1. Chapter 4: Unified Configuration — consolidate all tool config into a single `pyproject.toml` and wire up a GitHub Actions CI workflow
-2. Chapter 5: Project Structure — apply structure patterns to scripts, libraries, FastAPI apps, and monorepos
-3. Revisit Chapter 2 — deep-dive fixture scopes (`session` vs `function`), fixture factories, and `conftest.py` hierarchy for large test suites
+1. Chapter 4: Unified Configuration — sab tool config ko ek hi `pyproject.toml` mein consolidate kar aur GitHub Actions CI setup kar
+2. Chapter 5: Project Structure — structure patterns apply kar scripts, libraries, FastAPI apps, aur monorepos par
+3. Chapter 2 revisit — deep-dive fixture scopes (`session` vs `function`), fixture factories, aur `conftest.py` hierarchy large test suites ke liye
 
 ---
 
-## What You'll Learn
+## Kya Sikhoge
 
-- How pytest discovers and runs tests, and how its `assert` rewriting gives better failure messages than Jest's `expect()` API
-- Parameterized testing with `@pytest.mark.parametrize` — run dozens of input/output cases with zero copy-paste
-- How pytest fixtures replace `beforeEach`/`beforeAll`/`afterAll` with a cleaner dependency injection model
-- The `conftest.py` system for sharing fixtures across files and directories without imports
-- Mocking external dependencies using `unittest.mock.Mock`, `MagicMock`, `patch`, and the `monkeypatch` fixture
-- Using `AsyncMock` and `pytest-asyncio` to test async code including FastAPI endpoints and aiohttp clients
-- Formatting Python code with Black and Ruff (the Prettier and ESLint of the Python world)
-- Static type checking with mypy — including gradual adoption strategies and `pyproject.toml` configuration
-- Automating quality checks before every commit using `pre-commit` hooks
-- Organizing all tool configuration (pytest, Ruff, mypy, coverage) in a single `pyproject.toml`
-- Structuring Python projects following the `src/` layout convention with proper entry points
+- Pytest test discovery aur running kaise hoti hai, aur kaise `assert` rewriting se better failure messages milte hain (Jest ke `expect()` se bhi jyada readable)
+- Parametrized testing `@pytest.mark.parametrize` se — dozens of input/output cases run kar zero copy-paste ke saath
+- Pytest fixtures kaise `beforeEach`/`beforeAll`/`afterAll` ko replace karte hain ek cleaner dependency injection model se
+- `conftest.py` system kaise काम करता है shared fixtures ke liye files aur directories across, imports ke bina
+- External dependencies ko mock karna `unittest.mock.Mock`, `MagicMock`, `patch`, aur `monkeypatch` fixture se
+- `AsyncMock` aur `pytest-asyncio` use karke async code test karna including FastAPI endpoints aur aiohttp clients
+- Python code ko format karna Black aur Ruff se (basically Prettier aur ESLint of Python world)
+- Static type checking mypy se — including gradual adoption strategies aur `pyproject.toml` configuration
+- Quality checks automate karna har commit se pehle `pre-commit` hooks use karke
+- Sab tool configuration (pytest, Ruff, mypy, coverage) organize karna ek hi `pyproject.toml` mein
+- Python projects structure karna `src/` layout convention follow karke proper entry points ke saath
 
 ---
 
 ## Prerequisites
 
-- Comfortable writing Python functions, classes, and basic data structures
-- Familiar with virtual environments (`python -m venv`) and installing packages with `pip`
-- Some prior experience with testing concepts — unit tests, mocking, assertions — even if from another language (Jest, JUnit, RSpec)
-- No prior pytest knowledge required; each chapter builds from scratch
+- Python functions, classes, aur basic data structures likha ho comfortable
+- Virtual environments (`python -m venv`) aur `pip` se packages install kiye ho
+- Testing concepts ka basic idea ho — unit tests, mocking, assertions — kisi bhi language se (Jest, JUnit, RSpec, kuch bhi)
+- Pytest ka prior knowledge zaruri nahi; har chapter se scratch se start hota hai
 
 ---
 
-## How to Use This Guide
+## Kaise Use Karo Ye Guide
 
-1. **Follow the numbered order.** Each chapter builds on the previous one — fixtures in Chapter 2 reference test patterns from Chapter 1, and the quality tools in Chapter 4 assume your test suite exists.
-2. **Do the practice exercises.** Every chapter ends with hands-on exercises. The ShoppingCart, TodoList, GitHubClient, and FizzBuzz exercises are designed to let you apply concepts immediately on realistic code.
-3. **Compare with what you know.** Each chapter includes side-by-side comparisons between Python tools and their Node.js/TypeScript equivalents (Jest, ESLint, Prettier, tsc, husky). Use these as anchors when something feels unfamiliar.
-4. **Set up your editor early.** Chapter 4 includes VSCode settings that wire up format-on-save with Ruff. Getting this working before you start coding pays dividends throughout the rest of the guide.
-5. **Treat `pyproject.toml` as your single source of truth.** Everything — test config, linter rules, type checker settings, coverage thresholds — lives in one file. The unified configuration example in Chapter 4 is worth copying into your own projects.
+1. **Numbered order follow karo.** Har chapter previous one par build hota hai — Chapter 2 mein fixtures, Chapter 1 ke patterns ko reference karte hain, aur Chapter 4 mein quality tools assume karte hain ki tere tests already run rahi hain.
+2. **Practice exercises karo.** Har chapter ke end mein hands-on exercises hain. ShoppingCart, TodoList, GitHubClient, aur FizzBuzz exercises design kiye gaye hain concepts ko immediately realistic code par apply karne ke liye.
+3. **Compare karo jo pata ho.** Har chapter mein side-by-side comparison hai Python tools aur Node.js/TypeScript equivalents ke beech (Jest, ESLint, Prettier, tsc, husky). Jab kuch unfamiliar lagta ho toh ye comparison use kar anchor bana.
+4. **Editor setup kar jaldi.** Chapter 4 mein VSCode settings hain jo format-on-save ko Ruff ke saath wire up karte hain. Ye setup karke coding start kar toh pure guide mein dividend milte hain.
+5. **`pyproject.toml` ko single source of truth samjho.** Sab kuch — test config, linter rules, type checker settings, coverage thresholds — ek hi file mein. Chapter 4 mein unified configuration example hai jo apne projects mein copy kar sakte ho.
 
 ---
 
-Good tests and sharp tooling are what separate Python you write quickly from Python you can maintain confidently. Work through these chapters and you will have both.
+> [!tip]
+> Good tests aur sharp tooling ke saath, Python jo likho vo quickly likho hota hai, aur confidently maintain bhi kar sakte ho. Ye chapters complete karne ke baad dono cheezein hogi.
+

@@ -8,7 +8,7 @@ Basics toh ho gaye, ab aate hain us part pe jo tum roz use karoge. Har pattern k
 
 ## `asyncio.gather()` = `Promise.all()`
 
-Socho tumhe ek user ka profile page banana hai — user info, uske orders, aur uski preferences, teeno alag-alag APIs se aa rahe hain. Ek ke baad ek await karoge toh time wait karna padega. Better hai teeno ko ek saath fire karo aur jab sab aa jaayein tab aage badho — bilkul `Promise.all()` jaisa.
+Socho tumhe ek user ka profile page banana hai — user info, uske orders, aur uski preferences, teeno alag-alag APIs se aa rahe hain. Ek ke baad ek `await` karoge toh time ka sara bazaar ud jaayega — 0.5s + 0.3s + 0.2s = 1 second! Better hai teeno ko ek saath fire karo aur jab sab aa jaayein tab aage badho. Bilkul `Promise.all()` jaisa, exactly.
 
 ```python
 import asyncio
@@ -26,7 +26,7 @@ async def fetch_preferences(user_id: int) -> dict:
     return {"theme": "dark", "lang": "en"}
 
 async def main():
-    # Teeno concurrently chalenge -- total time ~0.5s (1.0s nahi)
+    # Teeno concurrently chalenge -- total time ~0.5s (1.0s nahi, bas sabse badhay wala time)
     user, orders, prefs = await asyncio.gather(
         fetch_user(1),
         fetch_orders(1),
@@ -38,7 +38,7 @@ asyncio.run(main())
 ```
 
 ```javascript
-// JavaScript equivalent
+// JavaScript mein bilkul same
 const [user, orders, prefs] = await Promise.all([
   fetchUser(1),
   fetchOrders(1),
@@ -46,9 +46,9 @@ const [user, orders, prefs] = await Promise.all([
 ]);
 ```
 
-### gather mein errors kaise handle karein
+### gather() mein errors kaise handle karein
 
-Default behaviour thoda strict hai — agar ek bhi coroutine fail hua, baaki sab cancel ho jaate hain. Jaisa `Promise.all()` mein hota hai (ek reject hote hi poora promise reject).
+Default behavior thoda strict hai — agar ek bhi coroutine fail hua, baaki sab cancel ho jaate hain. Bilkul `Promise.all()` mein hota hai ek reject hote hi poora khel khatam.
 
 ```python
 async def might_fail(n: int) -> int:
@@ -66,11 +66,11 @@ async def main():
     except ValueError as e:
         print(f"One failed: {e}")  # Baaki tasks cancel ho gaye
 
-# return_exceptions=True: Promise.allSettled() jaisa
+# return_exceptions=True: Promise.allSettled() jaisa behavior
 async def main_safe():
     results = await asyncio.gather(
         might_fail(1), might_fail(2), might_fail(3), might_fail(4),
-        return_exceptions=True,
+        return_exceptions=True,  # Errors ko results mein include kar do
     )
     for i, result in enumerate(results):
         if isinstance(result, Exception):
@@ -85,10 +85,10 @@ asyncio.run(main_safe())
 # Task 3 succeeded: 8
 ```
 
-Yaani agar tumhe chahiye ki ek fail ho toh baaki continue karte rahein (jaise checkout page pe payment fail ho par cart items dikhte rahein), toh `return_exceptions=True` laga do.
+Yaani agar tumhe chahiye ki ek fail ho toh baaki continue karte rahein (jaise Zomato checkout pe payment fail ho par cart items dikhte rahein), toh `return_exceptions=True` laga do.
 
 ```javascript
-// Promise.allSettled equivalent
+// Promise.allSettled() -- JavaScript mein
 const results = await Promise.allSettled([
   mightFail(1),
   mightFail(2),
@@ -136,7 +136,7 @@ async def main():
 asyncio.run(main())
 ```
 
-### return_when ke options:
+### `return_when` ke options:
 
 | `asyncio.wait()` option | JS Equivalent |
 |---|---|
@@ -148,7 +148,7 @@ asyncio.run(main())
 
 ## `asyncio.create_task()` -- Background Tasks
 
-Yeh bilkul waisa hai jaise JS mein tum kisi promise ko await nahi karte — kaam turant shuru ho jaata hai background mein, tumhe uska result abhi nahi chahiye.
+Yeh bilkul waise hai jaise JS mein tum kisi promise ko `await` nahi karte — kaam turant background mein shuru ho jaata hai, tumhe uska result abhi nahi chahiye.
 
 ```python
 import asyncio
@@ -177,7 +177,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Bilkul waise hi jaise signup ke baad tumhe "Welcome to Zomato!" wala email milta hai — signup response turant aata hai, email peeche se aata rehta hai.
+Bilkul waise hi jaise Zomato pe signup ke baad tumhe "Welcome to Zomato!" wala email milta hai — signup response turant aata hai, email peeche se aata rehta hai.
 
 ```javascript
 // JavaScript equivalent -- fire-and-forget
@@ -198,7 +198,7 @@ async function handleSignup(username) {
 
 ## Task Groups (Python 3.11+) -- Structured Concurrency
 
-Task groups guarantee dete hain ki ya toh sab tasks complete honge, ya error aane par sab cancel ho jaayenge. Yeh concurrent tasks manage karne ka modern aur safer tareeka hai — `gather()` se zyada robust.
+Task groups guarantee dete hain — ya toh sab tasks complete honge, ya error aane par sab cancel ho jaayenge. Yeh concurrent tasks manage karne ka modern aur safer tareeka hai `gather()` se zyada robust aur predictable.
 
 ```python
 import asyncio
@@ -243,7 +243,7 @@ asyncio.run(main_with_error())
 Naya `except*` syntax ek saath multiple exceptions ko group karke handle karne deta hai — jab ek TaskGroup ke andar alag-alag tasks alag-alag type ki errors throw karein.
 
 ```python
-# except* multiple exceptions ka group handle karne ka naya syntax hai
+# except* syntax multiple exceptions ka group handle karne ke liye
 async def main():
     try:
         async with asyncio.TaskGroup() as tg:
@@ -271,19 +271,19 @@ async def producer(queue: asyncio.Queue, name: str) -> None:
     for i in range(5):
         item = f"{name}-item-{i}"
         await asyncio.sleep(random.uniform(0.1, 0.5))
-        await queue.put(item)
+        await queue.put(item)  # Queue mein item dal do
         print(f"  Produced: {item}")
     await queue.put(None)  # Sentinel -- signal ki kaam khatam
 
 async def consumer(queue: asyncio.Queue, name: str) -> None:
     while True:
-        item = await queue.get()
+        item = await queue.get()  # Queue se uthao
         if item is None:
             queue.task_done()
             break
         print(f"  Consumed by {name}: {item}")
         await asyncio.sleep(random.uniform(0.2, 0.4))
-        queue.task_done()
+        queue.task_done()  # Bata do ki kaam ho gaya
 
 async def main():
     queue: asyncio.Queue[str | None] = asyncio.Queue(maxsize=3)
@@ -342,16 +342,16 @@ class AsyncQueue {
 ### Queue ke Types
 
 ```python
-# Standard FIFO queue -- pehle aaya, pehle gaya
+# Standard FIFO queue -- pehle aaya, pehle gaya (bilkul dabbawaala system)
 queue = asyncio.Queue(maxsize=100)
 
-# Priority queue -- sabse chhota priority number pehle
+# Priority queue -- sabse chhota priority number pehle (urgent orders pehle)
 priority_queue = asyncio.PriorityQueue()
 await priority_queue.put((1, "high priority"))
 await priority_queue.put((10, "low priority"))
 await priority_queue.put((5, "medium priority"))
 
-item = await priority_queue.get()  # (1, "high priority")
+item = await priority_queue.get()  # (1, "high priority") milega pehle
 
 # LIFO queue (stack) -- last aaya, pehle gaya
 lifo_queue = asyncio.LifoQueue()
@@ -386,14 +386,14 @@ async def main():
     tasks = [counter.increment() for _ in range(100)]
     await asyncio.gather(*tasks)
 
-    print(f"Final value: {counter.value}")  # 100 (lock ke saath sahi)
+    print(f"Final value: {counter.value}")  # Lock ke saath sahi 100 aayega
 
 asyncio.run(main())
 ```
 
 ### `asyncio.Semaphore` -- Concurrency Limiter
 
-Semaphore matlab "ek time pe sirf N logo ko andar jaane do" — jaise IRCTC ka Tatkal window jisme ek saath sirf limited requests process hoti hain baaki queue mein lagti hain. API rate limits respect karne ke liye yeh bahut kaam aata hai.
+Semaphore matlab "ek time pe sirf N logo ko andar jaane do" — jaise IRCTC ke Tatkal window jisme ek saath sirf limited requests process hoti hain baaki queue mein lagti hain. API rate limits respect karne ke liye yeh bahut kaam aata hai.
 
 ```python
 import asyncio
@@ -424,7 +424,7 @@ asyncio.run(main())
 ```
 
 ```javascript
-// JavaScript equivalent -- p-limit library
+// JavaScript equivalent -- p-limit library use karo
 import pLimit from "p-limit";
 
 const limit = pLimit(10);
@@ -443,7 +443,7 @@ import asyncio
 
 async def waiter(event: asyncio.Event, name: str) -> None:
     print(f"{name} waiting for event...")
-    await event.wait()
+    await event.wait()  # Yahan ruk gaya, event signal ka wait kar raha hai
     print(f"{name} got the event!")
 
 async def setter(event: asyncio.Event) -> None:
@@ -505,6 +505,7 @@ Yeh naya aur zyada flexible tareeka hai — poore block ke liye ek deadline set 
 import asyncio
 
 async def main():
+    # Ek deadline set karo is block ke liye
     async with asyncio.timeout(2.0):
         result = await slow_operation()
         print(result)  # Agar 2s se zyada laga toh yahan tak nahi pahunchega
@@ -555,7 +556,7 @@ class AsyncCountdown:
 
     async def __anext__(self) -> int:
         if self.current <= 0:
-            raise StopAsyncIteration  # Note: StopASYNCIteration
+            raise StopAsyncIteration  # Note: StopAsyncIteration (async version)
         await asyncio.sleep(0.5)
         value = self.current
         self.current -= 1
@@ -576,7 +577,7 @@ Zyadatar cases mein tumhe apna khud ka `__aiter__`/`__anext__` likhne ki zarurat
 async def async_range(start: int, stop: int):
     for i in range(start, stop):
         await asyncio.sleep(0.1)
-        yield i
+        yield i  # Yield karke aage ke cycle ka wait karo
 
 # Async generator expressions
 async def get_items():
@@ -635,7 +636,7 @@ class AsyncDatabase:
         print("Disconnecting from database...")
         await asyncio.sleep(0.2)
         self.connected = False
-        return False
+        return False  # Exceptions ko propagate karo
 
     async def query(self, sql: str) -> list:
         await asyncio.sleep(0.1)
@@ -660,9 +661,9 @@ from contextlib import asynccontextmanager
 async def managed_session():
     session = aiohttp.ClientSession()
     try:
-        yield session
+        yield session  # `async with` block mein session available hoga
     finally:
-        await session.close()
+        await session.close()  # Cleanup guaranteed
 
 async def main():
     async with managed_session() as session:
@@ -731,7 +732,7 @@ async def process_batch(items: list[str], concurrency: int = 10) -> list[dict]:
     results: list[dict] = []
 
     async def process_one(item: str) -> dict:
-        async with sem:
+        async with sem:  # Semaphore se sirf N items ek saath process honge
             await asyncio.sleep(0.1)  # Kaam simulate kar rahe hain
             return {"item": item, "processed": True}
 
@@ -764,14 +765,14 @@ async def worker_pool(
     async def worker_task(worker_id: int):
         while True:
             try:
-                item = queue.get_nowait()
+                item = queue.get_nowait()  # Kya koi item hai queue mein?
             except asyncio.QueueEmpty:
                 break
             result = await worker(item)
             results.append(result)
-            queue.task_done()
+            queue.task_done()  # Bata do ki item process ho gaya
 
-    # Workers launch karo
+    # N workers launch karo
     workers = [asyncio.create_task(worker_task(i)) for i in range(num_workers)]
     await asyncio.gather(*workers)
 

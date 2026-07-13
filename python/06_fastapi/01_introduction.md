@@ -1,10 +1,12 @@
-# 01 - Introduction to FastAPI
+# 01 - FastAPI Ka Introduction
 
-## What is FastAPI?
+## FastAPI Kya Hai?
 
-FastAPI is a modern, high-performance Python web framework for building APIs. If you know Express.js and especially NestJS, you'll find FastAPI sits right in between -- it has the simplicity of Express with the structure and type-safety of NestJS, plus features neither of them offer out of the box.
+FastAPI ek modern, high-performance Python web framework hai APIs banane ke liye. Agar tum Express.js aur NestJS jante ho, toh FastAPI bilkul un dono ke beech mein baithe hai -- Express jaisa simple hai, NestJS jaisa structured aur type-safe hai, aur dono se kuch extra features bhi hain!
 
-### The Quick Comparison
+Socho Zomato ke API ko: order lena, payment verify karna, restaurant se confirm karna -- sab kaam asynchronous hona chahiye aur sab validated hona chahiye. FastAPI exactly yeh sab handle karta hai beautifully.
+
+### Quick Comparison
 
 | Feature | Express.js | NestJS | FastAPI |
 |---|---|---|---|
@@ -16,26 +18,26 @@ FastAPI is a modern, high-performance Python web framework for building APIs. If
 | Learning curve | Low | Medium-High | Low-Medium |
 | Dependency injection | None built-in | Core feature | Core feature (Depends) |
 
-### Key Selling Points for a Node.js Developer
+### Ek Node.js Developer Ke Liye Kya Faydemand Hai?
 
-1. **Automatic OpenAPI/Swagger docs** -- No more maintaining separate API documentation. FastAPI generates interactive docs from your code. No decorators needed, no swagger-jsdoc comments, no separate YAML files.
+1. **Automatic OpenAPI/Swagger docs** -- Yaad hai na Express mein swagger-jsdoc likh likh ke thak gaye the? FastAPI mein code likho, aur docs automatically generate ho jaate hain. Koi decorators nahi, koi YAML files nahi.
 
-2. **Pydantic integration** -- Think of Pydantic as zod + class-validator combined, but integrated at the framework level. You define a model, and FastAPI automatically validates request bodies, query params, and serializes responses.
+2. **Pydantic integration** -- Soch lo Pydantic = zod + class-validator, ek single cheeez mein combined. Model define karo, aur FastAPI apne aap request bodies validate karta hai, query params parse karta hai, aur responses serialize karta hai.
 
-3. **Async support** -- Python's `async/await` works similarly to JavaScript's. FastAPI supports both sync and async handlers, so you can choose what fits.
+3. **Async support** -- Python ka `async/await` JavaScript jaise hi kaam karta hai. FastAPI dono sync aur async handlers support karta hai, so tum jo fit ho wo use kar sakte ho.
 
-4. **Performance** -- FastAPI is one of the fastest Python frameworks, comparable to Node.js and Go for I/O-bound workloads. It's built on Starlette (the ASGI framework) and Uvicorn (the ASGI server).
+4. **Performance** -- FastAPI Python ke sab se tez frameworks mein se ek hai, Node.js aur Go ke barabar I/O-bound workloads mein. Yeh Starlette (ASGI framework) aur Uvicorn (ASGI server) par built hai.
 
-5. **Developer experience** -- Editor autocompletion works everywhere because everything is typed. Errors are caught before runtime.
+5. **Developer experience** -- Editor mein autocomplete sab jagah kaam karta hai kyunki sab kuch typed hai. Bugs code likhtey hi catch hote hain, runtime mein nahi.
 
 ---
 
 ## Installation
 
-### Node.js Equivalent Mental Model
+### Node.js Ka Mental Model
 
 ```
-npm init -y          -->  python -m venv venv && source venv/bin/activate (or venv\Scripts\activate on Windows)
+npm init -y          -->  python -m venv venv && source venv/bin/activate (ya venv\Scripts\activate Windows par)
 npm install express  -->  pip install "fastapi[standard]"
 nodemon index.js     -->  uvicorn main:app --reload
 ```
@@ -43,28 +45,28 @@ nodemon index.js     -->  uvicorn main:app --reload
 ### Actual Setup
 
 ```bash
-# Create and activate a virtual environment (like having a project-local node_modules)
+# Virtual environment create karo (jaise project-local node_modules)
 python -m venv venv
 
-# Windows
+# Windows par
 venv\Scripts\activate
 
-# macOS/Linux
+# macOS/Linux par
 source venv/bin/activate
 
-# Install FastAPI with all standard dependencies
+# FastAPI install karo saare standard dependencies ke saath
 pip install "fastapi[standard]"
 ```
 
-The `[standard]` extra installs:
-- `uvicorn` -- the ASGI server (like the Node.js HTTP server, but production-grade)
-- `httpx` -- async HTTP client (like axios/fetch)
-- `jinja2` -- templating (like ejs/handlebars)
-- `python-multipart` -- form data parsing (like multer/body-parser)
+`[standard]` extra ye sab install karta hai:
+- `uvicorn` -- ASGI server (jaise Node.js ka HTTP server, par production-grade)
+- `httpx` -- async HTTP client (jaise axios/fetch)
+- `jinja2` -- templating (jaise ejs/handlebars)
+- `python-multipart` -- form data parsing (jaise multer/body-parser)
 
-### What is Uvicorn?
+### Uvicorn Kya Hota Hai?
 
-Uvicorn is an ASGI (Asynchronous Server Gateway Interface) server. Think of it as the equivalent of Node.js's built-in HTTP server, but as a standalone process.
+Uvicorn ek ASGI (Asynchronous Server Gateway Interface) server hai. Socho Node.js ke built-in HTTP server jaisa, par ek standalone process ke taur par.
 
 | Node.js | Python/FastAPI |
 |---|---|
@@ -121,25 +123,25 @@ def read_root():
     return {"message": "Hello, World!"}
 ```
 
-That's it. Three lines of meaningful code. No `res.json()`, no manual serialization. FastAPI automatically converts the dict to JSON and sets the correct `Content-Type` header.
+Bas itna hi! Sirf teen lines meaningful code. Koi `res.json()` nahi, koi manual serialization nahi. FastAPI automatically dict ko JSON mein convert karta hai aur correct `Content-Type` header set karta hai.
 
-### Running It
+### Kaise Chalaoge?
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Breaking this down:
-- `main` -- the Python file name (`main.py`)
-- `app` -- the FastAPI instance variable name
-- `--reload` -- watch for file changes and restart (like nodemon)
+Breaking it down:
+- `main` -- Python file ka naam (`main.py`)
+- `app` -- FastAPI instance ka variable name
+- `--reload` -- file changes ko watch karo aur restart karo (jaise nodemon)
 
-The server starts at `http://127.0.0.1:8000` (port 8000 by default, not 3000).
+Server start hota hai `http://127.0.0.1:8000` par (default port 8000 hai, 3000 nahi).
 
-### Specifying Host and Port
+### Host aur Port Customize Karna
 
 ```bash
-# Like: node index.js  (with PORT=3000 HOST=0.0.0.0)
+# Jaise: node index.js  (with PORT=3000 HOST=0.0.0.0)
 uvicorn main:app --reload --host 0.0.0.0 --port 3000
 ```
 
@@ -147,17 +149,17 @@ uvicorn main:app --reload --host 0.0.0.0 --port 3000
 
 ## Auto-Generated Documentation
 
-This is the feature that will blow your mind coming from Node.js. After running your app, open:
+Yeh feature tummmmmmmmm ko mind blow kar dega agar Node.js se aa rahe ho. App chala ke dekhna:
 
 - **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 - **Raw OpenAPI JSON**: [http://127.0.0.1:8000/openapi.json](http://127.0.0.1:8000/openapi.json)
 
-In Express, you'd need to install `swagger-ui-express`, `swagger-jsdoc`, write JSDoc comments or maintain a YAML file, and wire it all together. In NestJS, you need `@nestjs/swagger` with decorators on every DTO and controller.
+Express mein `swagger-ui-express`, `swagger-jsdoc` install karna padta, JSDoc comments likhnay padte, ya YAML maintain karna padta. NestJS mein `@nestjs/swagger` decorators har DTO aur controller par lagane padte.
 
-In FastAPI, it just works. Every route, every parameter, every model you define automatically appears in the docs. You can even test endpoints directly from the Swagger UI.
+FastAPI mein bas hota hai. Har route, har parameter, har model jo tum define karte ho automatically docs mein dikhayi deta hai. Swagger UI se hi endpoints test kar sakte ho!
 
-### Customizing the Docs
+### Documentation Customize Karna
 
 ```python
 from fastapi import FastAPI
@@ -166,20 +168,20 @@ app = FastAPI(
     title="My Awesome API",
     description="A sample API for learning FastAPI",
     version="1.0.0",
-    docs_url="/docs",        # Change Swagger UI path (default: /docs)
-    redoc_url="/redoc",      # Change ReDoc path (default: /redoc)
-    openapi_url="/openapi.json",  # Change OpenAPI schema path
+    docs_url="/docs",        # Swagger UI ka path badal sakte ho (default: /docs)
+    redoc_url="/redoc",      # ReDoc ka path badal sakte ho (default: /redoc)
+    openapi_url="/openapi.json",  # OpenAPI schema ka path
 )
 ```
 
-To disable docs in production:
+Production mein docs disable karna ho toh:
 
 ```python
 import os
 
 app = FastAPI(
     docs_url="/docs" if os.getenv("ENV") != "production" else None,
-    redoc_url=None,  # Disable ReDoc entirely
+    redoc_url=None,  # ReDoc bilkul disable kar do
 )
 ```
 
@@ -187,7 +189,7 @@ app = FastAPI(
 
 ## Async Support
 
-FastAPI supports both sync and async route handlers. Python's `async/await` works very similarly to JavaScript's.
+FastAPI dono sync aur async route handlers support karta hai. Python ka `async/await` bilkul JavaScript jaisa kaam karta hai.
 
 ### JavaScript Async
 
@@ -207,28 +209,31 @@ async def get_users():
     return users
 ```
 
-### When to Use Async vs Sync in FastAPI
+### Async vs Sync -- Kab Kya Use Kare?
 
 ```python
-# Use async when doing I/O operations (database, HTTP calls, file I/O)
+# Async use karo jab I/O operations ho (database, HTTP calls, file I/O)
 @app.get("/async-route")
 async def async_route():
     data = await some_async_operation()
     return data
 
-# Use sync for CPU-bound or simple operations
-# FastAPI runs sync functions in a thread pool automatically!
+# Sync use karo CPU-bound ya simple operations ke liye
+# FastAPI automatically sync functions ko thread pool mein run karta hai!
 @app.get("/sync-route")
 def sync_route():
-    # This won't block other requests -- FastAPI handles it
+    # Yeh dusray requests ko block nahi karega -- FastAPI handle kar lega
     return {"message": "This is fine"}
 ```
 
-**Important difference from Node.js**: In Node.js, everything is async by nature. In Python, you choose. If you define a sync function, FastAPI runs it in a separate thread so it doesn't block the event loop. This is a nice safety net that Node.js doesn't have.
+> [!info]
+> **Important: Node.js se Farak**
+> 
+> Node.js mein sab kuch async hota hai nature se. Python mein tum choose karte ho. Agar sync function likho toh FastAPI usey separate thread mein run karta hai so event loop block na ho. Yeh ek safety net hai jo Node.js mein nahi hai!
 
 ---
 
-## A More Complete Example
+## Ek Poora Example
 
 ```python
 from fastapi import FastAPI
@@ -236,7 +241,7 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Todo API", version="0.1.0")
 
-# This is like a TypeScript interface + zod schema combined
+# TypeScript interface + zod schema combined jaisa
 class TodoCreate(BaseModel):
     title: str
     completed: bool = False
@@ -246,7 +251,7 @@ class TodoResponse(BaseModel):
     title: str
     completed: bool
 
-# In-memory "database" (just like you'd do in an Express tutorial)
+# In-memory "database" (express tutorial ki tarah)
 todos: list[TodoResponse] = []
 next_id = 1
 
@@ -271,11 +276,11 @@ def get_todo(todo_id: int):
     for todo in todos:
         if todo.id == todo_id:
             return todo
-    # We'll cover proper error handling later
+    # Proper error handling aage seekhenge
     return {"error": "Not found"}
 ```
 
-### The Express.js Equivalent Would Be
+### Express.js Mein Yeh Kaise Likha Hota?
 
 ```javascript
 const express = require('express');
@@ -283,7 +288,7 @@ const { z } = require('zod');
 const app = express();
 app.use(express.json());
 
-// You'd need zod or joi for validation
+// Validation ke liye zod ya joi use karna padta
 const TodoCreateSchema = z.object({
   title: z.string(),
   completed: z.boolean().default(false),
@@ -320,38 +325,41 @@ app.get('/todos/:todoId', (req, res) => {
 app.listen(3000);
 ```
 
-Notice how in Express you have to:
-1. Manually call `express.json()` middleware
-2. Manually validate with zod/joi
-3. Manually handle validation errors
-4. Manually parse `req.params.todoId` to int
-5. Manually set status codes on the response object
-
-FastAPI handles all of this automatically. The `todo_id: int` type hint tells FastAPI to parse and validate the path parameter. The `todo: TodoCreate` parameter tells FastAPI to parse and validate the JSON body. Invalid requests get a detailed 422 error response automatically.
+> [!warning]
+> **Express Mein Kitna Kam Extra Karna Padta Hai!**
+>
+> Express mein:
+> 1. Manually `express.json()` middleware call karna padta
+> 2. zod/joi se manually validation
+> 3. Manually validation errors handle karna
+> 4. `req.params.todoId` ko int mein parse karna
+> 5. Response object par manually status codes set karna
+>
+> FastAPI sab kuch automatically kar deta hai! `todo_id: int` type hint se FastAPI apne aap path parameter parse aur validate kar leta hai. `todo: TodoCreate` parameter se request body handle hota hai. Invalid requests automatically 422 error response de dete hain.
 
 ---
 
 ## Project Structure
 
-For small projects, a single `main.py` is fine. For larger projects, you'll want something like this:
+Small projects ke liye ek `main.py` kaafi hai. Bade projects mein kuch is tarah organize karo:
 
 ```
 my_api/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py          # FastAPI app creation, includes routers
-│   ├── config.py         # Settings (like .env config)
-│   ├── dependencies.py   # Shared dependencies
-│   ├── models/           # SQLAlchemy models (like Prisma schema)
+│   ├── main.py          # FastAPI app creation, routers include karte hain
+│   ├── config.py        # Settings (.env config jaisa)
+│   ├── dependencies.py  # Shared dependencies
+│   ├── models/          # SQLAlchemy models (Prisma schema jaisa)
 │   │   ├── __init__.py
 │   │   └── user.py
-│   ├── schemas/          # Pydantic models (like DTOs in NestJS)
+│   ├── schemas/         # Pydantic models (NestJS mein DTOs jaisa)
 │   │   ├── __init__.py
 │   │   └── user.py
-│   ├── routers/          # Route handlers (like controllers in NestJS)
+│   ├── routers/         # Route handlers (NestJS controllers jaisa)
 │   │   ├── __init__.py
 │   │   └── users.py
-│   ├── services/         # Business logic
+│   ├── services/        # Business logic
 │   │   ├── __init__.py
 │   │   └── user_service.py
 │   └── utils/
@@ -359,12 +367,12 @@ my_api/
 ├── tests/
 │   ├── __init__.py
 │   └── test_users.py
-├── alembic/              # Database migrations
-├── requirements.txt      # Like package.json dependencies
+├── alembic/             # Database migrations
+├── requirements.txt     # package.json dependencies jaisa
 └── .env
 ```
 
-### Comparison to NestJS Structure
+### NestJS Se Compare Karte Hain
 
 | NestJS | FastAPI |
 |---|---|
@@ -372,23 +380,26 @@ my_api/
 | `src/users/users.service.ts` | `app/services/user_service.py` |
 | `src/users/dto/create-user.dto.ts` | `app/schemas/user.py` |
 | `src/users/entities/user.entity.ts` | `app/models/user.py` |
-| `src/users/users.module.ts` | No equivalent (routers are included directly) |
+| `src/users/users.module.ts` | Kuch nahi -- routers directly include hote hain |
 
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: Hello API
-Create a FastAPI app with a single GET endpoint at `/` that returns `{"message": "Hello from FastAPI", "version": "1.0.0"}`. Run it with uvicorn and visit the `/docs` page.
+
+FastAPI app banao ek single GET endpoint ke saath `/` par jo `{"message": "Hello from FastAPI", "version": "1.0.0"}` return kare. Uvicorn se chalaao aur `/docs` page visit karo.
 
 ### Exercise 2: Multiple Routes
-Add these endpoints to your app:
-- `GET /health` -- returns `{"status": "healthy"}`
-- `GET /about` -- returns `{"app": "My API", "author": "Your Name"}`
-- Visit `/docs` and verify all three endpoints appear
+
+In endpoints ko add karo:
+- `GET /health` -- `{"status": "healthy"}` return kare
+- `GET /about` -- `{"app": "My API", "author": "Your Name"}` return kare
+- `/docs` visit karke verify karo teen endpoints dikh rahe hain
 
 ### Exercise 3: Async Endpoint
-Create an async endpoint `GET /slow` that uses `asyncio.sleep(2)` to simulate a slow operation, then returns `{"message": "Done waiting"}`. Test that other endpoints still respond quickly while `/slow` is processing.
+
+Ek async endpoint banao `GET /slow` jo `asyncio.sleep(2)` use karke slow operation simulate kare, phir `{"message": "Done waiting"}` return kare. Test karo ki dusray endpoints jab `/slow` processing ho raha tab bhi fast respond kar rahe hain.
 
 ```python
 import asyncio
@@ -400,7 +411,8 @@ async def slow_endpoint():
 ```
 
 ### Exercise 4: App Configuration
-Create a FastAPI app with a custom title, description, and version. Disable the ReDoc documentation endpoint. Add a terms of service URL and contact information:
+
+FastAPI app custom title, description, aur version ke saath banao. ReDoc documentation endpoint disable karo. Terms of service URL aur contact information add karo:
 
 ```python
 app = FastAPI(
@@ -417,7 +429,8 @@ app = FastAPI(
 ```
 
 ### Exercise 5: Express to FastAPI Translation
-Translate this Express app to FastAPI:
+
+Is Express app ko FastAPI mein translate karo:
 
 ```javascript
 const express = require('express');
@@ -437,4 +450,4 @@ app.get('/api/greeting/:name', (req, res) => {
 app.listen(3000);
 ```
 
-**Hint**: Path parameters use `{name}` in FastAPI, and query parameters are just additional function parameters with default values.
+**Hint**: FastAPI mein path parameters `{name}` use hote hain, aur query parameters function parameters hote hain default values ke saath.

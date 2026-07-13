@@ -1,8 +1,8 @@
 # 07 - Serialization
 
-## model_dump(): Converting to Dictionaries
+## model_dump(): Dictionary Mein Convert Karna
 
-`model_dump()` converts a Pydantic model to a Python dictionary. This is the method you will use most often when preparing data for database insertion, API responses, or passing to other functions.
+Agar tume Pydantic model ko Python dictionary mein convert karna ho — chaahe database mein data daalna ho, API se response bhejna ho, ya phir doosre functions ko pass karna ho — **`model_dump()`** tumhara best friend hai. Yeh method sabse zyada use hota hai.
 
 ```python
 from pydantic import BaseModel
@@ -22,7 +22,7 @@ user = User(
     created_at="2024-03-15T10:00:00Z"
 )
 
-# Basic dump
+# Seedha dump kar do
 data = user.model_dump()
 print(data)
 # {
@@ -34,19 +34,21 @@ print(data)
 # }
 ```
 
-### Include and Exclude
+### Include aur Exclude Karna
+
+Socho ki Zomato ke order details ho — order_id, customer_name, address, payment_method — lekin Swiggy ko sirf order_id aur customer_name bhejni hai. Woh sab kuch mat bhejo, bas jo chahiye woh bhejo.
 
 ```python
-# Include only specific fields
+# Sirf ye fields bhejo (lodash ke _.pick() jaisa)
 user.model_dump(include={"id", "name", "email"})
 # {'id': 1, 'name': 'Alice', 'email': 'alice@example.com'}
 
-# Exclude specific fields
+# Ye fields exclude kar (lodash ke _.omit() jaisa)
 user.model_dump(exclude={"created_at", "is_active"})
 # {'id': 1, 'name': 'Alice', 'email': 'alice@example.com'}
 ```
 
-This is similar to lodash `_.pick()` and `_.omit()`:
+JavaScript mein tumhe yeh lodash se karna padhega:
 
 ```typescript
 // JavaScript equivalents
@@ -55,7 +57,9 @@ _.pick(user, ["id", "name", "email"]);
 _.omit(user, ["createdAt", "isActive"]);
 ```
 
-### Exclude Defaults, None, and Unset
+### None, Default, aur Unset Fields Ko Skip Karna
+
+Kya hota hai jab PATCH request aata hai? User sirf apna email update karna chahta hai, baaki sab fields `None` se bhare hote hain. Unhe database query mein bhejoge to galat ho jayega.
 
 ```python
 class UserUpdate(BaseModel):
@@ -66,24 +70,27 @@ class UserUpdate(BaseModel):
 
 update = UserUpdate(name="Alice", email="alice@new.com")
 
-# All fields (even None ones)
+# Sab fields aa jayenge, even None ones
 update.model_dump()
 # {'name': 'Alice', 'email': 'alice@new.com', 'bio': None, 'age': None}
 
-# Exclude None values - great for PATCH updates
+# None values skip kar (PATCH updates ke liye perfect!)
 update.model_dump(exclude_none=True)
 # {'name': 'Alice', 'email': 'alice@new.com'}
 
-# Exclude unset fields (fields not explicitly provided)
+# Sirf jo fields explicitly pass kiye gaye the, woh bhejo
 update.model_dump(exclude_unset=True)
 # {'name': 'Alice', 'email': 'alice@new.com'}
 
-# Exclude fields still at their default value
+# Jo fields apni default value par baqae hain, unhe skip kar
 update.model_dump(exclude_defaults=True)
 # {'name': 'Alice', 'email': 'alice@new.com'}
 ```
 
-The **`exclude_unset`** option is particularly powerful for PATCH endpoints:
+> [!tip] **Sirf Unset Fields Bhejo**
+> PATCH endpoints ke liye `exclude_unset=True` superpowers deta hai. Agar user ne kuch bheja nahi to database ke current value par mat touch kar.
+
+FastAPI ke PATCH endpoint ka pattern dekho:
 
 ```python
 # FastAPI PATCH endpoint pattern
@@ -99,19 +106,19 @@ class UserUpdate(BaseModel):
 
 @app.patch("/users/{user_id}")
 async def update_user(user_id: int, updates: UserUpdate):
-    # Only get the fields the client actually sent
+    # Sirf woh fields jo client ne bheje hain
     update_data = updates.model_dump(exclude_unset=True)
-    # {'name': 'Alice'} -- only what was sent, not all the None fields
-    # Use this for your SQL UPDATE or ORM update
+    # {'name': 'Alice'} -- sirf yeh, baaki sab None nahi
+    # Is data ko SQL UPDATE mein use kar
     return update_data
 ```
 
-Node.js equivalent pattern:
+Node.js/Express mein tume manually filter karna padhega:
 
 ```typescript
 // Express PATCH endpoint
 app.patch("/users/:id", (req, res) => {
-  // In JS you'd filter out undefined values manually:
+  // JS mein manually filter karna padta hai undefined values:
   const updates = Object.fromEntries(
     Object.entries(req.body).filter(([_, v]) => v !== undefined)
   );
@@ -120,9 +127,9 @@ app.patch("/users/:id", (req, res) => {
 
 ---
 
-## model_dump_json(): Converting to JSON Strings
+## model_dump_json(): JSON String Mein Convert Karna
 
-`model_dump_json()` serializes directly to a JSON string. It handles types that `json.dumps()` cannot (like `datetime`, `UUID`, `Url`).
+`model_dump()` gives Python dict, lekin agar string mein JSON chahiye? **`model_dump_json()`** seedha JSON string return karta hai. Aur best part — yeh `datetime`, `UUID`, `Url` jaise types ko handle kar leta hai, jo normally `json.dumps()` mein error aata hai!
 
 ```python
 from pydantic import BaseModel
@@ -142,11 +149,12 @@ event = Event(
     tags=["tech", "python"]
 )
 
+# Compact JSON
 json_str = event.model_dump_json()
 print(json_str)
 # '{"id":"550e8400-e29b-41d4-a716-446655440000","name":"Conference","start":"2024-06-15T09:00:00Z","tags":["tech","python"]}'
 
-# Pretty-printed
+# Readable banao
 json_str = event.model_dump_json(indent=2)
 print(json_str)
 # {
@@ -160,23 +168,25 @@ print(json_str)
 # }
 ```
 
-### Why Not Just Use json.dumps()?
+### Kyun `json.dumps()` use nahi kar sakte?
+
+Agar normal `json.dumps()` use karo to datetime types fail kar jayenge:
 
 ```python
 import json
 
-# This FAILS with standard json.dumps:
+# Yeh FAIL hota hai:
 json.dumps(event.model_dump())
 # TypeError: Object of type datetime is not JSON serializable
 
-# You'd need a custom encoder:
-json.dumps(event.model_dump(), default=str)  # hacky
+# Custom encoder likho... hacky lag raha hai:
+json.dumps(event.model_dump(), default=str)  # hacky!
 
-# model_dump_json() handles it natively:
-event.model_dump_json()  # just works
+# Pydantic ka model_dump_json() seedha kaam kar jaata hai:
+event.model_dump_json()  # bas ho gaya!
 ```
 
-The same `include`, `exclude`, `exclude_none`, `exclude_unset` options work with `model_dump_json()`:
+`include`, `exclude`, `exclude_none`, `exclude_unset` — sab options `model_dump_json()` ke saath bhi kaam karte hain:
 
 ```python
 event.model_dump_json(exclude={"id"}, indent=2)
@@ -184,11 +194,13 @@ event.model_dump_json(exclude={"id"}, indent=2)
 
 ---
 
-## Aliases: Field Names vs Serialization Names
+## Aliases: Field Name vs Serialization Name
 
-Aliases let you use different names for a field in Python code versus in serialized output. This is extremely common when working with APIs that use camelCase (JavaScript convention) while your Python code uses snake_case.
+Ek baar socho — JavaScript frontend `firstName`, `lastName` bhejta hai (camelCase), lekin Python mein `first_name`, `last_name` use karte ho (snake_case). Dono languages ke naming conventions alag hain. Aliases is problem ko solve karte hain!
 
-### Basic Alias
+Alias = ek field ke liye alag naam serialization mein.
+
+### Basic Alias Example
 
 ```python
 from pydantic import BaseModel, Field
@@ -197,24 +209,25 @@ class User(BaseModel):
     first_name: str = Field(alias="firstName")
     last_name: str = Field(alias="lastName")
 
-# Create with the alias name (camelCase from API)
+# API se camelCase mein aaya data (alias ke naam se)
 user = User(firstName="Alice", lastName="Smith")
-print(user.first_name)  # "Alice" (Python attribute is snake_case)
+print(user.first_name)  # "Alice" (Python attribute snake_case mein hai)
 
-# Serialize uses the alias by default in model_dump with by_alias=True
+# Dump karo — by default snake_case return hota hai
 print(user.model_dump())
 # {'first_name': 'Alice', 'last_name': 'Smith'}
 
+# Agar by_alias=True doge to alias names waapas jayenge
 print(user.model_dump(by_alias=True))
 # {'firstName': 'Alice', 'lastName': 'Smith'}
 ```
 
-### The TypeScript Analogy
+### TypeScript/JavaScript Analogy
 
-This is like using decorators in class-transformer or NestJS:
+TypeScript/NestJS mein decorators use hote hain:
 
 ```typescript
-// class-transformer
+// class-transformer (TypeScript)
 class User {
   @Expose({ name: "firstName" })
   first_name: string;
@@ -223,33 +236,35 @@ class User {
   last_name: string;
 }
 
-// Or in Java/Kotlin with Jackson:
+// Java/Kotlin mein Jackson use hota hai:
 // @JsonProperty("firstName")
 // val firstName: String
 ```
 
-### Three Types of Aliases
+### Teenon Types ke Aliases
 
-Pydantic v2 provides three separate alias configurations:
+Pydantic v2 mein three alag options hain:
 
 ```python
 from pydantic import BaseModel, Field
 
 class User(BaseModel):
     name: str = Field(
-        alias="userName",                    # used for BOTH validation and serialization
-        validation_alias="user_name_input",  # used ONLY when reading/parsing data
-        serialization_alias="userName",      # used ONLY when dumping/serializing
+        alias="userName",                    # both validation aur serialization ke liye
+        validation_alias="user_name_input",  # sirf input/parsing ke liye
+        serialization_alias="userName",      # sirf output/dump ke liye
     )
 ```
 
-Most of the time, you just need `alias` or the `validation_alias` + `serialization_alias` pair:
+Mostly bas `alias` ya phir `validation_alias` + `serialization_alias` pair use hota hai.
+
+### Practical Pattern: API Model
 
 ```python
 from pydantic import BaseModel, Field, ConfigDict
 
 class ApiUser(BaseModel):
-    # Accept camelCase input, output camelCase, use snake_case in Python
+    # JavaScript se camelCase aata hai, output bhi camelCase, lekin Python mein snake_case use kar
     model_config = ConfigDict(populate_by_name=True)
 
     user_id: int = Field(alias="userId")
@@ -257,22 +272,22 @@ class ApiUser(BaseModel):
     last_name: str = Field(alias="lastName")
     email_address: str = Field(alias="emailAddress")
 
-# Can create with either snake_case or camelCase (populate_by_name=True)
+# Dono tarike se create kar sakte ho (populate_by_name=True ki wajah se)
 user = ApiUser(userId=1, firstName="Alice", lastName="Smith", emailAddress="alice@example.com")
-# OR
+# YA
 user = ApiUser(user_id=1, first_name="Alice", last_name="Smith", email_address="alice@example.com")
 
-# In Python code, always use snake_case
+# Python code mein snake_case use kar
 print(user.first_name)  # "Alice"
 
-# Serialize to camelCase for API response
+# API response ke liye camelCase se serialize kar
 print(user.model_dump(by_alias=True))
 # {'userId': 1, 'firstName': 'Alice', 'lastName': 'Smith', 'emailAddress': 'alice@example.com'}
 ```
 
-### AliasGenerator: Automatic camelCase Conversion
+### AliasGenerator: Automatic camelCase
 
-Instead of setting aliases field by field, generate them automatically:
+Har field par manually alias likhna boring hai? Pydantic ke paas automatic generator hai:
 
 ```python
 from pydantic import BaseModel, ConfigDict
@@ -280,8 +295,8 @@ from pydantic.alias_generators import to_camel
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,  # allow both snake_case and camelCase
+        alias_generator=to_camel,  # automatic snake_case to camelCase
+        populate_by_name=True,  # both names accept kar
     )
 
 class UserResponse(ApiModel):
@@ -291,7 +306,7 @@ class UserResponse(ApiModel):
     email_address: str
     is_active: bool = True
 
-# Input can be camelCase (from JS frontend)
+# JavaScript frontend se camelCase input aaya
 user = UserResponse.model_validate({
     "userId": 1,
     "firstName": "Alice",
@@ -299,21 +314,22 @@ user = UserResponse.model_validate({
     "emailAddress": "alice@example.com"
 })
 
-# Python code uses snake_case
+# Python mein snake_case
 print(user.first_name)
 
-# Output is camelCase (for JS frontend)
+# Output camelCase (JS frontend ke liye)
 print(user.model_dump(by_alias=True))
 # {'userId': 1, 'firstName': 'Alice', 'lastName': 'Smith', 'emailAddress': 'alice@example.com', 'isActive': True}
 ```
 
-This is a very common pattern when building APIs consumed by JavaScript frontends. Create a base `ApiModel` class with the camelCase alias generator and inherit from it for all your API models.
+> [!info] **API Pattern**
+> JavaScript frontend waale APIs banate ho to ek base `ApiModel` class bana de `to_camel` alias generator ke saath. Phir saare models usse inherit kar.
 
 ---
 
 ## Custom Serializers with @field_serializer
 
-When you need to control exactly how a field is serialized:
+Kabhie kabhi tume ek field ko bilkul specific tarike se serialize karna hota hai — money ko currency symbol ke saath, dates ko readable format mein, etc. Yeh `@field_serializer` decorator se hota hai:
 
 ```python
 from pydantic import BaseModel, field_serializer
@@ -346,7 +362,9 @@ print(product.model_dump_json())
 # '{"name":"Laptop","price":"$999.99","created_at":"2024-03-15 10:30"}'
 ```
 
-### Conditional Serialization
+### Conditional Serialization — Context-Aware
+
+Socho, SSN number aur credit card details sensitive hain. Public API ko masked dikhana chahiye, lekin admin panel ko pura number chahiye. `SerializationInfo` context use karke yeh kaam kar sakte ho:
 
 ```python
 from pydantic import BaseModel, field_serializer, SerializationInfo
@@ -358,10 +376,10 @@ class User(BaseModel):
 
     @field_serializer("ssn")
     def mask_ssn(self, value: str, info: SerializationInfo) -> str:
-        # Check if we're in a context that should show full SSN
+        # Check karo context mein kya request aaya hai
         if info.context and info.context.get("show_full_ssn"):
-            return value
-        # Mask by default
+            return value  # Admin context — pura SSN
+        # Default: masked rakho
         return f"***-**-{value[-4:]}"
 
 user = User(name="Alice", email="alice@example.com", ssn="123-45-6789")
@@ -370,12 +388,14 @@ user = User(name="Alice", email="alice@example.com", ssn="123-45-6789")
 print(user.model_dump())
 # {'name': 'Alice', 'email': 'alice@example.com', 'ssn': '***-**-6789'}
 
-# With context: full SSN
+# Context pass karo: admin dekhega
 print(user.model_dump(context={"show_full_ssn": True}))
 # {'name': 'Alice', 'email': 'alice@example.com', 'ssn': '123-45-6789'}
 ```
 
 ### Serialization Modes: "json" vs "python"
+
+`model_dump()` se Python dict milti hai, `model_dump_json()` se JSON string. Agar tume JSON mein sirf specific serializer chaiye to `when_used="json"` pass kar:
 
 ```python
 from pydantic import field_serializer
@@ -387,15 +407,15 @@ class Event(BaseModel):
 
     @field_serializer("date", when_used="json")
     def serialize_date_for_json(self, value: datetime) -> str:
-        """Only applies when serializing to JSON, not to dict."""
+        """JSON mein serialize karte waqt hi apply ho."""
         return value.isoformat()
 
 event = Event(name="Meeting", date="2024-03-15T10:00:00")
 
-# model_dump() returns datetime object (no custom serializer applied)
+# model_dump() — datetime object wapas aata hai
 print(type(event.model_dump()["date"]))  # <class 'datetime.datetime'>
 
-# model_dump_json() applies the custom serializer
+# model_dump_json() — custom serializer apply hota hai
 print(event.model_dump_json())
 # '{"name":"Meeting","date":"2024-03-15T10:00:00"}'
 ```
@@ -404,7 +424,7 @@ print(event.model_dump_json())
 
 ## Computed Fields with @computed_field
 
-Computed fields are derived from other fields. They are included in serialization but not in input validation. This is like a JavaScript getter or a computed property in Vue.
+Ek field jo other fields se derived ho — jaise area rectangle ko width aur height se calculate hota hai. Yeh computed fields input validation mein nahi aate, sirf output mein include hote hain. JavaScript mein getters jaisa kaam karte hain:
 
 ```python
 from pydantic import BaseModel, computed_field
@@ -439,7 +459,9 @@ print(rect.model_dump_json(indent=2))
 # }
 ```
 
-### TypeScript Equivalent
+### TypeScript Analogy
+
+JavaScript mein getters nahi aate `JSON.stringify()` mein, jaab tak `toJSON()` custom nahi likho:
 
 ```typescript
 class Rectangle {
@@ -452,8 +474,8 @@ class Rectangle {
     return this.width * this.height;
   }
 
-  // But JSON.stringify(rect) won't include getters!
-  // You'd need toJSON() or a custom serializer.
+  // Getter JSON.stringify mein nahi ayega!
+  // Custom toJSON() likho padta hai:
   toJSON() {
     return {
       width: this.width,
@@ -465,12 +487,12 @@ class Rectangle {
 }
 ```
 
-Pydantic's `@computed_field` automatically includes computed values in serialization. In JavaScript, getters are not included in `JSON.stringify()` unless you write a custom `toJSON()`.
+Pydantic ka `@computed_field` automatically serialization mein include kar deta hai — bilkul JavaScript getters ke liye `toJSON()` likhnے jaisा!
 
-### Real-World Example: User with Full Name
+### Real-World Example: User Full Name aur Age
 
 ```python
-from pydantic import BaseModel, computed_field, EmailStr
+from pydantic import BaseModel, computed_field
 from datetime import datetime, date
 
 class User(BaseModel):
@@ -521,7 +543,7 @@ print(user.model_dump())
 
 ## JSON Schema Generation: model_json_schema()
 
-Pydantic can generate **JSON Schema** from your models. This is used by FastAPI to auto-generate OpenAPI documentation.
+Pydantic models se JSON Schema automatically generate ho sakta hai! Yeh FastAPI use karta hai OpenAPI/Swagger docs banane ke liye:
 
 ```python
 from pydantic import BaseModel, Field
@@ -529,7 +551,7 @@ from datetime import datetime
 import json
 
 class Product(BaseModel):
-    """A product in the catalog."""
+    """Catalog mein ek product."""
     id: int = Field(description="Unique product identifier")
     name: str = Field(min_length=1, max_length=200, description="Product name")
     price: float = Field(gt=0, description="Price in USD")
@@ -540,12 +562,12 @@ schema = Product.model_json_schema()
 print(json.dumps(schema, indent=2))
 ```
 
-Output:
+Output dekho:
 
 ```json
 {
   "title": "Product",
-  "description": "A product in the catalog.",
+  "description": "Catalog mein ek product.",
   "type": "object",
   "properties": {
     "id": {
@@ -588,18 +610,20 @@ Output:
 
 ### Zod Comparison
 
+JavaScript mein Zod ke saath yeh kaam manual package se karna padta hai:
+
 ```typescript
-// Zod also generates JSON Schema (with zod-to-json-schema):
+// Zod uses zod-to-json-schema package
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 const schema = zodToJsonSchema(ProductSchema);
 ```
 
-Pydantic does this natively -- no extra package needed.
+Pydantic mein yeh in-built hai — koi extra package nahi!
 
-### Nested Model Schema
+### Nested Models aur $defs
 
-Schemas for nested models use `$defs` (JSON Schema references):
+Nested models ke liye JSON Schema references (`$defs`) use hote hain:
 
 ```python
 class Address(BaseModel):
@@ -611,14 +635,14 @@ class User(BaseModel):
     address: Address
 
 schema = User.model_json_schema()
-# Includes $defs with the Address schema, and User.address references it
+# $defs mein Address ka schema hota hai, User.address usko reference karta hai
 ```
 
 ---
 
-## Complete Serialization Example: API Response Builder
+## Complete Example: API Response Builder
 
-Here is a practical pattern for building API responses with different serialization needs:
+Practical pattern dekho — Zomato jaise app mein product response kaise bana sakte ho, sab features ke saath:
 
 ```python
 from pydantic import BaseModel, Field, computed_field, field_serializer, ConfigDict
@@ -627,7 +651,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-# Base model with camelCase output for JavaScript frontends
+# Base model — JavaScript frontend ke liye camelCase output
 class ApiModel(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -669,7 +693,7 @@ class ProductResponse(ApiModel):
             return None
         return value.isoformat()
 
-# Create a product
+# Product banao
 product = ProductResponse(
     name="Premium Widget",
     description="A high-quality widget",
@@ -679,7 +703,7 @@ product = ProductResponse(
     created_at="2024-01-15T08:00:00Z",
 )
 
-# Full response (camelCase for JS frontend)
+# Full response (camelCase JS frontend ke liye)
 full = product.model_dump(by_alias=True)
 print(full)
 # {
@@ -696,7 +720,7 @@ print(full)
 #     'inStock': True
 # }
 
-# Minimal response (e.g., for a product listing)
+# Minimal response (product listing ke liye)
 minimal = product.model_dump(
     by_alias=True,
     include={"product_id", "name", "price", "display_price", "in_stock"},
@@ -709,51 +733,51 @@ minimal = product.model_dump(
 #     'inStock': True
 # }
 
-# JSON for API response
+# JSON response API ke liye
 json_response = product.model_dump_json(by_alias=True, indent=2)
 print(json_response)
 ```
 
 ---
 
-## Summary: Serialization Cheat Sheet
+## Cheat Sheet: Serialization
 
-| Task | Method | Notes |
+| Kaam | Method | Notes |
 |---|---|---|
-| To dict | `model.model_dump()` | Returns Python dict |
-| To JSON string | `model.model_dump_json()` | Handles datetime, UUID, etc. |
-| Include fields | `model_dump(include={"a", "b"})` | Like `_.pick()` |
-| Exclude fields | `model_dump(exclude={"a", "b"})` | Like `_.omit()` |
-| Omit None values | `model_dump(exclude_none=True)` | Like `_.omitBy(isNil)` |
-| Omit unset fields | `model_dump(exclude_unset=True)` | For PATCH updates |
-| Use aliases | `model_dump(by_alias=True)` | camelCase output |
-| Custom field output | `@field_serializer` | Full control per field |
-| Derived fields | `@computed_field` + `@property` | Auto-included in output |
-| JSON Schema | `Model.model_json_schema()` | For OpenAPI/Swagger |
-| From dict | `Model.model_validate(data)` | Like `schema.parse()` in Zod |
-| From JSON string | `Model.model_validate_json(s)` | Parses + validates |
+| Dict mein convert | `model.model_dump()` | Python dict return hota hai |
+| JSON string | `model.model_dump_json()` | datetime, UUID etc. handle karta hai |
+| Specific fields | `model_dump(include={"a", "b"})` | lodash `_.pick()` jaisa |
+| Fields exclude | `model_dump(exclude={"a", "b"})` | lodash `_.omit()` jaisa |
+| None values skip | `model_dump(exclude_none=True)` | PATCH ke liye perfect |
+| Unset fields skip | `model_dump(exclude_unset=True)` | PATCH updates ke liye |
+| Aliases use kar | `model_dump(by_alias=True)` | camelCase output |
+| Custom output | `@field_serializer` | Per-field control |
+| Derived fields | `@computed_field` + `@property` | Auto-include output mein |
+| JSON Schema | `Model.model_json_schema()` | OpenAPI/Swagger ke liye |
+| Dict se create | `Model.model_validate(data)` | Zod jaise `schema.parse()` |
+| JSON string se | `Model.model_validate_json(s)` | Parse + validate |
 
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: API Response Formatter
-Create a `UserResponse` model with `id`, `username`, `email`, `password_hash`, `created_at`, `last_login`. Write a method `to_public()` that returns a dict excluding `password_hash` and `last_login`. Write a method `to_admin()` that returns everything except `password_hash`.
+`UserResponse` model banao `id`, `username`, `email`, `password_hash`, `created_at`, `last_login` ke saath. Ek `to_public()` method likho jo `password_hash` aur `last_login` exclude karke dict return kare. Ek `to_admin()` method likho jo sirf `password_hash` exclude kare.
 
 ### Exercise 2: CamelCase API
-Create a base `CamelModel` with the `to_camel` alias generator. Build `OrderResponse` and `OrderItemResponse` models on top of it. Verify that `model_dump(by_alias=True)` produces camelCase output and that `model_validate()` accepts camelCase input.
+Base `CamelModel` banao `to_camel` alias generator ke saath. Uske upar `OrderResponse` aur `OrderItemResponse` models banao. Verify karo ki `model_dump(by_alias=True)` camelCase deta hai aur `model_validate()` camelCase input accept karta hai.
 
 ### Exercise 3: Custom Money Serializer
-Create a `Money` model with `amount` (Decimal) and `currency` (str). Add a `@field_serializer` that formats the amount to 2 decimal places. Create an `Invoice` model with multiple `Money` fields (subtotal, tax, total). Verify JSON output formats all amounts correctly.
+`Money` model banao `amount` (Decimal) aur `currency` (str) ke saath. `@field_serializer` add kar jo amount ko 2 decimal places mein format kare. `Invoice` model banao multiple `Money` fields ke saath (subtotal, tax, total). Verify karo JSON output sab amounts ko correctly format kare.
 
 ### Exercise 4: Computed Fields
-Create an `Employee` model with `first_name`, `last_name`, `hourly_rate`, `hours_worked`. Add computed fields for `full_name`, `gross_pay`, `tax` (assume 20%), and `net_pay`. Verify all computed fields appear in `model_dump()` output.
+`Employee` model banao `first_name`, `last_name`, `hourly_rate`, `hours_worked` ke saath. Computed fields add kar `full_name`, `gross_pay`, `tax` (20% assume), `net_pay` ke liye. Verify karo sab computed fields `model_dump()` output mein ayen.
 
 ### Exercise 5: Context-Aware Serialization
-Create a `Document` model with `title`, `content`, `author`, `internal_notes`. Add a `@field_serializer` on `internal_notes` that returns `"[REDACTED]"` unless a context flag `show_internal=True` is passed. Test with `model_dump(context={"show_internal": True})` and without.
+`Document` model banao `title`, `content`, `author`, `internal_notes` ke saath. `@field_serializer` add kar `internal_notes` par jo `"[REDACTED]"` return kare jaab tak context flag `show_internal=True` na ho. Test kar `model_dump(context={"show_internal": True})` ke saath aur bina.
 
 ### Exercise 6: JSON Schema
-Create a complex model with nested types, optional fields, constrained fields, and enums. Generate its JSON Schema with `model_json_schema()`. Copy the schema and verify it matches what you would expect from an OpenAPI specification. Try loading the schema in a JSON Schema validator tool.
+Complex model banao nested types, optional fields, constrained fields, enums ke saath. `model_json_schema()` se schema generate kar. Schema copy karke verify kar ki OpenAPI specification se match karta hai. Schema ko JSON Schema validator tool mein load karke check kar.
 
 ### Exercise 7: Full Round-Trip
-Create a `BlogPost` model with aliases (snake_case Python, camelCase JSON), computed fields (word_count, reading_time), and custom serializers (format dates as "March 15, 2024"). Demonstrate the full round trip: create from camelCase JSON input, access with snake_case in Python, serialize back to camelCase JSON with computed fields included. Verify `model_validate_json(model_dump_json(by_alias=True))` works (round-trip identity).
+`BlogPost` model banao aliases ke saath (Python mein snake_case, JSON mein camelCase), computed fields (word_count, reading_time), custom serializers (dates ko "March 15, 2024" format mein). Demo kar: camelCase JSON input se create, Python mein snake_case se access, camelCase JSON mein computed fields ke saath serialize. Verify karo `model_validate_json(model_dump_json(by_alias=True))` round-trip identity check kare.

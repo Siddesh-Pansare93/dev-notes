@@ -1,41 +1,56 @@
 # Python Learning Tutorial: Node.js/TS Developer → Python Backend & AI Agents
 
-A comprehensive, structured learning path for experienced Node.js/TypeScript developers transitioning to Python for **backend development** (FastAPI). For **AI agents** (LangChain, LangGraph), the dedicated **Agentic AI course** now lives at [`../agentic-ai/`](../agentic-ai/README.md) — see the callout section below.
+Ek comprehensive, structured learning path jo experienced Node.js/TypeScript developers ke liye banaya gaya hai jab woh **backend development** (FastAPI) ke liye Python seekhna chahte ho. **AI agents** (LangChain, LangGraph) ke liye, dedicated **Agentic AI course** ab [`../agentic-ai/`](../agentic-ai/README.md) mein rakhdi gayi hai — neeche ka callout section dekh lo.
 
-## How to Use This Tutorial
+## Is Tutorial Ko Kaise Use Kare
 
-- **Start from `00_quick_start/`** if you're brand new to Python
-- **Skip to `05_pydantic/`** if you already know Python basics and want to jump into the web/AI stack
-- Each file has **Node.js/TypeScript comparisons** so you can map familiar concepts
-- Every file ends with **practice exercises** — do them!
-- **Going into AI agents?** Finish `05_pydantic/` and `06_fastapi/` here, then head over to [`../agentic-ai/`](../agentic-ai/README.md) for LangChain + LangGraph
+- **`00_quick_start/`** se shuru karo agar Python bilkul naya hai**
+- **`05_pydantic/` pe jump karo** agar Python basics pehle se pata ho aur seedha web/AI stack seekhna ho
+- Har file mein **Node.js/TypeScript comparisons** hain taaki familiar concepts ko map kar sako
+- Har file ke aakhir mein **practice exercises** hain — unhe definitely solve karna!
+- **AI agents seekhna hai?** Pehle `05_pydantic/` aur `06_fastapi/` complete karo, fir [`../agentic-ai/`](../agentic-ai/README.md) par chala jao LangChain + LangGraph ke liye
+
+---
+
+## 🤖 AI Agents Course — LangChain + LangGraph Dedicated Course Mein!
+
+> [!tip]
+> Pehle is repo mein `07_langchain/`, `08_langgraph/`, aur `10_agentic_ai/` folders hote the, lekin woh content purana pad gaya tha. Humne poora AI agents ka syllabus **from scratch rewrite** karke ek naya, standalone, production-grade course bana diya hai:
+>
+> ### 👉 [`../agentic-ai/`](../agentic-ai/README.md) — The Agentic AI Course
+>
+> - **Do tracks hain** — **Python** aur **JavaScript** — dono mein **24 chapters** hain
+> - **0 se production tak** — basics se leke real-world, production-grade agent systems tak sab cover hota hai
+> - Fully comprehensive — LangChain, LangGraph, RAG, multi-agent systems, tool calling, memory, streaming, deployment — sab kuch!
+>
+> **Agar tumhe LangChain ya LangGraph seekhna hai, is python/ folder ke bajaye seedha `agentic-ai/README.md` se shuru karo.**
 
 ---
 
 ## Table of Contents
 
-### [`00_quick_start/`](./00_quick_start/) — Getting Started
+### [`00_quick_start/`](./00_quick_start/) — Shuru Karo Yahan Se
 | # | File | Topics |
 |---|------|--------|
-| 1 | [Python Installation](./00_quick_start/01_python_installation.md) | Python install, pyenv, version management (nvm equivalent) |
-| 2 | [Virtual Environments](./00_quick_start/02_virtual_environments.md) | venv, pip, requirements.txt (npm/node_modules equivalent) |
+| 1 | [Python Installation](./00_quick_start/01_python_installation.md) | Python install, pyenv, version management (nvm ke jaisa) |
+| 2 | [Virtual Environments](./00_quick_start/02_virtual_environments.md) | venv, pip, requirements.txt (npm/node_modules ke jaisa) |
 | 3 | [Package Management](./00_quick_start/03_package_management.md) | pip, poetry, pyproject.toml vs package.json |
 | 4 | [Node.js to Python Cheatsheet](./00_quick_start/04_nodejs_to_python_cheatsheet.md) | Side-by-side syntax comparison: JS vs Python |
-| 5 | [First Python Script](./00_quick_start/05_first_python_script.md) | Hello world, running scripts, REPL, `__name__` |
+| 5 | [First Python Script](./00_quick_start/05_first_python_script.md) | Hello world, scripts run karo, REPL, `__name__` |
 
 ### [`01_basic_fundamentals/`](./01_basic_fundamentals/) — Python Fundamentals
 | # | File | Topics |
 |---|------|--------|
 | 1 | [Variables & Data Types](./01_basic_fundamentals/01_variables_and_data_types.md) | Variables, int/float/str/bool, dynamic typing, None vs null |
-| 2 | [Strings](./01_basic_fundamentals/02_strings.md) | f-strings, methods, slicing, multiline |
-| 3 | [Lists & Tuples](./01_basic_fundamentals/03_lists_and_tuples.md) | Lists (arrays), tuples, slicing, unpacking, comprehensions |
-| 4 | [Dictionaries & Sets](./01_basic_fundamentals/04_dictionaries_and_sets.md) | Dicts (objects), sets, comprehensions, defaultdict |
+| 2 | [Strings](./01_basic_fundamentals/02_strings.md) | f-strings, methods, slicing, multiline strings |
+| 3 | [Lists & Tuples](./01_basic_fundamentals/03_lists_and_tuples.md) | Lists (arrays jaisa), tuples, slicing, unpacking, comprehensions |
+| 4 | [Dictionaries & Sets](./01_basic_fundamentals/04_dictionaries_and_sets.md) | Dicts (objects jaisa), sets, comprehensions, defaultdict |
 | 5 | [Control Flow](./01_basic_fundamentals/05_control_flow.md) | if/elif/else, for/while, range(), match-case |
 | 6 | [Functions](./01_basic_fundamentals/06_functions.md) | def, *args/**kwargs, lambda, type hints, closures |
 | 7 | [Modules & Imports](./01_basic_fundamentals/07_modules_and_imports.md) | import system, `__init__.py`, packages |
 | 8 | [Error Handling](./01_basic_fundamentals/08_error_handling.md) | try/except/finally, custom exceptions |
 | 9 | [File Operations](./01_basic_fundamentals/09_file_operations.md) | open(), with statement, pathlib |
-| 10 | [Comprehensions](./01_basic_fundamentals/10_comprehensions.md) | List/dict/set comprehensions (no JS equivalent!) |
+| 10 | [Comprehensions](./01_basic_fundamentals/10_comprehensions.md) | List/dict/set comprehensions (JS mein equivalent nahi hai!) |
 
 ### [`02_oops/`](./02_oops/) — Object-Oriented Programming
 | # | File | Topics |
@@ -66,14 +81,14 @@ A comprehensive, structured learning path for experienced Node.js/TypeScript dev
 |---|------|--------|
 | 1 | [pytest Basics](./04_testing_and_tooling/01_pytest_basics.md) | pytest vs Jest, assertions, parametrize |
 | 2 | [Fixtures & Mocking](./04_testing_and_tooling/02_fixtures_and_mocking.md) | @pytest.fixture, conftest.py, unittest.mock |
-| 3 | [Async Testing](./04_testing_and_tooling/03_async_testing.md) | pytest-asyncio, testing async functions |
-| 4 | [Code Quality](./04_testing_and_tooling/04_code_quality.md) | Black (Prettier), Ruff (ESLint), mypy |
+| 3 | [Async Testing](./04_testing_and_tooling/03_async_testing.md) | pytest-asyncio, async functions test karo |
+| 4 | [Code Quality](./04_testing_and_tooling/04_code_quality.md) | Black (Prettier jaisa), Ruff (ESLint jaisa), mypy |
 | 5 | [Project Structure](./04_testing_and_tooling/05_project_structure.md) | Layout conventions, pyproject.toml, src/ pattern |
 
 ### [`05_pydantic/`](./05_pydantic/) — Pydantic Data Validation
 | # | File | Topics |
 |---|------|--------|
-| 1 | [Introduction](./05_pydantic/01_introduction.md) | What is Pydantic, runtime validation vs TypeScript/Zod |
+| 1 | [Introduction](./05_pydantic/01_introduction.md) | Pydantic kya hai, runtime validation vs TypeScript/Zod |
 | 2 | [Basic Models](./05_pydantic/02_basic_models.md) | BaseModel, field types, model_dump(), model_validate() |
 | 3 | [Field Validation](./05_pydantic/03_field_validation.md) | @field_validator, @model_validator, constraints |
 | 4 | [Advanced Types](./05_pydantic/04_advanced_types.md) | EmailStr, HttpUrl, discriminated unions, generics |
@@ -97,23 +112,10 @@ A comprehensive, structured learning path for experienced Node.js/TypeScript dev
 | 11 | [Error Handling](./06_fastapi/11_error_handling.md) | HTTPException, custom handlers |
 | 12 | [Advanced Patterns](./06_fastapi/12_advanced_patterns.md) | APIRouter, sub-apps, lifespan, streaming |
 
-### 🤖 AI Agents — LangChain + LangGraph ab dedicated course mein hai!
-
-> [!tip]
-> Pehle yahan `07_langchain/` aur `08_langgraph/` folders hote the, lekin woh content ab purana ho chuka tha. Humne poora AI agents wala syllabus **from scratch rewrite** karke ek naya, standalone course bana diya hai:
->
-> ### 👉 [`../agentic-ai/`](../agentic-ai/README.md) — The Agentic AI Course
->
-> - Do tracks hain — **Python** aur **JavaScript** — dono mein **24 chapters** hain
-> - **0 se production tak** — basics se leke real-world, production-grade agent systems tak sab cover hota hai
-> - Fully complete hai — LangChain, LangGraph, RAG, multi-agent systems, tool calling, memory, streaming, deployment — sab kuch
->
-> Agar tumhe LangChain ya LangGraph seekhna hai, is `python/` folder ke bajaye seedha `agentic-ai/README.md` se shuru karo.
-
 ### [`09_production_patterns/`](./09_production_patterns/) — Production Deployment
 | # | File | Topics |
 |---|------|--------|
-| 1 | [Project Architecture](./09_production_patterns/01_project_architecture.md) | Structuring FastAPI + LangGraph projects |
+| 1 | [Project Architecture](./09_production_patterns/01_project_architecture.md) | FastAPI + LangGraph projects structure |
 | 2 | [Error & Logging](./09_production_patterns/02_error_and_logging.md) | structlog, Sentry, centralized errors |
 | 3 | [Caching](./09_production_patterns/03_caching.md) | Redis, LLM response caching, cost optimization |
 | 4 | [Deployment](./09_production_patterns/04_deployment.md) | Docker, uvicorn/gunicorn, CI/CD, Kubernetes |
@@ -123,21 +125,23 @@ A comprehensive, structured learning path for experienced Node.js/TypeScript dev
 
 ## Learning Path Recommendations
 
-### Speed Run (1-2 weeks)
+### Speed Run (1-2 Hafta)
 `00_quick_start` → `01_basic_fundamentals` → `05_pydantic` → `06_fastapi`
 
-### Full Foundation (3-4 weeks)
+### Full Foundation (3-4 Hafta)
 `00` → `01` → `02` → `03` → `04` → `05` → `06`
 
-### AI Agent Focus (after basics)
-`05_pydantic` → `06_fastapi` → [`../agentic-ai/`](../agentic-ai/README.md) (Python or JavaScript track) → `09_production_patterns`
+### AI Agent Focus (Basics Complete Hone Ke Baad)
+`05_pydantic` → `06_fastapi` → [`../agentic-ai/`](../agentic-ai/README.md) (Python ya JavaScript track choose karo) → `09_production_patterns`
 
-### Complete Path (6-8 weeks)
-Follow all sections in order: `00` through `09`
+### Complete Path (6-8 Hafta)
+Sab sections ko order mein follow karo: `00` se `09` tak
 
 ---
 
-## Key Concept Mappings (Node.js → Python)
+## Node.js → Python Concept Mapping
+
+Agar tu Node.js/TypeScript se aaya ho, toh yeh mapping helpful rahegi:
 
 | Node.js/TypeScript | Python |
 |---|---|
@@ -158,4 +162,4 @@ Follow all sections in order: `00` through `09`
 
 ---
 
-Happy learning! 🐍
+Happy learning! 🐍 Python mein bada fun aaega!

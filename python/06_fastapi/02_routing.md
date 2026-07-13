@@ -2,7 +2,9 @@
 
 ## Route Decorators
 
-In Express, you call methods on the app object. In FastAPI, you use decorators. The concept is identical, the syntax is just Python-flavored.
+Socho ek second — Express mein tumne `app.get()`, `app.post()` jaisa likha hai na? FastAPI bhi exactly same kaam karta hai, bas Python style mein — decorators use hote hain.
+
+Concept completely same hai. Sirf syntax different hai, jaise Hinglish vs English.
 
 ### Express.js
 
@@ -33,55 +35,69 @@ def delete_user(user_id: int): ...
 def patch_user(user_id: int): ...
 ```
 
-### All HTTP Methods
+Decorator ke upar likha `@app.get()` — ye bata raha hai ki ye function HTTP GET request ko handle karega. Python ke decorators ka ye fayda hai ki code padh lo toh samajh aa jayega.
+
+### Sab HTTP Methods Ek Saath
 
 ```python
 from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.get("/resource")       # GET
-@app.post("/resource")      # POST
-@app.put("/resource/{id}")  # PUT
-@app.delete("/resource/{id}")  # DELETE
-@app.patch("/resource/{id}")   # PATCH
-@app.options("/resource")   # OPTIONS
-@app.head("/resource")      # HEAD
+@app.get("/resource")       # GET request
+@app.post("/resource")      # POST request - naya data bhejna
+@app.put("/resource/{id}")  # PUT request - pura object replace karna
+@app.delete("/resource/{id}")  # DELETE request
+@app.patch("/resource/{id}")   # PATCH request - sirf kuch fields update karna
+@app.options("/resource")   # OPTIONS - kya kya kiya ja sakta hai yeh dekha
+@app.head("/resource")      # HEAD - GET jaise but sirf headers, body nahi
 ```
 
 ---
 
 ## Path Parameters
 
-### Express.js: Colon Syntax
+### Express.js: Colon Wali Syntax
+
+Express mein `:` use hota hai path parameters ke liye.
 
 ```javascript
 // Express uses :param syntax
 app.get('/users/:userId/posts/:postId', (req, res) => {
   const { userId, postId } = req.params;
-  // userId and postId are always strings!
+  // Haan, userId aur postId ALWAYS string hote hain!
+  // Toh parseInt() se convert karna padta hai
   const numericId = parseInt(userId);
   res.json({ userId: numericId, postId });
 });
 ```
 
-### FastAPI: Curly Brace Syntax with Type Safety
+Problem ye hai — `userId` hamesha string ata hai. Agar bhool gaye parseInt karna toh bugs ayenge.
+
+### FastAPI: Curly Braces + Type Safety
+
+FastAPI mein `{}` use hote hain aur type annotation se FastAPI khud type checking kar leta hai!
 
 ```python
 # FastAPI uses {param} syntax with type annotations
 @app.get("/users/{user_id}/posts/{post_id}")
 def get_user_post(user_id: int, post_id: int):
-    # user_id and post_id are already integers!
-    # FastAPI validated and converted them automatically
+    # Dekho na! user_id aur post_id ALREADY integers hain!
+    # FastAPI ne khud parse kar diya automatically
     return {"user_id": user_id, "post_id": post_id}
 ```
 
-**Key difference**: In Express, `req.params.userId` is always a string. You have to manually parse it. In FastAPI, the type annotation `user_id: int` means FastAPI will:
-1. Parse the string to an integer
-2. Return a 422 error if it can't be converted
-3. Include the parameter in the OpenAPI docs with the correct type
+**Bada farak**: Express mein manually convert karna padta tha. FastAPI mein type annotation likha aur khatam:
+
+1. String ko integer mein parse kar deta hai
+2. Agar conversion fail ho toh automatically 422 error bhej deta hai
+3. Swagger documentation mein bhi sahi type show karta hai
+
+Yeh type safety na... bohot mazedaar hai! 💪
 
 ### Path Parameter Validation
+
+Agar validation add karni hai toh `Path()` use karo:
 
 ```python
 from fastapi import Path
@@ -99,9 +115,14 @@ def get_item(
     return {"item_id": item_id}
 ```
 
-In Express, you'd need middleware or a validation library for this. In FastAPI, it's built into the parameter declaration.
+Express mein toh middleware aur validation library lena padta tha. FastAPI mein parameter likha aur validation built-in!
+
+> [!tip]
+> `gt=0` means "greater than 0", `le=10000` means "less than or equal to 10000". Sab constraints ek jagah!
 
 ### Enum Path Parameters
+
+Socho Zomato par restaurant filter karte ho — specific restaurants hi select ho sakte ho. Enum kuch aisa hi kaam karta hai.
 
 ```python
 from enum import Enum
@@ -113,61 +134,67 @@ class ModelName(str, Enum):
 
 @app.get("/models/{model_name}")
 def get_model(model_name: ModelName):
-    # model_name is validated against the enum automatically
-    # Swagger UI shows a dropdown with the valid options!
+    # model_name automatically enum check ho jayega
+    # Swagger UI mein dropdown dikhega sab options ka!
     return {"model": model_name, "message": f"Selected {model_name.value}"}
 ```
 
+Jaise IRCTC par class select karte ho — AC, Sleeper, General — enum wahi kaam karta hai. Invalid value bhej do toh error aajata hai.
+
 ### Path Parameters with File Paths
 
+File path mein slashes hote hain. Toh special syntax chahiye:
+
 ```python
-# Use :path converter for parameters containing slashes
+# :path converter se slashes bhi accept ho jaate hain
 @app.get("/files/{file_path:path}")
 def read_file(file_path: str):
-    # file_path can be "documents/2024/report.pdf"
+    # file_path ho sakta hai "documents/2024/report.pdf"
     return {"file_path": file_path}
 ```
 
-This is similar to Express's `app.get('/files/*')` wildcard but more explicit.
+Express mein wildcard `*` use hota tha. FastAPI mein `:path` likha toh samajh aa jayega kya chal raha hai.
 
 ---
 
 ## Query Parameters
 
-This is where FastAPI really shines compared to Express.
+Yaha FastAPI ka dum nikalta hai Express se compare mein!
 
-### Express.js
+### Express.js — Manual Kaam
 
 ```javascript
 // GET /search?q=python&page=1&limit=10
 app.get('/search', (req, res) => {
-  const q = req.query.q;          // string | undefined -- no validation
-  const page = parseInt(req.query.page) || 1;  // manual parsing
-  const limit = parseInt(req.query.limit) || 10; // manual parsing
-  // No type safety, no validation, no documentation
+  const q = req.query.q;          // string | undefined -- validation nahi!
+  const page = parseInt(req.query.page) || 1;  // manual parseInt
+  const limit = parseInt(req.query.limit) || 10; // phir se parseInt
+  // Type safety nahi, validation nahi, documentation nahi... kuch nahi!
   res.json({ q, page, limit });
 });
 ```
 
-### FastAPI
+Express mein sabkuch manually handle karna padta hai. Bhool gaye to bug fix karna padta hai later.
+
+### FastAPI — Automatic Kaam
 
 ```python
 # GET /search?q=python&page=1&limit=10
 @app.get("/search")
 def search(q: str, page: int = 1, limit: int = 10):
-    # q is required (no default) -- FastAPI returns 422 if missing
-    # page defaults to 1, limit defaults to 10
-    # All automatically parsed, validated, and documented
+    # q required hai — agar bheja nahi to FastAPI automatically 422 error deta hai
+    # page ka default 1 hai, limit ka default 10 hai
+    # Sab automatically parse, validate, aur document ho jayega!
     return {"q": q, "page": page, "limit": limit}
 ```
 
-**The rule is simple**: Any function parameter that is NOT a path parameter is automatically treated as a query parameter.
+**Simple rule**: Function mein jo parameter likha hai aur path mein nahi hai toh vo query parameter ban jayega. Sirf itna.
 
 ### Optional Query Parameters
 
 ```python
 from typing import Optional
-# Or in Python 3.10+: use `str | None`
+# Ya Python 3.10+ mein: str | None use karo
 
 @app.get("/items")
 def list_items(
@@ -175,9 +202,11 @@ def list_items(
     limit: int = 10,
     search: str | None = None,  # Optional query param
 ):
-    # search will be None if not provided
+    # Agar search nahi bheja to None milega
     return {"skip": skip, "limit": limit, "search": search}
 ```
+
+Jaise Flipkart par filters — koi bhi filter optional ho sakta hai.
 
 ### Query Parameter Validation
 
@@ -195,12 +224,21 @@ def list_items(
         description="Search items by name",
     ),
     skip: int = Query(default=0, ge=0),        # >= 0
-    limit: int = Query(default=10, ge=1, le=100),  # 1-100
+    limit: int = Query(default=10, ge=1, le=100),  # 1 se 100 tak
 ):
     return {"q": q, "skip": skip, "limit": limit}
 ```
 
+`Query()` se validation define kar do:
+- `min_length=3` — minimum 3 characters
+- `max_length=50` — maximum 50 characters
+- `pattern` — regex validation
+- `ge=0` — greater than or equal to 0
+- `le=100` — less than or equal to 100
+
 ### List Query Parameters
+
+Agar multiple values bhejne ho? Jaise Swiggy mein cuisines filter karte ho — multiple cuisines select kar sakte ho.
 
 ```python
 # GET /items?tags=python&tags=fastapi&tags=api
@@ -210,57 +248,62 @@ def filter_items(tags: list[str] = Query(default=[])):
     # tags = ["python", "fastapi", "api"]
 ```
 
-In Express, you'd get `req.query.tags` which might be a string or an array depending on how many values were sent, leading to bugs.
+Express mein ye thoda complicated hota tha — sometimes string, sometimes array. FastAPI mein bas `list[str]` likha aur khatam! 🎯
 
 ---
 
 ## Request Body
 
-### Express.js
+### Express.js — Poora Setup
 
 ```javascript
-// Need middleware first
+// Pehle middleware setup karna padta tha
 app.use(express.json());
 
 app.post('/users', (req, res) => {
   const { name, email, age } = req.body;
-  // No validation! req.body could be anything
-  // You'd need zod/joi/class-validator
+  // Koi bhi validation nahi! req.body kuch bhi ho sakta hai
+  // Validation karne ke liye zod/joi library use karna padta tha
 
   const result = UserSchema.safeParse(req.body);
   if (!result.success) {
     return res.status(422).json({ errors: result.error });
   }
-  // ...
+  // Phir check, phir return, phir error handling...
 });
 ```
 
+Express mein body validation ek chhota saa episode hota hai.
+
 ### FastAPI with Pydantic
+
+Pydantic model likha aur bas! Pydantic TypeScript ke interface + Zod schema + class-validator — sabkuch ek hi jagah.
 
 ```python
 from pydantic import BaseModel, EmailStr, Field
 
-# This is like a TypeScript interface + zod schema + class-validator DTO all in one
+# Ye ek complete contract hai request body ke liye
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    email: EmailStr                    # Validates email format automatically
-    age: int = Field(ge=0, le=150)     # 0-150
+    email: EmailStr                    # Email format validate hoga automatically
+    age: int = Field(ge=0, le=150)     # 0 se 150 tak
     bio: str | None = None             # Optional field
     tags: list[str] = []               # Default empty list
 
 @app.post("/users")
 def create_user(user: UserCreate):
-    # 'user' is already validated!
-    # If validation fails, FastAPI returns a detailed 422 error automatically
-    # No try/catch, no manual validation code
-    print(user.name)    # Autocompletion works!
+    # user already validated hai! Koi try/catch nahi, koi manual validation nahi
+    # Agar koi field invalid ho to FastAPI automatically 422 error bhej deta hai
+    print(user.name)    # Autocompletion bhi kaam karega!
     print(user.email)
     return {"message": f"Created user {user.name}", "user": user}
 ```
 
-### What Happens on Invalid Input?
+**Fayda**: Request ko Pydantic model se define kar do aur validation khud hoti hai. Type safety + validation + autocompletion — sabkuch ek jagah!
 
-If someone sends `{"name": "", "email": "not-an-email", "age": -5}`, FastAPI automatically returns:
+### Invalid Input pe Kya Hota Hai?
+
+Agar koi `{"name": "", "email": "not-an-email", "age": -5}` bhejna chahega toh:
 
 ```json
 {
@@ -286,9 +329,11 @@ If someone sends `{"name": "", "email": "not-an-email", "age": -5}`, FastAPI aut
 }
 ```
 
-No code needed for this. It just works.
+FastAPI ne khud error generate kar diya! Code likha aur khud error messages ban gaye. No code needed.
 
 ### Nested Models
+
+Jaise order mein items ho, har item ka specifications ho — nested models aise hi kaam karte hain.
 
 ```python
 from pydantic import BaseModel
@@ -307,19 +352,23 @@ class UserCreate(BaseModel):
 
 @app.post("/users")
 def create_user(user: UserCreate):
-    # Both user and nested address are fully validated
+    # user aur uska nested address dono fully validated hain
     print(user.address.city)
     return user
 ```
 
-### Combining Path, Query, and Body Parameters
+Jaise Swiggy ka order — main order mein items, har item mein quantity aur customization. Nested models yahi allow karte hain.
+
+### Combining Path, Query, aur Body Parameters
+
+FastAPI samajh jayega ki konsa parameter kaha se ata hai:
 
 ```python
 @app.put("/users/{user_id}")
 def update_user(
-    user_id: int,                    # Path parameter (in the URL path)
-    notify: bool = False,            # Query parameter (not in path, has default)
-    user: UserCreate = ...,          # Body parameter (Pydantic model = body)
+    user_id: int,                    # Path parameter (URL mein hai)
+    notify: bool = False,            # Query parameter (URL ke end mein)
+    user: UserCreate = ...,          # Body parameter (request body mein)
 ):
     return {
         "user_id": user_id,
@@ -328,43 +377,46 @@ def update_user(
     }
 ```
 
-FastAPI figures out which is which:
-- `user_id` matches `{user_id}` in the path, so it's a **path parameter**
-- `notify` is a simple type with a default, and doesn't match any path parameter, so it's a **query parameter**
-- `user` is a Pydantic model, so it's the **request body**
+FastAPI ka logic:
+- `user_id` ko `{user_id}` path mein match karke samajh jayega — **path parameter**
+- `notify` simple type hai aur path mein nahi — **query parameter**
+- `user` Pydantic model hai — **request body**
+
+Yeh automatic detection FastAPI ka magic hai! 🪄
 
 ---
 
 ## Response Models
 
-### Controlling What Gets Returned
+### Kya Return Karna Hai Aur Kya Nahi
+
+Socho — request mein password le raha ho, response mein password reveal nahi karna chahte. Response model se ye kar sakte ho:
 
 ```python
 class UserCreate(BaseModel):
     name: str
     email: str
-    password: str     # We accept this in the request...
+    password: str     # Request mein le rahe ho...
 
 class UserResponse(BaseModel):
     id: int
     name: str
     email: str
-    # No password field! It won't be in the response.
+    # Password field hi nahi! Response mein nahi aayega.
 
 @app.post("/users", response_model=UserResponse, status_code=201)
 def create_user(user: UserCreate):
-    # Even if we return an object with a password field,
-    # FastAPI will filter it out based on response_model
+    # Handler ko jo bhi return karna hai, response_model se filter hoga
     new_user = {
         "id": 1,
         "name": user.name,
         "email": user.email,
-        "password": user.password,  # This gets stripped from the response!
+        "password": user.password,  # Ye response mein nahi aayega!
     }
     return new_user
 ```
 
-This is like having a serialization layer that automatically removes sensitive fields. In Express, you'd need to manually pick which fields to include in `res.json()`.
+Express mein toh manually fields pick karne padta tha `res.json({name, email})`. FastAPI mein `response_model` likha aur filter automatic!
 
 ### Response Model Options
 
@@ -372,15 +424,19 @@ This is like having a serialization layer that automatically removes sensitive f
 @app.get(
     "/users/{user_id}",
     response_model=UserResponse,
-    response_model_exclude_unset=True,   # Don't include fields with default values that weren't set
-    response_model_exclude_none=True,    # Don't include None values
-    response_model_exclude={"internal_notes"},  # Exclude specific fields
+    response_model_exclude_unset=True,   # Default values exclude kar do agar set nahi hue
+    response_model_exclude_none=True,    # None values exclude kar do
+    response_model_exclude={"internal_notes"},  # Specific fields exclude kar do
 )
 def get_user(user_id: int):
     ...
 ```
 
+Flexible response filtering!
+
 ### Multiple Response Types
+
+Jaise API 404 return kar sakta hai, 403 return kar sakta hai. Ye sab document kar do:
 
 ```python
 from fastapi import FastAPI, HTTPException
@@ -401,102 +457,118 @@ def get_item(item_id: int):
     return item
 ```
 
+Swagger UI mein ye sab responses dikhenge. API user ko pata chal jayega kya-kya ho sakta hai!
+
 ---
 
 ## Status Codes
 
-### Express.js
+### Express.js — Yaad Rakhna Padta Tha
 
 ```javascript
 app.post('/users', (req, res) => {
-  // Must remember to set status
+  // Status likha nahi to bhool gaye
   res.status(201).json(newUser);
 });
 
 app.delete('/users/:id', (req, res) => {
-  // Easy to forget
+  // 204 status likhi nahi to bug! (Easy to forget)
   res.status(204).send();
 });
 ```
 
-### FastAPI
+Express mein `res.status()` likha nahi to default 200 jayega. Sometimes galat status jayega.
+
+### FastAPI — Clear aur Explicit
 
 ```python
 from fastapi import status
 
-# Using the status_code parameter in the decorator
+# Decorator mein status likha aur khatam
 @app.post("/users", status_code=201)
 def create_user(user: UserCreate):
     return new_user
 
-# Using the status module for readability
+# Ya named constants use karo — zyada readable
 @app.post("/users", status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate):
     return new_user
 
 @app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int):
-    # For 204, don't return anything
+    # 204 ke liye kuch return nahi karna
     pass
 ```
 
-Common status codes available:
+FastAPI mein status code decorator mein likha ho toh consistent rahega. Bhooling ki chance kam.
+
+Sab common status codes:
 
 ```python
 from fastapi import status
 
-status.HTTP_200_OK
-status.HTTP_201_CREATED
-status.HTTP_204_NO_CONTENT
-status.HTTP_400_BAD_REQUEST
-status.HTTP_401_UNAUTHORIZED
-status.HTTP_403_FORBIDDEN
-status.HTTP_404_NOT_FOUND
-status.HTTP_422_UNPROCESSABLE_ENTITY
-status.HTTP_500_INTERNAL_SERVER_ERROR
+status.HTTP_200_OK                  # Success
+status.HTTP_201_CREATED             # Resource created
+status.HTTP_204_NO_CONTENT          # Success, no content
+status.HTTP_400_BAD_REQUEST         # Client ne galat data bheja
+status.HTTP_401_UNAUTHORIZED        # Login zaroori hai
+status.HTTP_403_FORBIDDEN           # Permission nahi hai
+status.HTTP_404_NOT_FOUND           # Resource nahi mila
+status.HTTP_422_UNPROCESSABLE_ENTITY  # Validation error
+status.HTTP_500_INTERNAL_SERVER_ERROR # Server error
 ```
 
 ---
 
 ## Route Ordering
 
-Just like Express, route order matters in FastAPI. More specific routes should come before catch-all routes.
+Express jaise hi FastAPI mein bhi route order matter karta hai!
+
+### Sahi Order — Specific Pehle, General Baad Mein
 
 ```python
-# This works correctly
-@app.get("/users/me")       # Specific route first
+# Ye sahi hai
+@app.get("/users/me")       # Specific route pehle
 def get_current_user():
     return {"user": "current"}
 
-@app.get("/users/{user_id}")  # Dynamic route second
+@app.get("/users/{user_id}")  # General route baad mein
 def get_user(user_id: str):
     return {"user_id": user_id}
 ```
 
+Jab `/users/me` request aaye toh pehla route match hoga. Sahi!
+
+### Galat Order — Bug Aaega
+
 ```python
-# This is BROKEN -- /users/me would match {user_id} = "me"
-@app.get("/users/{user_id}")  # Dynamic route catches everything!
+# Ye GALAT hai!
+@app.get("/users/{user_id}")  # Ye sab kuch catch kar lega!
 def get_user(user_id: str):
     return {"user_id": user_id}
 
-@app.get("/users/me")       # This will never be reached
+@app.get("/users/me")       # Ye kabhi reach hi nahi hoga
 def get_current_user():
     return {"user": "current"}
 ```
 
-This is the same behavior as Express:
+Jab `/users/me` request aaye toh `{user_id}` = `"me"` ban jayega aur pehla function run hoga. Bug! 🐛
+
+Express mein bhi yahi problem hai:
 
 ```javascript
-// Express also has the same ordering issue
-router.get('/users/:userId', handler1);  // Catches /users/me too!
-router.get('/users/me', handler2);       // Never reached
+// Express mein bhi same issue
+router.get('/users/:userId', handler1);  // Ye /users/me ko bhi catch kar le!
+router.get('/users/me', handler2);       // Ye kabhi reach nahi hoga
 ```
+
+**Golden rule**: Specific routes pehle likho, general routes baad mein. Order matters!
 
 ---
 
 ## Tags and Documentation
 
-FastAPI lets you organize your API docs with tags:
+FastAPI automatically API docs generate karta hai. `tags` aur docstrings se documentation organize hoti hai:
 
 ```python
 @app.get("/users", tags=["users"])
@@ -504,56 +576,61 @@ def list_users():
     """
     List all users.
 
-    This endpoint returns a list of all registered users.
-    Supports pagination via skip and limit parameters.
+    Yeh endpoint sab registered users return karta hai.
+    Pagination ke liye skip aur limit parameters support karte hain.
     """
     return []
 
 @app.post("/users", tags=["users"], summary="Create a new user")
 def create_user(user: UserCreate):
     """
-    Create a user with the following information:
+    User create karo in details ke saath:
 
-    - **name**: the user's display name
-    - **email**: a valid email address (must be unique)
+    - **name**: user ka display name
+    - **email**: valid email address (unique hona chahiye)
     - **password**: at least 8 characters
     """
     return user
 
 @app.get("/items", tags=["items"], deprecated=True)
 def old_list_items():
-    """This endpoint is deprecated. Use /v2/items instead."""
+    """Yeh endpoint deprecated hai. Iski jagah /v2/items use karo."""
     return []
 ```
 
-The docstrings become the endpoint descriptions in Swagger UI. Markdown formatting is supported. The `deprecated=True` flag shows the endpoint as deprecated in the docs.
+Docstring toh bana do aur Swagger UI mein automatically description dikhega! Markdown formatting bhi support karte hain.
+
+Swagger UI par Swagger page visit karo (`/docs`) — sab tags ka section dikhe, descriptions likhe, examples likhe. Mazza! 🚀
 
 ---
 
 ## Practice Exercises
 
 ### Exercise 1: Blog Post API Routes
-Create a FastAPI app with these endpoints:
-- `GET /posts` -- list all posts (query params: `skip`, `limit`, `tag`)
-- `GET /posts/{post_id}` -- get a single post
-- `POST /posts` -- create a post (body: `title`, `content`, `tags`)
-- `PUT /posts/{post_id}` -- update a post
-- `DELETE /posts/{post_id}` -- delete a post
 
-Use Pydantic models for request and response bodies. Store posts in a Python list.
+Blog post API banao in endpoints ke saath:
+- `GET /posts` — sab posts list karo (query params: `skip`, `limit`, `tag`)
+- `GET /posts/{post_id}` — ek post get karo
+- `POST /posts` — naya post create karo (body: `title`, `content`, `tags`)
+- `PUT /posts/{post_id}` — post update karo
+- `DELETE /posts/{post_id}` — post delete karo
+
+Pydantic models use karo request/response ke liye. Posts ko Python list mein store karo.
 
 ### Exercise 2: Query Parameter Filtering
-Create an endpoint `GET /products` that supports:
+
+`GET /products` endpoint banao jo filter support kare:
 - `min_price: float` (optional, >= 0)
 - `max_price: float` (optional, >= 0)
 - `category: str` (optional, one of: "electronics", "clothing", "food")
 - `in_stock: bool` (optional, default True)
 - `sort_by: str` (optional, one of: "price", "name", "created_at")
 
-Use `Query()` with validation for each parameter. Create sample data and implement actual filtering logic.
+`Query()` se validation define karo. Sample data create karo aur filtering logic implement karo.
 
 ### Exercise 3: Nested Request Bodies
-Create an `POST /orders` endpoint that accepts:
+
+`POST /orders` endpoint banao:
 
 ```python
 class OrderItem(BaseModel):
@@ -567,23 +644,25 @@ class ShippingAddress(BaseModel):
     zip_code: str = Field(pattern=r"^\d{5}$")
 
 class OrderCreate(BaseModel):
-    items: list[OrderItem]         # At least one item
+    items: list[OrderItem]         # At least one item hona chahiye
     shipping_address: ShippingAddress
     notes: str | None = None
 ```
 
-Validate that `items` has at least one element using `Field(min_length=1)`.
+Validate karo ki `items` mein at least ek item hona chahiye using `Field(min_length=1)`.
 
 ### Exercise 4: Response Model Filtering
-Create user endpoints where:
+
+User endpoints banao jahan:
 - `POST /users` accepts `UserCreate` (with password)
 - `GET /users/{id}` returns `UserResponse` (without password)
 - `GET /users/{id}/admin` returns `UserAdminResponse` (with created_at, last_login, is_active)
 
-Ensure the password never appears in any response.
+Password kabhi bhi response mein nahi aayega!
 
 ### Exercise 5: Express to FastAPI Translation
-Translate this Express router to FastAPI:
+
+Is Express router ko FastAPI mein translate karo:
 
 ```javascript
 const router = express.Router();
@@ -610,3 +689,16 @@ router.post('/api/v1/books', (req, res) => {
   res.status(201).json(newBook);
 });
 ```
+
+---
+
+## Key Takeaways
+
+- **Decorators**: `@app.get()`, `@app.post()` — Express ke methods ka Python version
+- **Path parameters**: `{user_id: int}` — FastAPI automatically type-check aur validate karta hai
+- **Query parameters**: Function mein likha parameter jo path mein nahi = automatically query param ban jayega
+- **Request body**: Pydantic model define karo — validation automatically ho jayega
+- **Response model**: `response_model` parameter se select karo kya return karna hai, kya nahi
+- **Status codes**: Decorator mein `status_code` likha aur consistent rahega
+- **Route order**: Specific routes pehle, general routes baad mein — order matters!
+- **Documentation**: Docstrings aur tags se automatic Swagger docs ban jayenge

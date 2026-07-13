@@ -1,45 +1,51 @@
-# Type Hints in Python
+# Python mein Type Hints — TypeScript Wale Concept Samajhte Ho
 
-## TypeScript se aaye ho? Toh yeh tumhe already pata hai (mostly)
+## TypeScript se aaye ho? Toh yeh concept tumhe kaafi familiar lagega (par farak hain!)
 
-Agar tumne TypeScript likha hai, toh Python ke type hints tumhe kaafi familiar lagenge. Par ek badi mindset shift hai: **Python ke type hints sirf optional annotations hain jo runtime pe enforce NAHI hote**. Yeh sirf developer tooling, documentation aur static analysis ke liye hain — lekin Python khud inhe completely ignore karta hai jab code chalta hai.
+Agar tumne TypeScript likha hai, toh Python ke type hints tumhe bilkul familiar feel honge. Par ek fundamental mindset shift hai jo samajhna zaruri hai:
+
+**Python ke type hints sirf optional annotations hain jo runtime pe enforce NAHI hote.** Yeh bilkul developer tooling, IDE autocomplete, documentation, aur static analysis tools ke liye hain — lekin Python khud inhe completely ignore karta hai jab code chalta hai.
 
 Isse aise socho:
-- **TypeScript**: Types `tsc` se compile time pe hi gayab ho jaate hain, lekin agar types galat hain toh `tsc` compile hi nahi karega.
-- **Python**: Types sirf functions/variables pe attach ki hui metadata hain. Python tumhara code chalayega hi chalayega, chahe types kuch bhi ho. Types check karne ke liye ek alag tool (`mypy`) use karna padta hai.
+- **TypeScript**: Types `tsc` compile-time pe check hote hain. Agar types galat hain toh tsc compile hi nahi karega. Types code se nikaal diye jaate hain, lekin error checking compile time mein hoti hai.
+- **Python**: Types sirf functions aur variables par metadata attach hai. Python tumhara code chalayega — chahe types kuch bhi ho, galat ho, ya na likha ho. Types check karne ke liye ek alag tool (`mypy`) use karna padta hai.
 
 ```typescript
-// TypeScript - compile time pe enforce hota hai
+// TypeScript — compile time pe pata chal jaata hai agar kuch galat hai
 function greet(name: string): string {
   return `Hello, ${name}`;
 }
 ```
 
 ```python
-# Python - runtime pe ENFORCE nahi hota, sirf informational hai
+# Python — runtime pe koi fark nahi padta! Yeh code bina error chalega
 def greet(name: str) -> str:
     return f"Hello, {name}"
 
-# Yeh bina error ke chalega, chahe hum int pass karein!
-greet(42)  # Python ko runtime pe koi fark nahi padta
+# Chahe kuch bhi pass karo, Python ko OK hai
+greet(42)           # Koi error nahi! Python ko types ignore
+greet([1, 2, 3])    # Yeh bhi chalega (agar string functions na use karo to)
 ```
+
+> [!warning]
+> Zaruuri nahi hai Python code type-safe ho! Types likhna sirf best practice hai taaki mypy check kar sake aur IDE hints de sake.
 
 ---
 
-## Basic Type Annotations
+## Basic Type Annotations — Scratch se Shuru Karo
 
-### Function Annotations
+### Function Parameters aur Return Types
 
 ```python
-# Parameters aur return types
+# Sabse basic example
 def add(x: int, y: int) -> int:
     return x + y
 
-# Koi return value nahi (TS ke void jaisa)
+# Agar function kuch nahi return karta (TS ke void jaisa)
 def log_message(msg: str) -> None:
     print(msg)
 
-# Default values ke saath type hints
+# Default values ke saath bhi type hints add kar sakte ho
 def greet(name: str, excited: bool = False) -> str:
     if excited:
         return f"Hello, {name}!!!"
@@ -47,7 +53,7 @@ def greet(name: str, excited: bool = False) -> str:
 ```
 
 ```typescript
-// TypeScript equivalent
+// TypeScript version (compare karo)
 function add(x: number, y: number): number {
   return x + y;
 }
@@ -62,84 +68,92 @@ function greet(name: string, excited: boolean = false): string {
 }
 ```
 
-### Variable Annotations
+### Variables ke Type Hints
 
 ```python
-# Variable type annotations
+# Variables ko bhi type annotate kar sakte ho
 name: str = "Alice"
 age: int = 30
 is_active: bool = True
 score: float = 98.5
 
-# Bina value assign kiye bhi annotate kar sakte ho (forward declaration)
-username: str  # declare kiya, abhi assign nahi kiya
+# Forward declaration (type declare karo, value baad mein dो)
+username: str  # abhi variable declare ho gaya, assign baad mein
+
+# Assignment se mypy automatically infer kar leta hai (type hint optional)
+country = "India"  # mypy automatically str assume karega
 ```
 
 ```typescript
-// TypeScript equivalent
+// TypeScript version
 let name: string = "Alice";
 let age: number = 30;
 let isActive: boolean = true;
 let score: number = 98.5;
 
-let username: string; // declared but not assigned
+let username: string;
 ```
 
 > [!info]
-> **Key difference**: Python `int` aur `float` ko alag-alag type maanta hai. TypeScript mein dono ke liye sirf ek hi type hai — `number`.
+> **Python aur TypeScript ka ek bada farak**: Python `int` aur `float` ko bilkul alag types maanta hai. TypeScript mein dono ke liye `number` hai. Socho IRCTC se ticket booking karte time — fare integer ho sakta hai ya decimal, dono ke liye alag handling.
 
 ---
 
-## Basic Types
+## Basic Types — Sabse Zyada Use Hone Wale
 
-| Python Type | TypeScript Equivalent | Example |
+| Python Type | TypeScript | Matlab Kya |
 |---|---|---|
-| `int` | `number` | `x: int = 42` |
-| `float` | `number` | `x: float = 3.14` |
-| `str` | `string` | `x: str = "hello"` |
-| `bool` | `boolean` | `x: bool = True` |
-| `None` | `null` / `undefined` | `x: None = None` |
-| `bytes` | `Buffer` / `Uint8Array` | `x: bytes = b"data"` |
-| `any` (typing se) | `any` | `x: Any = something` |
+| `int` | `number` | Poore numbers (42, -5, 1000) |
+| `float` | `number` | Decimal numbers (3.14, 2.71) |
+| `str` | `string` | Text ("hello", "नमस्ते") |
+| `bool` | `boolean` | True ya False |
+| `None` | `null` / `undefined` | Kuch nahi (Python mein sirf None) |
+| `bytes` | `Buffer` | Raw binary data |
+| `Any` | `any` | Kuch bhi (type checking off kar do) |
 
 ```python
 from typing import Any
 
-# Any type checking disable kar deta hai (bilkul TS ke any jaisa)
+# Any ka matlab: "Jo bhi pass karo, mujhe OK hai"
+# TypeScript ke any jaisa — type safety OFF
 def process(data: Any) -> Any:
     return data
+
+process(42)
+process("hello")
+process([1, 2, 3])  # Sab kuch chalega!
 ```
 
 ---
 
-## Collection Types
+## Collection Types — List, Dict, Aur Sab Kuch
 
-### Modern Syntax (Python 3.9+)
+### Modern Style (Python 3.9+)
 
-Python 3.9+ mein tum built-in collection types seedhe annotations mein use kar sakte ho. Yahi preferred style hai.
+Python 3.9 se pehle `typing` module se imports lena padta tha. Ab built-in collection types seedhe use kar sakte ho. **Yahi new style hai — isko prefer karo:**
 
 ```python
-# List (TS ke Array<number> ya number[] jaisa)
+# List — array ki tarah (TS ke number[] jaisa)
 numbers: list[int] = [1, 2, 3]
 
-# Dictionary (TS ke Record<string, number> ya { [key: string]: number } jaisa)
+# Dictionary — key-value pairs (TS ke Record<string, number> jaisa)
 scores: dict[str, int] = {"alice": 95, "bob": 87}
 
-# Tuple - fixed length aur types (TS ke [string, number] jaisa)
+# Tuple — fixed size, types bhi fixed (TS ke [string, number] jaisa)
 point: tuple[float, float] = (1.0, 2.0)
 
-# Tuple - variable length, same type (number[] jaisa but immutable)
+# Tuple — variable size, same type (jaisa ek array but immutable)
 ids: tuple[int, ...] = (1, 2, 3, 4, 5)
 
-# Set (TS ke Set<string> jaisa)
+# Set — duplicate nahi, order nahi (TS ke Set<string> jaisa)
 tags: set[str] = {"python", "typing"}
 
-# Frozenset (immutable set, ReadonlySet<string> jaisa)
+# Frozenset — immutable set (TS ke ReadonlySet<string> jaisa)
 constants: frozenset[str] = frozenset({"PI", "E"})
 ```
 
 ```typescript
-// TypeScript equivalents
+// TypeScript version
 const numbers: number[] = [1, 2, 3];
 const scores: Record<string, number> = { alice: 95, bob: 87 };
 const point: [number, number] = [1.0, 2.0];
@@ -148,32 +162,33 @@ const tags: Set<string> = new Set(["python", "typing"]);
 const constants: ReadonlySet<string> = new Set(["PI", "E"]);
 ```
 
-### Nested Collections
+### Nested Collections — Jab Complex Types Chahie
 
 ```python
-# Dictionaries ki list
+# List of dictionaries (Zomato ke restaurants list jaisa)
 users: list[dict[str, str]] = [
     {"name": "Alice", "email": "alice@example.com"},
     {"name": "Bob", "email": "bob@example.com"},
 ]
 
-# List values wali dictionary
+# Dictionary jo list values rakhta hai (groups ka category with items)
 groups: dict[str, list[int]] = {
     "evens": [2, 4, 6],
     "odds": [1, 3, 5],
 }
 
-# Mixed types ka tuple
+# Mixed-type tuple (ek user record — name, age, roles)
 record: tuple[str, int, list[str]] = ("Alice", 30, ["admin", "user"])
 ```
 
-### Legacy Syntax (Python 3.8 aur usse purana)
+### Legacy Style (Python 3.8 aur Se Pehle)
 
-Python 3.9 se pehle `typing` se import karna padta tha:
+Purane codebases mein yeh style dikhega. Aaj kal naya code likhte hum lowercase built-in types use karte hain:
 
 ```python
 from typing import List, Dict, Tuple, Set, FrozenSet
 
+# Purana style (TS ke zamanay ke jaise)
 numbers: List[int] = [1, 2, 3]
 scores: Dict[str, int] = {"alice": 95}
 point: Tuple[float, float] = (1.0, 2.0)
@@ -181,30 +196,32 @@ tags: Set[str] = {"python"}
 ```
 
 > [!tip]
-> Purane codebases mein yeh style dikhega. Naya code likhte waqt lowercase built-in types hi use karo.
+> Legacy code mein yeh style milega. Naya code likhte waqt lowercase types (`list[int]`) hi use karo — zyada clean aur simple hai.
 
 ---
 
-## Optional and Union Types
+## Optional aur Union Types — Jab Multiple Types Possible Ho
 
-### Optional
+### Optional — "Ya Value Hai, Ya None"
 
-`Optional[X]` ka matlab hai "X ya None". Yeh bilkul `X | None` ke barabar hai.
+`Optional[X]` ka matlab: "Ya toh X type hoga, ya phir None (Python ka null)". Python 3.10+ mein `X | None` likhna zyada readable hai.
 
 ```python
 from typing import Optional
 
-# Yeh dono exactly same hain
-def find_user(id: int) -> Optional[str]:
+# Dono exactly same hain:
+def find_user(user_id: int) -> Optional[str]:
+    # Return user ka naam ya None (agar user na mile)
     ...
 
-def find_user(id: int) -> str | None:   # Python 3.10+ syntax
+# Modern style (Python 3.10+)
+def find_user(user_id: int) -> str | None:
     ...
 ```
 
 ```typescript
-// TypeScript equivalent
-function findUser(id: number): string | null {
+// TypeScript version
+function findUser(userId: number): string | null {
   // ...
 }
 
@@ -215,7 +232,7 @@ function greet(name?: string): string {
 ```
 
 > [!warning]
-> **Important**: Python mein `undefined` nahi hota. Sirf `None` hi hai. Optional parameters mein bhi value na milne pe koi alag "missing" sentinel nahi, seedha `None` hi milta hai.
+> **Important farak**: Python mein `undefined` nahi hota! Sirf `None` hai. JavaScript/TypeScript ke `undefined` ke barabar, Python mein `None` use hota hai. Optional parameters jo value nahi paate, unhe `None` milta hai (ya tumne default value set kiya).
 
 ```python
 # Optional parameter jiska default None hai
@@ -223,22 +240,25 @@ def greet(name: str | None = None) -> str:
     if name is None:
         return "Hello, stranger!"
     return f"Hello, {name}"
+
+greet()           # "Hello, stranger!" (None pass hua)
+greet("Alice")    # "Hello, Alice!"
 ```
 
-### Union Types
+### Union Types — Multiple Options
 
 ```python
 from typing import Union
 
-# Old syntax (Python 3.9 aur pehle)
+# Python 3.9 aur se pehle
 def process(value: Union[str, int]) -> str:
     return str(value)
 
-# New syntax (Python 3.10+)
+# Python 3.10+ (modern syntax)
 def process(value: str | int) -> str:
     return str(value)
 
-# Multiple types
+# Multiple types handle karne padte hain
 def normalize(data: str | int | float | None) -> str:
     if data is None:
         return ""
@@ -246,7 +266,7 @@ def normalize(data: str | int | float | None) -> str:
 ```
 
 ```typescript
-// TypeScript equivalent
+// TypeScript version
 function process(value: string | number): string {
   return String(value);
 }
@@ -254,36 +274,38 @@ function process(value: string | number): string {
 
 ---
 
-## Type Aliases
+## Type Aliases — Lamba Types Ko Naam Do
 
-Socho tumhe baar-baar `dict[str, list[int]]` jaisa lamba type likhna pad raha hai — usse ek naam de do, jaise Swiggy mein "combo meal" ko ek naam de dete hain instead of listing har item baar-baar.
+Socho — agar tum baar-baar `dict[str, list[int]]` jaisa lamba type likhna pad rahe ho, toh usse ek naam de do. Zomato mein jaise "Comfort Combo" ko kabhi har item manually list nahi karte.
 
 ```python
-# Simple type alias (Python 3.12+ mein 'type' keyword use hota hai)
+# Python 3.12+ — type keyword (modern)
 type UserId = int
 type Coordinates = tuple[float, float]
 type UserMap = dict[str, list[int]]
 
-# Python 3.9-3.11 ke liye, seedha assignment use karo
+# Python 3.9-3.11 — seedha assignment (abhi bhi chalega)
 UserId = int
 Coordinates = tuple[float, float]
 UserMap = dict[str, list[int]]
 
-# Clarity ke liye TypeAlias use karo (Python 3.10+)
+# TypeAlias use karo clarity ke liye (Python 3.10+)
 from typing import TypeAlias
 UserId: TypeAlias = int
 Coordinates: TypeAlias = tuple[float, float]
 
-# Ab inhe kisi bhi normal type ki tarah use karo
+# Ab inn types ko normal types ki tarah use karo
 def get_user(uid: UserId) -> str:
-    ...
+    return f"User {uid}"
 
 def distance(a: Coordinates, b: Coordinates) -> float:
-    ...
+    x1, y1 = a
+    x2, y2 = b
+    return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
 ```
 
 ```typescript
-// TypeScript equivalent
+// TypeScript version
 type UserId = number;
 type Coordinates = [number, number];
 type UserMap = Record<string, number[]>;
@@ -291,65 +313,73 @@ type UserMap = Record<string, number[]>;
 
 ---
 
-## `typing` Module Overview
+## `typing` Module — Advanced Types Ka Jhola
 
-`typing` module tumhara ek-stop-shop hai advanced type annotations ke liye:
+`typing` module mein advanced annotations hain jo special cases handle karte hain:
 
 ```python
 from typing import (
-    # Core types
-    Any,            # Type checking disable (TS ke 'any' jaisa)
-    Never,          # Function kabhi return nahi karta (TS ke 'never' jaisa) - Python 3.11+
+    # Basic types
+    Any,            # Type checking disable (TypeScript ke any jaisa)
+    Never,          # Function kabhi return nahi karta (Python 3.11+)
     NoReturn,       # Never ka purana naam
 
-    # Collection abstractions (function params ke liye prefer karo)
-    Sequence,       # Read-only list-like (ReadonlyArray jaisa)
-    Mapping,        # Read-only dict-like (Readonly<Record<...>> jaisa)
-    MutableMapping, # Mutable dict-like
-    Iterable,       # Kuch bhi jispe iterate kar sako
-    Iterator,       # Ek iterator
+    # Collection abstractions (function params ke liye zyada better)
+    Sequence,       # Read-only list (list ko accept karta hai, tuple ko bhi)
+    Mapping,        # Read-only dict
+    MutableMapping, # Mutable dict
+    Iterable,       # Kuch bhi jispe loop lga sakte ho
+    Iterator,       # Actual iterator object
 
-    # Callable
+    # Functions as types
     Callable,       # Function types
 
-    # Union helpers
-    Optional,       # X | None
-    Union,          # X | Y (old syntax)
+    # Union helper
+    Optional,       # X | None (old style)
+    Union,          # X | Y (old style)
 
-    # Generics
-    TypeVar,        # Generic type variable (<T> jaisa)
-    Generic,        # Generic classes ka base class
+    # Generics (advanced)
+    TypeVar,        # Generic <T> jaisa
+    Generic,        # Generic classes banane ke liye
 
-    # Special
-    Final,          # Reassign nahi kar sakte (const/readonly jaisa)
+    # Special annotations
+    Final,          # Reassign nahi kar sakte (const jaisa)
     ClassVar,       # Class variable, instance variable nahi
-    TypeGuard,      # if-checks mein type narrow karta hai (TS type guards jaisa)
+    TypeGuard,      # Type narrowing ke liye
 
-    # Runtime
+    # Runtime utilities
     get_type_hints, # Runtime pe type hints nikalna
-    TYPE_CHECKING,  # Sirf tab True hota hai jab type checker chal raha ho
+    TYPE_CHECKING,  # Sirf type checker run karte waqt True
 )
 ```
 
-### Sequence vs list — Kab Kya Use Karein
+### Sequence vs List — Kab Kaun Use Kare?
+
+Socho — ek function ko list pass karna hai ya tuple bhi accept karna hai? `Sequence` use karo:
 
 ```python
-from typing import Sequence, MutableSequence
+from typing import Sequence
 
-# Sequence use karo jab bas "isse padhna hai"
-# List, tuple, str — sab accept karta hai
+# Sequence — "mujhe sirf padhna hai, modify nahi"
+# List, tuple, string — sab accept karta hai
 def first_item(items: Sequence[int]) -> int:
-    return items[0]
+    return items[0]  # Sirf read operation
 
-# list use karo jab modify bhi karna ho
+# list — "mujhe modify bhi karna hai"
 def append_item(items: list[int], item: int) -> None:
-    items.append(item)
+    items.append(item)  # Modify operation
 
-# Yahi idea Mapping vs dict ke liye bhi
+# Mapping — "key-value pairs ko sirf padhna hai"
 from typing import Mapping
 
 def get_value(data: Mapping[str, int], key: str) -> int:
-    return data[key]  # sirf read-only access
+    return data[key]  # Read-only
+
+# MutableMapping — "dict ko modify bhi kar sakte ho"
+from typing import MutableMapping
+
+def set_value(data: MutableMapping[str, int], key: str, value: int) -> None:
+    data[key] = value  # Modify
 ```
 
 ```typescript
@@ -363,118 +393,140 @@ function appendItem(items: number[], item: number): void {
 }
 ```
 
-### Final (TS ke const / readonly jaisa)
+### Final — Constants Banane Ke Liye
+
+TypeScript/JavaScript ke `const` keyword jaisa, `Final` use karo:
 
 ```python
 from typing import Final
 
 MAX_RETRIES: Final = 3
 API_URL: Final[str] = "https://api.example.com"
+DEFAULT_TIMEOUT: Final[int] = 30
 
-# mypy isko error bata dega:
-MAX_RETRIES = 5  # Error: Cannot assign to final name "MAX_RETRIES"
+# mypy error dega agar reassign karo:
+MAX_RETRIES = 5  # ❌ Error: Cannot assign to final name
 ```
 
 ---
 
-## mypy: The Type Checker
+## mypy — Python Ka Type Checker
 
-`mypy` Python ke liye wahi hai jo TypeScript ke liye `tsc` hai — bas fark itna hai ki yeh ek **alag tool** hai jo tumhe khud se chalana padta hai. Python khud kabhi type check nahi karta.
+`mypy` wahi role karta hai Python mein jo `tsc` karta hai TypeScript mein. **Par ek badi baat**: `mypy` ek alag tool hai jo tumhe khud chalana padta hai. Python khud kabhi type check nahi karta.
 
-### Setup
+### Setup aur Basic Commands
 
 ```bash
+# Install karo
 pip install mypy
 
-# Type checking chalao
+# Single file check karo
 mypy your_script.py
 
-# Poora package check karo
+# Poora project check karo
 mypy src/
 
-# Strict mode (TS ke strict: true jaisa)
+# Strict mode (TypeScript ke strict: true jaisa)
 mypy --strict src/
+
+# Specific rules ke saath
+mypy --disallow-untyped-defs src/  # Sab functions typed hone zaruuri
 ```
 
-### Configuration (pyproject.toml)
+### Configuration — pyproject.toml mein
 
 ```toml
 [tool.mypy]
 python_version = "3.12"
+
+# Basic checks
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = true        # TS ke noImplicitAny jaisa
-strict_optional = true               # TS ke strictNullChecks jaisa
-check_untyped_defs = true
 
-# Per-module overrides (TS ke paths/skipLibCheck jaisa)
+# Strict checks (TypeScript ke strict mode jaisa)
+disallow_untyped_defs = true        # TypeScript ke noImplicitAny
+strict_optional = true               # TypeScript ke strictNullChecks
+check_untyped_defs = true
+disallow_incomplete_defs = true
+
+# Library handling
+ignore_missing_imports = true        # Untyped libraries ignore karo
+no_implicit_reexport = true
+
+# Per-module overrides (kisi libraries ko ignore karna ho)
 [[tool.mypy.overrides]]
 module = "third_party_lib.*"
 ignore_missing_imports = true
 ```
 
-### Common mypy Flags
+### Common mypy Flags — TypeScript Se Comparison
 
-| mypy Flag | TS Equivalent | Purpose |
+| mypy Flag | TypeScript Equivalent | Kya Karta Hai |
 |---|---|---|
 | `--strict` | `strict: true` | Saare strict checks enable karo |
-| `--disallow-untyped-defs` | `noImplicitAny` | Type annotations zaruri banao |
+| `--disallow-untyped-defs` | `noImplicitAny` | Sab functions ko types dena zaruuri |
 | `--no-implicit-optional` | `strictNullChecks` | None ko auto-add mat karo |
-| `--ignore-missing-imports` | `skipLibCheck` | Untyped libraries ignore karo |
+| `--ignore-missing-imports` | `skipLibCheck` | Untyped third-party code ignore karo |
+| `--warn-redundant-casts` | (part of strict) | Redundant type casts batao |
 
-### Type Stubs
+### Type Stubs (.pyi Files)
 
-Kuch libraries ke paas inline type hints nahi hote. Type stubs (`.pyi` files) alag se types dete hain, bilkul TypeScript ke `.d.ts` files jaisa:
+Kuch libraries mein inline type hints nahi hote. Type stubs separate files mein types provide karte hain — bilkul TypeScript ke `.d.ts` files jaisa:
 
 ```bash
 # Popular libraries ke liye type stubs install karo
-pip install types-requests    # @types/node jaisa
-pip install types-redis       # @types/redis jaisa
-pip install types-PyYAML      # @types/js-yaml jaisa
+pip install types-requests    # requests library ke liye
+pip install types-redis       # redis library ke liye
+pip install types-PyYAML      # YAML library ke liye
+
+# Stubgen tool se apne stubs bana sakte ho
+stubgen -p my_library
 ```
 
 ---
 
-## Type Narrowing (Type Guards)
+## Type Narrowing — Smart Type Detection
 
-Python ka type narrowing kaafi had tak TypeScript jaisa hi kaam karta hai:
+Python mypy kaafi smart hai — agar tum `isinstance()` ya `None` check karo, toh woh type automatically narrow kar deta hai:
 
 ```python
 def process(value: str | int) -> str:
     if isinstance(value, str):
-        # mypy ko yahan pata hai value str hai
+        # Is block mein mypy jaanta hai value str hai
         return value.upper()
     else:
-        # mypy ko yahan pata hai value int hai
+        # Is block mein mypy jaanta hai value int hai
         return str(value * 2)
 
-# None checks bhi types narrow karte hain
+# None checks se bhi narrowing hoti hai
 def greet(name: str | None) -> str:
     if name is None:
         return "Hello!"
-    # mypy ko yahan pata hai name str hai
+    # Yahan mypy jaanta hai name str hai (None nahi)
     return f"Hello, {name}!"
 
-# assert bhi type narrow karta hai
+# Assert se bhi narrow kar sakte ho
 def process_name(name: str | None) -> str:
-    assert name is not None  # str tak narrow ho gaya
+    assert name is not None  # Now mypy sure hai name str hai
     return name.upper()
 ```
 
-### Custom Type Guards (Python 3.10+)
+### Custom Type Guards (Advanced)
+
+Python 3.10+ se, custom type guards bana sakte ho TypeScript ke type predicates jaisa:
 
 ```python
 from typing import TypeGuard
 
 def is_string_list(val: list[object]) -> TypeGuard[list[str]]:
-    """True return karta hai agar list ke saare items string hain."""
+    """Check karta hai agar list ke sare items strings hain."""
     return all(isinstance(x, str) for x in val)
 
 def process(items: list[object]) -> None:
     if is_string_list(items):
-        # mypy ko yahan pata hai items list[str] hai
+        # Mypy sure hai items list[str] hai (har item string hai)
         for item in items:
-            print(item.upper())
+            print(item.upper())  # String methods use kar sakte ho
 ```
 
 ```typescript
@@ -486,25 +538,26 @@ function isStringArray(val: unknown[]): val is string[] {
 
 ---
 
-## TypeScript se Key Differences
+## TypeScript se Key Differences — Side-by-Side
 
 | Aspect | TypeScript | Python |
 |---|---|---|
-| Enforcement | Compile-time pe `tsc` se | Kabhi enforce nahi hota; `mypy` optional hai |
-| Runtime impact | Types erase ho jaate hain, but emit se pehle check hote hain | Types metadata ki tarah store hote hain, kabhi check nahi hote |
-| Adoption | Zaruri hai (`.ts` files) | Gradual (kisi bhi `.py` file mein hints add kar sakte ho) |
-| Generics syntax | `function f<T>(x: T): T` | `def f(x: T) -> T:` TypeVar ke saath |
-| Interfaces | `interface Foo { ... }` | `Protocol` ya `TypedDict` |
-| Enums | `enum Color { Red, Green }` | `class Color(Enum)` |
+| Type enforcement | Compile-time pe `tsc` compulsory | Optional; `mypy` run karna zaruuri nahi |
+| Runtime behavior | Types erase ho jaate hain | Type metadata runtime mein available hoti hai |
+| Adoption model | Zaruri (`.ts` files) | Gradual (existing `.py` files mein add kar sakte ho) |
+| Generics syntax | `function f<T>(x: T): T` | `def f(x: T) -> T:` with TypeVar |
+| Interfaces | `interface Foo { ... }` | `Protocol` or `TypedDict` |
+| Enums | `enum Color { Red }` | `class Color(Enum)` |
 | Type narrowing | `typeof`, `instanceof`, type predicates | `isinstance()`, `TypeGuard` |
-| Null handling | `null`, `undefined`, `?:` | Sirf `None`, `Optional[X]` |
+| Null handling | `null`, `undefined` + optional `?:` | Sirf `None`, use `Optional[X]` |
 
 ---
 
-## Practice Exercises
+## Practice Exercises — Apne Hath Se Likho
 
-### Exercise 1: Is Code ko Annotate Karo
-Har function parameter, return type, aur variable mein type hints add karo:
+### Exercise 1: Bare Code Ko Type Annotate Karo
+
+Neeche diya code likha hai bina type hints. Sab parameters, return types, aur variables ko type hints do:
 
 ```python
 def calculate_stats(numbers):
@@ -528,41 +581,45 @@ def merge_configs(default, override):
     return result
 ```
 
-### Exercise 2: Type Errors Fix Karo
-Neeche diye code mein type errors hain jo mypy pakad lega. Inhe identify aur fix karo:
+### Exercise 2: Type Errors Identify aur Fix Karo
+
+Neeche mypy jo errors pakda sakta hai, unhe identify karo aur fix karo:
 
 ```python
 def get_name(user: dict[str, str]) -> str:
-    return user.get("name")  # Yahan kya galat hai?
+    return user.get("name")  # Isko samajho — kya galat hai?
 
 def double(x: int) -> int:
-    return str(x * 2)  # Yahan kya galat hai?
+    return str(x * 2)  # Yeh kya problem hai?
 
 def first_or_default(items: list[int], default: str = "none") -> int:
     if items:
         return items[0]
-    return default  # Yahan kya galat hai?
+    return default  # Isse kya issue hoga?
 ```
 
-### Exercise 3: Collection Types
-In cheezon ke liye properly typed functions likho:
+### Exercise 3: Collection Types Ke Saath Functions
 
-1. Ek function jo dictionaries ki list le (har dict mein "name" str aur "age" int) aur 18 se upar wale logon ke naam ki list return kare.
-2. Ek function jo string keys ko floats ki list se map karne wala dict le aur same keys ke saath average values wala naya dict return kare.
-3. Ek function jo success pe (str, int) ka tuple ya failure pe None return kare.
+Typed functions likho in 3 scenarios ke liye:
 
-### Exercise 4: Typed Config Banao
-Ek typed configuration system banao:
-- `Port` (int), `Host` (str), `Headers` (str se str wala dict) ke liye type aliases define karo
-- host, port, debug (bool), aur optional headers ke saath `ServerConfig` TypedDict likho
-- Ek `load_config` function likho jo file path string le aur `ServerConfig` return kare
-- Ek `merge_configs` function likho jo base config aur overrides (partial config) le aur merged config return kare
+1. Function jo list le (har item ek dict ho with "name" aur "age") aur 18+ wale logon ke naam return kare.
+2. Function jo string keys + float values wali dict le, aur average values wali nyi dict return kare.
+3. Function jo success pe `(str, int)` tuple return kare, failure pe `None`.
 
-### Exercise 5: mypy Practice
-Ek file banao jisme yeh sab use ho:
-- Constants ke liye `Final`
-- Kisi bhi sequence accept karne wale function ke liye `Sequence`
-- `isinstance` se proper narrowing wala union type
-- `None` return kar sakne wala function, proper `Optional` annotation ke saath
+### Exercise 4: Typed Configuration System Banao
 
-Phir uspe `mypy --strict` chalao aur jo bhi errors aayein unhe fix karo.
+Ek proper configuration system design karo:
+- Type aliases define karo: `Port` (int), `Host` (str), `Headers` (dict[str, str])
+- `ServerConfig` TypedDict banao with: host, port, debug (bool), optional headers
+- `load_config` function likho jo file path string le aur `ServerConfig` return kare
+- `merge_configs` function likho jo base config aur partial overrides le aur merged config return kare
+
+### Exercise 5: mypy --strict Mein Pass Karo
+
+Ek Python file banao jisme:
+- Constants ke liye `Final` use ho
+- `Sequence` accept karne wale function ho (ki list/tuple dono chalein)
+- `isinstance()` se proper type narrowing wala union type ho
+- Optional return values with proper `Optional[X]` annotation
+- Phir `mypy --strict` chalao aur jo errors aayein, fix karo
+

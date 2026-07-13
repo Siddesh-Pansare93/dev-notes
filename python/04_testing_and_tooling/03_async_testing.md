@@ -1,33 +1,30 @@
-# Async Testing in Python
+# Python mein Async Testing — Socho Zomato Delivery Wale!
 
-> **Coming from Node.js/TypeScript?** In Node.js, everything is async by nature, so
-> testing async code in Jest is seamless -- you just `await` in your test. Python's async
-> story is more explicit: you need the `pytest-asyncio` plugin and decorators. The concepts
-> are the same, but the ceremony is slightly different.
+> **Node.js/TypeScript se aa rahe ho?** Node.js mein sab kuch async tha, to Jest mein sirf `await` karte the aur kaam thaak gaya. Python mein ye game alag hai — tumhe `pytest-asyncio` plugin aur decorators chahiye. Concepts same hain, bas ritual thoda zyada hai!
 
 ---
 
 ## Table of Contents
 
-1. [Async in Python vs Node.js: Quick Recap](#async-recap)
-2. [Setting Up pytest-asyncio](#setting-up-pytest-asyncio)
-3. [Writing Async Tests](#writing-async-tests)
-4. [Async Fixtures](#async-fixtures)
-5. [Testing Async Generators](#testing-async-generators)
-6. [Mocking Async Functions (AsyncMock)](#mocking-async-functions)
-7. [Testing with aiohttp](#testing-with-aiohttp)
-8. [Testing FastAPI Applications](#testing-fastapi-applications)
-9. [Common Patterns and Pitfalls](#common-patterns-and-pitfalls)
-10. [Comparison: Python vs Jest Async Testing](#comparison-python-vs-jest)
+1. [Async: Node.js vs Python — Quick Recap](#async-recap)
+2. [pytest-asyncio Setup Karna](#setting-up-pytest-asyncio)
+3. [Async Tests Likho](#writing-async-tests)
+4. [Async Fixtures — Chai Se Pehle Table Lagao](#async-fixtures)
+5. [Async Generators Test Karna](#testing-async-generators)
+6. [Async Functions Ko Mock Karna](#mocking-async-functions)
+7. [aiohttp Se Testing](#testing-with-aiohttp)
+8. [FastAPI Apps Ko Test Karna](#testing-fastapi-applications)
+9. [Common Pitfalls aur Solutions](#common-patterns-and-pitfalls)
+10. [Python vs Jest — Side by Side](#comparison-python-vs-jest)
 11. [Practice Exercises](#practice-exercises)
 
 ---
 
-## Async in Python vs Node.js: Quick Recap
+## Async: Node.js vs Python — Quick Recap
 
 | Concept | Node.js/TypeScript | Python |
 |---|---|---|
-| Event loop | Always running (libuv) | Must be explicitly started (`asyncio.run()`) |
+| Event loop | Hamesha chalti rehti hai (libuv) | Manually start karni padti hai (`asyncio.run()`) |
 | Async function | `async function foo()` | `async def foo()` |
 | Await | `await promise` | `await coroutine` |
 | Promise | `Promise<T>` | `Coroutine` / `Awaitable` |
@@ -36,22 +33,20 @@
 | Sleep | `setTimeout` / `sleep()` | `asyncio.sleep()` |
 | HTTP client | `fetch()` / `axios` | `aiohttp` / `httpx` |
 
-**Key difference:** In Node.js, the event loop is always running. In Python, async code
-requires an event loop that must be created and managed. pytest-asyncio handles this for
-you in tests.
+**Farak kya hai?** Node.js mein event loop hamesha ON rehta hai. Python mein tum event loop manually banao aur manage karo. pytest-asyncio yeh sab sambal leta hai tests mein.
 
 ---
 
-## Setting Up pytest-asyncio
+## pytest-asyncio Setup Karna
 
 ### Installation
 
 ```bash
 pip install pytest-asyncio
 
-# Also commonly needed:
+# Extra packages jo zaroor aayenge:
 pip install aiohttp    # Async HTTP client/server
-pip install httpx      # Modern async HTTP client (like axios)
+pip install httpx      # Modern async HTTP (axios ki tarah)
 ```
 
 ### Configuration
@@ -59,26 +54,25 @@ pip install httpx      # Modern async HTTP client (like axios)
 ```toml
 # pyproject.toml
 [tool.pytest.ini_options]
-asyncio_mode = "auto"  # Recommended! Auto-detects async tests
-# Other options:
-# asyncio_mode = "strict"  # Require explicit @pytest.mark.asyncio on every test
+asyncio_mode = "auto"  # Sahi approach! Automatically async tests dhundo
+# Dusre options:
+# asyncio_mode = "strict"  # Har test par @pytest.mark.asyncio lagao manually
 ```
 
-With `asyncio_mode = "auto"`, any `async def test_*` function is automatically treated
-as an async test. With `"strict"` mode, you must add `@pytest.mark.asyncio` to each one.
+`asyncio_mode = "auto"` ke saath, koi bhi `async def test_*` function automatic async test ban jayega. `"strict"` mode mein manually har test par decorator lagana padega.
 
 ---
 
-## Writing Async Tests
+## Async Tests Likho
 
-### Basic Async Test
+### Sabse Asan Async Test
 
 ```python
-# With asyncio_mode = "auto" (recommended)
+# asyncio_mode = "auto" ke saath (recommended)
 import asyncio
 
 async def fetch_data() -> dict:
-    await asyncio.sleep(0.1)  # Simulate network delay
+    await asyncio.sleep(0.1)  # Network delay simulate karo
     return {"status": "ok", "data": [1, 2, 3]}
 
 async def test_fetch_data():
@@ -88,7 +82,7 @@ async def test_fetch_data():
 ```
 
 ```python
-# With asyncio_mode = "strict" (explicit marking)
+# asyncio_mode = "strict" ke saath (explicit marking)
 import pytest
 
 @pytest.mark.asyncio
@@ -97,9 +91,9 @@ async def test_fetch_data():
     assert result["status"] == "ok"
 ```
 
-Jest comparison:
+Jest mein kaisa hota hai:
 ```typescript
-// Jest: async tests just work
+// Jest: async bas chal jaata hai
 test('fetch data', async () => {
     const result = await fetchData();
     expect(result.status).toBe('ok');
@@ -107,13 +101,13 @@ test('fetch data', async () => {
 });
 ```
 
-### Testing Async Exceptions
+### Async Exceptions Handle Karna
 
 ```python
 import pytest
 
 async def divide_async(a: float, b: float) -> float:
-    await asyncio.sleep(0)  # Simulate async work
+    await asyncio.sleep(0)  # Async work simulate karo
     if b == 0:
         raise ValueError("Division by zero")
     return a / b
@@ -127,7 +121,7 @@ async def test_divide_success():
     assert result == 5.0
 ```
 
-### Testing Concurrent Operations
+### Concurrent Operations Test Karna
 
 ```python
 import asyncio
@@ -137,7 +131,7 @@ async def fetch_user(user_id: int) -> dict:
     return {"id": user_id, "name": f"User {user_id}"}
 
 async def test_concurrent_fetches():
-    """Test multiple concurrent async operations (like Promise.all)."""
+    """Multiple concurrent async operations (Promise.all ki tarah)."""
     results = await asyncio.gather(
         fetch_user(1),
         fetch_user(2),
@@ -149,7 +143,7 @@ async def test_concurrent_fetches():
     assert results[2]["id"] == 3
 
 async def test_concurrent_with_timeout():
-    """Test with a timeout (like Promise.race with a timer)."""
+    """Timeout ke saath test karo (Promise.race + timer ki tarah)."""
     async def slow_operation():
         await asyncio.sleep(10)
         return "done"
@@ -158,7 +152,7 @@ async def test_concurrent_with_timeout():
         await asyncio.wait_for(slow_operation(), timeout=0.1)
 ```
 
-### Parametrize with Async Tests
+### Parametrize + Async Tests
 
 ```python
 import pytest
@@ -175,7 +169,7 @@ async def test_async_square(input_val, expected):
 
 ---
 
-## Async Fixtures
+## Async Fixtures — Chai Se Pehle Table Lagao
 
 ### Basic Async Fixtures
 
@@ -185,8 +179,8 @@ import asyncio
 
 @pytest.fixture
 async def async_data():
-    """An async fixture - can use await."""
-    await asyncio.sleep(0.01)  # Simulate async setup
+    """Ek async fixture - andar await kar sakte ho."""
+    await asyncio.sleep(0.01)  # Async setup simulate karo
     data = {"users": ["Alice", "Bob"], "count": 2}
     return data
 
@@ -195,21 +189,21 @@ async def test_has_users(async_data):
     assert "Alice" in async_data["users"]
 ```
 
-### Async Fixtures with Teardown
+### Async Fixtures with Setup aur Teardown
 
 ```python
 import pytest
 
 @pytest.fixture
 async def db_connection():
-    """Async fixture with setup and teardown."""
+    """Async fixture — setup aur cleanup dono."""
     # Setup
     conn = await create_async_connection("test.db")
     await conn.execute("CREATE TABLE IF NOT EXISTS users (id INT, name TEXT)")
 
-    yield conn  # Provide to test
+    yield conn  # Test ko de do
 
-    # Teardown (runs even if test fails)
+    # Teardown (test fail ho ya pass, chalega)
     await conn.execute("DROP TABLE users")
     await conn.close()
 
@@ -224,7 +218,7 @@ async def test_insert_user(db_connection):
 ```python
 @pytest.fixture
 def make_async_client():
-    """Factory that creates async clients."""
+    """Factory jo async clients banata hai."""
     clients = []
 
     async def _make_client(base_url: str):
@@ -235,27 +229,26 @@ def make_async_client():
 
     yield _make_client
 
-    # Cleanup all created clients
-    # Note: we're in a sync generator, so we need to run async cleanup
-    # synchronously. For simplicity, async factory fixtures are often
-    # handled differently in practice.
+    # Cleanup sabhi clients ka
+    # Note: Sync generator mein hain, async cleanup synchronously chahiye
+    # Pragmatically, async factory fixtures usually differently handle hote hain
 
 @pytest.fixture
 async def http_client():
-    """Simpler pattern: single async client with cleanup."""
+    """Simpler pattern: ek async client with cleanup."""
     import httpx
     async with httpx.AsyncClient() as client:
         yield client
-    # Client is automatically closed after yield
+    # Client automatically close hoga after yield
 ```
 
-### Fixture Scopes with Async
+### Fixture Scopes + Async
 
 ```python
 @pytest.fixture(scope="session")
 async def database():
     """Session-scoped async fixture.
-    Created once, shared across all tests."""
+    Ek baar banegi, sabhi tests share karenge."""
     db = await AsyncDatabase.connect("postgresql://localhost/testdb")
     await db.migrate()
     yield db
@@ -263,7 +256,7 @@ async def database():
 
 @pytest.fixture(scope="function")
 async def clean_db(database):
-    """Function-scoped: clean tables before each test."""
+    """Function-scoped: har test se pehle clean kar do."""
     yield database
     await database.execute("DELETE FROM users")
     await database.execute("DELETE FROM orders")
@@ -271,9 +264,9 @@ async def clean_db(database):
 
 ---
 
-## Testing Async Generators
+## Async Generators Test Karna
 
-Python's async generators are similar to Node.js async iterables.
+Python ke async generators, Node.js async iterables ki tarah hain.
 
 ```python
 # src/stream.py
@@ -281,14 +274,14 @@ import asyncio
 from typing import AsyncGenerator
 
 async def number_stream(count: int) -> AsyncGenerator[int, None]:
-    """Async generator that yields numbers with a delay."""
+    """Async generator jo numbers yield kare delay ke saath."""
     for i in range(count):
         await asyncio.sleep(0.01)
         yield i
 
 async def filtered_stream(source: AsyncGenerator[int, None],
                            predicate) -> AsyncGenerator[int, None]:
-    """Filter an async stream."""
+    """Async stream ko filter karo."""
     async for item in source:
         if predicate(item):
             yield item
@@ -328,12 +321,12 @@ class AsyncResource:
         self.is_open = False
 
     async def __aenter__(self):
-        await asyncio.sleep(0.01)  # Simulate async setup
+        await asyncio.sleep(0.01)  # Async setup simulate karo
         self.is_open = True
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await asyncio.sleep(0.01)  # Simulate async cleanup
+        await asyncio.sleep(0.01)  # Async cleanup simulate karo
         self.is_open = False
         return False
 
@@ -342,33 +335,32 @@ async def test_async_context_manager():
     async with AsyncResource("test") as resource:
         assert resource.is_open is True
         assert resource.name == "test"
-    # After the context manager exits:
+    # Context manager exit hone ke baad:
     assert resource.is_open is False
 ```
 
 ---
 
-## Mocking Async Functions (AsyncMock)
+## Async Functions Ko Mock Karna
 
-Python 3.8+ includes `AsyncMock` in `unittest.mock`. This is the equivalent of mocking
-async functions in Jest.
+Python 3.8+ mein `unittest.mock` mein `AsyncMock` tha. Jest mein async mocking kaisa hota tha, yaad hai?
 
 ### Basic AsyncMock
 
 ```python
 from unittest.mock import AsyncMock, patch
 
-# Create an async mock (like jest.fn() for async)
+# Async mock banao (jest.fn() ki tarah async ke liye)
 mock_fetch = AsyncMock(return_value={"status": "ok"})
 
 async def test_async_mock():
     result = await mock_fetch("https://api.example.com")
     assert result == {"status": "ok"}
     mock_fetch.assert_called_once_with("https://api.example.com")
-    mock_fetch.assert_awaited_once()  # Python-specific: verify it was awaited
+    mock_fetch.assert_awaited_once()  # Python-specific: verify await hua
 ```
 
-Jest comparison:
+Jest mein kaisa likha tha:
 ```typescript
 const mockFetch = jest.fn().mockResolvedValue({ status: 'ok' });
 
@@ -384,7 +376,7 @@ test('async mock', async () => {
 ```python
 from unittest.mock import AsyncMock
 
-# Sequence of return values
+# Return values ka sequence
 mock_api = AsyncMock(side_effect=[
     {"page": 1, "data": [1, 2]},
     {"page": 2, "data": [3, 4]},
@@ -406,7 +398,7 @@ async def test_transform():
     result = await mock_transform(21)
     assert result == 42
 
-# Raising exceptions
+# Exceptions throw karna
 mock_fail = AsyncMock(side_effect=ConnectionError("timeout"))
 
 async def test_connection_failure():
@@ -414,7 +406,7 @@ async def test_connection_failure():
         await mock_fail()
 ```
 
-### Patching Async Functions
+### Async Functions Ko Patch Karna
 
 ```python
 # src/user_service.py
@@ -455,7 +447,7 @@ async def test_get_user_with_repos(mock_profile):
     mock_profile.assert_awaited_once_with(1)
 ```
 
-### AsyncMock Assertion Methods
+### AsyncMock Assertions
 
 ```python
 from unittest.mock import AsyncMock, call
@@ -465,23 +457,23 @@ await mock(1)
 await mock(2)
 await mock(3)
 
-# All the standard Mock assertions work:
+# Standard Mock assertions sab chalte hain:
 mock.assert_called()
 mock.assert_called_with(3)
 assert mock.call_count == 3
 
 # Plus async-specific assertions:
-mock.assert_awaited()                   # Was awaited at least once
-mock.assert_awaited_once()              # Was awaited exactly once -- FAILS (3 times)
-mock.assert_awaited_with(3)             # Last await call had these args
-mock.assert_any_await(call(1))          # Was awaited with these args at any point
-assert mock.await_count == 3            # Number of times awaited
+mock.assert_awaited()                   # Kam se kam ek baar await hua
+mock.assert_awaited_once()              # Exactly ek baar await hua -- FAIL karega (3 times)
+mock.assert_awaited_with(3)             # Last await call mein ye arguments the
+mock.assert_any_await(call(1))          # Any point par ye arguments await hua
+assert mock.await_count == 3            # Total await calls
 assert mock.await_args_list == [call(1), call(2), call(3)]
 ```
 
 ---
 
-## Testing with aiohttp
+## aiohttp Se Testing
 
 ### aiohttp Test Utilities
 
@@ -512,18 +504,18 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import AioHTTPTestCase, TestClient, TestServer
 
-# Method 1: Using pytest-aiohttp (recommended)
+# Method 1: pytest-aiohttp use karo (recommended)
 # pip install pytest-aiohttp
 
 @pytest.fixture
 def app():
-    """Create the application."""
+    """Application banao."""
     from src.app import create_app
     return create_app()
 
 @pytest.fixture
 async def client(app, aiohttp_client):
-    """Create a test client."""
+    """Test client banao."""
     return await aiohttp_client(app)
 
 async def test_hello(client):
@@ -545,9 +537,9 @@ async def test_create_user_missing_name(client):
 
 ---
 
-## Testing FastAPI Applications
+## FastAPI Apps Ko Test Karna
 
-FastAPI (the Python equivalent of Express) has excellent async testing support.
+FastAPI, Express ki Python version hai aur async testing ka supporte bahut zyada best hai.
 
 ```python
 # src/main.py
@@ -592,14 +584,14 @@ from src.main import app, users_db
 
 @pytest.fixture(autouse=True)
 def clear_db():
-    """Clear the in-memory database before each test."""
+    """In-memory database ko har test se pehle clear karo."""
     users_db.clear()
     yield
     users_db.clear()
 
 @pytest.fixture
 async def client():
-    """Create an async test client for FastAPI."""
+    """FastAPI ke liye async test client banao."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
@@ -616,14 +608,14 @@ async def test_create_user(client):
     assert "id" in data
 
 async def test_get_user(client):
-    # Create a user first
+    # Pehle ek user create karo
     create_response = await client.post(
         "/users",
         json={"name": "Bob", "email": "bob@test.com"}
     )
     user_id = create_response.json()["id"]
 
-    # Now fetch the user
+    # Ab user ko fetch karo
     response = await client.get(f"/users/{user_id}")
     assert response.status_code == 200
     assert response.json()["name"] == "Bob"
@@ -633,12 +625,12 @@ async def test_get_nonexistent_user(client):
     assert response.status_code == 404
 
 async def test_create_user_validation(client):
-    # Missing required field
+    # Required field missing
     response = await client.post("/users", json={"name": "Alice"})
     assert response.status_code == 422  # Validation error
 ```
 
-Compare with testing an Express app:
+Express app ko supertest se test kaisa hota tha:
 ```typescript
 // Jest + supertest for Express
 import request from 'supertest';
@@ -655,48 +647,48 @@ test('create user', async () => {
 
 ---
 
-## Common Patterns and Pitfalls
+## Common Pitfalls aur Solutions
 
-### Pitfall 1: Forgetting to Await
+### Pitfall 1: Await Bhool Jaana
 
 ```python
-# WRONG: Missing await - test passes even though function fails!
+# GALAT: Await missing — test pass hoga par function fail ho sakta hai!
 async def test_bad():
-    result = fetch_data()  # This returns a coroutine, not the result!
-    # result is a coroutine object, which is truthy, so this passes:
-    assert result  # ALWAYS PASSES -- BUG!
+    result = fetch_data()  # Ye coroutine return karega, result nahi!
+    # result ek coroutine object hai, jo truthy hai, to ye pass hoga:
+    assert result  # HAMESHA PASS — BUG!
 
-# RIGHT:
+# SAHI:
 async def test_good():
     result = await fetch_data()
     assert result["status"] == "ok"
 ```
 
-**Tip:** Enable Python warnings in your pytest config to catch this:
-```toml
-[tool.pytest.ini_options]
-filterwarnings = [
-    "error::RuntimeWarning",  # Catches "coroutine was never awaited"
-]
-```
+> [!tip] **Tip:** Python warnings enable karo pytest config mein to catch kar payega:
+> ```toml
+> [tool.pytest.ini_options]
+> filterwarnings = [
+>     "error::RuntimeWarning",  # "coroutine was never awaited" catch karega
+> ]
+> ```
 
-### Pitfall 2: Mixing Sync and Async
+### Pitfall 2: Sync aur Async Mix Karna
 
 ```python
-# WRONG: Async fixture used in sync test
+# GALAT: Async fixture ko sync test mein use karna
 @pytest.fixture
 async def async_data():
     return await fetch_from_api()
 
-def test_sync_usage(async_data):  # This won't work correctly!
+def test_sync_usage(async_data):  # Ye correctly kaam nahi karega!
     assert async_data["status"] == "ok"
 
-# RIGHT: Use async test with async fixture
+# SAHI: Async test use karo async fixture ke saath
 async def test_async_usage(async_data):
     assert async_data["status"] == "ok"
 ```
 
-### Pattern: Testing Timeouts
+### Pattern: Timeouts Test Karna
 
 ```python
 import asyncio
@@ -707,12 +699,12 @@ async def slow_operation():
     return "done"
 
 async def test_timeout():
-    """Ensure an operation completes within a time limit."""
+    """Ensure operation time limit mein complete ho jaye."""
     with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(slow_operation(), timeout=0.1)
 ```
 
-### Pattern: Testing Retry Logic
+### Pattern: Retry Logic Test Karna
 
 ```python
 from unittest.mock import AsyncMock
@@ -738,7 +730,7 @@ async def test_retry_succeeds_on_third_attempt():
         AsyncMock(json=lambda: {"data": "success"}, raise_for_status=lambda: None),
     ]
 
-    # Patch and test the retry logic
+    # Patch karo aur retry logic test karo
     with patch("httpx.AsyncClient") as MockClient:
         MockClient.return_value.__aenter__.return_value = mock_client
         result = await fetch_with_retry("https://api.example.com/data")
@@ -747,13 +739,13 @@ async def test_retry_succeeds_on_third_attempt():
     assert mock_client.get.call_count == 3
 ```
 
-### Pattern: Testing Event-Driven Code
+### Pattern: Event-Driven Code Test Karna
 
 ```python
 import asyncio
 
 class EventEmitter:
-    """Simple async event emitter (like Node.js EventEmitter)."""
+    """Simple async event emitter (Node.js EventEmitter ki tarah)."""
     def __init__(self):
         self._listeners: dict[str, list] = {}
 
@@ -783,32 +775,32 @@ async def test_event_emitter():
 
 ---
 
-## Comparison: Python vs Jest Async Testing
+## Python vs Jest — Side by Side
 
 | Scenario | Jest (Node.js/TS) | pytest (Python) |
 |---|---|---|
 | Basic async test | `test('...', async () => { await ... })` | `async def test_...(): await ...` |
-| Setup needed | None (async is native) | `pip install pytest-asyncio` |
-| Marking async tests | Not needed | `asyncio_mode = "auto"` or `@pytest.mark.asyncio` |
+| Setup required | Kuch nahi (async native hai) | `pip install pytest-asyncio` |
+| Marking tests | Not needed | `asyncio_mode = "auto"` ya `@pytest.mark.asyncio` |
 | Async mock | `jest.fn().mockResolvedValue()` | `AsyncMock(return_value=...)` |
 | Rejecting mock | `jest.fn().mockRejectedValue()` | `AsyncMock(side_effect=Error(...))` |
 | Test timeout | `jest.setTimeout(10000)` | `@pytest.mark.timeout(10)` (pytest-timeout) |
 | Async setup/teardown | `beforeEach(async () => {...})` | `async def fixture(): ... yield ... cleanup` |
-| HTTP testing | `supertest` | `httpx.AsyncClient` with `ASGITransport` |
-| Await assertion | Not needed | `assert_awaited_once()` |
+| HTTP testing | `supertest` | `httpx.AsyncClient` + `ASGITransport` |
+| Await assertion | Nahi chahiye | `assert_awaited_once()` |
 
-### What is Simpler in Jest
+### Jest Mein Aasan Kya Hai
 
-- No plugin needed for async (Node.js is async-native)
-- No special decorator or config for async tests
-- `mockResolvedValue` / `mockRejectedValue` are very intuitive
+- Async ke liye koi plugin nahi (Node.js naturally async)
+- Async tests ke liye koi special decorator nahi
+- `mockResolvedValue` / `mockRejectedValue` bahut intuitive hain
 
-### What is Better in pytest
+### pytest Mein Better Kya Hai
 
-- `AsyncMock.assert_awaited*()` methods verify the mock was actually awaited
-- Async fixtures with `yield` co-locate setup and teardown
-- Fixture scopes (session, module) work with async too
-- Better error messages when you forget to `await` (with proper warnings config)
+- `AsyncMock.assert_awaited*()` methods verify karti hain ki mock actually await hua
+- Async fixtures with `yield` se setup aur teardown ek jagah hain
+- Fixture scopes (session, module) async ke saath bhi kaam karte hain
+- Better error messages jab await forget karo (proper warnings config ke saath)
 
 ---
 
@@ -855,13 +847,13 @@ class AsyncCache:
 
 ```python
 # tests/test_cache.py
-# YOUR CODE HERE:
-# 1. Create an async fixture that provides a fresh AsyncCache
-# 2. Test set and get operations
-# 3. Test TTL expiration (hint: use a very short TTL and asyncio.sleep)
-# 4. Test delete returns True for existing key, False for missing
-# 5. Test clear empties the cache
-# 6. Test that expired items return None
+# TUMHARA KAM:
+# 1. Fresh AsyncCache dene wali async fixture banao
+# 2. set aur get operations test karo
+# 3. TTL expiration test karo (hint: bahut short TTL aur asyncio.sleep)
+# 4. delete test karo — True existing key ke liye, False missing ke liye
+# 5. clear karo cache ko poora empty karo
+# 6. Expired items None return kare test karo
 ```
 
 ### Exercise 2: Async API Client with Retries
@@ -895,13 +887,13 @@ class APIClient:
 
 ```python
 # tests/test_api_client.py
-# YOUR CODE HERE:
-# 1. Mock httpx.AsyncClient to avoid real HTTP calls
-# 2. Test successful request on first try
-# 3. Test retry on failure then success (fail twice, succeed on third)
-# 4. Test all retries exhausted raises the last error
-# 5. Test exponential backoff delays (mock asyncio.sleep and verify call args)
-# 6. Use parametrize for different HTTP error codes (500, 502, 503)
+# TUMHARA KAM:
+# 1. httpx.AsyncClient ko mock karo real HTTP calls avoid karne ke liye
+# 2. Successful request test karo first try mein
+# 3. Retry test karo — fail do baar, phir success on third
+# 4. Test karo sabhi retries exhaust ho jayein to error raise ho
+# 5. Exponential backoff delays test karo (mock asyncio.sleep, verify args)
+# 6. Parametrize different HTTP error codes (500, 502, 503)
 ```
 
 ### Exercise 3: Async Producer/Consumer
@@ -923,7 +915,7 @@ class AsyncQueue:
         await self._queue.put(item)
 
     async def process(self, handler, num_workers: int = 1) -> list[Any]:
-        """Process all items in the queue with the given handler."""
+        """Process sabhi items queue mein given handler ke saath."""
         async def worker():
             while True:
                 try:
@@ -941,20 +933,20 @@ class AsyncQueue:
 
 ```python
 # tests/test_queue.py
-# YOUR CODE HERE:
-# 1. Test putting items and processing them
-# 2. Test with an async handler function (use AsyncMock)
-# 3. Test with multiple workers (num_workers > 1)
-# 4. Test empty queue returns empty results
-# 5. Test that the handler is called for each item
-# 6. Test with a handler that raises (what happens?)
+# TUMHARA KAM:
+# 1. Items put karo aur process karo them
+# 2. Async handler function ke saath test karo (AsyncMock use karo)
+# 3. Multiple workers ke saath test karo (num_workers > 1)
+# 4. Empty queue test karo — empty results return ho
+# 5. Handler har item ke liye call ho test karo
+# 6. Handler error throw kare to kya hota test karo
 ```
 
-### Exercise 4: Test a WebSocket Handler
+### Exercise 4: WebSocket Handler Test Karna
 
 ```python
-# Implement tests for a simple WebSocket echo server.
-# Use AsyncMock to simulate WebSocket send/receive.
+# Ek simple WebSocket echo server ke tests implement karo.
+# WebSocket send/receive simulate karne ke liye AsyncMock use karo.
 
 # src/websocket.py
 class WebSocketHandler:
@@ -969,25 +961,24 @@ class WebSocketHandler:
 
 ```python
 # tests/test_websocket.py
-# YOUR CODE HERE:
-# 1. Create a mock websocket that supports async iteration
-# 2. Test echo behavior
-# 3. Test close command
-# 4. Test empty message handling
-# Hint: Mock __aiter__ to simulate incoming messages
+# TUMHARA KAM:
+# 1. Mock websocket banao jo async iteration support kare
+# 2. Echo behavior test karo
+# 3. Close command test karo
+# 4. Empty message handling test karo
+# Hint: __aiter__ ko mock karo incoming messages simulate karne ke liye
 ```
 
 ---
 
 ## Key Takeaways
 
-1. **Use `asyncio_mode = "auto"`** in pyproject.toml to avoid decorating every test.
-2. **AsyncMock is your friend.** Use it for mocking any async function or method.
-3. **assert_awaited vs assert_called.** Python distinguishes between calling and awaiting.
-4. **Async fixtures use yield** just like sync fixtures for setup/teardown.
-5. **Watch for missing await.** Enable `RuntimeWarning` errors in your pytest config.
-6. **httpx + ASGITransport** is the best way to test FastAPI apps.
-7. **pytest-asyncio handles the event loop.** You do not need to create or manage it.
+1. **`asyncio_mode = "auto"` use karo** pyproject.toml mein — har test par decorator lagane ka jhanjhat nahi.
+2. **AsyncMock tera best friend hai.** Any async function ya method ko mock karne ke liye use kar.
+3. **assert_awaited vs assert_called.** Python distinguish karta hai calling aur awaiting mein.
+4. **Async fixtures yield use karte hain** sync fixtures ki tarah setup/teardown ke liye.
+5. **Missing await ke liye alert raho.** RuntimeWarning errors enable karo pytest config mein.
+6. **httpx + ASGITransport sabse best way hai** FastAPI apps test karne ka.
+7. **pytest-asyncio event loop handle karta hai.** Tum create ya manage nahi karo.
 
-Next up: [Code Quality Tools](./04_code_quality.md) -- Black, Ruff, mypy, and setting
-up a complete quality pipeline.
+Agle round: [Code Quality Tools](./04_code_quality.md) — Black, Ruff, mypy aur ek complete quality pipeline.

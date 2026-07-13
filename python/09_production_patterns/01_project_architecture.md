@@ -1,11 +1,15 @@
-# Project Architecture for FastAPI + LangGraph Production Apps
+# FastAPI + LangGraph ke Production Apps ke liye Project Architecture
 
-## Why Architecture Matters Even More in AI Applications
+## Kyun Architecture Matter Karta Hai AI Applications Mein
 
-In a typical Node.js/Express or NestJS backend, poor architecture leads to tech debt.
-In an AI-agent backend, poor architecture leads to tech debt **plus** uncontrolled LLM costs,
-untraceable agent behavior, and debugging nightmares. Getting the structure right from day one
-pays dividends fast.
+Socho ek second ke liye — jo baat NestJS ya Express mein hoti hai, us se thoda alag ho jata hai jab AI agents add karte ho. Normal Node.js backend mein agar architecture kharaab hai, to technical debt hota hai. Bas itna. Lekin AI backend mein? Yeh dekho:
+
+- LLM calls ke paisa burn hota rehta hai, aur tum samajh nahi paate ki kyun
+- Agent bahut weird behavior karne lagta hai, tab pata nahi chalata debugging kaise kare
+- Token usage control mein aata hi nahi
+- Ek choti si coding mistake puri project ko upside down kar deti hai
+
+Jo Swiggy, Zomato jaise platforms ke backend engineers karte hain — ek solid architecture set karke start karte hain — us se seekho. Pehle hi structure sahi banao, phir baad mein zyada maahunga pad-ne se bacho.
 
 ---
 
@@ -157,11 +161,11 @@ flowchart TB
     style DB fill:#f59e0b,color:#000
 ```
 
-### Node.js/NestJS Comparison
+### NestJS vs Python Comparison
 
 ```
 NestJS                              Python (FastAPI + LangGraph)
-──────────────────────────          ──────────────────────────────
+──────────────────────────────────  ──────────────────────────────────
 src/modules/chat/                   src/api/v1/chat.py          (route)
   chat.controller.ts                src/services/chat_service.py (logic)
   chat.service.ts                   src/agents/research_agent.py (agent)
@@ -172,16 +176,13 @@ app.module.ts                       src/main.py (app factory)
 config/configuration.ts             src/core/config.py
 ```
 
-Key difference: NestJS enforces a module-based architecture with decorators.
-FastAPI is more flexible -- you organize by convention, not by framework enforcement.
-This is both a strength (less boilerplate) and a risk (easier to create a mess).
+**Key baat yeh hai:** NestJS bahut strict hota hai — decorators laga, modules define karo, sab kuch framework bolega. FastAPI zyada flexible hai — tum jaise organize karna hai, organize karo. Yeh ek strength bhi ho sakta hai (kam boilerplate) ya weakness bhi (easy to create mess).
 
 ---
 
 ## 2. The App Factory Pattern
 
-In Node.js you might export an Express app from `app.ts`. In FastAPI, the app factory
-pattern lets you configure the app differently for tests vs production.
+Node.js mein tum `app.ts` se ek Express app export karte ho. Python mein thoda alag approach hai — **app factory** bolte hain. Faida yeh hai ki testing aur production dono mein different configuration pass kar sakte ho.
 
 ```python
 # src/main.py
@@ -198,11 +199,11 @@ from src.db.session import engine
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup and shutdown logic -- like NestJS onModuleInit / onModuleDestroy."""
+    """Startup aur shutdown logic — NestJS ke onModuleInit / onModuleDestroy jaisa."""
     setup_logging()
-    # Startup: initialize connections, warm caches, etc.
+    # Startup: connections initialize karo, caches warm karo, etc.
     yield
-    # Shutdown: close connections, flush buffers
+    # Shutdown: connections close karo, buffers flush karo
     await engine.dispose()
 
 
@@ -210,11 +211,12 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.VERSION,
+        # Production mein swagger docs dikhane ki zarurat nahi
         docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
         lifespan=lifespan,
     )
 
-    # Middleware (applied in reverse order -- outermost first)
+    # Middleware (reverse order mein apply hote hain — outermost first)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -252,9 +254,7 @@ export function createApp() {
 
 ## 3. Configuration Management with Pydantic BaseSettings
 
-This is one of the biggest quality-of-life upgrades over Node.js config management.
-Pydantic BaseSettings gives you validated, typed configuration with automatic `.env`
-file loading -- no `dotenv` + manual parsing needed.
+Yeh ek bahut badi quality-of-life upgrade hai Node.js config management se. Pydantic BaseSettings tumhe validated, type-safe configuration deta hai aur `.env` file automatically load kar leta hai — no manual dotenv parsing, no headaches.
 
 ```python
 # src/core/config.py
@@ -264,8 +264,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
-    Application settings. Values are loaded from environment variables,
-    then .env file, with field defaults as fallback.
+    Application settings. Values load hote hain environment variables se,
+    phir .env file se, aur phir field defaults fallback ke taur pe.
 
     Node.js equivalent: config/index.ts with dotenv + zod validation.
     """
@@ -273,8 +273,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False,          # DATABASE_URL and database_url both work
-        extra="ignore",                # Ignore unknown env vars
+        case_sensitive=False,          # DATABASE_URL aur database_url dono work kare
+        extra="ignore",                # Unknown env vars ko ignore karo
     )
 
     # ── App ──────────────────────────────────────────────
@@ -313,13 +313,13 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
-        """Accept both comma-separated string and list."""
+        """Comma-separated string ya list dono accept karo."""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
 
 
-# Singleton -- import this everywhere
+# Singleton — isko hamesha import karo
 settings = Settings()
 ```
 
@@ -341,18 +341,17 @@ const configSchema = z.object({
 export const config = configSchema.parse(process.env);
 ```
 
-The Pydantic version is more powerful because:
-- It supports nested settings, complex types, and custom validators out of the box
-- Settings are a proper class with IDE autocomplete
-- The `.env` file loading is built in (no separate `dotenv` import)
-- You get clear error messages on startup if config is wrong
+**Pydantic version zyada powerful kyon hai:**
+- Nested settings, complex types, custom validators — sab built-in hai
+- Settings ek proper class hain, IDE autocomplete milta hai
+- `.env` file loading built-in hai (separate dotenv import ki zarurat nahi)
+- Agar config wrong hai, to startup pe clear error message milta hai
 
 ---
 
 ## 4. Dependency Injection
 
-FastAPI has built-in dependency injection that feels different from NestJS's decorator-based
-DI but achieves the same goals: testability, separation of concerns, and lifecycle management.
+FastAPI mein dependency injection NestJS se alag dikh sakta hai, lekin goal same hai: **testability, separation of concerns, lifecycle management**.
 
 ### FastAPI Depends vs NestJS @Injectable
 
@@ -371,8 +370,9 @@ from src.agents.research_agent import ResearchAgent
 # ── Database session ─────────────────────────────────────
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
-    Yields a database session per request, commits on success,
-    rolls back on error. Like a NestJS interceptor for transactions.
+    Database session yield karta hai per request ke basis pe.
+    Agar koi error nahi hua, to commit. Error hua to rollback.
+    NestJS ke interceptor ke jaisa kaam karta hai.
     """
     async with async_session_factory() as session:
         try:
@@ -383,7 +383,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-# Type alias for cleaner signatures (Python 3.11+)
+# Type alias — signatures ko cleaner banane ke liye (Python 3.11+)
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
@@ -393,13 +393,14 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
-    Validate JWT token. Dependencies can depend on other dependencies --
-    FastAPI resolves the whole chain automatically, like NestJS's DI container.
+    JWT token validate karo. Dependencies apne aap dependencies par depend kar sakte hain —
+    FastAPI automatically poora chain resolve kar deta hai.
+    NestJS ke DI container jaisa kaam karta hai.
     """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     token = authorization.removeprefix("Bearer ")
-    # ... validate token, look up user
+    # ... token validate karo, user ko lookup karo
     return {"id": "user_123", "email": "user@example.com"}
 
 
@@ -409,8 +410,8 @@ CurrentUser = Annotated[dict, Depends(get_current_user)]
 # ── Service dependencies ────────────────────────────────
 def get_chat_service(db: DbSession) -> ChatService:
     """
-    Build the ChatService with its dependencies.
-    This is the Python equivalent of NestJS providers.
+    ChatService build karo apke dependencies ke saath.
+    Yeh NestJS providers ke equivalent hai.
     """
     agent = ResearchAgent(
         model_name=settings.OPENAI_MODEL,
@@ -422,7 +423,7 @@ def get_chat_service(db: DbSession) -> ChatService:
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 ```
 
-### Using Dependencies in Routes
+### Dependencies Ko Routes Mein Use Karo
 
 ```python
 # src/api/v1/chat.py
@@ -437,12 +438,12 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 @router.post("/", response_model=ChatResponse)
 async def create_chat(
     request: ChatRequest,
-    user: CurrentUser,           # Injected -- auth required
-    chat_service: ChatServiceDep # Injected -- includes db + agent
+    user: CurrentUser,           # Inject hota hai — auth zaruri hai
+    chat_service: ChatServiceDep # Inject hota hai — db + agent included
 ):
     """
-    Notice: no manual instantiation. FastAPI resolves the entire
-    dependency tree: db session -> agent -> chat_service -> route.
+    Notice: koi manual instantiation nahi. FastAPI poora dependency tree
+    resolve karta hai: db session -> agent -> chat_service -> route.
     """
     result = await chat_service.process_message(
         user_id=user["id"],
@@ -455,7 +456,7 @@ async def create_chat(
 // NestJS equivalent
 @Controller('chat')
 export class ChatController {
-  // NestJS injects via constructor
+  // NestJS constructor se inject karta hai
   constructor(private readonly chatService: ChatService) {}
 
   @Post()
@@ -469,21 +470,20 @@ export class ChatController {
 }
 ```
 
-### Key Differences from NestJS DI
+### NestJS DI se Key Differences
 
 | Aspect | NestJS | FastAPI |
 |--------|--------|---------|
-| Registration | Explicit in module `providers` | Implicit via `Depends()` |
-| Scope | Singleton by default, can be request-scoped | Request-scoped by default (runs per request) |
+| Registration | Module `providers` mein explicit | `Depends()` ke through implicit |
+| Scope | Default singleton, request-scoped ho sakte hain | Default request-scoped (har request pe run hota hai) |
 | Lifecycle | `onModuleInit`, `onModuleDestroy` | `lifespan` context manager |
-| Testing | Override providers in testing module | Override dependencies in app |
+| Testing | Testing module mein providers override karo | App ke `dependency_overrides` use karo |
 
 ---
 
 ## 5. The Service Layer
 
-Services contain business logic and orchestrate calls to agents, databases, and external APIs.
-This is the same pattern as NestJS services.
+Services mein business logic hota hai aur yeh agents, databases, external APIs ko orchestrate karte hain. Yeh exact same pattern hai jo NestJS mein use karte ho.
 
 ```python
 # src/services/chat_service.py
@@ -501,8 +501,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ChatService:
     """
-    Orchestrates a chat interaction: loads history, runs the agent,
-    saves the result. Pure business logic -- no HTTP concerns.
+    Chat interaction ko orchestrate karta hai: history load karo,
+    agent ko run karo, result save karo. Pure business logic —
+    HTTP ka koi concern nahi.
     """
     db: AsyncSession
     agent: ResearchAgent
@@ -512,14 +513,14 @@ class ChatService:
     ) -> ConversationResult:
         repo = ConversationRepository(self.db)
 
-        # 1. Load conversation history
+        # 1. Conversation history load karo
         history = await repo.get_recent_messages(user_id, limit=20)
         logger.info(
             "Processing message",
             extra={"user_id": user_id, "history_length": len(history)},
         )
 
-        # 2. Run the agent
+        # 2. Agent ko run karo
         try:
             agent_response = await self.agent.invoke(
                 message=message,
@@ -529,7 +530,7 @@ class ChatService:
             logger.error("Agent failed", extra={"error": str(e), "user_id": user_id})
             raise
 
-        # 3. Persist the result
+        # 3. Result ko persist karo
         await repo.save_message(user_id, "user", message)
         await repo.save_message(user_id, "assistant", agent_response.reply)
 
@@ -563,42 +564,42 @@ export class ChatService {
 
 ## 6. Separation of Concerns: Routes -> Services -> Agents
 
-The data flow in a well-architected application:
+Well-architected application mein data flow yeh hota hai:
 
 ```
 HTTP Request
      |
      v
-┌─────────────┐    Validates input, serializes output.
-│   API Route  │    No business logic. No LLM calls.
-│  (chat.py)   │    Equivalent to a NestJS controller.
+┌─────────────┐    Input validate karo, output serialize karo.
+│   API Route  │    Koi business logic nahi. Koi LLM call nahi.
+│  (chat.py)   │    NestJS controller ke equivalent.
 └──────┬───────┘
        |
        v
-┌─────────────┐    Orchestrates business logic.
-│   Service    │    Calls agents, databases, external APIs.
-│ (chat_svc)   │    Equivalent to a NestJS service.
+┌─────────────┐    Business logic ko orchestrate karo.
+│   Service    │    Agents, databases, external APIs ko call karo.
+│ (chat_svc)   │    NestJS service ke equivalent.
 └──────┬───────┘
        |
        v
-┌─────────────┐    Defines the LangGraph state machine.
-│    Agent     │    Manages nodes, edges, tool calls.
-│ (research)   │    No HTTP, no database direct access.
+┌─────────────┐    LangGraph state machine define karo.
+│    Agent     │    Nodes, edges, tool calls manage karo.
+│ (research)   │    Koi HTTP nahi, koi direct db access nahi.
 └──────┬───────┘
        |
        v
 ┌─────────────┐    Reusable components: LLM calls,
 │ Nodes/Tools  │    tool execution, human-in-the-loop.
-│              │    Shared across multiple agents.
+│              │    Multiple agents ke across share hote hain.
 └──────────────┘
 ```
 
 ### Rules of Thumb
 
-1. **Routes** never import from `agents/` or `chains/` directly.
-2. **Services** never import from `api/` (no `Request` or `Response` objects).
-3. **Agents** never import from `db/` -- they receive data they need as arguments.
-4. **Tools** are pure functions or thin wrappers -- they do one thing.
+1. **Routes** kabhi `agents/` aur `chains/` se directly import nahi karte.
+2. **Services** kabhi `api/` se import nahi karte (Request ya Response objects).
+3. **Agents** kabhi `db/` se direct access nahi karte — jo data zaruri hai as arguments pass hota hai.
+4. **Tools** pure functions ya thin wrappers hote hain — ek hi kaam karte hain.
 
 ---
 
@@ -635,7 +636,7 @@ from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
-    """Incoming chat message -- like a DTO in NestJS."""
+    """Incoming chat message — NestJS mein DTO ke jaisa."""
     message: str = Field(..., min_length=1, max_length=10_000)
     conversation_id: str | None = None
     stream: bool = False
@@ -680,8 +681,7 @@ export class CreateChatDto {
 
 ## 9. Testing with Dependency Overrides
 
-FastAPI makes it easy to swap dependencies for testing -- similar to NestJS's
-`overrideProvider`.
+FastAPI se testing bahut easy hai — dependencies ko swap kar sakte ho, NestJS ke `overrideProvider` jaisa.
 
 ```python
 # tests/conftest.py
@@ -696,12 +696,12 @@ from src.api.deps import get_db, get_current_user
 def app():
     app = create_app()
 
-    # Override database with test database
+    # Database ko test database se override karo
     async def override_get_db():
         async with test_session_factory() as session:
             yield session
 
-    # Override auth with a fake user
+    # Auth ko fake user se override karo
     async def override_get_current_user():
         return {"id": "test_user", "email": "test@test.com"}
 
@@ -737,34 +737,33 @@ async def test_create_chat(client):
 
 ## 10. Practice Exercises
 
-### Exercise 1: Scaffold a Project
-Create the full folder structure from scratch using `mkdir` and `touch`.
-Add a `pyproject.toml` with the following dependencies:
+### Exercise 1: Scaffold ek Project
+
+Scratch se poora folder structure banao using `mkdir` aur `touch`. `pyproject.toml` mein yeh dependencies add karo:
 - fastapi, uvicorn, pydantic-settings
 - langchain, langgraph, langchain-openai
 - sqlalchemy[asyncio], asyncpg
 - pytest, httpx, pytest-asyncio
 
-Verify you can run `uvicorn src.main:app --reload` and see the Swagger docs.
+Verify karo ki `uvicorn src.main:app --reload` run ho aur Swagger docs dikhain.
 
-### Exercise 2: Implement Config
-Create a `Settings` class with Pydantic BaseSettings that loads:
+### Exercise 2: Config Implement Karo
+
+Pydantic BaseSettings ke saath ek `Settings` class banao jo load kare:
 - `DATABASE_URL` (required, must start with `postgresql`)
 - `OPENAI_API_KEY` (required, non-empty)
 - `ENVIRONMENT` (one of development/staging/production)
 - `LOG_LEVEL` (default INFO)
 
-Write a test that verifies the settings raise `ValidationError` when
-`OPENAI_API_KEY` is missing.
+Ek test likho jo verify kare ki `OPENAI_API_KEY` missing ho to `ValidationError` raise ho.
 
 ### Exercise 3: Dependency Chain
-Build a dependency chain: `get_db` -> `get_user_repo` -> `get_user_service`.
-Create a route `/api/v1/users/me` that uses `UserServiceDep` to return the
-current user's profile. Write a test that overrides `get_db` to use an
-in-memory SQLite database.
 
-### Exercise 4: Separate Concerns
-You have this badly structured route:
+Dependency chain banao: `get_db` -> `get_user_repo` -> `get_user_service`. Ek route `/api/v1/users/me` create karo jo `UserServiceDep` use karke current user ka profile return kare. Ek test likho jo `get_db` ko override karke in-memory SQLite database use kare.
+
+### Exercise 4: Concerns Ko Separate Karo
+
+Yeh badly structured route dekho:
 
 ```python
 @router.post("/analyze")
@@ -778,12 +777,11 @@ async def analyze(request: Request):
     return {"result": result.content}
 ```
 
-Refactor it into the proper layers: a Pydantic schema, a route, a service, and a chain.
-Each should be in its own file following the project structure.
+Isko refactor karo proper layers mein: ek Pydantic schema, ek route, ek service, aur ek chain. Har ek apni hi file mein aur project structure follow kare.
 
-### Exercise 5: Compare Architectures
-Draw a diagram (or write a table) mapping your current NestJS project's modules to the
-equivalent Python project structure. Identify:
-- Which NestJS concepts have direct Python equivalents
-- Which concepts are handled differently (e.g., Guards -> Dependencies)
-- Which concepts don't exist in Python and how to replace them
+### Exercise 5: Architectures Ko Compare Karo
+
+Ek diagram (ya table) draw karo jo apne current NestJS project ke modules ko equivalent Python structure mein map kare. Identify karo:
+- Kaun se NestJS concepts ka direct Python equivalent hai
+- Kaun se concepts differently handle hote hain (e.g., Guards -> Dependencies)
+- Kaun se concepts Python mein exist nahi karte aur unhe replace kaise kare

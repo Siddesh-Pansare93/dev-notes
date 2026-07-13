@@ -2,12 +2,12 @@
 
 ## Python Ka Resource Management Pattern
 
-Socho tumne Zomato se order kiya — restaurant order accept karta hai, khana banata hai, aur phir *chahe order sahi jaye ya cancel ho jaye*, kitchen ko cleanup toh karna hi padta hai (gas band karo, table saaf karo). Context managers Python mein bilkul yehi karte hain — resource cleanup guarantee karte hain, chahe kuch bhi ho jaye beech mein.
+Socho tumne Zomato se order kiya — restaurant order accept karta hai, khana banata hai, aur phir *chahe order sahi jaye ya cancel ho jaye*, kitchen ko cleanup toh karna hi padta hai (gas band karo, table saaf karo). Context managers bilkul yehi karte hain Python mein — resource cleanup guarantee karte hain, chahe kuch bhi ho jaye beech mein.
 
-JavaScript/TypeScript mein iska koi direct equivalent nahi hai (sabse paas wala hai `try/finally`, ya phir naya `using` declaration jo TC39/TypeScript 5.2+ mein aaya hai). Python mein tum context managers baar-baar use karoge -- files, database connections, locks, temporary resources, aur bahut kuch ke liye.
+JavaScript/TypeScript mein iska koi direct equivalent nahi hai (sabse paas wala hai `try/finally`, ya phir naya `using` declaration jo TC39/TypeScript 5.2+ mein aaya hai). Python mein tum context managers baar-baar use karoge — files, database connections, locks, temporary resources, sab kuch ke liye.
 
 > [!info]
-> Context manager ka matlab bas itna hai: "setup + guaranteed cleanup", ek hi package mein. Jaise dabbawala pickup aur delivery dono guarantee karta hai -- beech mein traffic mile ya na mile.
+> Context manager ka matlab bas itna hai: "setup + guaranteed cleanup", ek hi package mein. Jaise dabbawala pickup aur delivery dono guarantee karta hai — beech mein traffic mile ya na mile.
 
 ---
 
@@ -49,7 +49,7 @@ const content = await fs.promises.readFile("data.txt", "utf-8");
 
 ### Context Managers Zaruri Kyun Hain?
 
-Socho tum ek IRCTC booking process kar rahe ho — payment cut gaya lekin beech mein server crash ho gaya. Agar refund/rollback ka mechanism guaranteed na ho, toh paisa fasa reh jaata hai. Wahi problem yahan hai:
+Socho tum ek IRCTC booking process kar rahe ho — payment cut gaya lekin beech mein server crash ho gaya. Agar refund/rollback ka mechanism guaranteed na ho, toh paisa fasa reh jaata hai. Python mein bhi yehi problem hota hai:
 
 ```python
 # Problem: agar open aur close ke beech exception aa jaye toh?
@@ -67,9 +67,9 @@ with open("data.txt") as f:
 
 ---
 
-## Protocol: `__enter__` aur `__exit__`
+## Protocol: `__enter__` Aur `__exit__`
 
-Koi bhi object jo `__enter__` aur `__exit__` implement karta hai, wo context manager ban jaata hai. Socho ek dabbawala — pickup pe "enter" hota hai (dabba utha lo), delivery ke baad "exit" hota hai (dabba wapas kar do), chahe raaste mein traffic mile ya na mile.
+Koi bhi object jo `__enter__` aur `__exit__` methods implement karta hai, wo automatically context manager ban jaata hai. Socho ek dabbawala — pickup pe "enter" hota hai (dabba utha lo), delivery ke baad "exit" hota hai (dabba wapas kar do), chahe raaste mein traffic mile ya na mile.
 
 ```python
 class ManagedResource:
@@ -78,7 +78,8 @@ class ManagedResource:
         print(f"Creating {name}")
 
     def __enter__(self):
-        """'with' block mein enter karte waqt call hota hai. Return value 'as' variable mein bind hota hai."""
+        """'with' block mein enter karte waqt call hota hai. 
+        Return value 'as' variable mein bind hota hai."""
         print(f"Acquiring {self.name}")
         return self  # Yeh 'as' variable ban jaata hai
 
@@ -98,7 +99,7 @@ class ManagedResource:
 
 
 > [!warning]
-> `__exit__` se `True` return karne ka matlab hai exception "khaa liya" -- wo aage propagate hi nahi hoga. Jab tak jaan-boojh kar suppress nahi karna, hamesha `False` (ya kuch bhi na return karo, `None` default hota hai) return karo, warna bugs silently chup jaayenge.
+> `__exit__` se `True` return karne ka matlab hai exception "khaa liya" -- wo aage propagate hi nahi hoga. Jab tak jaan-boojh kar suppress nahi karna, hamesha `False` (ya None) return karo, warna bugs silently chup jaayenge.
 
 # Usage
 with ManagedResource("database") as db:
@@ -156,7 +157,7 @@ print("Continues normally")
 
 ## `@contextmanager` Decorator
 
-`__enter__` aur `__exit__` likhna kaafi verbose lagta hai. `contextlib` ka `@contextmanager` decorator tumhe ek simple generator function se hi context manager banane deta hai -- shortcut samajh lo.
+`__enter__` aur `__exit__` likhna kaafi verbose hota hai. `contextlib` ka `@contextmanager` decorator tumhe ek simple generator function se hi context manager banane deta hai — ek shortcut samajh lo.
 
 > [!tip]
 > Yaad rakhne ka tareeka: `yield` se **pehle** ka code `__enter__` hai, `yield` ke **baad** ka code `__exit__` hai. Aur `yield` ko hamesha `try/finally` ke andar rakho, warna exception aane pe cleanup wala part skip ho jaayega.
@@ -285,7 +286,7 @@ with open("input.txt") as infile, \
 
 ## Async Context Managers
 
-Async resources ke liye (database connections, HTTP sessions, waghera), Python mein `async with` hota hai.
+Async resources ke liye (database connections, HTTP sessions, waghera), Python mein `async with` hota hai. Socho Zomato ka delivery partner — order accept karne mein time lagta hai, delivery mein time lagta hai, sab `await` ke saath kaam karte hain.
 
 ```python
 import asyncio
@@ -308,7 +309,7 @@ async def main():
 asyncio.run(main())
 ```
 
-### Async contextmanager
+### Async Contextmanager
 
 ```python
 from contextlib import asynccontextmanager
@@ -348,20 +349,20 @@ async def transaction(pool):
 
 ## `contextlib` Utilities
 
-`contextlib` module mein kai useful context manager helpers milte hain.
+`contextlib` module mein kai useful helper utilities milte hain jo context manager ka kaam aasan kar dete hain.
 
-### `suppress` -- Specific Exceptions Ignore Karo
+### `suppress` — Specific Exceptions Ignore Karo
 
 ```python
 from contextlib import suppress
 
-# try/except/pass ki jagah
+# try/except/pass ki jagah:
 try:
     os.remove("temp.txt")
 except FileNotFoundError:
     pass
 
-# suppress use karo
+# suppress use karo -- zyada clean
 with suppress(FileNotFoundError):
     os.remove("temp.txt")
 
@@ -395,9 +396,9 @@ with redirect_stdout(io.StringIO()):
     noisy_function()  # Output discard ho jaata hai
 ```
 
-### `ExitStack` -- Dynamic Context Managers
+### `ExitStack` — Dynamic Context Managers
 
-Jab tumhe pata na ho kitne context managers chahiye honge, tab kaam aata hai.
+Jab tumhe pata na ho kitne context managers chahiye honge, tab kaam aata hai. Socho ek restaurant mein kai alag-alag orders aa rahe hain, har order ke liye cleanup alag hai, sabko manage karna padta hai.
 
 ```python
 from contextlib import ExitStack
@@ -428,7 +429,7 @@ with ExitStack() as stack:
 # Dono cleanup callbacks reverse order mein chalte hain
 ```
 
-### `AsyncExitStack` -- Async Version
+### `AsyncExitStack` — Async Version
 
 ```python
 from contextlib import AsyncExitStack
@@ -447,7 +448,7 @@ async def process_batch(urls: list[str]):
     # Saare connections aur session close
 ```
 
-### `closing` -- Objects Mein close() Cleanup Add Karo
+### `closing` — Objects Mein close() Cleanup Add Karo
 
 ```python
 from contextlib import closing
@@ -459,7 +460,7 @@ with closing(urlopen("https://example.com")) as page:
 # page.close() automatically call ho jaata hai
 ```
 
-### `nullcontext` -- No-op Context Manager
+### `nullcontext` — No-op Context Manager
 
 ```python
 from contextlib import nullcontext
@@ -479,7 +480,7 @@ def process(filepath: str, verbose: bool = False):
 
 ### Lock Management
 
-Socho ek hi UPI account se do log ek saath paisa nikalne ki koshish kar rahe hain -- lock lagana zaruri hai taaki race condition na ho.
+Socho ek hi UPI account se do log ek saath paisa nikalne ki koshish kar rahe hain — lock lagana zaruri hai taaki race condition na ho aur account corrupt ho jaye.
 
 ```python
 import threading
@@ -528,7 +529,7 @@ def indent(level: int = 1, char: str = "  "):
 
 ### Atomic File Write
 
-Jaise koi bank transaction "all or nothing" hota hai -- ya toh poora ho, ya bilkul na ho, beech mein kuch nahi. Atomic write bhi wahi guarantee deta hai file ke liye.
+Jaise koi bank transaction "all or nothing" hota hai — ya toh poora ho, ya bilkul na ho, beech mein kuch nahi. Atomic write bhi wahi guarantee deta hai file ke liye. Agar writing beech mein fail ho, toh original file untouched rahti hai.
 
 ```python
 import os
